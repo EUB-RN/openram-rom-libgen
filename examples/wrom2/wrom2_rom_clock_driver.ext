@@ -1,0 +1,153 @@
+timestamp 1617478391
+version 8.3
+tech sky130A
+style ngspice(si)
+scale 1000 1 0.5
+resistclasses 4400000 2200000 950000 3050000 120000 197000 114000 191000 120000 197000 114000 191000 48200 319800 2000000 48200 48200 12800 125 125 47 47 29 5
+use wrom2_pinv_3 wrom2_pinv_3_0 1 0 2596 0 1 0
+use wrom2_pinv_2 wrom2_pinv_2_0 1 0 1688 0 1 0
+use wrom2_pinv_1 wrom2_pinv_1_0 1 0 1212 0 1 0
+use wrom2_pinv_0 wrom2_pinv_0_0 1 0 736 0 1 0
+use wrom2_pinv wrom2_pinv_0 1 0 368 0 1 0
+use wrom2_pinv wrom2_pinv_1 1 0 0 0 1 0
+node "gnd" 1482 1672.92 0 -17 li 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 133824 7940 0 0 0 0 0 0 0 0 0 0 0 0
+node "Z" 13 19.2409 3211 1198 li 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1156 136 0 0 0 0 0 0 0 0 0 0 0 0
+node "li_2087_1198#" 253 154.216 2087 1198 li 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 22882 1414 0 0 0 0 0 0 0 0 0 0 0 0
+node "li_919_1248#" 143 74.3046 919 1248 li 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 12954 830 0 0 0 0 0 0 0 0 0 0 0 0
+node "li_1395_1265#" 153 60.8506 1395 1265 li 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 13838 882 0 0 0 0 0 0 0 0 0 0 0 0
+node "li_547_1272#" 102 46.0995 547 1272 li 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 9180 608 0 0 0 0 0 0 0 0 0 0 0 0
+node "li_196_1260#" 95 44.8796 196 1260 li 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 8602 574 0 0 0 0 0 0 0 0 0 0 0 0
+node "A" 25 20.4866 64 1244 li 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2244 200 0 0 0 0 0 0 0 0 0 0 0 0
+node "vdd" 1482 788.611 0 2611 li 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 133824 7940 0 0 0 0 0 0 0 0 0 0 0 0
+node "w_n36_1261#" 2672 17134.2 -36 1261 nw 0 0 0 0 5711400 10866 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+substrate "gnd" 0 0 -1073741817 -1073741817 space 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+cap "li_919_1248#" "li_1395_1265#" 3.7144
+cap "li_919_1248#" "gnd" 7.57506
+cap "vdd" "A" 0.65237
+cap "gnd" "li_1395_1265#" 7.30284
+cap "vdd" "li_2087_1198#" 10.7316
+cap "vdd" "w_n36_1261#" 900.715
+cap "Z" "gnd" 0.717122
+cap "vdd" "li_547_1272#" 5.16504
+cap "li_196_1260#" "vdd" 4.79665
+cap "A" "w_n36_1261#" 13.5996
+cap "w_n36_1261#" "li_2087_1198#" 116.63
+cap "vdd" "li_919_1248#" 7.03132
+cap "vdd" "li_1395_1265#" 7.29686
+cap "A" "li_547_1272#" 0.641509
+cap "li_196_1260#" "A" 6.88095
+cap "w_n36_1261#" "li_547_1272#" 63.591
+cap "li_196_1260#" "w_n36_1261#" 56.5414
+cap "vdd" "Z" 0.616205
+cap "A" "li_919_1248#" 0.360424
+cap "li_919_1248#" "li_2087_1198#" 0.527372
+cap "A" "li_1395_1265#" 0.0769811
+cap "w_n36_1261#" "li_919_1248#" 78.5163
+cap "li_2087_1198#" "li_1395_1265#" 2.47957
+cap "w_n36_1261#" "li_1395_1265#" 103.784
+cap "A" "gnd" 0.690837
+cap "li_2087_1198#" "gnd" 12.4442
+cap "li_196_1260#" "li_547_1272#" 4.45238
+cap "w_n36_1261#" "gnd" 12.4488
+cap "Z" "li_2087_1198#" 1.5427
+cap "w_n36_1261#" "Z" 5.59541
+cap "li_919_1248#" "li_547_1272#" 3.33462
+cap "li_196_1260#" "li_919_1248#" 0.614458
+cap "li_1395_1265#" "li_547_1272#" 0.715347
+cap "gnd" "li_547_1272#" 5.36633
+cap "li_196_1260#" "gnd" 5.07592
+cap "wrom2_pinv_0_0/Z" "wrom2_pinv_1/gnd" 10.2914
+cap "wrom2_pinv_0/Z" "wrom2_pinv_2_0/Z" 0.15537
+cap "wrom2_pinv_1/A" "wrom2_pinv_1/Z" 56.4462
+cap "wrom2_pinv_1/vdd" "wrom2_pinv_1/gnd" -7.55971
+cap "wrom2_pinv_0_0/Z" "wrom2_pinv_2_0/Z" -0.187391
+cap "wrom2_pinv_1_0/Z" "wrom2_pinv_0/Z" -0.0921363
+cap "wrom2_pinv_1/Z" "wrom2_pinv_1/gnd" -0.0664496
+cap "wrom2_pinv_0/Z" "wrom2_pinv_0_0/Z" 115.026
+cap "wrom2_pinv_1/vdd" "wrom2_pinv_0/Z" -6.89533
+cap "wrom2_pinv_1_0/Z" "wrom2_pinv_0_0/Z" 42.2999
+cap "wrom2_pinv_0/Z" "wrom2_pinv_1/Z" 139.36
+cap "wrom2_pinv_1/vdd" "wrom2_pinv_0_0/Z" -4.45131
+cap "wrom2_pinv_0_0/Z" "wrom2_pinv_1/Z" -0.490155
+cap "wrom2_pinv_1/vdd" "wrom2_pinv_1/Z" -3.75983
+cap "wrom2_pinv_1/A" "wrom2_pinv_1/gnd" -0.617787
+cap "wrom2_pinv_1/A" "wrom2_pinv_0/Z" -0.641509
+cap "wrom2_pinv_1/A" "wrom2_pinv_1_0/Z" -0.0384906
+cap "wrom2_pinv_0/Z" "wrom2_pinv_1/gnd" 4.9609
+cap "wrom2_pinv_1/A" "wrom2_pinv_0_0/Z" -0.360424
+cap "wrom2_pinv_1/A" "wrom2_pinv_1/vdd" -12.1556
+cap "wrom2_pinv_1/vdd" "wrom2_pinv_1_0/Z" -18.3195
+cap "wrom2_pinv_1/gnd" "wrom2_pinv_0_0/Z" 0.590144
+cap "wrom2_pinv_3_0/Z" "wrom2_pinv_1/gnd" 0.643168
+cap "wrom2_pinv_1/gnd" "wrom2_pinv_2_0/Z" 0.684048
+cap "wrom2_pinv_0/Z" "wrom2_pinv_1_0/Z" -0.357673
+cap "wrom2_pinv_3_0/Z" "wrom2_pinv_0_0/Z" 0.00122903
+cap "wrom2_pinv_2_0/Z" "wrom2_pinv_0_0/Z" 0.0915516
+cap "wrom2_pinv_1/gnd" "wrom2_pinv_1_0/Z" 11.2874
+cap "wrom2_pinv_3_0/Z" "wrom2_pinv_2_0/Z" 14.5315
+cap "wrom2_pinv_0_0/Z" "wrom2_pinv_1_0/Z" 41.499
+cap "wrom2_pinv_1/gnd" "wrom2_pinv_1/vdd" -7.42643
+cap "wrom2_pinv_1/vdd" "wrom2_pinv_0_0/Z" 0.00286714
+cap "wrom2_pinv_3_0/Z" "wrom2_pinv_1_0/Z" 0.204205
+cap "wrom2_pinv_2_0/Z" "wrom2_pinv_1_0/Z" 55.5007
+cap "wrom2_pinv_1/A" "wrom2_pinv_1_0/Z" -0.0384906
+cap "wrom2_pinv_1/vdd" "wrom2_pinv_2_0/Z" -23.922
+cap "wrom2_pinv_3_0/Z" "wrom2_pinv_1/vdd" 9.6166e-05
+cap "wrom2_pinv_0_0/vdd" "wrom2_pinv_0_0/gnd" -6.86427
+cap "wrom2_pinv_3_0/Z" "wrom2_pinv_0_0/gnd" 0.128753
+cap "wrom2_pinv_0_0/vdd" "wrom2_pinv_2_0/Z" 0.0496742
+cap "wrom2_pinv_3_0/Z" "wrom2_pinv_2_0/Z" 9.6807
+cap "wrom2_pinv_3_0/Z" "wrom2_pinv_0_0/vdd" -3.02342
+cap "wrom2_pinv_1_0/Z" "wrom2_pinv_3_0/Z" 0.558037
+cap "wrom2_pinv_0/Z" "wrom2_pinv_1/Z" 120.21
+cap "wrom2_pinv_1_0/Z" "wrom2_pinv_1/vdd" 0.00555739
+cap "wrom2_pinv_0/Z" "wrom2_pinv_1/vdd" 135.865
+cap "wrom2_pinv_1_0/Z" "wrom2_pinv_0_0/Z" 33.7377
+cap "wrom2_pinv_0/Z" "wrom2_pinv_0_0/Z" 95.2351
+cap "wrom2_pinv_1/Z" "wrom2_pinv_1/A" 47.1953
+cap "wrom2_pinv_1/Z" "wrom2_pinv_1/vdd" 96.3296
+cap "wrom2_pinv_1/Z" "wrom2_pinv_0_0/Z" 0.0457958
+cap "wrom2_pinv_1/vdd" "wrom2_pinv_1/A" 13.1129
+cap "wrom2_pinv_0/Z" "wrom2_pinv_1_0/Z" 0.372498
+cap "wrom2_pinv_1/vdd" "wrom2_pinv_0_0/Z" 103.103
+cap "wrom2_pinv_0/Z" "wrom2_pinv_2_0/Z" 0.203035
+cap "wrom2_pinv_1_0/Z" "wrom2_pinv_0_0/Z" 36.9791
+cap "wrom2_pinv_1_0/Z" "wrom2_pinv_1/vdd" 115.354
+cap "wrom2_pinv_2_0/Z" "wrom2_pinv_0_0/Z" 0.569121
+cap "wrom2_pinv_2_0/Z" "wrom2_pinv_1/vdd" 58.5266
+cap "wrom2_pinv_3_0/Z" "wrom2_pinv_1/vdd" 3.19549
+cap "wrom2_pinv_1/gnd" "wrom2_pinv_1/vdd" -0.00676923
+cap "wrom2_pinv_1/vdd" "wrom2_pinv_0_0/Z" 1.23967
+cap "wrom2_pinv_2_0/Z" "wrom2_pinv_1_0/Z" 40.5477
+cap "wrom2_pinv_3_0/Z" "wrom2_pinv_1_0/Z" 0.513612
+cap "wrom2_pinv_2_0/Z" "wrom2_pinv_3_0/Z" 12.7961
+cap "wrom2_pinv_2_0/Z" "wrom2_pinv_1/gnd" -0.0594416
+cap "wrom2_pinv_3_0/Z" "wrom2_pinv_2_0/Z" 6.77415
+cap "wrom2_pinv_0_0/vdd" "wrom2_pinv_2_0/Z" 0.817032
+cap "wrom2_pinv_0_0/vdd" "wrom2_pinv_3_0/Z" 11.9146
+cap "wrom2_pinv_1_0/Z" "wrom2_pinv_3_0/Z" 0.200026
+merge "wrom2_pinv_1/vdd" "wrom2_pinv_0/vdd" -19994.4 0 0 0 0 -6220032 -25824 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -130636 -8322 0 0 0 0 0 0 0 0 0 0 0 0
+merge "wrom2_pinv_0/vdd" "wrom2_pinv_0_0/vdd"
+merge "wrom2_pinv_0_0/vdd" "wrom2_pinv_1_0/vdd"
+merge "wrom2_pinv_1_0/vdd" "wrom2_pinv_2_0/vdd"
+merge "wrom2_pinv_2_0/vdd" "wrom2_pinv_3_0/vdd"
+merge "wrom2_pinv_3_0/vdd" "vdd"
+merge "vdd" "w_n36_1261#"
+merge "wrom2_pinv_0_0/Z" "wrom2_pinv_1_0/A" -613.615 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1564 -252 0 0 0 0 0 0 0 0 0 0 0 0
+merge "wrom2_pinv_1_0/A" "li_919_1248#"
+merge "wrom2_pinv_1/gnd" "wrom2_pinv_0/gnd" -2062.61 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -133824 -8280 0 0 0 0 0 0 0 0 0 0 0 0
+merge "wrom2_pinv_0/gnd" "wrom2_pinv_0_0/gnd"
+merge "wrom2_pinv_0_0/gnd" "wrom2_pinv_1_0/gnd"
+merge "wrom2_pinv_1_0/gnd" "wrom2_pinv_2_0/gnd"
+merge "wrom2_pinv_2_0/gnd" "wrom2_pinv_3_0/gnd"
+merge "wrom2_pinv_3_0/gnd" "gnd"
+merge "wrom2_pinv_3_0/Z" "Z" -97.612 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1156 -136 0 0 0 0 0 0 0 0 0 0 0 0
+merge "wrom2_pinv_0/Z" "wrom2_pinv_0_0/A" -749.816 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1530 -238 0 0 0 0 0 0 0 0 0 0 0 0
+merge "wrom2_pinv_0_0/A" "li_547_1272#"
+merge "wrom2_pinv_1_0/Z" "wrom2_pinv_2_0/A" -491.103 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2006 -304 0 0 0 0 0 0 0 0 0 0 0 0
+merge "wrom2_pinv_2_0/A" "li_1395_1265#"
+merge "wrom2_pinv_2_0/Z" "wrom2_pinv_3_0/A" -343.203 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2856 -404 0 0 0 0 0 0 0 0 0 0 0 0
+merge "wrom2_pinv_3_0/A" "li_2087_1198#"
+merge "wrom2_pinv_1/Z" "wrom2_pinv_0/A" -559.778 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1156 -204 0 0 0 0 0 0 0 0 0 0 0 0
+merge "wrom2_pinv_0/A" "li_196_1260#"
+merge "wrom2_pinv_1/A" "A" -145.451 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2244 -200 0 0 0 0 0 0 0 0 0 0 0 0

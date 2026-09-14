@@ -1,0 +1,180 @@
+magic
+tech sky130A
+magscale 1 2
+timestamp 1788892176
+<< obsm1 >>
+rect 124 124 62494 39296
+<< obsm2 >>
+rect 124 124 62494 39296
+<< metal3 >>
+rect -1496 40568 64114 40916
+rect -800 39872 63418 40220
+rect -1496 7601 -1420 7677
+rect -1496 7463 -1420 7539
+rect -1496 7325 -1420 7401
+rect -1496 7187 -1420 7263
+rect -1496 7038 -1420 7114
+rect -1496 6889 -1420 6965
+rect -1496 6751 -1420 6827
+rect -1496 6613 -1420 6689
+rect -1496 2902 -1420 2978
+rect -800 -800 63418 -452
+rect -1496 -1496 64114 -1148
+<< obsm3 >>
+rect 124 124 62494 39296
+<< metal4 >>
+rect -1496 -1496 -1148 40916
+rect -800 -800 -452 40220
+rect 63070 -800 63418 40220
+rect 4617 -1496 4693 -1420
+rect 6854 -1496 6930 -1420
+rect 7262 -1496 7338 -1420
+rect 7670 -1496 7746 -1420
+rect 16711 -1496 16787 -1420
+rect 17019 -1496 17095 -1420
+rect 17327 -1496 17403 -1420
+rect 17635 -1496 17711 -1420
+rect 17943 -1496 18019 -1420
+rect 18251 -1496 18327 -1420
+rect 18559 -1496 18635 -1420
+rect 18867 -1496 18943 -1420
+rect 19175 -1496 19251 -1420
+rect 19483 -1496 19559 -1420
+rect 19791 -1496 19867 -1420
+rect 20099 -1496 20175 -1420
+rect 20407 -1496 20483 -1420
+rect 20715 -1496 20791 -1420
+rect 21023 -1496 21099 -1420
+rect 21331 -1496 21407 -1420
+rect 21639 -1496 21715 -1420
+rect 21947 -1496 22023 -1420
+rect 22255 -1496 22331 -1420
+rect 22563 -1496 22639 -1420
+rect 22871 -1496 22947 -1420
+rect 23179 -1496 23255 -1420
+rect 23487 -1496 23563 -1420
+rect 23795 -1496 23871 -1420
+rect 24103 -1496 24179 -1420
+rect 24411 -1496 24487 -1420
+rect 24570 -1496 24646 -1420
+rect 25049 -1496 25125 -1420
+rect 25335 -1496 25411 -1420
+rect 25643 -1496 25719 -1420
+rect 25951 -1496 26027 -1420
+rect 26092 -1496 26168 -1420
+rect 63766 -1496 64114 40916
+<< obsm4 >>
+rect 124 124 62494 39296
+<< labels >>
+rlabel metal3 s -1496 2902 -1420 2978 4 clk0
+port 1 nsew default input
+rlabel metal4 s 4617 -1496 4693 -1420 8 cs0
+port 2 nsew default input
+rlabel metal4 s 6854 -1496 6930 -1420 8 addr0[0]
+port 3 nsew default input
+rlabel metal4 s 7262 -1496 7338 -1420 8 addr0[1]
+port 4 nsew default input
+rlabel metal4 s 7670 -1496 7746 -1420 8 addr0[2]
+port 5 nsew default input
+rlabel metal3 s -1496 7038 -1420 7114 4 addr0[3]
+port 6 nsew default input
+rlabel metal3 s -1496 7187 -1420 7263 4 addr0[4]
+port 7 nsew default input
+rlabel metal3 s -1496 6889 -1420 6965 4 addr0[5]
+port 8 nsew default input
+rlabel metal3 s -1496 7325 -1420 7401 4 addr0[6]
+port 9 nsew default input
+rlabel metal3 s -1496 6751 -1420 6827 4 addr0[7]
+port 10 nsew default input
+rlabel metal3 s -1496 6613 -1420 6689 4 addr0[8]
+port 11 nsew default input
+rlabel metal3 s -1496 7463 -1420 7539 4 addr0[9]
+port 12 nsew default input
+rlabel metal3 s -1496 7601 -1420 7677 4 addr0[10]
+port 13 nsew default input
+rlabel metal4 s 16711 -1496 16787 -1420 8 dout0[31]
+port 14 nsew default output
+rlabel metal4 s 17019 -1496 17095 -1420 8 dout0[30]
+port 15 nsew default output
+rlabel metal4 s 17327 -1496 17403 -1420 8 dout0[29]
+port 16 nsew default output
+rlabel metal4 s 17635 -1496 17711 -1420 8 dout0[28]
+port 17 nsew default output
+rlabel metal4 s 17943 -1496 18019 -1420 8 dout0[27]
+port 18 nsew default output
+rlabel metal4 s 18251 -1496 18327 -1420 8 dout0[26]
+port 19 nsew default output
+rlabel metal4 s 18559 -1496 18635 -1420 8 dout0[25]
+port 20 nsew default output
+rlabel metal4 s 18867 -1496 18943 -1420 8 dout0[24]
+port 21 nsew default output
+rlabel metal4 s 19175 -1496 19251 -1420 8 dout0[23]
+port 22 nsew default output
+rlabel metal4 s 19483 -1496 19559 -1420 8 dout0[22]
+port 23 nsew default output
+rlabel metal4 s 19791 -1496 19867 -1420 8 dout0[21]
+port 24 nsew default output
+rlabel metal4 s 20099 -1496 20175 -1420 8 dout0[20]
+port 25 nsew default output
+rlabel metal4 s 20407 -1496 20483 -1420 8 dout0[19]
+port 26 nsew default output
+rlabel metal4 s 20715 -1496 20791 -1420 8 dout0[18]
+port 27 nsew default output
+rlabel metal4 s 21023 -1496 21099 -1420 8 dout0[17]
+port 28 nsew default output
+rlabel metal4 s 21331 -1496 21407 -1420 8 dout0[16]
+port 29 nsew default output
+rlabel metal4 s 21639 -1496 21715 -1420 8 dout0[15]
+port 30 nsew default output
+rlabel metal4 s 21947 -1496 22023 -1420 8 dout0[14]
+port 31 nsew default output
+rlabel metal4 s 22255 -1496 22331 -1420 8 dout0[13]
+port 32 nsew default output
+rlabel metal4 s 22563 -1496 22639 -1420 8 dout0[12]
+port 33 nsew default output
+rlabel metal4 s 22871 -1496 22947 -1420 8 dout0[11]
+port 34 nsew default output
+rlabel metal4 s 23179 -1496 23255 -1420 8 dout0[10]
+port 35 nsew default output
+rlabel metal4 s 23487 -1496 23563 -1420 8 dout0[9]
+port 36 nsew default output
+rlabel metal4 s 23795 -1496 23871 -1420 8 dout0[8]
+port 37 nsew default output
+rlabel metal4 s 24103 -1496 24179 -1420 8 dout0[7]
+port 38 nsew default output
+rlabel metal4 s 24411 -1496 24487 -1420 8 dout0[6]
+port 39 nsew default output
+rlabel metal4 s 24570 -1496 24646 -1420 8 dout0[5]
+port 40 nsew default output
+rlabel metal4 s 25049 -1496 25125 -1420 8 dout0[4]
+port 41 nsew default output
+rlabel metal4 s 25335 -1496 25411 -1420 8 dout0[3]
+port 42 nsew default output
+rlabel metal4 s 25643 -1496 25719 -1420 8 dout0[2]
+port 43 nsew default output
+rlabel metal4 s 25951 -1496 26027 -1420 8 dout0[1]
+port 44 nsew default output
+rlabel metal4 s 26092 -1496 26168 -1420 8 dout0[0]
+port 45 nsew default output
+rlabel metal3 s -1496 -1496 64114 -1148 8 vccd1
+port 46 nsew power bidirectional abutment
+rlabel metal4 s 63766 -1496 64114 40916 6 vccd1
+port 46 nsew power bidirectional abutment
+rlabel metal3 s -1496 40568 64114 40916 6 vccd1
+port 46 nsew power bidirectional abutment
+rlabel metal4 s -1496 -1496 -1148 40916 4 vccd1
+port 46 nsew power bidirectional abutment
+rlabel metal4 s 63070 -800 63418 40220 6 vssd1
+port 47 nsew ground bidirectional abutment
+rlabel metal3 s -800 -800 63418 -452 8 vssd1
+port 47 nsew ground bidirectional abutment
+rlabel metal3 s -800 39872 63418 40220 6 vssd1
+port 47 nsew ground bidirectional abutment
+rlabel metal4 s -800 -800 -452 40220 4 vssd1
+port 47 nsew ground bidirectional abutment
+<< properties >>
+string FIXED_BBOX 0 0 62618 39420
+string LEFclass BLOCK
+string LEFsymmetry X Y R90
+string LEFview TRUE
+<< end >>

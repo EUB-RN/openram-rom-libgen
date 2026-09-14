@@ -1,0 +1,90 @@
+magic
+tech sky130A
+magscale 1 2
+timestamp 1617478350
+<< checkpaint >>
+rect -1296 -1277 1664 3946
+<< nwell >>
+rect -36 1262 404 2686
+<< pwell >>
+rect 232 149 334 159
+rect 28 25 334 149
+<< scnmos >>
+rect 114 51 144 123
+<< scpmos >>
+rect 114 2354 144 2578
+<< ndiff >>
+rect 54 104 114 123
+rect 54 70 62 104
+rect 96 70 114 104
+rect 54 51 114 70
+rect 144 104 204 123
+rect 144 70 162 104
+rect 196 70 204 104
+rect 144 51 204 70
+<< pdiff >>
+rect 54 2483 114 2578
+rect 54 2449 62 2483
+rect 96 2449 114 2483
+rect 54 2354 114 2449
+rect 144 2483 204 2578
+rect 144 2449 162 2483
+rect 196 2449 204 2483
+rect 144 2354 204 2449
+<< ndiffc >>
+rect 62 70 96 104
+rect 162 70 196 104
+<< pdiffc >>
+rect 62 2449 96 2483
+rect 162 2449 196 2483
+<< psubdiff >>
+rect 258 109 308 133
+rect 258 75 266 109
+rect 300 75 308 109
+rect 258 51 308 75
+<< nsubdiff >>
+rect 258 2541 308 2565
+rect 258 2507 266 2541
+rect 300 2507 308 2541
+rect 258 2483 308 2507
+<< psubdiffcont >>
+rect 266 75 300 109
+<< nsubdiffcont >>
+rect 266 2507 300 2541
+<< poly >>
+rect 114 2578 144 2604
+rect 114 1310 144 2354
+rect 48 1294 144 1310
+rect 48 1260 64 1294
+rect 98 1260 144 1294
+rect 48 1244 144 1260
+rect 114 123 144 1244
+rect 114 25 144 51
+<< polycont >>
+rect 64 1260 98 1294
+<< locali >>
+rect 0 2612 368 2646
+rect 62 2483 96 2612
+rect 266 2541 300 2612
+rect 62 2433 96 2449
+rect 162 2483 196 2499
+rect 266 2491 300 2507
+rect 64 1294 98 1310
+rect 64 1244 98 1260
+rect 162 1294 196 2449
+rect 162 1260 213 1294
+rect 62 104 96 120
+rect 62 17 96 70
+rect 162 104 196 1260
+rect 162 54 196 70
+rect 266 109 300 125
+rect 266 17 300 75
+rect 0 -17 368 17
+<< labels >>
+rlabel locali s 81 1277 81 1277 4 A
+rlabel locali s 196 1277 196 1277 4 Z
+rlabel locali s 184 0 184 0 4 gnd
+rlabel locali s 184 2629 184 2629 4 vdd
+<< properties >>
+string FIXED_BBOX 0 0 368 2382
+<< end >>

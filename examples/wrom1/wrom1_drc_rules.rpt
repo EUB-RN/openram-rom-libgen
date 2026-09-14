@@ -1,0 +1,42 @@
+    3074  Local interconnect spacing < 0.17um (li.3)
+             ornek @ 10254 9359 10264 9363
+             ornek @ 10264 9359 10270 9363
+             ornek @ 10270 9359 10298 9363
+             ornek @ 10298 9359 10304 9363
+             ornek @ 10304 9359 10320 9363
+     244  N-well spacing < 1.27um (nwell.2a)
+             ornek @ 8879 6306 8895 6474
+             ornek @ 8879 6306 8895 6320
+             ornek @ 8879 6102 8895 6270
+             ornek @ 8879 6102 8895 6116
+             ornek @ 8879 5898 8895 6066
+     494  Metal1 spacing < 0.14um (met1.2)
+             ornek @ 270 10057 298 10063
+             ornek @ 270 10057 304 10063
+             ornek @ 304 10057 317 10063
+             ornek @ 678 10057 706 10063
+             ornek @ 678 10057 712 10063
+    2050  poly contact spacing to diffusion < 0.19um (licon.14)
+             ornek @ 10240 9393 10264 9401
+             ornek @ 10264 9393 10298 9401
+             ornek @ 10298 9393 10304 9401
+             ornek @ 10240 9385 10304 9393
+             ornek @ 10304 9393 10322 9401
+     770  poly spacing to diffusion tap < 0.055um (poly.5)
+             ornek @ 10243 9385 10322 9390
+             ornek @ 10447 9385 10526 9390
+             ornek @ 10651 9385 10730 9390
+             ornek @ 10855 9385 10934 9390
+             ornek @ 11059 9385 11138 9390
+      96  poly spacing to Diffusion < 0.075um (poly.4)
+             ornek @ 10239 9655 10250 9663
+             ornek @ 10239 9621 10250 9655
+             ornek @ 10239 9603 10250 9621
+             ornek @ 11871 9655 11882 9663
+             ornek @ 11871 9621 11882 9655
+     556  Diffusion spacing < 0.27um (diff/tap.3)
+             ornek @ 6741 6478 6791 6486
+             ornek @ 6945 6478 6995 6486
+             ornek @ 7149 6478 7199 6486
+             ornek @ 7353 6478 7403 6486
+             ornek @ 7557 6478 7607 6486

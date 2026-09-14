@@ -1,0 +1,53 @@
+magic
+tech sky130A
+magscale 1 2
+timestamp 1617478065
+<< checkpaint >>
+rect -1260 -1311 1464 1464
+<< pwell >>
+rect 80 -51 204 151
+<< scnmos >>
+rect 106 35 178 65
+<< ndiff >>
+rect 106 117 178 125
+rect 106 83 125 117
+rect 159 83 178 117
+rect 106 65 178 83
+rect 106 17 178 35
+rect 106 -17 125 17
+rect 159 -17 178 17
+rect 106 -25 178 -17
+<< ndiffc >>
+rect 125 83 159 117
+rect 125 -17 159 17
+<< poly >>
+rect 0 35 106 65
+rect 178 35 204 65
+<< locali >>
+rect 109 83 125 117
+rect 159 83 175 117
+rect 109 -17 125 17
+rect 159 -17 175 17
+<< viali >>
+rect 125 83 159 117
+rect 125 -17 159 17
+<< metal1 >>
+rect 114 123 170 204
+rect 113 117 171 123
+rect 113 83 125 117
+rect 159 83 171 117
+rect 113 77 171 83
+rect 128 23 156 77
+rect 113 17 171 23
+rect 113 -17 125 17
+rect 159 -17 171 17
+rect 113 -23 171 -17
+<< labels >>
+rlabel metal1 s 113 -23 171 23 4 S
+port 1 nsew
+rlabel metal1 s 113 77 171 123 4 D
+port 2 nsew
+rlabel poly s 142 50 142 50 4 G
+<< properties >>
+string FIXED_BBOX 80 -50 204 0
+<< end >>

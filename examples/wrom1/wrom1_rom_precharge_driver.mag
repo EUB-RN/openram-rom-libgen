@@ -1,0 +1,57 @@
+magic
+tech sky130A
+magscale 1 2
+timestamp 1617478350
+<< checkpaint >>
+rect -1296 -1277 7004 3946
+<< nwell >>
+rect -36 1261 5744 2686
+<< locali >>
+rect 0 2611 5708 2645
+rect 64 1244 98 1310
+rect 2777 1298 3369 1332
+rect 4443 1298 4477 1332
+rect 196 1260 449 1294
+rect 564 1260 817 1294
+rect 932 1260 1185 1294
+rect 1287 1248 1661 1282
+rect 1871 1232 1905 1265
+rect 1871 1198 2353 1232
+rect 2777 1215 2811 1298
+rect 0 -17 5708 17
+use wrom1_pinv  wrom1_pinv_0
+timestamp 1617478350
+transform 1 0 736 0 1 0
+box -36 -17 404 2686
+use wrom1_pinv  wrom1_pinv_1
+timestamp 1617478350
+transform 1 0 368 0 1 0
+box -36 -17 404 2686
+use wrom1_pinv  wrom1_pinv_2
+timestamp 1617478350
+transform 1 0 0 0 1 0
+box -36 -17 404 2686
+use wrom1_pinv_4  wrom1_pinv_4_0
+timestamp 1617478350
+transform 1 0 1104 0 1 0
+box -36 -17 512 2686
+use wrom1_pinv_5  wrom1_pinv_5_0
+timestamp 1617478350
+transform 1 0 1580 0 1 0
+box -36 -17 728 2686
+use wrom1_pinv_6  wrom1_pinv_6_0
+timestamp 1617478350
+transform 1 0 2272 0 1 0
+box -36 -17 1052 2686
+use wrom1_pinv_7  wrom1_pinv_7_0
+timestamp 1617478350
+transform 1 0 3288 0 1 0
+box -36 -17 2456 2686
+<< labels >>
+rlabel locali s 4460 1315 4460 1315 4 Z
+rlabel locali s 81 1277 81 1277 4 A
+rlabel locali s 2854 0 2854 0 4 gnd
+rlabel locali s 2854 2628 2854 2628 4 vdd
+<< properties >>
+string FIXED_BBOX 0 0 5708 2628
+<< end >>

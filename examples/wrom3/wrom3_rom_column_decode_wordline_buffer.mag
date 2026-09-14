@@ -1,0 +1,119 @@
+magic
+tech sky130A
+magscale 1 2
+timestamp 1617478289
+<< checkpaint >>
+rect -1216 -1310 2472 3091
+<< nwell >>
+rect 774 -50 942 118
+<< pwell >>
+rect 169 -17 303 85
+<< psubdiff >>
+rect 195 51 277 59
+rect 195 17 219 51
+rect 253 17 277 51
+rect 195 9 277 17
+<< nsubdiff >>
+rect 817 51 899 59
+rect 817 17 841 51
+rect 875 17 899 51
+rect 817 9 899 17
+<< psubdiffcont >>
+rect 219 17 253 51
+<< nsubdiffcont >>
+rect 841 17 875 51
+<< locali >>
+rect 60 1583 94 1649
+rect 1160 1566 1194 1633
+rect 60 1379 94 1445
+rect 1160 1362 1194 1429
+rect 60 1175 94 1241
+rect 1160 1158 1194 1225
+rect 60 971 94 1037
+rect 1160 954 1194 1021
+rect 60 767 94 833
+rect 1160 750 1194 817
+rect 60 563 94 629
+rect 1160 546 1194 613
+rect 60 359 94 425
+rect 1160 342 1194 409
+rect 60 155 94 221
+rect 1160 138 1194 205
+rect 203 17 219 51
+rect 253 17 269 51
+rect 825 17 841 51
+rect 875 17 891 51
+<< viali >>
+rect 219 17 253 51
+rect 841 17 875 51
+<< metal1 >>
+rect 222 63 250 1750
+rect 844 63 872 1750
+rect 213 51 259 63
+rect 213 17 219 51
+rect 253 17 259 51
+rect 213 5 259 17
+rect 835 51 881 63
+rect 835 17 841 51
+rect 875 17 881 51
+rect 835 5 881 17
+use wrom3_pinv_dec_2  wrom3_pinv_dec_2_0
+timestamp 1617478289
+transform 1 0 0 0 1 1532
+box 44 -50 1212 299
+use wrom3_pinv_dec_2  wrom3_pinv_dec_2_1
+timestamp 1617478289
+transform 1 0 0 0 1 1328
+box 44 -50 1212 299
+use wrom3_pinv_dec_2  wrom3_pinv_dec_2_2
+timestamp 1617478289
+transform 1 0 0 0 1 1124
+box 44 -50 1212 299
+use wrom3_pinv_dec_2  wrom3_pinv_dec_2_3
+timestamp 1617478289
+transform 1 0 0 0 1 920
+box 44 -50 1212 299
+use wrom3_pinv_dec_2  wrom3_pinv_dec_2_4
+timestamp 1617478289
+transform 1 0 0 0 1 716
+box 44 -50 1212 299
+use wrom3_pinv_dec_2  wrom3_pinv_dec_2_5
+timestamp 1617478289
+transform 1 0 0 0 1 512
+box 44 -50 1212 299
+use wrom3_pinv_dec_2  wrom3_pinv_dec_2_6
+timestamp 1617478289
+transform 1 0 0 0 1 308
+box 44 -50 1212 299
+use wrom3_pinv_dec_2  wrom3_pinv_dec_2_7
+timestamp 1617478289
+transform 1 0 0 0 1 104
+box 44 -50 1212 299
+<< labels >>
+rlabel locali s 77 188 77 188 4 in_0
+rlabel locali s 1177 188 1177 188 4 out_0
+rlabel locali s 77 392 77 392 4 in_1
+rlabel locali s 1177 392 1177 392 4 out_1
+rlabel locali s 77 596 77 596 4 in_2
+rlabel locali s 1177 596 1177 596 4 out_2
+rlabel locali s 77 800 77 800 4 in_3
+rlabel locali s 1177 800 1177 800 4 out_3
+rlabel locali s 77 1004 77 1004 4 in_4
+rlabel locali s 1177 1004 1177 1004 4 out_4
+rlabel locali s 77 1208 77 1208 4 in_5
+rlabel locali s 1177 1208 1177 1208 4 out_5
+rlabel locali s 77 1412 77 1412 4 in_6
+rlabel locali s 1177 1412 1177 1412 4 out_6
+rlabel locali s 77 1616 77 1616 4 in_7
+rlabel locali s 1177 1616 1177 1616 4 out_7
+rlabel metal1 s 222 1722 250 1750 4 gnd
+port 1 nsew
+rlabel metal1 s 222 6 250 34 4 gnd
+port 1 nsew
+rlabel metal1 s 844 6 872 34 4 vdd
+port 2 nsew
+rlabel metal1 s 844 1722 872 1750 4 vdd
+port 2 nsew
+<< properties >>
+string FIXED_BBOX 774 -50 942 0
+<< end >>

@@ -1,0 +1,97 @@
+########## wrom1 : DRC  Çrş 09 Eyl 2026 09:19:53 +03 ##########
+Çrş 09 Eyl 2026 09:19:53 +03: Starting DRC using Magic /nix/store/1zcyq032zc3mzhmgs2j3q2rmfrjj5v6b-magic-vlsi-8.3.629/bin/magic
+
+Magic 8.3 revision 629 - Compiled on Thu Apr  9 04:26:22 UTC 2026.
+Starting magic under Tcl interpreter
+Using the terminal as the console.
+WARNING: RLIMIT_NOFILE is above 1024 and Tcl_Version<9 this may cause runtime issues [rlim_cur=1048576]
+Using NULL graphics device.
+Processing system .magicrc file
+Switching to WIRING tool.
+Switching to NETLIST tool.
+Switching to PICK tool.
+Switching to BOX tool.
+Sourcing design .magicrc for technology sky130A ...
+2 Magic internal units = 1 Lambda
+Input style sky130(): scaleFactor=2, multiplier=2
+The following types are not handled by extraction and will be treated as non-electrical types:
+    ubm 
+Scaled tech values by 2 / 1 to match internal grid scaling
+Loading sky130A Device Generator Menu ...
+Using technology "sky130A", version 1.0.530-0-g8afc834
+Cell wrom1 read from current working directory
+wrom1: 10000 rects
+Finished loading cell wrom1
+Cell wrom1_rom_row_decode read from current working directory
+Cell wrom1_rom_row_decode_wordline_buffer read from current working directory
+Cell wrom1_pbuf_dec read from current working directory
+Cell wrom1_pinv_dec_1 read from current working directory
+Cell wrom1_pinv_dec_0 read from current working directory
+Cell wrom1_rom_row_decode_array read from current working directory
+wrom1_rom_row_decode_array: 10000 rects
+Cell wrom1_rom_precharge_array_0 read from current working directory
+Cell wrom1_rom_poly_tap_3 read from current working directory
+Cell wrom1_precharge_cell read from current working directory
+Cell wrom1_rom_poly_tap_2 read from current working directory
+Cell wrom1_rom_poly_tap_1 read from current working directory
+Cell wrom1_rom_base_zero_cell read from current working directory
+Cell wrom1_rom_base_one_cell read from current working directory
+Cell wrom1_rom_address_control_array read from current working directory
+Cell wrom1_rom_address_control_buf read from current working directory
+Cell wrom1_inv_array_mod read from current working directory
+Cell sky130_fd_bd_sram__openram_sp_nand2_dec read from current working directory
+Cell wrom1_rom_output_buffer read from current working directory
+Cell wrom1_pinv_dec_4 read from current working directory
+Cell wrom1_rom_control_logic read from current working directory
+Cell wrom1_rom_precharge_driver read from current working directory
+Cell wrom1_pinv_7 read from current working directory
+Cell wrom1_pinv_6 read from current working directory
+Cell wrom1_pinv_5 read from current working directory
+Cell wrom1_pinv_4 read from current working directory
+Cell wrom1_pinv read from current working directory
+Cell wrom1_rom_control_nand read from current working directory
+Cell wrom1_rom_clock_driver read from current working directory
+Cell wrom1_pinv_3 read from current working directory
+Cell wrom1_pinv_2 read from current working directory
+Cell wrom1_pinv_1 read from current working directory
+Cell wrom1_pinv_0 read from current working directory
+Cell wrom1_rom_column_mux_array read from current working directory
+Cell wrom1_rom_column_mux read from current working directory
+Cell wrom1_rom_column_decode read from current working directory
+Cell wrom1_rom_column_decode_wordline_buffer read from current working directory
+Cell wrom1_pinv_dec_2 read from current working directory
+Cell wrom1_rom_column_decode_array read from current working directory
+Cell wrom1_rom_precharge_array_1 read from current working directory
+Cell wrom1_rom_address_control_array_0 read from current working directory
+Cell wrom1_rom_bitline_inverter read from current working directory
+Cell wrom1_pinv_dec_3 read from current working directory
+Cell wrom1_rom_base_array read from current working directory
+wrom1_rom_base_array: 10000 rects
+wrom1_rom_base_array: 20000 rects
+wrom1_rom_base_array: 30000 rects
+wrom1_rom_base_array: 40000 rects
+wrom1_rom_base_array: 50000 rects
+wrom1_rom_base_array: 60000 rects
+wrom1_rom_base_array: 70000 rects
+wrom1_rom_base_array: 80000 rects
+wrom1_rom_base_array: 90000 rects
+wrom1_rom_base_array: 100000 rects
+wrom1_rom_base_array: 110000 rects
+wrom1_rom_base_array: 120000 rects
+wrom1_rom_base_array: 130000 rects
+wrom1_rom_base_array: 140000 rects
+wrom1_rom_base_array: 150000 rects
+wrom1_rom_base_array: 160000 rects
+wrom1_rom_base_array: 170000 rects
+wrom1_rom_base_array: 180000 rects
+wrom1_rom_base_array: 190000 rects
+wrom1_rom_base_array: 200000 rects
+Cell wrom1_rom_precharge_array read from current working directory
+Cell wrom1_rom_poly_tap_0 read from current working directory
+Cell wrom1_rom_poly_tap read from current working directory
+Finished expanding
+Finished drc check
+Loading DRC CIF style.
+Finished drc catchup
+Total DRC errors found: 1621
+Çrş 09 Eyl 2026 09:20:12 +03: Finished (0) DRC using Magic /nix/store/1zcyq032zc3mzhmgs2j3q2rmfrjj5v6b-magic-vlsi-8.3.629/bin/magic

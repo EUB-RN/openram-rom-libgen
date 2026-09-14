@@ -1,0 +1,185 @@
+magic
+tech sky130A
+magscale 1 2
+timestamp 1617478350
+<< checkpaint >>
+rect -1260 -1472 3208 1668
+<< nwell >>
+rect 0 -196 1948 408
+<< poly >>
+rect 60 65 90 240
+rect 1796 65 1826 240
+rect 60 50 1826 65
+rect 61 35 1826 50
+<< locali >>
+rect 139 -111 173 -95
+rect 139 -161 173 -145
+rect 343 -111 377 -95
+rect 343 -161 377 -145
+rect 547 -111 581 -95
+rect 547 -161 581 -145
+rect 751 -111 785 -95
+rect 751 -161 785 -145
+rect 955 -111 989 -95
+rect 955 -161 989 -145
+rect 1159 -111 1193 -95
+rect 1159 -161 1193 -145
+rect 1363 -111 1397 -95
+rect 1363 -161 1397 -145
+rect 1567 -111 1601 -95
+rect 1567 -161 1601 -145
+<< viali >>
+rect 139 -145 173 -111
+rect 343 -145 377 -111
+rect 547 -145 581 -111
+rect 751 -145 785 -111
+rect 955 -145 989 -111
+rect 1159 -145 1193 -111
+rect 1363 -145 1397 -111
+rect 1567 -145 1601 -111
+<< metal1 >>
+rect 226 86 254 114
+rect 430 86 458 114
+rect 634 86 662 114
+rect 838 86 866 114
+rect 1042 86 1070 114
+rect 1246 86 1274 114
+rect 1450 86 1478 114
+rect 1654 86 1682 114
+rect 124 -154 130 -102
+rect 182 -154 188 -102
+rect 328 -154 334 -102
+rect 386 -154 392 -102
+rect 532 -154 538 -102
+rect 590 -154 596 -102
+rect 736 -154 742 -102
+rect 794 -154 800 -102
+rect 940 -154 946 -102
+rect 998 -154 1004 -102
+rect 1144 -154 1150 -102
+rect 1202 -154 1208 -102
+rect 1348 -154 1354 -102
+rect 1406 -154 1412 -102
+rect 1552 -154 1558 -102
+rect 1610 -154 1616 -102
+<< via1 >>
+rect 130 -111 182 -102
+rect 130 -145 139 -111
+rect 139 -145 173 -111
+rect 173 -145 182 -111
+rect 130 -154 182 -145
+rect 334 -111 386 -102
+rect 334 -145 343 -111
+rect 343 -145 377 -111
+rect 377 -145 386 -111
+rect 334 -154 386 -145
+rect 538 -111 590 -102
+rect 538 -145 547 -111
+rect 547 -145 581 -111
+rect 581 -145 590 -111
+rect 538 -154 590 -145
+rect 742 -111 794 -102
+rect 742 -145 751 -111
+rect 751 -145 785 -111
+rect 785 -145 794 -111
+rect 742 -154 794 -145
+rect 946 -111 998 -102
+rect 946 -145 955 -111
+rect 955 -145 989 -111
+rect 989 -145 998 -111
+rect 946 -154 998 -145
+rect 1150 -111 1202 -102
+rect 1150 -145 1159 -111
+rect 1159 -145 1193 -111
+rect 1193 -145 1202 -111
+rect 1150 -154 1202 -145
+rect 1354 -111 1406 -102
+rect 1354 -145 1363 -111
+rect 1363 -145 1397 -111
+rect 1397 -145 1406 -111
+rect 1354 -154 1406 -145
+rect 1558 -111 1610 -102
+rect 1558 -145 1567 -111
+rect 1567 -145 1601 -111
+rect 1601 -145 1610 -111
+rect 1558 -154 1610 -145
+<< metal2 >>
+rect 61 240 1825 268
+rect 12 -102 1658 -96
+rect 12 -154 130 -102
+rect 182 -154 334 -102
+rect 386 -154 538 -102
+rect 590 -154 742 -102
+rect 794 -154 946 -102
+rect 998 -154 1150 -102
+rect 1202 -154 1354 -102
+rect 1406 -154 1558 -102
+rect 1610 -154 1658 -102
+rect 12 -160 1658 -154
+use wrom1_precharge_cell  wrom1_precharge_cell_0
+timestamp 1617478065
+transform 1 0 1532 0 1 0
+box 0 -212 232 184
+use wrom1_precharge_cell  wrom1_precharge_cell_1
+timestamp 1617478065
+transform 1 0 1328 0 1 0
+box 0 -212 232 184
+use wrom1_precharge_cell  wrom1_precharge_cell_2
+timestamp 1617478065
+transform 1 0 1124 0 1 0
+box 0 -212 232 184
+use wrom1_precharge_cell  wrom1_precharge_cell_3
+timestamp 1617478065
+transform 1 0 920 0 1 0
+box 0 -212 232 184
+use wrom1_precharge_cell  wrom1_precharge_cell_4
+timestamp 1617478065
+transform 1 0 716 0 1 0
+box 0 -212 232 184
+use wrom1_precharge_cell  wrom1_precharge_cell_5
+timestamp 1617478065
+transform 1 0 512 0 1 0
+box 0 -212 232 184
+use wrom1_precharge_cell  wrom1_precharge_cell_6
+timestamp 1617478065
+transform 1 0 308 0 1 0
+box 0 -212 232 184
+use wrom1_precharge_cell  wrom1_precharge_cell_7
+timestamp 1617478065
+transform 1 0 104 0 1 0
+box 0 -212 232 184
+use wrom1_rom_poly_tap_3  wrom1_rom_poly_tap_3_0
+timestamp 1617478348
+transform 1 0 1778 0 1 204
+box 0 17 66 83
+use wrom1_rom_poly_tap_3  wrom1_rom_poly_tap_3_1
+timestamp 1617478348
+transform 1 0 42 0 1 204
+box 0 17 66 83
+<< labels >>
+rlabel nwell 1948 408 1948 408 4 upper right
+rlabel metal2 s 61 240 89 268 4 gate
+port 1 nsew
+rlabel metal2 s 1797 240 1825 268 4 precharge_r
+port 2 nsew
+rlabel metal1 s 226 86 254 114 4 pre_bl0_out
+port 3 nsew
+rlabel metal1 s 430 86 458 114 4 pre_bl1_out
+port 4 nsew
+rlabel metal1 s 634 86 662 114 4 pre_bl2_out
+port 5 nsew
+rlabel metal1 s 838 86 866 114 4 pre_bl3_out
+port 6 nsew
+rlabel metal1 s 1042 86 1070 114 4 pre_bl4_out
+port 7 nsew
+rlabel metal1 s 1246 86 1274 114 4 pre_bl5_out
+port 8 nsew
+rlabel metal1 s 1450 86 1478 114 4 pre_bl6_out
+port 9 nsew
+rlabel metal1 s 1654 86 1682 114 4 pre_bl7_out
+port 10 nsew
+rlabel metal2 s 12 -160 40 -96 4 vdd
+port 11 nsew
+<< properties >>
+string FIXED_BBOX 1555 -161 1613 -160
+<< end >>

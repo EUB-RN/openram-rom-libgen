@@ -1,0 +1,36 @@
+
+Note: No compatibility mode selected!
+
+
+Circuit: * wrom3 -- hucre esdeger kapi kapasitansi (ff)
+
+Doing analysis at TEMP = -40.000000 and TNOM = 27.000000
+
+Using SPARSE 1.3 as Direct Linear Solver
+Operating point simulation skipped by 'uic',
+  now using transient initial conditions.
+
+No. of Data Rows : 2414
+
+  Measurements for Transient Analysis
+
+q_one               =   -9.64985e-16 from=  5.00000e-14 to=  1.00000e-08
+q_zero              =   -9.64985e-16 from=  5.00000e-14 to=  1.00000e-08
+c_one_ff            =  4.94864e-01
+c_zero_ff           =  4.94864e-01
+
+
+Total analysis time (seconds) = 0.0842438
+
+Total elapsed time (seconds) = 94.584 
+
+Total DRAM available = 31789.582 MB.
+DRAM currently available = 9343.957 MB.
+Maximum ngspice program size =  421.000 MB.
+Current ngspice program size =  354.133 MB.
+
+Shared ngspice pages =   11.270 MB.
+Text (code) pages =    6.520 MB.
+Stack = 0 bytes.
+Library pages =  398.836 MB.
+

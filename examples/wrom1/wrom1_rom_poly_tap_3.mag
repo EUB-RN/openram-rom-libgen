@@ -1,0 +1,36 @@
+magic
+tech sky130A
+magscale 1 2
+timestamp 1617478348
+<< checkpaint >>
+rect -1260 -1243 1326 1343
+<< poly >>
+rect 0 67 66 83
+rect 0 33 16 67
+rect 50 33 66 67
+rect 0 17 66 33
+<< polycont >>
+rect 16 33 50 67
+<< locali >>
+rect 16 67 50 83
+rect 16 17 50 33
+<< viali >>
+rect 16 33 50 67
+<< metal1 >>
+rect 1 24 7 76
+rect 59 24 65 76
+<< via1 >>
+rect 7 67 59 76
+rect 7 33 16 67
+rect 16 33 50 67
+rect 50 33 59 67
+rect 7 24 59 33
+<< metal2 >>
+rect 7 76 59 82
+rect 7 18 59 24
+<< labels >>
+rlabel metal2 s 19 36 47 64 4 poly_tap
+port 0 nsew
+<< properties >>
+string FIXED_BBOX -20 -3 86 0
+<< end >>

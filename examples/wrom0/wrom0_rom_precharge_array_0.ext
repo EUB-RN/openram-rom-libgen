@@ -1,0 +1,2266 @@
+timestamp 1617478290
+version 8.3
+tech sky130A
+style ngspice(si)
+scale 1000 1 0.5
+resistclasses 4400000 2200000 950000 3050000 120000 197000 114000 191000 120000 197000 114000 191000 48200 319800 2000000 48200 48200 12800 125 125 47 47 29 5
+use wrom0_rom_poly_tap_3 wrom0_rom_poly_tap_3_17 1 0 42 0 1 204
+use wrom0_precharge_cell wrom0_precharge_cell_132 1 0 104 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_131 1 0 308 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_130 1 0 512 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_129 1 0 716 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_128 1 0 920 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_127 1 0 1124 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_126 1 0 1328 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_125 1 0 1532 0 1 0
+use wrom0_rom_poly_tap_3 wrom0_rom_poly_tap_3_16 1 0 1778 0 1 204
+use wrom0_precharge_cell wrom0_precharge_cell_124 1 0 1840 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_123 1 0 2044 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_122 1 0 2248 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_121 1 0 2452 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_120 1 0 2656 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_119 1 0 2860 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_118 1 0 3064 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_117 1 0 3268 0 1 0
+use wrom0_rom_poly_tap_3 wrom0_rom_poly_tap_3_15 1 0 3514 0 1 204
+use wrom0_precharge_cell wrom0_precharge_cell_116 1 0 3576 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_115 1 0 3780 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_114 1 0 3984 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_113 1 0 4188 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_112 1 0 4392 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_111 1 0 4596 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_110 1 0 4800 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_109 1 0 5004 0 1 0
+use wrom0_rom_poly_tap_3 wrom0_rom_poly_tap_3_14 1 0 5250 0 1 204
+use wrom0_precharge_cell wrom0_precharge_cell_108 1 0 5312 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_107 1 0 5516 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_106 1 0 5720 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_105 1 0 5924 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_104 1 0 6128 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_103 1 0 6332 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_102 1 0 6536 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_101 1 0 6740 0 1 0
+use wrom0_rom_poly_tap_3 wrom0_rom_poly_tap_3_13 1 0 6986 0 1 204
+use wrom0_precharge_cell wrom0_precharge_cell_100 1 0 7048 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_99 1 0 7252 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_98 1 0 7456 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_97 1 0 7660 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_96 1 0 7864 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_95 1 0 8068 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_94 1 0 8272 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_93 1 0 8476 0 1 0
+use wrom0_rom_poly_tap_3 wrom0_rom_poly_tap_3_12 1 0 8722 0 1 204
+use wrom0_precharge_cell wrom0_precharge_cell_92 1 0 8784 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_91 1 0 8988 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_90 1 0 9192 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_89 1 0 9396 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_88 1 0 9600 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_87 1 0 9804 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_86 1 0 10008 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_85 1 0 10212 0 1 0
+use wrom0_rom_poly_tap_3 wrom0_rom_poly_tap_3_11 1 0 10458 0 1 204
+use wrom0_precharge_cell wrom0_precharge_cell_84 1 0 10520 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_83 1 0 10724 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_82 1 0 10928 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_81 1 0 11132 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_80 1 0 11336 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_79 1 0 11540 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_78 1 0 11744 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_77 1 0 11948 0 1 0
+use wrom0_rom_poly_tap_3 wrom0_rom_poly_tap_3_10 1 0 12194 0 1 204
+use wrom0_precharge_cell wrom0_precharge_cell_76 1 0 12256 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_75 1 0 12460 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_74 1 0 12664 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_73 1 0 12868 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_72 1 0 13072 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_71 1 0 13276 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_70 1 0 13480 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_69 1 0 13684 0 1 0
+use wrom0_rom_poly_tap_3 wrom0_rom_poly_tap_3_9 1 0 13930 0 1 204
+use wrom0_precharge_cell wrom0_precharge_cell_68 1 0 13992 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_67 1 0 14196 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_66 1 0 14400 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_65 1 0 14604 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_64 1 0 14808 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_63 1 0 15012 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_62 1 0 15216 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_61 1 0 15420 0 1 0
+use wrom0_rom_poly_tap_3 wrom0_rom_poly_tap_3_8 1 0 15666 0 1 204
+use wrom0_precharge_cell wrom0_precharge_cell_60 1 0 15728 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_59 1 0 15932 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_58 1 0 16136 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_57 1 0 16340 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_56 1 0 16544 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_55 1 0 16748 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_54 1 0 16952 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_53 1 0 17156 0 1 0
+use wrom0_rom_poly_tap_3 wrom0_rom_poly_tap_3_7 1 0 17402 0 1 204
+use wrom0_precharge_cell wrom0_precharge_cell_52 1 0 17464 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_51 1 0 17668 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_50 1 0 17872 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_49 1 0 18076 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_48 1 0 18280 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_47 1 0 18484 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_46 1 0 18688 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_45 1 0 18892 0 1 0
+use wrom0_rom_poly_tap_3 wrom0_rom_poly_tap_3_6 1 0 19138 0 1 204
+use wrom0_precharge_cell wrom0_precharge_cell_44 1 0 19200 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_43 1 0 19404 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_42 1 0 19608 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_41 1 0 19812 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_40 1 0 20016 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_39 1 0 20220 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_38 1 0 20424 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_37 1 0 20628 0 1 0
+use wrom0_rom_poly_tap_3 wrom0_rom_poly_tap_3_5 1 0 20874 0 1 204
+use wrom0_precharge_cell wrom0_precharge_cell_36 1 0 20936 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_35 1 0 21140 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_34 1 0 21344 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_33 1 0 21548 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_32 1 0 21752 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_31 1 0 21956 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_30 1 0 22160 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_29 1 0 22364 0 1 0
+use wrom0_rom_poly_tap_3 wrom0_rom_poly_tap_3_4 1 0 22610 0 1 204
+use wrom0_precharge_cell wrom0_precharge_cell_28 1 0 22672 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_27 1 0 22876 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_26 1 0 23080 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_25 1 0 23284 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_24 1 0 23488 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_23 1 0 23692 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_22 1 0 23896 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_21 1 0 24100 0 1 0
+use wrom0_rom_poly_tap_3 wrom0_rom_poly_tap_3_3 1 0 24346 0 1 204
+use wrom0_precharge_cell wrom0_precharge_cell_20 1 0 24408 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_19 1 0 24612 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_18 1 0 24816 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_17 1 0 25020 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_16 1 0 25224 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_15 1 0 25428 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_14 1 0 25632 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_13 1 0 25836 0 1 0
+use wrom0_rom_poly_tap_3 wrom0_rom_poly_tap_3_2 1 0 26082 0 1 204
+use wrom0_precharge_cell wrom0_precharge_cell_12 1 0 26144 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_11 1 0 26348 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_10 1 0 26552 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_9 1 0 26756 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_8 1 0 26960 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_7 1 0 27164 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_6 1 0 27368 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_5 1 0 27572 0 1 0
+use wrom0_rom_poly_tap_3 wrom0_rom_poly_tap_3_1 1 0 27818 0 1 204
+use wrom0_precharge_cell wrom0_precharge_cell_4 1 0 27880 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_3 1 0 28084 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_2 1 0 28288 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_1 1 0 28492 0 1 0
+use wrom0_precharge_cell wrom0_precharge_cell_0 1 0 28696 0 1 0
+use wrom0_rom_poly_tap_3 wrom0_rom_poly_tap_3_0 1 0 28942 0 1 204
+port "precharge_r" 2 28961 240 28989 268 m2
+port "gate" 1 61 240 89 268 m2
+port "pre_bl132_out" 135 28818 86 28846 114 m1
+port "pre_bl131_out" 134 28614 86 28642 114 m1
+port "pre_bl130_out" 133 28410 86 28438 114 m1
+port "pre_bl129_out" 132 28206 86 28234 114 m1
+port "pre_bl128_out" 131 28002 86 28030 114 m1
+port "pre_bl127_out" 130 27694 86 27722 114 m1
+port "pre_bl126_out" 129 27490 86 27518 114 m1
+port "pre_bl125_out" 128 27286 86 27314 114 m1
+port "pre_bl124_out" 127 27082 86 27110 114 m1
+port "pre_bl123_out" 126 26878 86 26906 114 m1
+port "pre_bl122_out" 125 26674 86 26702 114 m1
+port "pre_bl121_out" 124 26470 86 26498 114 m1
+port "pre_bl120_out" 123 26266 86 26294 114 m1
+port "pre_bl119_out" 122 25958 86 25986 114 m1
+port "pre_bl118_out" 121 25754 86 25782 114 m1
+port "pre_bl117_out" 120 25550 86 25578 114 m1
+port "pre_bl116_out" 119 25346 86 25374 114 m1
+port "pre_bl115_out" 118 25142 86 25170 114 m1
+port "pre_bl114_out" 117 24938 86 24966 114 m1
+port "pre_bl113_out" 116 24734 86 24762 114 m1
+port "pre_bl112_out" 115 24530 86 24558 114 m1
+port "pre_bl111_out" 114 24222 86 24250 114 m1
+port "pre_bl110_out" 113 24018 86 24046 114 m1
+port "pre_bl109_out" 112 23814 86 23842 114 m1
+port "pre_bl108_out" 111 23610 86 23638 114 m1
+port "pre_bl107_out" 110 23406 86 23434 114 m1
+port "pre_bl106_out" 109 23202 86 23230 114 m1
+port "pre_bl105_out" 108 22998 86 23026 114 m1
+port "pre_bl104_out" 107 22794 86 22822 114 m1
+port "pre_bl103_out" 106 22486 86 22514 114 m1
+port "pre_bl102_out" 105 22282 86 22310 114 m1
+port "pre_bl101_out" 104 22078 86 22106 114 m1
+port "pre_bl100_out" 103 21874 86 21902 114 m1
+port "pre_bl99_out" 102 21670 86 21698 114 m1
+port "pre_bl98_out" 101 21466 86 21494 114 m1
+port "pre_bl97_out" 100 21262 86 21290 114 m1
+port "pre_bl96_out" 99 21058 86 21086 114 m1
+port "pre_bl95_out" 98 20750 86 20778 114 m1
+port "pre_bl94_out" 97 20546 86 20574 114 m1
+port "pre_bl93_out" 96 20342 86 20370 114 m1
+port "pre_bl92_out" 95 20138 86 20166 114 m1
+port "pre_bl91_out" 94 19934 86 19962 114 m1
+port "pre_bl90_out" 93 19730 86 19758 114 m1
+port "pre_bl89_out" 92 19526 86 19554 114 m1
+port "pre_bl88_out" 91 19322 86 19350 114 m1
+port "pre_bl87_out" 90 19014 86 19042 114 m1
+port "pre_bl86_out" 89 18810 86 18838 114 m1
+port "pre_bl85_out" 88 18606 86 18634 114 m1
+port "pre_bl84_out" 87 18402 86 18430 114 m1
+port "pre_bl83_out" 86 18198 86 18226 114 m1
+port "pre_bl82_out" 85 17994 86 18022 114 m1
+port "pre_bl81_out" 84 17790 86 17818 114 m1
+port "pre_bl80_out" 83 17586 86 17614 114 m1
+port "pre_bl79_out" 82 17278 86 17306 114 m1
+port "pre_bl78_out" 81 17074 86 17102 114 m1
+port "pre_bl77_out" 80 16870 86 16898 114 m1
+port "pre_bl76_out" 79 16666 86 16694 114 m1
+port "pre_bl75_out" 78 16462 86 16490 114 m1
+port "pre_bl74_out" 77 16258 86 16286 114 m1
+port "pre_bl73_out" 76 16054 86 16082 114 m1
+port "pre_bl72_out" 75 15850 86 15878 114 m1
+port "pre_bl71_out" 74 15542 86 15570 114 m1
+port "pre_bl70_out" 73 15338 86 15366 114 m1
+port "pre_bl69_out" 72 15134 86 15162 114 m1
+port "pre_bl68_out" 71 14930 86 14958 114 m1
+port "pre_bl67_out" 70 14726 86 14754 114 m1
+port "pre_bl66_out" 69 14522 86 14550 114 m1
+port "pre_bl65_out" 68 14318 86 14346 114 m1
+port "pre_bl64_out" 67 14114 86 14142 114 m1
+port "pre_bl63_out" 66 13806 86 13834 114 m1
+port "pre_bl62_out" 65 13602 86 13630 114 m1
+port "pre_bl61_out" 64 13398 86 13426 114 m1
+port "pre_bl60_out" 63 13194 86 13222 114 m1
+port "pre_bl59_out" 62 12990 86 13018 114 m1
+port "pre_bl58_out" 61 12786 86 12814 114 m1
+port "pre_bl57_out" 60 12582 86 12610 114 m1
+port "pre_bl56_out" 59 12378 86 12406 114 m1
+port "pre_bl55_out" 58 12070 86 12098 114 m1
+port "pre_bl54_out" 57 11866 86 11894 114 m1
+port "pre_bl53_out" 56 11662 86 11690 114 m1
+port "pre_bl52_out" 55 11458 86 11486 114 m1
+port "pre_bl51_out" 54 11254 86 11282 114 m1
+port "pre_bl50_out" 53 11050 86 11078 114 m1
+port "pre_bl49_out" 52 10846 86 10874 114 m1
+port "pre_bl48_out" 51 10642 86 10670 114 m1
+port "pre_bl47_out" 50 10334 86 10362 114 m1
+port "pre_bl46_out" 49 10130 86 10158 114 m1
+port "pre_bl45_out" 48 9926 86 9954 114 m1
+port "pre_bl44_out" 47 9722 86 9750 114 m1
+port "pre_bl43_out" 46 9518 86 9546 114 m1
+port "pre_bl42_out" 45 9314 86 9342 114 m1
+port "pre_bl41_out" 44 9110 86 9138 114 m1
+port "pre_bl40_out" 43 8906 86 8934 114 m1
+port "pre_bl39_out" 42 8598 86 8626 114 m1
+port "pre_bl38_out" 41 8394 86 8422 114 m1
+port "pre_bl37_out" 40 8190 86 8218 114 m1
+port "pre_bl36_out" 39 7986 86 8014 114 m1
+port "pre_bl35_out" 38 7782 86 7810 114 m1
+port "pre_bl34_out" 37 7578 86 7606 114 m1
+port "pre_bl33_out" 36 7374 86 7402 114 m1
+port "pre_bl32_out" 35 7170 86 7198 114 m1
+port "pre_bl31_out" 34 6862 86 6890 114 m1
+port "pre_bl30_out" 33 6658 86 6686 114 m1
+port "pre_bl29_out" 32 6454 86 6482 114 m1
+port "pre_bl28_out" 31 6250 86 6278 114 m1
+port "pre_bl27_out" 30 6046 86 6074 114 m1
+port "pre_bl26_out" 29 5842 86 5870 114 m1
+port "pre_bl25_out" 28 5638 86 5666 114 m1
+port "pre_bl24_out" 27 5434 86 5462 114 m1
+port "pre_bl23_out" 26 5126 86 5154 114 m1
+port "pre_bl22_out" 25 4922 86 4950 114 m1
+port "pre_bl21_out" 24 4718 86 4746 114 m1
+port "pre_bl20_out" 23 4514 86 4542 114 m1
+port "pre_bl19_out" 22 4310 86 4338 114 m1
+port "pre_bl18_out" 21 4106 86 4134 114 m1
+port "pre_bl17_out" 20 3902 86 3930 114 m1
+port "pre_bl16_out" 19 3698 86 3726 114 m1
+port "pre_bl15_out" 18 3390 86 3418 114 m1
+port "pre_bl14_out" 17 3186 86 3214 114 m1
+port "pre_bl13_out" 16 2982 86 3010 114 m1
+port "pre_bl12_out" 15 2778 86 2806 114 m1
+port "pre_bl11_out" 14 2574 86 2602 114 m1
+port "pre_bl10_out" 13 2370 86 2398 114 m1
+port "pre_bl9_out" 12 2166 86 2194 114 m1
+port "pre_bl8_out" 11 1962 86 1990 114 m1
+port "pre_bl7_out" 10 1654 86 1682 114 m1
+port "pre_bl6_out" 9 1450 86 1478 114 m1
+port "pre_bl5_out" 8 1246 86 1274 114 m1
+port "pre_bl4_out" 7 1042 86 1070 114 m1
+port "pre_bl3_out" 6 838 86 866 114 m1
+port "pre_bl2_out" 5 634 86 662 114 m1
+port "pre_bl1_out" 4 430 86 458 114 m1
+port "pre_bl0_out" 3 226 86 254 114 m1
+port "vdd" 136 12 -160 40 -96 m2
+node "precharge_r" 129 4657.6 28961 240 m2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 809984 57912 0 0 0 0 0 0 0 0
+equiv "precharge_r" "gate"
+node "pre_bl132_out" 0 10.248 28818 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl131_out" 0 6.74165 28614 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl130_out" 0 6.74165 28410 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl129_out" 0 6.74165 28206 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl128_out" 0 6.74165 28002 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl127_out" 0 6.74165 27694 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl126_out" 0 6.74165 27490 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl125_out" 0 6.74165 27286 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl124_out" 0 6.74165 27082 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl123_out" 0 6.74165 26878 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl122_out" 0 6.74165 26674 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl121_out" 0 6.74165 26470 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl120_out" 0 6.74165 26266 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl119_out" 0 6.74165 25958 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl118_out" 0 6.74165 25754 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl117_out" 0 6.74165 25550 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl116_out" 0 6.74165 25346 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl115_out" 0 6.74165 25142 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl114_out" 0 6.74165 24938 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl113_out" 0 6.74165 24734 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl112_out" 0 6.74165 24530 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl111_out" 0 6.74165 24222 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl110_out" 0 6.74165 24018 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl109_out" 0 6.74165 23814 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl108_out" 0 6.74165 23610 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl107_out" 0 6.74165 23406 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl106_out" 0 6.74165 23202 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl105_out" 0 6.74165 22998 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl104_out" 0 6.74165 22794 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl103_out" 0 6.74165 22486 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl102_out" 0 6.74165 22282 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl101_out" 0 6.74165 22078 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl100_out" 0 6.74165 21874 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl99_out" 0 6.74165 21670 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl98_out" 0 6.74165 21466 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl97_out" 0 6.74165 21262 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl96_out" 0 6.74165 21058 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl95_out" 0 6.74165 20750 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl94_out" 0 6.74165 20546 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl93_out" 0 6.74165 20342 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl92_out" 0 6.74165 20138 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl91_out" 0 6.74165 19934 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl90_out" 0 6.74165 19730 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl89_out" 0 6.74165 19526 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl88_out" 0 6.74165 19322 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl87_out" 0 6.74165 19014 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl86_out" 0 6.74165 18810 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl85_out" 0 6.74165 18606 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl84_out" 0 6.74165 18402 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl83_out" 0 6.74165 18198 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl82_out" 0 6.74165 17994 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl81_out" 0 6.74165 17790 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl80_out" 0 6.74165 17586 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl79_out" 0 6.74165 17278 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl78_out" 0 6.74165 17074 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl77_out" 0 6.74165 16870 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl76_out" 0 6.74165 16666 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl75_out" 0 6.74165 16462 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl74_out" 0 6.74165 16258 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl73_out" 0 6.74165 16054 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl72_out" 0 6.74165 15850 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl71_out" 0 6.74165 15542 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl70_out" 0 6.74165 15338 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl69_out" 0 6.74165 15134 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl68_out" 0 6.74165 14930 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl67_out" 0 6.74165 14726 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl66_out" 0 6.74165 14522 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl65_out" 0 6.74165 14318 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl64_out" 0 6.74165 14114 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl63_out" 0 6.74165 13806 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl62_out" 0 6.74165 13602 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl61_out" 0 6.74165 13398 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl60_out" 0 6.74165 13194 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl59_out" 0 6.74165 12990 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl58_out" 0 6.74165 12786 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl57_out" 0 6.74165 12582 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl56_out" 0 6.74165 12378 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl55_out" 0 6.74165 12070 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl54_out" 0 6.74165 11866 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl53_out" 0 6.74165 11662 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl52_out" 0 6.74165 11458 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl51_out" 0 6.74165 11254 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl50_out" 0 6.74165 11050 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl49_out" 0 6.74165 10846 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl48_out" 0 6.74165 10642 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl47_out" 0 6.74165 10334 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl46_out" 0 6.74165 10130 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl45_out" 0 6.74165 9926 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl44_out" 0 6.74165 9722 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl43_out" 0 6.74165 9518 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl42_out" 0 6.74165 9314 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl41_out" 0 6.74165 9110 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl40_out" 0 6.74165 8906 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl39_out" 0 6.74165 8598 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl38_out" 0 6.74165 8394 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl37_out" 0 6.74165 8190 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl36_out" 0 6.74165 7986 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl35_out" 0 6.74165 7782 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl34_out" 0 6.74165 7578 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl33_out" 0 6.74165 7374 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl32_out" 0 6.74165 7170 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl31_out" 0 6.74165 6862 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl30_out" 0 6.74165 6658 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl29_out" 0 6.74165 6454 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl28_out" 0 6.74165 6250 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl27_out" 0 6.74165 6046 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl26_out" 0 6.74165 5842 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl25_out" 0 6.74165 5638 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl24_out" 0 6.74165 5434 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl23_out" 0 6.74165 5126 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl22_out" 0 6.74165 4922 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl21_out" 0 6.74165 4718 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl20_out" 0 6.74165 4514 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl19_out" 0 6.74165 4310 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl18_out" 0 6.74165 4106 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl17_out" 0 6.74165 3902 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl16_out" 0 6.74165 3698 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl15_out" 0 6.74165 3390 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl14_out" 0 6.74165 3186 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl13_out" 0 6.74165 2982 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl12_out" 0 6.74165 2778 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl11_out" 0 6.74165 2574 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl10_out" 0 6.74165 2370 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl9_out" 0 6.74165 2166 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl8_out" 0 6.74165 1962 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl7_out" 0 6.74165 1654 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl6_out" 0 6.74165 1450 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl5_out" 0 6.74165 1246 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl4_out" 0 6.74165 1042 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl3_out" 0 6.74165 838 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl2_out" 0 6.74165 634 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl1_out" 0 6.74165 430 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "pre_bl0_out" 0 10.514 226 86 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 784 112 0 0 0 0 0 0 0 0 0 0
+node "vdd" 7684 8531.69 12 -160 m2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 298452 26600 442624 30856 1841856 57686 0 0 0 0 0 0 0 0
+node "a_60_50#" 51542 3477.07 60 50 p 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 962385 64220 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+node "upper right" 45789 52750.9 0 -196 nw 0 0 0 0 17583648 59432 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+substrate "gnd" 0 0 -1073741817 -1073741817 space 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+cap "pre_bl55_out" "precharge_r" 0.857862
+cap "pre_bl48_out" "a_60_50#" 1.24318
+cap "vdd" "pre_bl100_out" 0.69175
+cap "vdd" "pre_bl87_out" 0.69175
+cap "upper right" "pre_bl56_out" 8.40415
+cap "upper right" "pre_bl71_out" 8.39522
+cap "pre_bl56_out" "a_60_50#" 1.24318
+cap "pre_bl115_out" "precharge_r" 0.857862
+cap "upper right" "pre_bl37_out" 7.92638
+cap "upper right" "pre_bl31_out" 8.39522
+cap "pre_bl71_out" "a_60_50#" 1.29042
+cap "precharge_r" "pre_bl53_out" 0.857862
+cap "precharge_r" "pre_bl41_out" 0.857862
+cap "pre_bl72_out" "pre_bl73_out" 5.45133
+cap "pre_bl37_out" "a_60_50#" 0.760913
+cap "pre_bl31_out" "a_60_50#" 1.29042
+cap "pre_bl80_out" "pre_bl79_out" 3.73333
+cap "pre_bl59_out" "pre_bl58_out" 5.45133
+cap "upper right" "pre_bl127_out" 8.39522
+cap "upper right" "pre_bl24_out" 8.40415
+cap "pre_bl30_out" "pre_bl31_out" 5.45133
+cap "precharge_r" "pre_bl5_out" 0.857862
+cap "pre_bl127_out" "a_60_50#" 1.29042
+cap "pre_bl102_out" "precharge_r" 0.857862
+cap "pre_bl87_out" "pre_bl88_out" 3.73333
+cap "vdd" "pre_bl26_out" 0.69175
+cap "pre_bl24_out" "a_60_50#" 1.24318
+cap "precharge_r" "pre_bl109_out" 0.857862
+cap "pre_bl14_out" "vdd" 0.69175
+cap "pre_bl12_out" "vdd" 0.69175
+cap "pre_bl79_out" "upper right" 8.39522
+cap "pre_bl84_out" "vdd" 0.69175
+cap "upper right" "pre_bl89_out" 7.92638
+cap "pre_bl117_out" "pre_bl116_out" 5.45133
+cap "pre_bl32_out" "pre_bl31_out" 3.73333
+cap "precharge_r" "pre_bl22_out" 0.857862
+cap "precharge_r" "pre_bl21_out" 0.857862
+cap "pre_bl6_out" "pre_bl5_out" 5.45133
+cap "pre_bl79_out" "a_60_50#" 1.29042
+cap "vdd" "pre_bl106_out" 0.69175
+cap "upper right" "pre_bl64_out" 8.40415
+cap "pre_bl59_out" "upper right" 7.92638
+cap "upper right" "pre_bl39_out" 8.39522
+cap "pre_bl89_out" "a_60_50#" 0.784839
+cap "vdd" "pre_bl98_out" 0.69175
+cap "pre_bl111_out" "pre_bl110_out" 5.45133
+cap "upper right" "pre_bl96_out" 8.40415
+cap "upper right" "pre_bl72_out" 8.40415
+cap "pre_bl64_out" "a_60_50#" 1.24318
+cap "pre_bl59_out" "a_60_50#" 0.751402
+cap "pre_bl39_out" "a_60_50#" 1.29042
+cap "pre_bl3_out" "upper right" 7.92638
+cap "pre_bl0_out" "precharge_r" 0.857862
+cap "upper right" "pre_bl38_out" 7.92638
+cap "pre_bl96_out" "a_60_50#" 1.24318
+cap "pre_bl72_out" "a_60_50#" 1.24318
+cap "pre_bl126_out" "upper right" 7.92638
+cap "precharge_r" "vdd" 3661.27
+cap "pre_bl3_out" "a_60_50#" 0.751402
+cap "precharge_r" "pre_bl61_out" 0.857862
+cap "pre_bl38_out" "a_60_50#" 0.789696
+cap "pre_bl126_out" "a_60_50#" 0.789696
+cap "pre_bl93_out" "precharge_r" 0.857862
+cap "pre_bl92_out" "precharge_r" 0.857862
+cap "precharge_r" "pre_bl9_out" 0.857862
+cap "pre_bl6_out" "vdd" 0.69175
+cap "upper right" "pre_bl51_out" 7.92638
+cap "upper right" "pre_bl27_out" 7.92638
+cap "pre_bl27_out" "a_60_50#" 0.751402
+cap "pre_bl119_out" "precharge_r" 0.857862
+cap "pre_bl76_out" "upper right" 7.92638
+cap "pre_bl51_out" "a_60_50#" 0.751402
+cap "vdd" "pre_bl113_out" 0.69175
+cap "pre_bl81_out" "precharge_r" 0.857862
+cap "vdd" "pre_bl17_out" 0.69175
+cap "vdd" "pre_bl124_out" 0.69175
+cap "vdd" "pre_bl105_out" 0.69175
+cap "pre_bl76_out" "a_60_50#" 0.751795
+cap "pre_bl108_out" "pre_bl107_out" 5.45133
+cap "pre_bl29_out" "pre_bl28_out" 5.45133
+cap "pre_bl19_out" "pre_bl18_out" 5.45133
+cap "upper right" "pre_bl108_out" 7.92638
+cap "precharge_r" "pre_bl131_out" 0.857862
+cap "precharge_r" "pre_bl120_out" 0.857862
+cap "precharge_r" "pre_bl88_out" 0.857862
+cap "pre_bl20_out" "pre_bl21_out" 5.45133
+cap "upper right" "pre_bl91_out" 7.92638
+cap "upper right" "pre_bl49_out" 7.92638
+cap "pre_bl108_out" "a_60_50#" 0.751795
+cap "pre_bl91_out" "a_60_50#" 0.751402
+cap "pre_bl49_out" "a_60_50#" 0.784839
+cap "vdd" "pre_bl129_out" 0.69175
+cap "pre_bl96_out" "pre_bl95_out" 3.73333
+cap "vdd" "pre_bl65_out" 0.69175
+cap "pre_bl118_out" "vdd" 0.69175
+cap "pre_bl86_out" "pre_bl87_out" 5.45133
+cap "vdd" "pre_bl20_out" 0.69175
+cap "pre_bl90_out" "pre_bl89_out" 5.45133
+cap "pre_bl1_out" "precharge_r" 0.857862
+cap "pre_bl55_out" "upper right" 8.39522
+cap "pre_bl55_out" "a_60_50#" 1.29042
+cap "pre_bl119_out" "pre_bl118_out" 5.45133
+cap "pre_bl70_out" "precharge_r" 0.857862
+cap "pre_bl115_out" "upper right" 7.92638
+cap "upper right" "pre_bl53_out" 7.92638
+cap "pre_bl115_out" "a_60_50#" 0.751402
+cap "upper right" "pre_bl41_out" 7.92638
+cap "pre_bl53_out" "a_60_50#" 0.760913
+cap "precharge_r" "pre_bl63_out" 0.857862
+cap "pre_bl42_out" "pre_bl41_out" 5.45133
+cap "pre_bl41_out" "a_60_50#" 0.784839
+cap "pre_bl57_out" "vdd" 0.69175
+cap "precharge_r" "pre_bl35_out" 0.857862
+cap "precharge_r" "pre_bl7_out" 0.857862
+cap "vdd" "pre_bl73_out" 0.69175
+cap "vdd" "pre_bl68_out" 0.69175
+cap "pre_bl111_out" "precharge_r" 0.857862
+cap "precharge_r" "pre_bl23_out" 0.857862
+cap "upper right" "pre_bl5_out" 7.92638
+cap "vdd" "pre_bl34_out" 0.69175
+cap "pre_bl29_out" "precharge_r" 0.857862
+cap "pre_bl6_out" "pre_bl7_out" 5.45133
+cap "pre_bl102_out" "upper right" 7.92638
+cap "pre_bl78_out" "pre_bl77_out" 5.45133
+cap "vdd" "pre_bl58_out" 0.69175
+cap "upper right" "pre_bl109_out" 7.92638
+cap "pre_bl5_out" "a_60_50#" 0.760913
+cap "pre_bl24_out" "pre_bl25_out" 5.45133
+cap "upper right" "pre_bl21_out" 7.92638
+cap "pre_bl102_out" "a_60_50#" 0.789696
+cap "pre_bl123_out" "vdd" 0.69175
+cap "pre_bl36_out" "vdd" 0.69175
+cap "upper right" "pre_bl22_out" 7.92638
+cap "pre_bl109_out" "a_60_50#" 0.760913
+cap "pre_bl127_out" "pre_bl128_out" 3.73333
+cap "pre_bl21_out" "a_60_50#" 0.760913
+cap "pre_bl90_out" "pre_bl91_out" 5.45133
+cap "precharge_r" "pre_bl86_out" 0.857862
+cap "pre_bl80_out" "vdd" 0.69175
+cap "pre_bl22_out" "a_60_50#" 0.789696
+cap "precharge_r" "pre_bl110_out" 0.857862
+cap "pre_bl103_out" "pre_bl102_out" 5.45133
+cap "pre_bl40_out" "precharge_r" 0.857862
+cap "vdd" "pre_bl16_out" 0.69175
+cap "pre_bl0_out" "upper right" 8.05095
+cap "precharge_r" "pre_bl75_out" 0.857862
+cap "pre_bl60_out" "precharge_r" 0.857862
+cap "precharge_r" "pre_bl50_out" 0.857862
+cap "upper right" "vdd" 6634.32
+cap "pre_bl0_out" "a_60_50#" 1.24318
+cap "precharge_r" "pre_bl125_out" 0.857862
+cap "pre_bl122_out" "pre_bl121_out" 5.45133
+cap "vdd" "pre_bl107_out" 0.69175
+cap "precharge_r" "pre_bl94_out" 0.857862
+cap "precharge_r" "pre_bl44_out" 0.857862
+cap "upper right" "pre_bl61_out" 7.92638
+cap "pre_bl82_out" "vdd" 0.69175
+cap "pre_bl4_out" "pre_bl3_out" 5.45133
+cap "vdd" "a_60_50#" 657.828
+cap "pre_bl81_out" "pre_bl80_out" 5.45133
+cap "pre_bl47_out" "precharge_r" 0.857862
+cap "pre_bl45_out" "vdd" 0.69175
+cap "pre_bl42_out" "vdd" 0.69175
+cap "pre_bl10_out" "vdd" 0.69175
+cap "pre_bl93_out" "upper right" 7.92638
+cap "pre_bl92_out" "upper right" 7.92638
+cap "upper right" "pre_bl9_out" 7.92638
+cap "pre_bl61_out" "a_60_50#" 0.760913
+cap "pre_bl131_out" "pre_bl132_out" 5.45133
+cap "pre_bl114_out" "precharge_r" 0.857862
+cap "pre_bl93_out" "a_60_50#" 0.760913
+cap "pre_bl92_out" "a_60_50#" 0.751795
+cap "pre_bl9_out" "a_60_50#" 0.784839
+cap "vdd" "pre_bl62_out" 0.69175
+cap "pre_bl30_out" "vdd" 0.69175
+cap "pre_bl10_out" "pre_bl9_out" 5.45133
+cap "pre_bl119_out" "upper right" 8.39522
+cap "pre_bl103_out" "vdd" 0.69175
+cap "pre_bl61_out" "pre_bl62_out" 5.45133
+cap "precharge_r" "pre_bl28_out" 0.857862
+cap "pre_bl81_out" "upper right" 7.92638
+cap "pre_bl115_out" "pre_bl116_out" 5.45133
+cap "pre_bl81_out" "pre_bl82_out" 5.45133
+cap "pre_bl51_out" "pre_bl52_out" 5.45133
+cap "pre_bl119_out" "a_60_50#" 1.29042
+cap "pre_bl124_out" "pre_bl125_out" 5.45133
+cap "pre_bl81_out" "a_60_50#" 0.784839
+cap "precharge_r" "pre_bl100_out" 0.857862
+cap "precharge_r" "pre_bl87_out" 0.857862
+cap "pre_bl32_out" "vdd" 0.69175
+cap "upper right" "pre_bl131_out" 7.92638
+cap "upper right" "pre_bl120_out" 8.40415
+cap "pre_bl114_out" "pre_bl113_out" 5.45133
+cap "pre_bl15_out" "vdd" 0.69175
+cap "upper right" "pre_bl88_out" 8.40415
+cap "pre_bl131_out" "a_60_50#" 0.799646
+cap "pre_bl120_out" "a_60_50#" 1.24318
+cap "pre_bl88_out" "a_60_50#" 1.24318
+cap "vdd" "pre_bl95_out" 0.69175
+cap "pre_bl85_out" "vdd" 0.69175
+cap "pre_bl35_out" "pre_bl34_out" 5.45133
+cap "pre_bl1_out" "upper right" 7.92638
+cap "vdd" "pre_bl112_out" 0.69175
+cap "pre_bl1_out" "a_60_50#" 0.784839
+cap "precharge_r" "pre_bl26_out" 0.857862
+cap "pre_bl12_out" "precharge_r" 0.857862
+cap "pre_bl36_out" "pre_bl35_out" 5.45133
+cap "precharge_r" "pre_bl14_out" 0.857862
+cap "pre_bl84_out" "precharge_r" 0.857862
+cap "vdd" "pre_bl11_out" 0.69175
+cap "pre_bl70_out" "upper right" 7.92638
+cap "vdd" "pre_bl130_out" 0.69175
+cap "vdd" "pre_bl116_out" 0.69175
+cap "precharge_r" "pre_bl106_out" 0.857862
+cap "pre_bl70_out" "a_60_50#" 0.789696
+cap "precharge_r" "pre_bl98_out" 0.857862
+cap "pre_bl90_out" "vdd" 0.69175
+cap "pre_bl79_out" "pre_bl78_out" 5.45133
+cap "upper right" "pre_bl63_out" 8.39522
+cap "pre_bl52_out" "pre_bl53_out" 5.45133
+cap "pre_bl3_out" "pre_bl2_out" 5.45133
+cap "upper right" "pre_bl35_out" 7.92638
+cap "upper right" "pre_bl7_out" 8.39522
+cap "vdd" "pre_bl66_out" 0.69175
+cap "upper right" "pre_bl23_out" 8.39522
+cap "pre_bl63_out" "a_60_50#" 1.29042
+cap "pre_bl76_out" "pre_bl77_out" 5.45133
+cap "pre_bl111_out" "upper right" 8.39522
+cap "pre_bl35_out" "a_60_50#" 0.751402
+cap "pre_bl7_out" "a_60_50#" 1.29042
+cap "pre_bl43_out" "vdd" 0.69175
+cap "pre_bl29_out" "upper right" 7.92638
+cap "pre_bl23_out" "a_60_50#" 1.29042
+cap "pre_bl97_out" "pre_bl96_out" 5.45133
+cap "pre_bl111_out" "a_60_50#" 1.29042
+cap "pre_bl106_out" "pre_bl105_out" 5.45133
+cap "pre_bl63_out" "pre_bl62_out" 5.45133
+cap "pre_bl8_out" "vdd" 0.69175
+cap "pre_bl6_out" "precharge_r" 0.857862
+cap "pre_bl29_out" "a_60_50#" 0.760913
+cap "pre_bl130_out" "pre_bl131_out" 5.45133
+cap "pre_bl4_out" "pre_bl5_out" 5.45133
+cap "precharge_r" "pre_bl113_out" 0.857862
+cap "pre_bl55_out" "pre_bl54_out" 5.45133
+cap "pre_bl8_out" "pre_bl9_out" 5.45133
+cap "upper right" "pre_bl86_out" 7.92638
+cap "pre_bl29_out" "pre_bl30_out" 5.45133
+cap "precharge_r" "pre_bl17_out" 0.857862
+cap "upper right" "pre_bl110_out" 7.92638
+cap "precharge_r" "pre_bl124_out" 0.857862
+cap "precharge_r" "pre_bl105_out" 0.857862
+cap "vdd" "pre_bl13_out" 0.69175
+cap "pre_bl86_out" "a_60_50#" 0.789696
+cap "upper right" "pre_bl50_out" 7.92638
+cap "pre_bl40_out" "upper right" 8.40415
+cap "pre_bl110_out" "a_60_50#" 0.789696
+cap "upper right" "pre_bl75_out" 7.92638
+cap "pre_bl60_out" "upper right" 7.92638
+cap "upper right" "pre_bl44_out" 7.92638
+cap "pre_bl40_out" "a_60_50#" 1.24318
+cap "pre_bl54_out" "pre_bl53_out" 5.45133
+cap "upper right" "pre_bl125_out" 7.92638
+cap "upper right" "pre_bl94_out" 7.92638
+cap "pre_bl50_out" "a_60_50#" 0.759318
+cap "pre_bl69_out" "vdd" 0.69175
+cap "vdd" "pre_bl19_out" 0.69175
+cap "pre_bl75_out" "a_60_50#" 0.751402
+cap "pre_bl60_out" "a_60_50#" 0.751795
+cap "pre_bl44_out" "a_60_50#" 0.751795
+cap "pre_bl47_out" "upper right" 8.39522
+cap "pre_bl125_out" "a_60_50#" 0.760913
+cap "pre_bl94_out" "a_60_50#" 0.789696
+cap "precharge_r" "pre_bl65_out" 0.857862
+cap "vdd" "pre_bl52_out" 0.69175
+cap "pre_bl45_out" "pre_bl44_out" 5.45133
+cap "vdd" "pre_bl25_out" 0.69175
+cap "pre_bl4_out" "vdd" 0.69175
+cap "upper right" "pre_bl114_out" 7.92638
+cap "precharge_r" "pre_bl129_out" 0.857862
+cap "pre_bl71_out" "pre_bl72_out" 3.73333
+cap "pre_bl47_out" "a_60_50#" 1.29042
+cap "pre_bl118_out" "precharge_r" 0.857862
+cap "vdd" "pre_bl46_out" 0.69175
+cap "pre_bl114_out" "a_60_50#" 0.759318
+cap "vdd" "pre_bl128_out" 0.69175
+cap "precharge_r" "pre_bl20_out" 0.857862
+cap "upper right" "pre_bl28_out" 7.92638
+cap "pre_bl38_out" "pre_bl37_out" 5.45133
+cap "pre_bl28_out" "a_60_50#" 0.751795
+cap "pre_bl111_out" "pre_bl112_out" 3.73333
+cap "upper right" "pre_bl100_out" 7.92638
+cap "upper right" "pre_bl87_out" 8.39522
+cap "vdd" "pre_bl67_out" 0.69175
+cap "pre_bl100_out" "a_60_50#" 0.751795
+cap "pre_bl87_out" "a_60_50#" 1.29042
+cap "pre_bl85_out" "pre_bl86_out" 5.45133
+cap "pre_bl126_out" "pre_bl127_out" 5.45133
+cap "pre_bl48_out" "pre_bl49_out" 5.45133
+cap "vdd" "pre_bl33_out" 0.69175
+cap "pre_bl54_out" "vdd" 0.69175
+cap "pre_bl57_out" "precharge_r" 0.857862
+cap "precharge_r" "pre_bl68_out" 0.857862
+cap "pre_bl95_out" "pre_bl94_out" 5.45133
+cap "precharge_r" "pre_bl73_out" 0.857862
+cap "pre_bl39_out" "pre_bl38_out" 5.45133
+cap "precharge_r" "pre_bl34_out" 0.857862
+cap "pre_bl8_out" "pre_bl7_out" 3.73333
+cap "upper right" "pre_bl26_out" 7.92638
+cap "pre_bl12_out" "upper right" 7.92638
+cap "precharge_r" "pre_bl58_out" 0.857862
+cap "upper right" "pre_bl84_out" 7.92638
+cap "upper right" "pre_bl14_out" 7.92638
+cap "precharge_r" "pre_bl132_out" 0.857862
+cap "pre_bl123_out" "precharge_r" 0.857862
+cap "pre_bl26_out" "a_60_50#" 0.759318
+cap "pre_bl14_out" "a_60_50#" 0.789696
+cap "pre_bl12_out" "a_60_50#" 0.751795
+cap "pre_bl101_out" "pre_bl102_out" 5.45133
+cap "vdd" "pre_bl77_out" 0.69175
+cap "pre_bl36_out" "precharge_r" 0.857862
+cap "pre_bl84_out" "a_60_50#" 0.751795
+cap "vdd" "pre_bl122_out" 0.69175
+cap "pre_bl106_out" "pre_bl107_out" 5.45133
+cap "pre_bl74_out" "vdd" 0.69175
+cap "pre_bl69_out" "pre_bl70_out" 5.45133
+cap "upper right" "pre_bl106_out" 7.92638
+cap "pre_bl80_out" "precharge_r" 0.857862
+cap "upper right" "pre_bl98_out" 7.92638
+cap "pre_bl106_out" "a_60_50#" 0.759318
+cap "pre_bl55_out" "pre_bl56_out" 3.73333
+cap "pre_bl98_out" "a_60_50#" 0.759318
+cap "precharge_r" "pre_bl16_out" 0.857862
+cap "vdd" "pre_bl2_out" 0.69175
+cap "upper right" "precharge_r" 2836.84
+cap "precharge_r" "pre_bl107_out" 0.857862
+cap "pre_bl123_out" "pre_bl124_out" 5.45133
+cap "pre_bl83_out" "vdd" 0.69175
+cap "pre_bl82_out" "precharge_r" 0.857862
+cap "precharge_r" "a_60_50#" 316.171
+cap "pre_bl43_out" "pre_bl44_out" 5.45133
+cap "pre_bl42_out" "precharge_r" 0.857862
+cap "pre_bl10_out" "precharge_r" 0.857862
+cap "pre_bl101_out" "vdd" 0.69175
+cap "pre_bl45_out" "precharge_r" 0.857862
+cap "pre_bl15_out" "pre_bl14_out" 5.45133
+cap "upper right" "pre_bl6_out" 7.92638
+cap "pre_bl78_out" "vdd" 0.69175
+cap "vdd" "pre_bl18_out" 0.69175
+cap "pre_bl97_out" "vdd" 0.69175
+cap "pre_bl30_out" "precharge_r" 0.857862
+cap "pre_bl16_out" "pre_bl17_out" 5.45133
+cap "pre_bl6_out" "a_60_50#" 0.789696
+cap "pre_bl117_out" "vdd" 0.69175
+cap "pre_bl104_out" "vdd" 0.69175
+cap "pre_bl103_out" "precharge_r" 0.857862
+cap "precharge_r" "pre_bl62_out" 0.857862
+cap "upper right" "pre_bl113_out" 7.92638
+cap "upper right" "pre_bl17_out" 7.92638
+cap "vdd" "pre_bl99_out" 0.69175
+cap "upper right" "pre_bl124_out" 7.92638
+cap "upper right" "pre_bl105_out" 7.92638
+cap "pre_bl113_out" "a_60_50#" 0.784839
+cap "pre_bl17_out" "a_60_50#" 0.784839
+cap "pre_bl124_out" "a_60_50#" 0.751795
+cap "precharge_r" "pre_bl32_out" 0.857862
+cap "pre_bl105_out" "a_60_50#" 0.784839
+cap "pre_bl85_out" "pre_bl84_out" 5.45133
+cap "pre_bl15_out" "precharge_r" 0.857862
+cap "vdd" "pre_bl121_out" 0.69175
+cap "pre_bl48_out" "vdd" 0.69175
+cap "upper right" "pre_bl65_out" 7.92638
+cap "pre_bl12_out" "pre_bl11_out" 5.45133
+cap "upper right" "pre_bl129_out" 7.92638
+cap "pre_bl118_out" "upper right" 7.92638
+cap "pre_bl65_out" "a_60_50#" 0.784839
+cap "precharge_r" "pre_bl95_out" 0.857862
+cap "vdd" "pre_bl56_out" 0.69175
+cap "upper right" "pre_bl20_out" 7.92638
+cap "pre_bl129_out" "a_60_50#" 0.795451
+cap "pre_bl85_out" "precharge_r" 0.857862
+cap "pre_bl1_out" "pre_bl2_out" 5.45133
+cap "pre_bl118_out" "a_60_50#" 0.789696
+cap "pre_bl20_out" "a_60_50#" 0.751795
+cap "precharge_r" "pre_bl112_out" 0.857862
+cap "vdd" "pre_bl71_out" 0.69175
+cap "pre_bl57_out" "pre_bl58_out" 5.45133
+cap "pre_bl47_out" "pre_bl46_out" 5.45133
+cap "vdd" "pre_bl37_out" 0.69175
+cap "vdd" "pre_bl31_out" 0.69175
+cap "pre_bl120_out" "pre_bl121_out" 5.45133
+cap "precharge_r" "pre_bl11_out" 0.857862
+cap "precharge_r" "pre_bl130_out" 0.857862
+cap "pre_bl127_out" "vdd" 0.69175
+cap "precharge_r" "pre_bl116_out" 0.857862
+cap "pre_bl90_out" "precharge_r" 0.857862
+cap "pre_bl113_out" "pre_bl112_out" 5.45133
+cap "vdd" "pre_bl24_out" 0.69175
+cap "pre_bl57_out" "upper right" 7.92638
+cap "precharge_r" "pre_bl66_out" 0.857862
+cap "upper right" "pre_bl68_out" 7.92638
+cap "vdd" "pre_bl89_out" 0.69175
+cap "pre_bl79_out" "vdd" 0.69175
+cap "pre_bl14_out" "pre_bl13_out" 5.45133
+cap "pre_bl12_out" "pre_bl13_out" 5.45133
+cap "upper right" "pre_bl73_out" 7.92638
+cap "pre_bl57_out" "a_60_50#" 0.784839
+cap "upper right" "pre_bl34_out" 7.92638
+cap "pre_bl73_out" "a_60_50#" 0.784839
+cap "pre_bl68_out" "a_60_50#" 0.751795
+cap "pre_bl43_out" "precharge_r" 0.857862
+cap "vdd" "pre_bl64_out" 0.69175
+cap "pre_bl59_out" "vdd" 0.69175
+cap "pre_bl39_out" "vdd" 0.69175
+cap "upper right" "pre_bl58_out" 7.92638
+cap "pre_bl34_out" "a_60_50#" 0.759318
+cap "pre_bl8_out" "precharge_r" 0.857862
+cap "upper right" "pre_bl132_out" 8.30795
+cap "pre_bl123_out" "upper right" 7.92638
+cap "vdd" "pre_bl96_out" 0.69175
+cap "vdd" "pre_bl72_out" 0.69175
+cap "pre_bl25_out" "pre_bl26_out" 5.45133
+cap "pre_bl36_out" "upper right" 7.92638
+cap "pre_bl58_out" "a_60_50#" 0.759318
+cap "pre_bl74_out" "pre_bl75_out" 5.45133
+cap "vdd" "pre_bl38_out" 0.69175
+cap "pre_bl3_out" "vdd" 0.69175
+cap "pre_bl132_out" "a_60_50#" 1.29622
+cap "pre_bl123_out" "a_60_50#" 0.751402
+cap "pre_bl36_out" "a_60_50#" 0.751795
+cap "pre_bl80_out" "upper right" 8.40415
+cap "pre_bl126_out" "vdd" 0.69175
+cap "pre_bl109_out" "pre_bl108_out" 5.45133
+cap "precharge_r" "pre_bl13_out" 0.857862
+cap "upper right" "pre_bl16_out" 8.40415
+cap "pre_bl80_out" "a_60_50#" 1.24318
+cap "pre_bl130_out" "pre_bl129_out" 5.45133
+cap "pre_bl88_out" "pre_bl89_out" 5.45133
+cap "vdd" "pre_bl27_out" 0.69175
+cap "upper right" "pre_bl107_out" 7.92638
+cap "pre_bl16_out" "a_60_50#" 1.24318
+cap "pre_bl69_out" "precharge_r" 0.857862
+cap "vdd" "pre_bl51_out" 0.69175
+cap "precharge_r" "pre_bl19_out" 0.857862
+cap "pre_bl82_out" "upper right" 7.92638
+cap "upper right" "a_60_50#" 16818.3
+cap "pre_bl70_out" "pre_bl71_out" 5.45133
+cap "pre_bl42_out" "upper right" 7.92638
+cap "pre_bl10_out" "upper right" 7.92638
+cap "pre_bl107_out" "a_60_50#" 0.751402
+cap "pre_bl76_out" "vdd" 0.69175
+cap "pre_bl65_out" "pre_bl66_out" 5.45133
+cap "precharge_r" "pre_bl52_out" 0.857862
+cap "precharge_r" "pre_bl25_out" 0.857862
+cap "pre_bl4_out" "precharge_r" 0.857862
+cap "pre_bl45_out" "upper right" 7.92638
+cap "pre_bl82_out" "a_60_50#" 0.759318
+cap "pre_bl45_out" "a_60_50#" 0.760913
+cap "pre_bl42_out" "a_60_50#" 0.759318
+cap "pre_bl10_out" "a_60_50#" 0.759318
+cap "precharge_r" "pre_bl46_out" 0.857862
+cap "pre_bl30_out" "upper right" 7.92638
+cap "vdd" "pre_bl108_out" 0.69175
+cap "pre_bl103_out" "upper right" 8.39522
+cap "upper right" "pre_bl62_out" 7.92638
+cap "precharge_r" "pre_bl128_out" 0.857862
+cap "vdd" "pre_bl91_out" 0.69175
+cap "vdd" "pre_bl49_out" 0.69175
+cap "pre_bl62_out" "a_60_50#" 0.789696
+cap "pre_bl30_out" "a_60_50#" 0.789696
+cap "pre_bl103_out" "a_60_50#" 1.29042
+cap "pre_bl15_out" "pre_bl16_out" 3.73333
+cap "pre_bl92_out" "pre_bl91_out" 5.45133
+cap "upper right" "pre_bl32_out" 8.40415
+cap "pre_bl15_out" "upper right" 8.39522
+cap "pre_bl32_out" "a_60_50#" 1.24318
+cap "precharge_r" "pre_bl67_out" 0.857862
+cap "pre_bl15_out" "a_60_50#" 1.29042
+cap "pre_bl101_out" "pre_bl100_out" 5.45133
+cap "precharge_r" "pre_bl33_out" 0.857862
+cap "pre_bl24_out" "pre_bl23_out" 3.73333
+cap "pre_bl55_out" "vdd" 0.69175
+cap "pre_bl54_out" "precharge_r" 0.857862
+cap "pre_bl100_out" "pre_bl99_out" 5.45133
+cap "pre_bl48_out" "pre_bl47_out" 3.73333
+cap "upper right" "pre_bl95_out" 8.39522
+cap "pre_bl20_out" "pre_bl19_out" 5.45133
+cap "pre_bl85_out" "upper right" 7.92638
+cap "pre_bl115_out" "vdd" 0.69175
+cap "pre_bl63_out" "pre_bl64_out" 3.73333
+cap "upper right" "pre_bl112_out" 8.40415
+cap "pre_bl95_out" "a_60_50#" 1.29042
+cap "pre_bl85_out" "a_60_50#" 0.760913
+cap "vdd" "pre_bl53_out" 0.69175
+cap "vdd" "pre_bl41_out" 0.69175
+cap "pre_bl112_out" "a_60_50#" 1.24318
+cap "pre_bl129_out" "pre_bl128_out" 5.45133
+cap "pre_bl83_out" "pre_bl84_out" 5.45133
+cap "upper right" "pre_bl11_out" 7.92638
+cap "precharge_r" "pre_bl122_out" 0.857862
+cap "precharge_r" "pre_bl77_out" 0.857862
+cap "pre_bl21_out" "pre_bl22_out" 5.45133
+cap "upper right" "pre_bl130_out" 7.92638
+cap "pre_bl74_out" "precharge_r" 0.857862
+cap "upper right" "pre_bl116_out" 7.92638
+cap "pre_bl90_out" "upper right" 7.92638
+cap "pre_bl11_out" "a_60_50#" 0.751402
+cap "pre_bl10_out" "pre_bl11_out" 5.45133
+cap "pre_bl130_out" "a_60_50#" 0.780107
+cap "vdd" "pre_bl5_out" 0.69175
+cap "pre_bl116_out" "a_60_50#" 0.751795
+cap "pre_bl90_out" "a_60_50#" 0.759318
+cap "pre_bl102_out" "vdd" 0.69175
+cap "upper right" "pre_bl66_out" 7.92638
+cap "vdd" "pre_bl109_out" 0.69175
+cap "precharge_r" "pre_bl2_out" 0.857862
+cap "pre_bl97_out" "pre_bl98_out" 5.45133
+cap "pre_bl83_out" "precharge_r" 0.857862
+cap "pre_bl69_out" "pre_bl68_out" 5.45133
+cap "pre_bl40_out" "pre_bl39_out" 3.73333
+cap "vdd" "pre_bl21_out" 0.69175
+cap "pre_bl66_out" "a_60_50#" 0.759318
+cap "vdd" "pre_bl22_out" 0.69175
+cap "pre_bl43_out" "upper right" 7.92638
+cap "pre_bl59_out" "pre_bl60_out" 5.45133
+cap "pre_bl43_out" "a_60_50#" 0.751402
+cap "pre_bl101_out" "precharge_r" 0.857862
+cap "pre_bl98_out" "pre_bl99_out" 5.45133
+cap "pre_bl42_out" "pre_bl43_out" 5.45133
+cap "precharge_r" "pre_bl18_out" 0.857862
+cap "pre_bl8_out" "upper right" 8.40415
+cap "pre_bl97_out" "precharge_r" 0.857862
+cap "pre_bl78_out" "precharge_r" 0.857862
+cap "pre_bl117_out" "precharge_r" 0.857862
+cap "pre_bl0_out" "vdd" 0.69175
+cap "pre_bl8_out" "a_60_50#" 1.24318
+cap "pre_bl104_out" "precharge_r" 0.857862
+cap "precharge_r" "pre_bl99_out" 0.857862
+cap "upper right" "pre_bl13_out" 7.92638
+cap "pre_bl126_out" "pre_bl125_out" 5.45133
+cap "vdd" "pre_bl61_out" 0.69175
+cap "pre_bl92_out" "vdd" 0.69175
+cap "pre_bl13_out" "a_60_50#" 0.760913
+cap "pre_bl93_out" "vdd" 0.69175
+cap "pre_bl68_out" "pre_bl67_out" 5.45133
+cap "pre_bl50_out" "pre_bl51_out" 5.45133
+cap "pre_bl18_out" "pre_bl17_out" 5.45133
+cap "vdd" "pre_bl9_out" 0.69175
+cap "pre_bl69_out" "upper right" 7.92638
+cap "upper right" "pre_bl19_out" 7.92638
+cap "precharge_r" "pre_bl121_out" 0.857862
+cap "pre_bl93_out" "pre_bl92_out" 5.45133
+cap "pre_bl119_out" "vdd" 0.69175
+cap "pre_bl81_out" "vdd" 0.69175
+cap "pre_bl76_out" "pre_bl75_out" 5.45133
+cap "upper right" "pre_bl52_out" 7.92638
+cap "upper right" "pre_bl25_out" 7.92638
+cap "pre_bl4_out" "upper right" 7.92638
+cap "pre_bl69_out" "a_60_50#" 0.760913
+cap "pre_bl19_out" "a_60_50#" 0.751402
+cap "pre_bl104_out" "pre_bl105_out" 5.45133
+cap "pre_bl48_out" "precharge_r" 0.857862
+cap "pre_bl33_out" "pre_bl34_out" 5.45133
+cap "upper right" "pre_bl46_out" 7.92638
+cap "pre_bl52_out" "a_60_50#" 0.751795
+cap "pre_bl25_out" "a_60_50#" 0.784839
+cap "pre_bl4_out" "a_60_50#" 0.751795
+cap "vdd" "pre_bl131_out" 0.69175
+cap "vdd" "pre_bl120_out" 0.69175
+cap "vdd" "pre_bl88_out" 0.69175
+cap "precharge_r" "pre_bl56_out" 0.857862
+cap "pre_bl50_out" "pre_bl49_out" 5.45133
+cap "pre_bl28_out" "pre_bl27_out" 5.45133
+cap "upper right" "pre_bl128_out" 8.40415
+cap "pre_bl46_out" "a_60_50#" 0.789696
+cap "precharge_r" "pre_bl71_out" 0.857862
+cap "pre_bl45_out" "pre_bl46_out" 5.45133
+cap "pre_bl128_out" "a_60_50#" 1.2493
+cap "precharge_r" "pre_bl37_out" 0.857862
+cap "precharge_r" "pre_bl31_out" 0.857862
+cap "pre_bl117_out" "pre_bl118_out" 5.45133
+cap "upper right" "pre_bl67_out" 7.92638
+cap "pre_bl119_out" "pre_bl120_out" 3.73333
+cap "pre_bl67_out" "a_60_50#" 0.751402
+cap "pre_bl127_out" "precharge_r" 0.857862
+cap "pre_bl74_out" "pre_bl73_out" 5.45133
+cap "pre_bl1_out" "pre_bl0_out" 5.45133
+cap "upper right" "pre_bl33_out" 7.92638
+cap "precharge_r" "pre_bl24_out" 0.857862
+cap "pre_bl1_out" "vdd" 0.69175
+cap "pre_bl54_out" "upper right" 7.92638
+cap "pre_bl33_out" "a_60_50#" 0.784839
+cap "pre_bl123_out" "pre_bl122_out" 5.45133
+cap "pre_bl79_out" "precharge_r" 0.857862
+cap "pre_bl54_out" "a_60_50#" 0.789696
+cap "precharge_r" "pre_bl89_out" 0.857862
+cap "pre_bl70_out" "vdd" 0.69175
+cap "pre_bl40_out" "pre_bl41_out" 5.45133
+cap "pre_bl22_out" "pre_bl23_out" 5.45133
+cap "pre_bl59_out" "precharge_r" 0.857862
+cap "pre_bl39_out" "precharge_r" 0.857862
+cap "pre_bl27_out" "pre_bl26_out" 5.45133
+cap "precharge_r" "pre_bl64_out" 0.857862
+cap "precharge_r" "pre_bl96_out" 0.857862
+cap "precharge_r" "pre_bl72_out" 0.857862
+cap "upper right" "pre_bl77_out" 7.92638
+cap "pre_bl115_out" "pre_bl114_out" 5.45133
+cap "vdd" "pre_bl63_out" 0.69175
+cap "vdd" "pre_bl35_out" 0.69175
+cap "pre_bl32_out" "pre_bl33_out" 5.45133
+cap "pre_bl3_out" "precharge_r" 0.857862
+cap "upper right" "pre_bl122_out" 7.92638
+cap "pre_bl110_out" "pre_bl109_out" 5.45133
+cap "precharge_r" "pre_bl38_out" 0.857862
+cap "vdd" "pre_bl7_out" 0.69175
+cap "upper right" "pre_bl74_out" 7.92638
+cap "pre_bl77_out" "a_60_50#" 0.760913
+cap "vdd" "pre_bl23_out" 0.69175
+cap "pre_bl122_out" "a_60_50#" 0.759318
+cap "pre_bl74_out" "a_60_50#" 0.759318
+cap "pre_bl126_out" "precharge_r" 0.857862
+cap "pre_bl111_out" "vdd" 0.69175
+cap "pre_bl29_out" "vdd" 0.69175
+cap "upper right" "pre_bl2_out" 7.92638
+cap "precharge_r" "pre_bl51_out" 0.857862
+cap "precharge_r" "pre_bl27_out" 0.857862
+cap "pre_bl83_out" "upper right" 7.92638
+cap "pre_bl2_out" "a_60_50#" 0.759318
+cap "pre_bl82_out" "pre_bl83_out" 5.45133
+cap "pre_bl76_out" "precharge_r" 0.857862
+cap "pre_bl83_out" "a_60_50#" 0.751402
+cap "vdd" "pre_bl110_out" 0.69175
+cap "vdd" "pre_bl86_out" 0.69175
+cap "pre_bl101_out" "upper right" 7.92638
+cap "upper right" "pre_bl18_out" 7.92638
+cap "pre_bl57_out" "pre_bl56_out" 5.45133
+cap "upper right" "pre_bl97_out" 7.92638
+cap "pre_bl78_out" "upper right" 7.92638
+cap "pre_bl101_out" "a_60_50#" 0.760913
+cap "precharge_r" "pre_bl108_out" 0.857862
+cap "pre_bl40_out" "vdd" 0.69175
+cap "pre_bl117_out" "upper right" 7.92638
+cap "pre_bl18_out" "a_60_50#" 0.759318
+cap "pre_bl65_out" "pre_bl64_out" 5.45133
+cap "vdd" "pre_bl50_out" 0.69175
+cap "upper right" "pre_bl104_out" 8.40415
+cap "pre_bl97_out" "a_60_50#" 0.784839
+cap "pre_bl78_out" "a_60_50#" 0.789696
+cap "precharge_r" "pre_bl91_out" 0.857862
+cap "vdd" "pre_bl75_out" 0.69175
+cap "pre_bl60_out" "vdd" 0.69175
+cap "precharge_r" "pre_bl49_out" 0.857862
+cap "vdd" "pre_bl44_out" 0.69175
+cap "upper right" "pre_bl99_out" 7.92638
+cap "pre_bl117_out" "a_60_50#" 0.760913
+cap "pre_bl104_out" "a_60_50#" 1.24318
+cap "vdd" "pre_bl125_out" 0.69175
+cap "vdd" "pre_bl94_out" 0.69175
+cap "pre_bl60_out" "pre_bl61_out" 5.45133
+cap "pre_bl99_out" "a_60_50#" 0.751402
+cap "pre_bl66_out" "pre_bl67_out" 5.45133
+cap "pre_bl47_out" "vdd" 0.69175
+cap "pre_bl114_out" "vdd" 0.69175
+cap "pre_bl93_out" "pre_bl94_out" 5.45133
+cap "pre_bl103_out" "pre_bl104_out" 3.73333
+cap "upper right" "pre_bl121_out" 7.92638
+cap "pre_bl36_out" "pre_bl37_out" 5.45133
+cap "vdd" "pre_bl28_out" 0.69175
+cap "pre_bl48_out" "upper right" 8.40415
+cap "pre_bl121_out" "a_60_50#" 0.784839
+cap "wrom0_precharge_cell_129/D" "wrom0_precharge_cell_130/D" 10.916
+cap "wrom0_rom_poly_tap_3_17/poly_tap" "wrom0_precharge_cell_131/D" 2.08449
+cap "wrom0_rom_poly_tap_3_17/poly_tap" "wrom0_precharge_cell_125/D" 0.00560963
+cap "wrom0_precharge_cell_132/D" "wrom0_precharge_cell_131/D" 10.916
+cap "wrom0_rom_poly_tap_3_17/poly_tap" "wrom0_precharge_cell_132/D" 3.42179
+cap "wrom0_precharge_cell_119/vdd" "wrom0_precharge_cell_128/D" 4.99514
+cap "wrom0_rom_poly_tap_3_17/poly_tap" "wrom0_precharge_cell_127/D" 1.96283
+cap "wrom0_precharge_cell_131/D" "wrom0_precharge_cell_130/D" 10.916
+cap "wrom0_rom_poly_tap_3_17/poly_tap" "wrom0_precharge_cell_130/D" 2.00618
+cap "wrom0_rom_poly_tap_3_17/poly_tap" "wrom0_precharge_cell_126/D" 0.0095101
+cap "wrom0_precharge_cell_129/D" "wrom0_precharge_cell_128/D" 10.916
+cap "wrom0_precharge_cell_119/vdd" "wrom0_precharge_cell_129/D" 4.99514
+cap "wrom0_precharge_cell_126/D" "wrom0_precharge_cell_127/D" 5.45799
+cap "wrom0_precharge_cell_119/vdd" "wrom0_precharge_cell_131/D" 4.99514
+cap "wrom0_rom_poly_tap_3_17/poly_tap" "wrom0_precharge_cell_128/D" 1.9689
+cap "wrom0_rom_poly_tap_3_17/poly_tap" "wrom0_precharge_cell_119/vdd" -536.899
+cap "wrom0_precharge_cell_119/vdd" "wrom0_precharge_cell_132/D" 5.98146
+cap "wrom0_rom_poly_tap_3_17/poly_tap" "wrom0_precharge_cell_129/D" 1.98037
+cap "wrom0_precharge_cell_127/D" "wrom0_precharge_cell_119/vdd" 4.99514
+cap "wrom0_precharge_cell_127/D" "wrom0_precharge_cell_128/D" 10.916
+cap "wrom0_precharge_cell_119/vdd" "wrom0_precharge_cell_130/D" 4.99514
+cap "wrom0_precharge_cell_120/D" "wrom0_precharge_cell_113/vdd" 1.70634
+cap "wrom0_rom_poly_tap_3_17/poly_tap" "wrom0_precharge_cell_122/D" 2.00618
+cap "wrom0_precharge_cell_117/D" "wrom0_rom_poly_tap_3_17/poly_tap" 0.00560963
+cap "wrom0_precharge_cell_128/D" "wrom0_rom_poly_tap_3_17/poly_tap" 0.0324537
+cap "wrom0_rom_poly_tap_3_17/poly_tap" "wrom0_precharge_cell_113/vdd" -513.961
+cap "wrom0_precharge_cell_125/D" "wrom0_precharge_cell_113/vdd" 6.15237
+cap "wrom0_precharge_cell_127/D" "wrom0_precharge_cell_126/D" 5.45799
+cap "wrom0_rom_poly_tap_3_17/poly_tap" "wrom0_precharge_cell_129/D" 0.0200543
+cap "wrom0_precharge_cell_120/D" "wrom0_rom_poly_tap_3_17/poly_tap" 0.963626
+cap "wrom0_precharge_cell_122/D" "wrom0_precharge_cell_121/D" 10.916
+cap "wrom0_precharge_cell_124/D" "wrom0_precharge_cell_123/D" 10.916
+cap "wrom0_precharge_cell_113/vdd" "wrom0_precharge_cell_121/D" 4.99514
+cap "wrom0_precharge_cell_125/D" "wrom0_rom_poly_tap_3_17/poly_tap" 3.71251
+cap "wrom0_precharge_cell_124/D" "wrom0_precharge_cell_113/vdd" 6.18175
+cap "wrom0_precharge_cell_120/D" "wrom0_precharge_cell_121/D" 10.916
+cap "wrom0_rom_poly_tap_3_17/poly_tap" "wrom0_precharge_cell_121/D" 1.98037
+cap "wrom0_precharge_cell_127/D" "wrom0_rom_poly_tap_3_17/poly_tap" 0.0610345
+cap "wrom0_precharge_cell_124/D" "wrom0_rom_poly_tap_3_17/poly_tap" 3.42179
+cap "wrom0_rom_poly_tap_3_17/poly_tap" "wrom0_precharge_cell_132/D" 0.00742217
+cap "wrom0_precharge_cell_124/D" "wrom0_precharge_cell_125/D" 6.72095
+cap "wrom0_precharge_cell_119/D" "wrom0_rom_poly_tap_3_17/poly_tap" 0.0130951
+cap "wrom0_precharge_cell_118/D" "wrom0_rom_poly_tap_3_17/poly_tap" 0.0095101
+cap "wrom0_precharge_cell_126/D" "wrom0_precharge_cell_113/vdd" 4.99514
+cap "wrom0_rom_poly_tap_3_17/poly_tap" "wrom0_precharge_cell_130/D" 0.0135989
+cap "wrom0_precharge_cell_123/D" "wrom0_precharge_cell_122/D" 10.916
+cap "wrom0_precharge_cell_123/D" "wrom0_precharge_cell_113/vdd" 4.99514
+cap "wrom0_precharge_cell_113/vdd" "wrom0_precharge_cell_122/D" 4.99514
+cap "wrom0_precharge_cell_126/D" "wrom0_rom_poly_tap_3_17/poly_tap" 2.10153
+cap "wrom0_precharge_cell_126/D" "wrom0_precharge_cell_125/D" 10.916
+cap "wrom0_precharge_cell_123/D" "wrom0_rom_poly_tap_3_17/poly_tap" 2.08449
+cap "wrom0_rom_poly_tap_3_17/poly_tap" "wrom0_precharge_cell_131/D" 0.0098208
+cap "wrom0_precharge_cell_106/vdd" "wrom0_precharge_cell_118/D" 4.99514
+cap "wrom0_precharge_cell_120/D" "wrom0_precharge_cell_119/D" 10.916
+cap "wrom0_precharge_cell_113/D" "wrom0_rom_poly_tap_3_16/poly_tap" 0.0306322
+cap "wrom0_precharge_cell_116/D" "wrom0_rom_poly_tap_3_16/poly_tap" 3.42179
+cap "wrom0_precharge_cell_124/D" "wrom0_rom_poly_tap_3_16/poly_tap" 0.00742217
+cap "wrom0_precharge_cell_114/D" "wrom0_rom_poly_tap_3_16/poly_tap" 2.00618
+cap "wrom0_precharge_cell_106/vdd" "wrom0_rom_poly_tap_3_16/poly_tap" -513.739
+cap "wrom0_precharge_cell_121/D" "wrom0_rom_poly_tap_3_16/poly_tap" 0.0200543
+cap "wrom0_rom_poly_tap_3_16/poly_tap" "wrom0_precharge_cell_118/D" 2.10153
+cap "wrom0_precharge_cell_117/D" "wrom0_precharge_cell_116/D" 6.72095
+cap "wrom0_precharge_cell_120/D" "wrom0_precharge_cell_106/vdd" 3.2888
+cap "wrom0_precharge_cell_115/D" "wrom0_precharge_cell_116/D" 10.916
+cap "wrom0_precharge_cell_106/vdd" "wrom0_precharge_cell_117/D" 6.15237
+cap "wrom0_precharge_cell_122/D" "wrom0_rom_poly_tap_3_16/poly_tap" 0.0135989
+cap "wrom0_precharge_cell_112/D" "wrom0_rom_poly_tap_3_16/poly_tap" 0.0191588
+cap "wrom0_precharge_cell_117/D" "wrom0_precharge_cell_118/D" 10.916
+cap "wrom0_precharge_cell_115/D" "wrom0_precharge_cell_114/D" 10.916
+cap "wrom0_precharge_cell_106/vdd" "wrom0_precharge_cell_115/D" 4.99514
+cap "wrom0_precharge_cell_111/D" "wrom0_rom_poly_tap_3_16/poly_tap" 0.0130951
+cap "wrom0_precharge_cell_106/vdd" "wrom0_precharge_cell_119/D" 4.99514
+cap "wrom0_precharge_cell_120/D" "wrom0_rom_poly_tap_3_16/poly_tap" 1.03772
+cap "wrom0_precharge_cell_117/D" "wrom0_rom_poly_tap_3_16/poly_tap" 3.71251
+cap "wrom0_precharge_cell_119/D" "wrom0_precharge_cell_118/D" 10.916
+cap "wrom0_precharge_cell_113/D" "wrom0_precharge_cell_114/D" 5.45799
+cap "wrom0_precharge_cell_115/D" "wrom0_rom_poly_tap_3_16/poly_tap" 2.08449
+cap "wrom0_precharge_cell_106/vdd" "wrom0_precharge_cell_116/D" 6.18175
+cap "wrom0_rom_poly_tap_3_16/poly_tap" "wrom0_precharge_cell_119/D" 2.01077
+cap "wrom0_precharge_cell_106/vdd" "wrom0_precharge_cell_114/D" 4.99514
+cap "wrom0_precharge_cell_109/D" "wrom0_rom_poly_tap_3_16/poly_tap" 0.00560963
+cap "wrom0_precharge_cell_110/D" "wrom0_rom_poly_tap_3_16/poly_tap" 0.0095101
+cap "wrom0_precharge_cell_123/D" "wrom0_rom_poly_tap_3_16/poly_tap" 0.0098208
+cap "wrom0_precharge_cell_106/D" "wrom0_rom_poly_tap_3_15/poly_tap" 0.0564409
+cap "wrom0_rom_poly_tap_3_15/poly_tap" "wrom0_precharge_cell_110/D" 2.10153
+cap "wrom0_precharge_cell_108/D" "wrom0_precharge_cell_107/D" 5.45799
+cap "wrom0_precharge_cell_100/vdd" "wrom0_precharge_cell_112/D" 4.99514
+cap "wrom0_rom_poly_tap_3_15/poly_tap" "wrom0_precharge_cell_111/D" 2.01077
+cap "wrom0_precharge_cell_113/D" "wrom0_rom_poly_tap_3_15/poly_tap" 1.96979
+cap "wrom0_rom_poly_tap_3_15/poly_tap" "wrom0_precharge_cell_101/D" 0.00560963
+cap "wrom0_rom_poly_tap_3_15/poly_tap" "wrom0_precharge_cell_104/D" 0.0191588
+cap "wrom0_precharge_cell_100/vdd" "wrom0_precharge_cell_110/D" 4.99514
+cap "wrom0_rom_poly_tap_3_15/poly_tap" "wrom0_precharge_cell_116/D" 0.00742217
+cap "wrom0_precharge_cell_112/D" "wrom0_precharge_cell_111/D" 10.916
+cap "wrom0_rom_poly_tap_3_15/poly_tap" "wrom0_precharge_cell_109/D" 3.71251
+cap "wrom0_precharge_cell_113/D" "wrom0_precharge_cell_112/D" 10.916
+cap "wrom0_precharge_cell_114/D" "wrom0_precharge_cell_113/D" 5.45799
+cap "wrom0_precharge_cell_105/D" "wrom0_rom_poly_tap_3_15/poly_tap" 0.0306322
+cap "wrom0_precharge_cell_100/vdd" "wrom0_precharge_cell_111/D" 4.99514
+cap "wrom0_precharge_cell_109/D" "wrom0_precharge_cell_108/D" 6.72095
+cap "wrom0_precharge_cell_113/D" "wrom0_precharge_cell_100/vdd" 4.99514
+cap "wrom0_rom_poly_tap_3_15/poly_tap" "wrom0_precharge_cell_108/D" 3.42179
+cap "wrom0_precharge_cell_111/D" "wrom0_precharge_cell_110/D" 10.916
+cap "wrom0_rom_poly_tap_3_15/poly_tap" "wrom0_precharge_cell_112/D" 1.98219
+cap "wrom0_rom_poly_tap_3_15/poly_tap" "wrom0_precharge_cell_103/D" 0.0130951
+cap "wrom0_precharge_cell_114/D" "wrom0_rom_poly_tap_3_15/poly_tap" 0.0135989
+cap "wrom0_precharge_cell_100/vdd" "wrom0_precharge_cell_109/D" 6.15237
+cap "wrom0_rom_poly_tap_3_15/poly_tap" "wrom0_precharge_cell_115/D" 0.0098208
+cap "wrom0_precharge_cell_100/vdd" "wrom0_rom_poly_tap_3_15/poly_tap" -509.481
+cap "wrom0_rom_poly_tap_3_15/poly_tap" "wrom0_precharge_cell_102/D" 0.0095101
+cap "wrom0_precharge_cell_100/vdd" "wrom0_precharge_cell_108/D" 6.18175
+cap "wrom0_precharge_cell_110/D" "wrom0_precharge_cell_109/D" 10.916
+cap "wrom0_rom_poly_tap_3_15/poly_tap" "wrom0_precharge_cell_107/D" 0.134755
+cap "wrom0_precharge_cell_101/D" "wrom0_rom_poly_tap_3_14/poly_tap" 3.02663
+cap "wrom0_precharge_cell_93/vdd" "wrom0_rom_poly_tap_3_14/poly_tap" -609.09
+cap "wrom0_precharge_cell_104/D" "wrom0_precharge_cell_105/D" 10.916
+cap "wrom0_precharge_cell_102/D" "wrom0_precharge_cell_101/D" 10.916
+cap "wrom0_precharge_cell_102/D" "wrom0_precharge_cell_93/vdd" 4.99514
+cap "wrom0_precharge_cell_107/D" "wrom0_precharge_cell_93/vdd" 4.99514
+cap "wrom0_precharge_cell_103/D" "wrom0_rom_poly_tap_3_14/poly_tap" 1.94974
+cap "wrom0_precharge_cell_101/D" "wrom0_precharge_cell_100/D" 3.36047
+cap "wrom0_precharge_cell_93/vdd" "wrom0_precharge_cell_105/D" 4.99514
+cap "wrom0_rom_poly_tap_3_14/poly_tap" "wrom0_precharge_cell_106/D" 1.94974
+cap "wrom0_precharge_cell_108/D" "wrom0_precharge_cell_107/D" 5.45799
+cap "wrom0_precharge_cell_102/D" "wrom0_precharge_cell_103/D" 10.916
+cap "wrom0_precharge_cell_104/D" "wrom0_precharge_cell_93/vdd" 4.99514
+cap "wrom0_precharge_cell_107/D" "wrom0_precharge_cell_106/D" 10.916
+cap "wrom0_precharge_cell_101/D" "wrom0_precharge_cell_93/vdd" 6.15237
+cap "wrom0_precharge_cell_102/D" "wrom0_rom_poly_tap_3_14/poly_tap" 1.94974
+cap "wrom0_precharge_cell_106/D" "wrom0_precharge_cell_105/D" 10.916
+cap "wrom0_precharge_cell_107/D" "wrom0_rom_poly_tap_3_14/poly_tap" 1.94974
+cap "wrom0_precharge_cell_104/D" "wrom0_precharge_cell_103/D" 10.916
+cap "wrom0_rom_poly_tap_3_14/poly_tap" "wrom0_precharge_cell_105/D" 1.94974
+cap "wrom0_precharge_cell_103/D" "wrom0_precharge_cell_93/vdd" 4.99514
+cap "wrom0_precharge_cell_104/D" "wrom0_rom_poly_tap_3_14/poly_tap" 1.94974
+cap "wrom0_precharge_cell_93/vdd" "wrom0_precharge_cell_106/D" 4.99514
+cap "wrom0_precharge_cell_107/D" "wrom0_rom_poly_tap_3_13/poly_tap" 0.0098208
+cap "wrom0_precharge_cell_87/vdd" "wrom0_precharge_cell_95/D" 4.99514
+cap "wrom0_precharge_cell_96/D" "wrom0_precharge_cell_95/D" 10.916
+cap "wrom0_precharge_cell_102/D" "wrom0_rom_poly_tap_3_13/poly_tap" 0.151792
+cap "wrom0_precharge_cell_87/vdd" "wrom0_rom_poly_tap_3_13/poly_tap" -576.68
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_96/D" 1.9689
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_104/D" 0.0324537
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_106/D" 0.0135989
+cap "wrom0_precharge_cell_101/D" "wrom0_precharge_cell_100/D" 3.36047
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_93/D" 0.00560963
+cap "wrom0_precharge_cell_87/vdd" "wrom0_precharge_cell_99/D" 4.99514
+cap "wrom0_precharge_cell_87/vdd" "wrom0_precharge_cell_94/D" 2.11106
+cap "wrom0_precharge_cell_87/vdd" "wrom0_precharge_cell_97/D" 4.99514
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_100/D" 3.42179
+cap "wrom0_precharge_cell_97/D" "wrom0_precharge_cell_96/D" 10.916
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_98/D" 2.00618
+cap "wrom0_precharge_cell_100/D" "wrom0_precharge_cell_99/D" 10.916
+cap "wrom0_precharge_cell_101/D" "wrom0_rom_poly_tap_3_13/poly_tap" 0.685883
+cap "wrom0_precharge_cell_99/D" "wrom0_precharge_cell_98/D" 10.916
+cap "wrom0_precharge_cell_108/D" "wrom0_rom_poly_tap_3_13/poly_tap" 0.00742217
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_95/D" 1.96283
+cap "wrom0_precharge_cell_98/D" "wrom0_precharge_cell_97/D" 10.916
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_103/D" 0.0610345
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_105/D" 0.0200543
+cap "wrom0_precharge_cell_87/vdd" "wrom0_precharge_cell_96/D" 4.99514
+cap "wrom0_precharge_cell_95/D" "wrom0_precharge_cell_94/D" 10.916
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_99/D" 2.08449
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_94/D" 1.01478
+cap "wrom0_precharge_cell_87/vdd" "wrom0_precharge_cell_100/D" 6.18175
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_97/D" 1.98037
+cap "wrom0_precharge_cell_87/vdd" "wrom0_precharge_cell_98/D" 4.99514
+cap "wrom0_precharge_cell_88/D" "wrom0_precharge_cell_87/D" 5.45799
+cap "wrom0_precharge_cell_91/D" "wrom0_precharge_cell_90/D" 10.916
+cap "wrom0_precharge_cell_85/D" "wrom0_rom_poly_tap_3_13/poly_tap" 0.00560963
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_86/D" 0.0095101
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_93/D" 3.71251
+cap "wrom0_precharge_cell_80/vdd" "wrom0_rom_poly_tap_3_13/poly_tap" -513.95
+cap "wrom0_precharge_cell_80/vdd" "wrom0_precharge_cell_89/D" 4.99514
+cap "wrom0_precharge_cell_93/D" "wrom0_precharge_cell_92/D" 6.72095
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_97/D" 0.0200543
+cap "wrom0_precharge_cell_91/D" "wrom0_precharge_cell_80/vdd" 4.99514
+cap "wrom0_precharge_cell_95/D" "wrom0_rom_poly_tap_3_13/poly_tap" 0.0610345
+cap "wrom0_precharge_cell_80/vdd" "wrom0_precharge_cell_92/D" 6.18175
+cap "wrom0_precharge_cell_89/D" "wrom0_rom_poly_tap_3_13/poly_tap" 1.98037
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_99/D" 0.0098208
+cap "wrom0_precharge_cell_91/D" "wrom0_rom_poly_tap_3_13/poly_tap" 2.08449
+cap "wrom0_precharge_cell_94/D" "wrom0_precharge_cell_93/D" 10.916
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_92/D" 3.42179
+cap "wrom0_precharge_cell_80/vdd" "wrom0_precharge_cell_88/D" 4.99514
+cap "wrom0_precharge_cell_94/D" "wrom0_precharge_cell_80/vdd" 2.88408
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_87/D" 0.0130951
+cap "wrom0_precharge_cell_100/D" "wrom0_rom_poly_tap_3_13/poly_tap" 0.00742217
+cap "wrom0_precharge_cell_91/D" "wrom0_precharge_cell_92/D" 10.916
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_96/D" 0.0324537
+cap "wrom0_precharge_cell_90/D" "wrom0_precharge_cell_80/vdd" 4.99514
+cap "wrom0_precharge_cell_88/D" "wrom0_rom_poly_tap_3_13/poly_tap" 1.9689
+cap "wrom0_precharge_cell_94/D" "wrom0_rom_poly_tap_3_13/poly_tap" 1.09626
+cap "wrom0_precharge_cell_89/D" "wrom0_precharge_cell_88/D" 10.916
+cap "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_98/D" 0.0135989
+cap "wrom0_precharge_cell_90/D" "wrom0_precharge_cell_89/D" 10.916
+cap "wrom0_precharge_cell_80/vdd" "wrom0_precharge_cell_93/D" 6.15237
+cap "wrom0_precharge_cell_90/D" "wrom0_rom_poly_tap_3_13/poly_tap" 2.00618
+cap "wrom0_precharge_cell_77/D" "wrom0_rom_poly_tap_3_12/poly_tap" 0.00560963
+cap "wrom0_precharge_cell_83/D" "wrom0_rom_poly_tap_3_12/poly_tap" 2.08449
+cap "wrom0_precharge_cell_89/D" "wrom0_rom_poly_tap_3_12/poly_tap" 0.0200543
+cap "wrom0_precharge_cell_84/D" "wrom0_precharge_cell_74/vdd" 6.18175
+cap "wrom0_precharge_cell_85/D" "wrom0_rom_poly_tap_3_12/poly_tap" 3.71251
+cap "wrom0_precharge_cell_87/D" "wrom0_precharge_cell_86/D" 10.916
+cap "wrom0_precharge_cell_83/D" "wrom0_precharge_cell_82/D" 10.916
+cap "wrom0_precharge_cell_87/D" "wrom0_precharge_cell_88/D" 5.45799
+cap "wrom0_precharge_cell_79/D" "wrom0_rom_poly_tap_3_12/poly_tap" 0.0130951
+cap "wrom0_precharge_cell_81/D" "wrom0_rom_poly_tap_3_12/poly_tap" 0.0306322
+cap "wrom0_precharge_cell_84/D" "wrom0_precharge_cell_83/D" 10.916
+cap "wrom0_precharge_cell_85/D" "wrom0_precharge_cell_86/D" 10.916
+cap "wrom0_precharge_cell_92/D" "wrom0_rom_poly_tap_3_12/poly_tap" 0.00742217
+cap "wrom0_precharge_cell_82/D" "wrom0_rom_poly_tap_3_12/poly_tap" 2.00618
+cap "wrom0_precharge_cell_86/D" "wrom0_rom_poly_tap_3_12/poly_tap" 2.10153
+cap "wrom0_precharge_cell_88/D" "wrom0_rom_poly_tap_3_12/poly_tap" 0.0324537
+cap "wrom0_precharge_cell_85/D" "wrom0_precharge_cell_84/D" 6.72095
+cap "wrom0_precharge_cell_81/D" "wrom0_precharge_cell_82/D" 5.45799
+cap "wrom0_precharge_cell_74/vdd" "wrom0_precharge_cell_83/D" 4.99514
+cap "wrom0_precharge_cell_74/vdd" "wrom0_precharge_cell_87/D" 4.99514
+cap "wrom0_precharge_cell_84/D" "wrom0_rom_poly_tap_3_12/poly_tap" 3.42179
+cap "wrom0_precharge_cell_91/D" "wrom0_rom_poly_tap_3_12/poly_tap" 0.0098208
+cap "wrom0_precharge_cell_85/D" "wrom0_precharge_cell_74/vdd" 6.15237
+cap "wrom0_precharge_cell_78/D" "wrom0_rom_poly_tap_3_12/poly_tap" 0.0095101
+cap "wrom0_precharge_cell_80/D" "wrom0_rom_poly_tap_3_12/poly_tap" 0.0191588
+cap "wrom0_precharge_cell_74/vdd" "wrom0_rom_poly_tap_3_12/poly_tap" -510.333
+cap "wrom0_precharge_cell_74/vdd" "wrom0_precharge_cell_86/D" 4.99514
+cap "wrom0_precharge_cell_74/vdd" "wrom0_precharge_cell_82/D" 4.99514
+cap "wrom0_precharge_cell_87/D" "wrom0_rom_poly_tap_3_12/poly_tap" 2.01077
+cap "wrom0_precharge_cell_90/D" "wrom0_rom_poly_tap_3_12/poly_tap" 0.0135989
+cap "wrom0_precharge_cell_68/vdd" "wrom0_precharge_cell_80/D" 4.99514
+cap "wrom0_rom_poly_tap_3_11/poly_tap" "wrom0_precharge_cell_79/D" 2.01077
+cap "wrom0_precharge_cell_76/D" "wrom0_precharge_cell_75/D" 10.916
+cap "wrom0_precharge_cell_72/D" "wrom0_rom_poly_tap_3_11/poly_tap" 0.0191588
+cap "wrom0_rom_poly_tap_3_11/poly_tap" "wrom0_precharge_cell_75/D" 1.09442
+cap "wrom0_precharge_cell_78/D" "wrom0_rom_poly_tap_3_11/poly_tap" 2.10153
+cap "wrom0_precharge_cell_78/D" "wrom0_precharge_cell_79/D" 10.916
+cap "wrom0_rom_poly_tap_3_11/poly_tap" "wrom0_precharge_cell_81/D" 1.96979
+cap "wrom0_rom_poly_tap_3_11/poly_tap" "wrom0_precharge_cell_83/D" 0.0098208
+cap "wrom0_precharge_cell_76/D" "wrom0_precharge_cell_68/vdd" 6.18175
+cap "wrom0_rom_poly_tap_3_11/poly_tap" "wrom0_precharge_cell_68/vdd" -513.71
+cap "wrom0_precharge_cell_68/vdd" "wrom0_precharge_cell_79/D" 4.99514
+cap "wrom0_precharge_cell_68/vdd" "wrom0_precharge_cell_75/D" 1.80752
+cap "wrom0_precharge_cell_77/D" "wrom0_precharge_cell_76/D" 6.72095
+cap "wrom0_rom_poly_tap_3_11/poly_tap" "wrom0_precharge_cell_74/D" 0.0564409
+cap "wrom0_precharge_cell_77/D" "wrom0_rom_poly_tap_3_11/poly_tap" 3.71251
+cap "wrom0_precharge_cell_78/D" "wrom0_precharge_cell_68/vdd" 4.99514
+cap "wrom0_precharge_cell_71/D" "wrom0_rom_poly_tap_3_11/poly_tap" 0.0130951
+cap "wrom0_rom_poly_tap_3_11/poly_tap" "wrom0_precharge_cell_80/D" 1.98219
+cap "wrom0_precharge_cell_80/D" "wrom0_precharge_cell_79/D" 10.916
+cap "wrom0_precharge_cell_68/vdd" "wrom0_precharge_cell_81/D" 4.99514
+cap "wrom0_precharge_cell_78/D" "wrom0_precharge_cell_77/D" 10.916
+cap "wrom0_precharge_cell_81/D" "wrom0_precharge_cell_80/D" 10.916
+cap "wrom0_rom_poly_tap_3_11/poly_tap" "wrom0_precharge_cell_82/D" 0.0135989
+cap "wrom0_precharge_cell_69/D" "wrom0_rom_poly_tap_3_11/poly_tap" 0.00560963
+cap "wrom0_rom_poly_tap_3_11/poly_tap" "wrom0_precharge_cell_84/D" 0.00742217
+cap "wrom0_precharge_cell_81/D" "wrom0_precharge_cell_82/D" 5.45799
+cap "wrom0_precharge_cell_77/D" "wrom0_precharge_cell_68/vdd" 6.15237
+cap "wrom0_precharge_cell_70/D" "wrom0_rom_poly_tap_3_11/poly_tap" 0.0095101
+cap "wrom0_rom_poly_tap_3_11/poly_tap" "wrom0_precharge_cell_73/D" 0.0306322
+cap "wrom0_precharge_cell_76/D" "wrom0_rom_poly_tap_3_11/poly_tap" 3.42179
+cap "wrom0_precharge_cell_75/D" "wrom0_precharge_cell_74/D" 10.916
+cap "wrom0_precharge_cell_61/vdd" "wrom0_rom_poly_tap_3_10/poly_tap" -514.192
+cap "wrom0_precharge_cell_70/D" "wrom0_rom_poly_tap_3_10/poly_tap" 2.10153
+cap "wrom0_precharge_cell_72/D" "wrom0_precharge_cell_61/vdd" 4.99514
+cap "wrom0_precharge_cell_69/D" "wrom0_precharge_cell_68/D" 3.36047
+cap "wrom0_precharge_cell_74/D" "wrom0_precharge_cell_61/vdd" 4.99514
+cap "wrom0_precharge_cell_61/D" "wrom0_rom_poly_tap_3_10/poly_tap" 0.00560963
+cap "wrom0_precharge_cell_72/D" "wrom0_rom_poly_tap_3_10/poly_tap" 1.98219
+cap "wrom0_precharge_cell_64/D" "wrom0_rom_poly_tap_3_10/poly_tap" 0.0191588
+cap "wrom0_precharge_cell_67/D" "wrom0_rom_poly_tap_3_10/poly_tap" 0.134755
+cap "wrom0_precharge_cell_74/D" "wrom0_rom_poly_tap_3_10/poly_tap" 1.96334
+cap "wrom0_precharge_cell_69/D" "wrom0_precharge_cell_61/vdd" 6.15237
+cap "wrom0_precharge_cell_70/D" "wrom0_precharge_cell_69/D" 10.916
+cap "wrom0_precharge_cell_63/D" "wrom0_rom_poly_tap_3_10/poly_tap" 0.0130951
+cap "wrom0_precharge_cell_66/D" "wrom0_rom_poly_tap_3_10/poly_tap" 0.0564409
+cap "wrom0_precharge_cell_69/D" "wrom0_rom_poly_tap_3_10/poly_tap" 3.71251
+cap "wrom0_precharge_cell_71/D" "wrom0_precharge_cell_61/vdd" 4.99514
+cap "wrom0_precharge_cell_71/D" "wrom0_precharge_cell_70/D" 10.916
+cap "wrom0_precharge_cell_73/D" "wrom0_precharge_cell_61/vdd" 4.99514
+cap "wrom0_precharge_cell_71/D" "wrom0_rom_poly_tap_3_10/poly_tap" 2.01077
+cap "wrom0_precharge_cell_72/D" "wrom0_precharge_cell_71/D" 10.916
+cap "wrom0_precharge_cell_73/D" "wrom0_rom_poly_tap_3_10/poly_tap" 1.96979
+cap "wrom0_precharge_cell_62/D" "wrom0_rom_poly_tap_3_10/poly_tap" 0.0095101
+cap "wrom0_precharge_cell_72/D" "wrom0_precharge_cell_73/D" 10.916
+cap "wrom0_precharge_cell_75/D" "wrom0_precharge_cell_61/vdd" 3.18762
+cap "wrom0_precharge_cell_65/D" "wrom0_rom_poly_tap_3_10/poly_tap" 0.0306322
+cap "wrom0_precharge_cell_74/D" "wrom0_precharge_cell_73/D" 10.916
+cap "wrom0_precharge_cell_68/D" "wrom0_rom_poly_tap_3_10/poly_tap" 0.560316
+cap "wrom0_precharge_cell_75/D" "wrom0_rom_poly_tap_3_10/poly_tap" 0.999889
+cap "wrom0_precharge_cell_76/D" "wrom0_rom_poly_tap_3_10/poly_tap" 0.00742217
+cap "wrom0_precharge_cell_70/D" "wrom0_precharge_cell_61/vdd" 4.99514
+cap "wrom0_precharge_cell_68/D" "wrom0_precharge_cell_67/D" 10.916
+cap "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_65/D" 1.94974
+cap "wrom0_precharge_cell_62/D" "wrom0_precharge_cell_61/D" 5.45799
+cap "wrom0_precharge_cell_54/vdd" "wrom0_precharge_cell_68/D" 6.18175
+cap "wrom0_precharge_cell_69/D" "wrom0_precharge_cell_68/D" 3.36047
+cap "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_67/D" 1.94974
+cap "wrom0_precharge_cell_54/vdd" "wrom0_precharge_cell_63/D" 4.99514
+cap "wrom0_precharge_cell_63/D" "wrom0_precharge_cell_62/D" 10.916
+cap "wrom0_precharge_cell_54/vdd" "wrom0_rom_poly_tap_3_9/poly_tap" -671.882
+cap "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_62/D" 1.94974
+cap "wrom0_precharge_cell_54/vdd" "wrom0_precharge_cell_65/D" 4.99514
+cap "wrom0_precharge_cell_63/D" "wrom0_precharge_cell_64/D" 10.916
+cap "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_64/D" 1.94974
+cap "wrom0_precharge_cell_65/D" "wrom0_precharge_cell_64/D" 10.916
+cap "wrom0_precharge_cell_54/vdd" "wrom0_precharge_cell_67/D" 4.99514
+cap "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_66/D" 1.94974
+cap "wrom0_precharge_cell_54/vdd" "wrom0_precharge_cell_62/D" 4.99514
+cap "wrom0_precharge_cell_66/D" "wrom0_precharge_cell_65/D" 10.916
+cap "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_68/D" 2.86147
+cap "wrom0_precharge_cell_54/vdd" "wrom0_precharge_cell_64/D" 4.99514
+cap "wrom0_precharge_cell_66/D" "wrom0_precharge_cell_67/D" 10.916
+cap "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_63/D" 1.94974
+cap "wrom0_precharge_cell_54/vdd" "wrom0_precharge_cell_66/D" 4.99514
+cap "wrom0_precharge_cell_61/D" "wrom0_precharge_cell_60/D" 6.72095
+cap "wrom0_precharge_cell_53/D" "wrom0_rom_poly_tap_3_9/poly_tap" 0.00560963
+cap "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_54/D" 0.0095101
+cap "wrom0_precharge_cell_48/vdd" "wrom0_precharge_cell_58/D" 4.99514
+cap "wrom0_precharge_cell_65/D" "wrom0_rom_poly_tap_3_9/poly_tap" 0.0200543
+cap "wrom0_precharge_cell_48/vdd" "wrom0_precharge_cell_60/D" 6.18175
+cap "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_62/D" 0.151792
+cap "wrom0_precharge_cell_62/D" "wrom0_precharge_cell_61/D" 5.45799
+cap "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_56/D" 1.9689
+cap "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_66/D" 0.0135989
+cap "wrom0_precharge_cell_56/D" "wrom0_precharge_cell_55/D" 5.45799
+cap "wrom0_precharge_cell_48/vdd" "wrom0_precharge_cell_56/D" 4.99514
+cap "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_57/D" 1.98037
+cap "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_68/D" 0.00742217
+cap "wrom0_precharge_cell_64/D" "wrom0_rom_poly_tap_3_9/poly_tap" 0.0324537
+cap "wrom0_precharge_cell_48/vdd" "wrom0_precharge_cell_57/D" 4.99514
+cap "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_59/D" 2.08449
+cap "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_61/D" 3.71251
+cap "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_55/D" 0.0130951
+cap "wrom0_precharge_cell_48/vdd" "wrom0_precharge_cell_59/D" 4.99514
+cap "wrom0_precharge_cell_58/D" "wrom0_precharge_cell_57/D" 10.916
+cap "wrom0_precharge_cell_48/vdd" "wrom0_precharge_cell_61/D" 6.15237
+cap "wrom0_precharge_cell_48/vdd" "wrom0_rom_poly_tap_3_9/poly_tap" -509.983
+cap "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_67/D" 0.0098208
+cap "wrom0_precharge_cell_59/D" "wrom0_precharge_cell_58/D" 10.916
+cap "wrom0_precharge_cell_60/D" "wrom0_precharge_cell_59/D" 10.916
+cap "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_58/D" 2.00618
+cap "wrom0_precharge_cell_63/D" "wrom0_rom_poly_tap_3_9/poly_tap" 0.0610345
+cap "wrom0_precharge_cell_56/D" "wrom0_precharge_cell_57/D" 10.916
+cap "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_60/D" 3.42179
+cap "wrom0_precharge_cell_50/D" "wrom0_precharge_cell_49/D" 10.916
+cap "wrom0_precharge_cell_56/D" "wrom0_precharge_cell_55/D" 5.45799
+cap "wrom0_precharge_cell_52/D" "wrom0_precharge_cell_51/D" 10.916
+cap "wrom0_precharge_cell_49/D" "wrom0_rom_poly_tap_3_8/poly_tap" 1.0511
+cap "wrom0_precharge_cell_55/D" "wrom0_rom_poly_tap_3_8/poly_tap" 2.01077
+cap "wrom0_precharge_cell_57/D" "wrom0_rom_poly_tap_3_8/poly_tap" 0.0200543
+cap "wrom0_precharge_cell_42/vdd" "wrom0_precharge_cell_54/D" 4.99514
+cap "wrom0_precharge_cell_45/D" "wrom0_rom_poly_tap_3_8/poly_tap" 0.00560963
+cap "wrom0_precharge_cell_52/D" "wrom0_rom_poly_tap_3_8/poly_tap" 3.42179
+cap "wrom0_precharge_cell_53/D" "wrom0_precharge_cell_52/D" 6.72095
+cap "wrom0_precharge_cell_59/D" "wrom0_rom_poly_tap_3_8/poly_tap" 0.0098208
+cap "wrom0_precharge_cell_51/D" "wrom0_precharge_cell_42/vdd" 4.99514
+cap "wrom0_precharge_cell_42/vdd" "wrom0_precharge_cell_50/D" 4.99514
+cap "wrom0_precharge_cell_47/D" "wrom0_rom_poly_tap_3_8/poly_tap" 0.0130951
+cap "wrom0_precharge_cell_42/vdd" "wrom0_rom_poly_tap_3_8/poly_tap" -512.934
+cap "wrom0_precharge_cell_53/D" "wrom0_precharge_cell_42/vdd" 6.15237
+cap "wrom0_precharge_cell_48/D" "wrom0_rom_poly_tap_3_8/poly_tap" 0.0191588
+cap "wrom0_precharge_cell_54/D" "wrom0_rom_poly_tap_3_8/poly_tap" 2.10153
+cap "wrom0_precharge_cell_51/D" "wrom0_precharge_cell_50/D" 10.916
+cap "wrom0_precharge_cell_53/D" "wrom0_precharge_cell_54/D" 10.916
+cap "wrom0_precharge_cell_51/D" "wrom0_rom_poly_tap_3_8/poly_tap" 2.08449
+cap "wrom0_precharge_cell_50/D" "wrom0_rom_poly_tap_3_8/poly_tap" 2.00618
+cap "wrom0_precharge_cell_56/D" "wrom0_rom_poly_tap_3_8/poly_tap" 0.0324537
+cap "wrom0_precharge_cell_58/D" "wrom0_rom_poly_tap_3_8/poly_tap" 0.0135989
+cap "wrom0_precharge_cell_42/vdd" "wrom0_precharge_cell_49/D" 2.21224
+cap "wrom0_precharge_cell_42/vdd" "wrom0_precharge_cell_55/D" 4.99514
+cap "wrom0_precharge_cell_46/D" "wrom0_rom_poly_tap_3_8/poly_tap" 0.0095101
+cap "wrom0_precharge_cell_53/D" "wrom0_rom_poly_tap_3_8/poly_tap" 3.71251
+cap "wrom0_precharge_cell_60/D" "wrom0_rom_poly_tap_3_8/poly_tap" 0.00742217
+cap "wrom0_precharge_cell_52/D" "wrom0_precharge_cell_42/vdd" 6.18175
+cap "wrom0_precharge_cell_55/D" "wrom0_precharge_cell_54/D" 10.916
+cap "wrom0_rom_poly_tap_3_7/poly_tap" "wrom0_precharge_cell_37/D" 0.00560963
+cap "wrom0_rom_poly_tap_3_7/poly_tap" "wrom0_precharge_cell_50/D" 0.0135989
+cap "wrom0_precharge_cell_35/vdd" "wrom0_precharge_cell_43/D" 4.99514
+cap "wrom0_rom_poly_tap_3_7/poly_tap" "wrom0_precharge_cell_46/D" 2.10153
+cap "wrom0_precharge_cell_35/vdd" "wrom0_precharge_cell_49/D" 2.7829
+cap "wrom0_precharge_cell_48/D" "wrom0_precharge_cell_47/D" 10.916
+cap "wrom0_precharge_cell_35/vdd" "wrom0_precharge_cell_45/D" 6.15237
+cap "wrom0_rom_poly_tap_3_7/poly_tap" "wrom0_precharge_cell_39/D" 0.0130951
+cap "wrom0_precharge_cell_51/D" "wrom0_rom_poly_tap_3_7/poly_tap" 0.0098208
+cap "wrom0_rom_poly_tap_3_7/poly_tap" "wrom0_precharge_cell_47/D" 2.01077
+cap "wrom0_precharge_cell_44/D" "wrom0_precharge_cell_43/D" 10.916
+cap "wrom0_precharge_cell_49/D" "wrom0_precharge_cell_48/D" 10.916
+cap "wrom0_precharge_cell_42/D" "wrom0_precharge_cell_43/D" 5.45799
+cap "wrom0_rom_poly_tap_3_7/poly_tap" "wrom0_precharge_cell_41/D" 0.0306322
+cap "wrom0_rom_poly_tap_3_7/poly_tap" "wrom0_precharge_cell_43/D" 2.08449
+cap "wrom0_precharge_cell_46/D" "wrom0_precharge_cell_47/D" 10.916
+cap "wrom0_rom_poly_tap_3_7/poly_tap" "wrom0_precharge_cell_49/D" 0.949322
+cap "wrom0_precharge_cell_45/D" "wrom0_precharge_cell_44/D" 6.72095
+cap "wrom0_rom_poly_tap_3_7/poly_tap" "wrom0_precharge_cell_45/D" 3.71251
+cap "wrom0_precharge_cell_35/vdd" "wrom0_precharge_cell_48/D" 4.99514
+cap "wrom0_precharge_cell_35/vdd" "wrom0_precharge_cell_44/D" 6.18175
+cap "wrom0_precharge_cell_46/D" "wrom0_precharge_cell_45/D" 10.916
+cap "wrom0_rom_poly_tap_3_7/poly_tap" "wrom0_precharge_cell_38/D" 0.0095101
+cap "wrom0_rom_poly_tap_3_7/poly_tap" "wrom0_precharge_cell_35/vdd" -514.232
+cap "wrom0_precharge_cell_35/vdd" "wrom0_precharge_cell_46/D" 4.99514
+cap "wrom0_rom_poly_tap_3_7/poly_tap" "wrom0_precharge_cell_40/D" 0.0191588
+cap "wrom0_precharge_cell_52/D" "wrom0_rom_poly_tap_3_7/poly_tap" 0.00742217
+cap "wrom0_rom_poly_tap_3_7/poly_tap" "wrom0_precharge_cell_48/D" 1.98219
+cap "wrom0_rom_poly_tap_3_7/poly_tap" "wrom0_precharge_cell_44/D" 3.42179
+cap "wrom0_precharge_cell_35/vdd" "wrom0_precharge_cell_47/D" 4.99514
+cap "wrom0_rom_poly_tap_3_7/poly_tap" "wrom0_precharge_cell_42/D" 0.0564409
+cap "wrom0_precharge_cell_30/D" "wrom0_rom_poly_tap_3_6/poly_tap" 0.0095101
+cap "wrom0_precharge_cell_32/D" "wrom0_rom_poly_tap_3_6/poly_tap" 0.0191588
+cap "wrom0_precharge_cell_37/D" "wrom0_precharge_cell_29/vdd" 6.15237
+cap "wrom0_precharge_cell_41/D" "wrom0_precharge_cell_40/D" 10.916
+cap "wrom0_precharge_cell_35/D" "wrom0_rom_poly_tap_3_6/poly_tap" 0.134755
+cap "wrom0_precharge_cell_41/D" "wrom0_rom_poly_tap_3_6/poly_tap" 1.96979
+cap "wrom0_precharge_cell_39/D" "wrom0_precharge_cell_38/D" 10.916
+cap "wrom0_precharge_cell_34/D" "wrom0_rom_poly_tap_3_6/poly_tap" 0.0564409
+cap "wrom0_precharge_cell_42/D" "wrom0_precharge_cell_41/D" 10.916
+cap "wrom0_precharge_cell_37/D" "wrom0_rom_poly_tap_3_6/poly_tap" 3.71251
+cap "wrom0_precharge_cell_37/D" "wrom0_precharge_cell_36/D" 3.36047
+cap "wrom0_rom_poly_tap_3_6/poly_tap" "wrom0_precharge_cell_44/D" 0.00742217
+cap "wrom0_precharge_cell_40/D" "wrom0_precharge_cell_29/vdd" 4.99514
+cap "wrom0_rom_poly_tap_3_6/poly_tap" "wrom0_precharge_cell_29/vdd" -510.245
+cap "wrom0_precharge_cell_38/D" "wrom0_precharge_cell_37/D" 10.916
+cap "wrom0_precharge_cell_29/D" "wrom0_rom_poly_tap_3_6/poly_tap" 0.00560963
+cap "wrom0_precharge_cell_31/D" "wrom0_rom_poly_tap_3_6/poly_tap" 0.0130951
+cap "wrom0_precharge_cell_42/D" "wrom0_precharge_cell_29/vdd" 4.99514
+cap "wrom0_precharge_cell_40/D" "wrom0_rom_poly_tap_3_6/poly_tap" 1.98219
+cap "wrom0_precharge_cell_33/D" "wrom0_rom_poly_tap_3_6/poly_tap" 0.0306322
+cap "wrom0_precharge_cell_38/D" "wrom0_precharge_cell_29/vdd" 4.99514
+cap "wrom0_precharge_cell_36/D" "wrom0_rom_poly_tap_3_6/poly_tap" 0.560316
+cap "wrom0_precharge_cell_42/D" "wrom0_rom_poly_tap_3_6/poly_tap" 1.96334
+cap "wrom0_rom_poly_tap_3_6/poly_tap" "wrom0_precharge_cell_43/D" 0.0098208
+cap "wrom0_precharge_cell_39/D" "wrom0_precharge_cell_29/vdd" 4.99514
+cap "wrom0_precharge_cell_38/D" "wrom0_rom_poly_tap_3_6/poly_tap" 2.10153
+cap "wrom0_precharge_cell_42/D" "wrom0_precharge_cell_43/D" 5.45799
+cap "wrom0_precharge_cell_40/D" "wrom0_precharge_cell_39/D" 10.916
+cap "wrom0_precharge_cell_41/D" "wrom0_precharge_cell_29/vdd" 4.99514
+cap "wrom0_precharge_cell_39/D" "wrom0_rom_poly_tap_3_6/poly_tap" 2.01077
+cap "wrom0_precharge_cell_22/vdd" "wrom0_precharge_cell_32/D" 4.99514
+cap "wrom0_precharge_cell_36/D" "wrom0_precharge_cell_35/D" 10.916
+cap "wrom0_precharge_cell_32/D" "wrom0_rom_poly_tap_3_5/poly_tap" 1.94974
+cap "wrom0_precharge_cell_33/D" "wrom0_precharge_cell_32/D" 10.916
+cap "wrom0_precharge_cell_30/D" "wrom0_precharge_cell_29/D" 5.45799
+cap "wrom0_precharge_cell_22/vdd" "wrom0_precharge_cell_34/D" 4.99514
+cap "wrom0_precharge_cell_22/vdd" "wrom0_precharge_cell_31/D" 4.99514
+cap "wrom0_precharge_cell_34/D" "wrom0_rom_poly_tap_3_5/poly_tap" 1.94974
+cap "wrom0_precharge_cell_31/D" "wrom0_rom_poly_tap_3_5/poly_tap" 1.94974
+cap "wrom0_precharge_cell_34/D" "wrom0_precharge_cell_33/D" 10.916
+cap "wrom0_precharge_cell_31/D" "wrom0_precharge_cell_30/D" 10.916
+cap "wrom0_precharge_cell_35/D" "wrom0_precharge_cell_34/D" 10.916
+cap "wrom0_precharge_cell_22/vdd" "wrom0_rom_poly_tap_3_5/poly_tap" -672.61
+cap "wrom0_precharge_cell_33/D" "wrom0_rom_poly_tap_3_5/poly_tap" 1.94974
+cap "wrom0_precharge_cell_22/vdd" "wrom0_precharge_cell_33/D" 4.99514
+cap "wrom0_precharge_cell_30/D" "wrom0_rom_poly_tap_3_5/poly_tap" 1.94974
+cap "wrom0_precharge_cell_22/vdd" "wrom0_precharge_cell_30/D" 4.99514
+cap "wrom0_precharge_cell_37/D" "wrom0_precharge_cell_36/D" 3.36047
+cap "wrom0_precharge_cell_31/D" "wrom0_precharge_cell_32/D" 10.916
+cap "wrom0_precharge_cell_35/D" "wrom0_rom_poly_tap_3_5/poly_tap" 1.94974
+cap "wrom0_precharge_cell_22/vdd" "wrom0_precharge_cell_35/D" 4.99514
+cap "wrom0_precharge_cell_36/D" "wrom0_rom_poly_tap_3_5/poly_tap" 2.86147
+cap "wrom0_precharge_cell_36/D" "wrom0_precharge_cell_22/vdd" 6.18175
+cap "wrom0_precharge_cell_28/D" "wrom0_precharge_cell_29/D" 6.72095
+cap "wrom0_precharge_cell_31/D" "wrom0_rom_poly_tap_3_5/poly_tap" 0.0610345
+cap "wrom0_precharge_cell_24/D" "wrom0_precharge_cell_16/vdd" 4.99514
+cap "wrom0_precharge_cell_28/D" "wrom0_precharge_cell_27/D" 10.916
+cap "wrom0_precharge_cell_33/D" "wrom0_rom_poly_tap_3_5/poly_tap" 0.0200543
+cap "wrom0_precharge_cell_26/D" "wrom0_precharge_cell_16/vdd" 4.99514
+cap "wrom0_precharge_cell_24/D" "wrom0_rom_poly_tap_3_5/poly_tap" 1.9689
+cap "wrom0_rom_poly_tap_3_5/poly_tap" "wrom0_precharge_cell_36/D" 0.00742217
+cap "wrom0_precharge_cell_16/vdd" "wrom0_rom_poly_tap_3_5/poly_tap" -511.757
+cap "wrom0_rom_poly_tap_3_5/poly_tap" "wrom0_precharge_cell_21/D" 0.00560963
+cap "wrom0_precharge_cell_28/D" "wrom0_precharge_cell_16/vdd" 6.18175
+cap "wrom0_precharge_cell_26/D" "wrom0_rom_poly_tap_3_5/poly_tap" 2.00618
+cap "wrom0_precharge_cell_24/D" "wrom0_precharge_cell_23/D" 13.6416
+cap "wrom0_precharge_cell_30/D" "wrom0_rom_poly_tap_3_5/poly_tap" 0.151792
+cap "wrom0_precharge_cell_23/D" "wrom0_precharge_cell_16/vdd" 1.38816
+cap "wrom0_precharge_cell_28/D" "wrom0_rom_poly_tap_3_5/poly_tap" 3.42179
+cap "wrom0_precharge_cell_25/D" "wrom0_precharge_cell_24/D" 10.916
+cap "wrom0_precharge_cell_23/D" "wrom0_rom_poly_tap_3_5/poly_tap" 0.302047
+cap "wrom0_precharge_cell_32/D" "wrom0_rom_poly_tap_3_5/poly_tap" 0.0324537
+cap "wrom0_precharge_cell_25/D" "wrom0_precharge_cell_16/vdd" 4.99514
+cap "wrom0_rom_poly_tap_3_5/poly_tap" "wrom0_precharge_cell_35/D" 0.0098208
+cap "wrom0_precharge_cell_26/D" "wrom0_precharge_cell_25/D" 10.916
+cap "wrom0_precharge_cell_16/vdd" "wrom0_precharge_cell_29/D" 6.15237
+cap "wrom0_precharge_cell_25/D" "wrom0_rom_poly_tap_3_5/poly_tap" 1.98037
+cap "wrom0_precharge_cell_27/D" "wrom0_precharge_cell_16/vdd" 4.99514
+cap "wrom0_precharge_cell_29/D" "wrom0_rom_poly_tap_3_5/poly_tap" 3.71251
+cap "wrom0_precharge_cell_34/D" "wrom0_rom_poly_tap_3_5/poly_tap" 0.0135989
+cap "wrom0_precharge_cell_27/D" "wrom0_precharge_cell_26/D" 10.916
+cap "wrom0_rom_poly_tap_3_5/poly_tap" "wrom0_precharge_cell_22/D" 0.0095101
+cap "wrom0_precharge_cell_30/D" "wrom0_precharge_cell_29/D" 5.45799
+cap "wrom0_precharge_cell_27/D" "wrom0_rom_poly_tap_3_5/poly_tap" 2.08449
+cap "wrom0_precharge_cell_9/vdd" "wrom0_precharge_cell_21/D" 6.15237
+cap "wrom0_rom_poly_tap_3_4/poly_tap" "wrom0_precharge_cell_17/D" 1.98037
+cap "wrom0_precharge_cell_18/D" "wrom0_precharge_cell_17/D" 10.916
+cap "wrom0_rom_poly_tap_3_4/poly_tap" "wrom0_precharge_cell_21/D" 3.71251
+cap "wrom0_precharge_cell_9/vdd" "wrom0_precharge_cell_19/D" 4.99514
+cap "wrom0_precharge_cell_9/vdd" "wrom0_precharge_cell_23/D" 3.60698
+cap "wrom0_rom_poly_tap_3_4/poly_tap" "wrom0_precharge_cell_19/D" 2.08449
+cap "wrom0_precharge_cell_22/D" "wrom0_precharge_cell_21/D" 10.916
+cap "wrom0_precharge_cell_19/D" "wrom0_precharge_cell_18/D" 10.916
+cap "wrom0_rom_poly_tap_3_4/poly_tap" "wrom0_precharge_cell_13/D" 0.00560963
+cap "wrom0_rom_poly_tap_3_4/poly_tap" "wrom0_precharge_cell_23/D" 1.72182
+cap "wrom0_rom_poly_tap_3_4/poly_tap" "wrom0_precharge_cell_28/D" 0.00742217
+cap "wrom0_precharge_cell_20/D" "wrom0_precharge_cell_21/D" 6.72095
+cap "wrom0_rom_poly_tap_3_4/poly_tap" "wrom0_precharge_cell_14/D" 0.0095101
+cap "wrom0_precharge_cell_23/D" "wrom0_precharge_cell_22/D" 10.916
+cap "wrom0_precharge_cell_20/D" "wrom0_precharge_cell_19/D" 10.916
+cap "wrom0_rom_poly_tap_3_4/poly_tap" "wrom0_precharge_cell_25/D" 0.0200543
+cap "wrom0_rom_poly_tap_3_4/poly_tap" "wrom0_precharge_cell_16/D" 0.0191588
+cap "wrom0_precharge_cell_9/vdd" "wrom0_rom_poly_tap_3_4/poly_tap" -515.504
+cap "wrom0_precharge_cell_24/D" "wrom0_precharge_cell_23/D" -2.72566
+cap "wrom0_precharge_cell_9/vdd" "wrom0_precharge_cell_18/D" 4.99514
+cap "wrom0_rom_poly_tap_3_4/poly_tap" "wrom0_precharge_cell_27/D" 0.0098208
+cap "wrom0_precharge_cell_9/vdd" "wrom0_precharge_cell_22/D" 4.99514
+cap "wrom0_rom_poly_tap_3_4/poly_tap" "wrom0_precharge_cell_18/D" 2.00618
+cap "wrom0_rom_poly_tap_3_4/poly_tap" "wrom0_precharge_cell_22/D" 2.10153
+cap "wrom0_precharge_cell_9/vdd" "wrom0_precharge_cell_20/D" 6.18175
+cap "wrom0_rom_poly_tap_3_4/poly_tap" "wrom0_precharge_cell_20/D" 3.42179
+cap "wrom0_rom_poly_tap_3_4/poly_tap" "wrom0_precharge_cell_24/D" 0.0324537
+cap "wrom0_rom_poly_tap_3_4/poly_tap" "wrom0_precharge_cell_15/D" 0.0130951
+cap "wrom0_precharge_cell_17/D" "wrom0_precharge_cell_16/D" 5.45799
+cap "wrom0_precharge_cell_9/vdd" "wrom0_precharge_cell_17/D" 4.99514
+cap "wrom0_rom_poly_tap_3_4/poly_tap" "wrom0_precharge_cell_26/D" 0.0135989
+cap "wrom0_precharge_cell_20/D" "wrom0_rom_poly_tap_3_3/poly_tap" 0.00742217
+cap "wrom0_precharge_cell_16/D" "wrom0_precharge_cell_15/D" 10.916
+cap "wrom0_precharge_cell_13/D" "wrom0_precharge_cell_3/vdd" 6.15237
+cap "wrom0_rom_poly_tap_3_3/poly_tap" "wrom0_precharge_cell_11/D" 2.08449
+cap "wrom0_precharge_cell_15/D" "wrom0_rom_poly_tap_3_3/poly_tap" 2.01077
+cap "wrom0_precharge_cell_17/D" "wrom0_precharge_cell_16/D" 5.45799
+cap "wrom0_rom_poly_tap_3_3/poly_tap" "wrom0_precharge_cell_6/D" 0.0095101
+cap "wrom0_precharge_cell_3/vdd" "wrom0_precharge_cell_11/D" 4.99514
+cap "wrom0_precharge_cell_15/D" "wrom0_precharge_cell_3/vdd" 4.99514
+cap "wrom0_precharge_cell_17/D" "wrom0_rom_poly_tap_3_3/poly_tap" 0.0200543
+cap "wrom0_rom_poly_tap_3_3/poly_tap" "wrom0_precharge_cell_8/D" 0.0191588
+cap "wrom0_precharge_cell_12/D" "wrom0_rom_poly_tap_3_3/poly_tap" 3.42179
+cap "wrom0_precharge_cell_19/D" "wrom0_rom_poly_tap_3_3/poly_tap" 0.0098208
+cap "wrom0_rom_poly_tap_3_3/poly_tap" "wrom0_precharge_cell_10/D" 0.0564409
+cap "wrom0_precharge_cell_14/D" "wrom0_rom_poly_tap_3_3/poly_tap" 2.10153
+cap "wrom0_precharge_cell_12/D" "wrom0_precharge_cell_3/vdd" 6.18175
+cap "wrom0_precharge_cell_13/D" "wrom0_precharge_cell_12/D" 6.72095
+cap "wrom0_rom_poly_tap_3_3/poly_tap" "wrom0_precharge_cell_5/D" 0.00560963
+cap "wrom0_precharge_cell_16/D" "wrom0_rom_poly_tap_3_3/poly_tap" 1.98219
+cap "wrom0_precharge_cell_12/D" "wrom0_precharge_cell_11/D" 10.916
+cap "wrom0_precharge_cell_14/D" "wrom0_precharge_cell_3/vdd" 4.99514
+cap "wrom0_precharge_cell_14/D" "wrom0_precharge_cell_13/D" 10.916
+cap "wrom0_rom_poly_tap_3_3/poly_tap" "wrom0_precharge_cell_7/D" 0.0130951
+cap "wrom0_precharge_cell_18/D" "wrom0_rom_poly_tap_3_3/poly_tap" 0.0135989
+cap "wrom0_precharge_cell_11/D" "wrom0_precharge_cell_10/D" 5.45799
+cap "wrom0_precharge_cell_16/D" "wrom0_precharge_cell_3/vdd" 4.99514
+cap "wrom0_precharge_cell_15/D" "wrom0_precharge_cell_14/D" 10.916
+cap "wrom0_precharge_cell_3/vdd" "wrom0_rom_poly_tap_3_3/poly_tap" -509.918
+cap "wrom0_rom_poly_tap_3_3/poly_tap" "wrom0_precharge_cell_9/D" 0.0306322
+cap "wrom0_precharge_cell_13/D" "wrom0_rom_poly_tap_3_3/poly_tap" 3.71251
+cap "wrom0_precharge_cell_11/D" "wrom0_rom_poly_tap_3_2/poly_tap" 0.0098208
+cap "wrom0_precharge_cell_8/D" "wrom0_precharge_cell_7/D" 10.916
+cap "wrom0_precharge_cell_0/vdd" "wrom0_rom_poly_tap_3_2/poly_tap" -515.025
+cap "wrom0_precharge_cell_6/D" "wrom0_precharge_cell_5/D" 10.916
+cap "wrom0_precharge_cell_7/D" "wrom0_precharge_cell_0/vdd" 4.99514
+cap "wrom0_precharge_cell_9/D" "wrom0_precharge_cell_8/D" 10.916
+cap "wrom0_rom_poly_tap_3_2/poly_tap" "wrom0_precharge_cell_1/D" 0.0306322
+cap "wrom0_precharge_cell_7/D" "wrom0_rom_poly_tap_3_2/poly_tap" 2.01077
+cap "wrom0_precharge_cell_11/D" "wrom0_precharge_cell_10/D" 5.45799
+cap "wrom0_precharge_cell_10/D" "wrom0_precharge_cell_0/vdd" 4.99514
+cap "wrom0_precharge_cell_9/D" "wrom0_precharge_cell_0/vdd" 4.99514
+cap "wrom0_precharge_cell_5/D" "wrom0_precharge_cell_4/D" 8.58762
+cap "wrom0_rom_poly_tap_3_2/poly_tap" "wrom0_precharge_cell_3/D" 0.134755
+cap "wrom0_precharge_cell_0/vdd" "wrom0_precharge_cell_5/D" 6.15237
+cap "wrom0_precharge_cell_9/D" "wrom0_rom_poly_tap_3_2/poly_tap" 1.96979
+cap "wrom0_precharge_cell_10/D" "wrom0_rom_poly_tap_3_2/poly_tap" 1.96334
+cap "wrom0_rom_poly_tap_3_2/poly_tap" "wrom0_precharge_cell_5/D" 3.71251
+cap "wrom0_precharge_cell_12/D" "wrom0_rom_poly_tap_3_2/poly_tap" 0.00742217
+cap "wrom0_precharge_cell_6/D" "wrom0_precharge_cell_0/vdd" 4.99514
+cap "wrom0_rom_poly_tap_3_2/poly_tap" "wrom0_precharge_cell_0/D" 0.0191588
+cap "wrom0_precharge_cell_6/D" "wrom0_rom_poly_tap_3_2/poly_tap" 2.10153
+cap "wrom0_precharge_cell_10/D" "wrom0_precharge_cell_9/D" 10.916
+cap "wrom0_precharge_cell_8/D" "wrom0_precharge_cell_0/vdd" 4.99514
+cap "wrom0_rom_poly_tap_3_2/poly_tap" "wrom0_precharge_cell_2/D" 0.0564409
+cap "wrom0_precharge_cell_0/vdd" "wrom0_precharge_cell_4/D" 5.12237
+cap "wrom0_precharge_cell_7/D" "wrom0_precharge_cell_6/D" 10.916
+cap "wrom0_precharge_cell_8/D" "wrom0_rom_poly_tap_3_2/poly_tap" 1.98219
+cap "wrom0_rom_poly_tap_3_2/poly_tap" "wrom0_precharge_cell_4/D" 2.7786
+cap "wrom0_precharge_cell_4/D" "wrom0_precharge_cell_0/vdd" 1.05938
+cap "wrom0_precharge_cell_3/D" "wrom0_precharge_cell_2/D" 10.916
+cap "wrom0_precharge_cell_3/D" "wrom0_rom_poly_tap_3_1/poly_tap" 1.98219
+cap "wrom0_precharge_cell_4/D" "wrom0_precharge_cell_5/D" -1.86667
+cap "wrom0_precharge_cell_3/D" "wrom0_precharge_cell_0/vdd" 4.99514
+cap "wrom0_precharge_cell_0/D" "wrom0_rom_poly_tap_3_1/poly_tap" 3.71251
+cap "wrom0_precharge_cell_2/D" "wrom0_rom_poly_tap_3_1/poly_tap" 2.01077
+cap "wrom0_precharge_cell_1/D" "wrom0_precharge_cell_0/D" 10.916
+cap "wrom0_precharge_cell_2/D" "wrom0_precharge_cell_1/D" 10.916
+cap "wrom0_precharge_cell_1/D" "wrom0_rom_poly_tap_3_1/poly_tap" 2.10153
+cap "wrom0_precharge_cell_0/vdd" "wrom0_precharge_cell_0/D" 4.76283
+cap "wrom0_precharge_cell_2/D" "wrom0_precharge_cell_0/vdd" 4.99514
+cap "wrom0_precharge_cell_3/D" "wrom0_precharge_cell_4/D" 10.916
+cap "wrom0_precharge_cell_0/vdd" "wrom0_rom_poly_tap_3_1/poly_tap" -350.321
+cap "wrom0_precharge_cell_1/D" "wrom0_precharge_cell_0/vdd" 4.99514
+cap "wrom0_precharge_cell_4/D" "wrom0_rom_poly_tap_3_1/poly_tap" 0.663248
+merge "wrom0_rom_poly_tap_3_0/gnd" "wrom0_precharge_cell_0/gnd" 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_0/gnd" "wrom0_precharge_cell_1/gnd"
+merge "wrom0_precharge_cell_1/gnd" "wrom0_precharge_cell_2/gnd"
+merge "wrom0_precharge_cell_2/gnd" "wrom0_precharge_cell_3/gnd"
+merge "wrom0_precharge_cell_3/gnd" "wrom0_precharge_cell_4/gnd"
+merge "wrom0_precharge_cell_4/gnd" "wrom0_rom_poly_tap_3_1/gnd"
+merge "wrom0_rom_poly_tap_3_1/gnd" "wrom0_precharge_cell_5/gnd"
+merge "wrom0_precharge_cell_5/gnd" "wrom0_precharge_cell_6/gnd"
+merge "wrom0_precharge_cell_6/gnd" "wrom0_precharge_cell_7/gnd"
+merge "wrom0_precharge_cell_7/gnd" "wrom0_precharge_cell_8/gnd"
+merge "wrom0_precharge_cell_8/gnd" "wrom0_precharge_cell_9/gnd"
+merge "wrom0_precharge_cell_9/gnd" "wrom0_precharge_cell_10/gnd"
+merge "wrom0_precharge_cell_10/gnd" "wrom0_precharge_cell_11/gnd"
+merge "wrom0_precharge_cell_11/gnd" "wrom0_precharge_cell_12/gnd"
+merge "wrom0_precharge_cell_12/gnd" "wrom0_rom_poly_tap_3_2/gnd"
+merge "wrom0_rom_poly_tap_3_2/gnd" "wrom0_precharge_cell_13/gnd"
+merge "wrom0_precharge_cell_13/gnd" "wrom0_precharge_cell_14/gnd"
+merge "wrom0_precharge_cell_14/gnd" "wrom0_precharge_cell_15/gnd"
+merge "wrom0_precharge_cell_15/gnd" "wrom0_precharge_cell_16/gnd"
+merge "wrom0_precharge_cell_16/gnd" "wrom0_precharge_cell_17/gnd"
+merge "wrom0_precharge_cell_17/gnd" "wrom0_precharge_cell_18/gnd"
+merge "wrom0_precharge_cell_18/gnd" "wrom0_precharge_cell_19/gnd"
+merge "wrom0_precharge_cell_19/gnd" "wrom0_precharge_cell_20/gnd"
+merge "wrom0_precharge_cell_20/gnd" "wrom0_rom_poly_tap_3_3/gnd"
+merge "wrom0_rom_poly_tap_3_3/gnd" "wrom0_precharge_cell_21/gnd"
+merge "wrom0_precharge_cell_21/gnd" "wrom0_precharge_cell_22/gnd"
+merge "wrom0_precharge_cell_22/gnd" "wrom0_precharge_cell_23/gnd"
+merge "wrom0_precharge_cell_23/gnd" "wrom0_precharge_cell_24/gnd"
+merge "wrom0_precharge_cell_24/gnd" "wrom0_precharge_cell_25/gnd"
+merge "wrom0_precharge_cell_25/gnd" "wrom0_precharge_cell_26/gnd"
+merge "wrom0_precharge_cell_26/gnd" "wrom0_precharge_cell_27/gnd"
+merge "wrom0_precharge_cell_27/gnd" "wrom0_precharge_cell_28/gnd"
+merge "wrom0_precharge_cell_28/gnd" "wrom0_rom_poly_tap_3_4/gnd"
+merge "wrom0_rom_poly_tap_3_4/gnd" "wrom0_precharge_cell_29/gnd"
+merge "wrom0_precharge_cell_29/gnd" "wrom0_precharge_cell_30/gnd"
+merge "wrom0_precharge_cell_30/gnd" "wrom0_precharge_cell_31/gnd"
+merge "wrom0_precharge_cell_31/gnd" "wrom0_precharge_cell_32/gnd"
+merge "wrom0_precharge_cell_32/gnd" "wrom0_precharge_cell_33/gnd"
+merge "wrom0_precharge_cell_33/gnd" "wrom0_precharge_cell_34/gnd"
+merge "wrom0_precharge_cell_34/gnd" "wrom0_precharge_cell_35/gnd"
+merge "wrom0_precharge_cell_35/gnd" "wrom0_precharge_cell_36/gnd"
+merge "wrom0_precharge_cell_36/gnd" "wrom0_rom_poly_tap_3_5/gnd"
+merge "wrom0_rom_poly_tap_3_5/gnd" "wrom0_precharge_cell_37/gnd"
+merge "wrom0_precharge_cell_37/gnd" "wrom0_precharge_cell_38/gnd"
+merge "wrom0_precharge_cell_38/gnd" "wrom0_precharge_cell_39/gnd"
+merge "wrom0_precharge_cell_39/gnd" "wrom0_precharge_cell_40/gnd"
+merge "wrom0_precharge_cell_40/gnd" "wrom0_precharge_cell_41/gnd"
+merge "wrom0_precharge_cell_41/gnd" "wrom0_precharge_cell_42/gnd"
+merge "wrom0_precharge_cell_42/gnd" "wrom0_precharge_cell_43/gnd"
+merge "wrom0_precharge_cell_43/gnd" "wrom0_precharge_cell_44/gnd"
+merge "wrom0_precharge_cell_44/gnd" "wrom0_rom_poly_tap_3_6/gnd"
+merge "wrom0_rom_poly_tap_3_6/gnd" "wrom0_precharge_cell_45/gnd"
+merge "wrom0_precharge_cell_45/gnd" "wrom0_precharge_cell_46/gnd"
+merge "wrom0_precharge_cell_46/gnd" "wrom0_precharge_cell_47/gnd"
+merge "wrom0_precharge_cell_47/gnd" "wrom0_precharge_cell_48/gnd"
+merge "wrom0_precharge_cell_48/gnd" "wrom0_precharge_cell_49/gnd"
+merge "wrom0_precharge_cell_49/gnd" "wrom0_precharge_cell_50/gnd"
+merge "wrom0_precharge_cell_50/gnd" "wrom0_precharge_cell_51/gnd"
+merge "wrom0_precharge_cell_51/gnd" "wrom0_precharge_cell_52/gnd"
+merge "wrom0_precharge_cell_52/gnd" "wrom0_rom_poly_tap_3_7/gnd"
+merge "wrom0_rom_poly_tap_3_7/gnd" "wrom0_precharge_cell_53/gnd"
+merge "wrom0_precharge_cell_53/gnd" "wrom0_precharge_cell_54/gnd"
+merge "wrom0_precharge_cell_54/gnd" "wrom0_precharge_cell_55/gnd"
+merge "wrom0_precharge_cell_55/gnd" "wrom0_precharge_cell_56/gnd"
+merge "wrom0_precharge_cell_56/gnd" "wrom0_precharge_cell_57/gnd"
+merge "wrom0_precharge_cell_57/gnd" "wrom0_precharge_cell_58/gnd"
+merge "wrom0_precharge_cell_58/gnd" "wrom0_precharge_cell_59/gnd"
+merge "wrom0_precharge_cell_59/gnd" "wrom0_precharge_cell_60/gnd"
+merge "wrom0_precharge_cell_60/gnd" "wrom0_rom_poly_tap_3_8/gnd"
+merge "wrom0_rom_poly_tap_3_8/gnd" "wrom0_precharge_cell_61/gnd"
+merge "wrom0_precharge_cell_61/gnd" "wrom0_precharge_cell_62/gnd"
+merge "wrom0_precharge_cell_62/gnd" "wrom0_precharge_cell_63/gnd"
+merge "wrom0_precharge_cell_63/gnd" "wrom0_precharge_cell_64/gnd"
+merge "wrom0_precharge_cell_64/gnd" "wrom0_precharge_cell_65/gnd"
+merge "wrom0_precharge_cell_65/gnd" "wrom0_precharge_cell_66/gnd"
+merge "wrom0_precharge_cell_66/gnd" "wrom0_precharge_cell_67/gnd"
+merge "wrom0_precharge_cell_67/gnd" "wrom0_precharge_cell_68/gnd"
+merge "wrom0_precharge_cell_68/gnd" "wrom0_rom_poly_tap_3_9/gnd"
+merge "wrom0_rom_poly_tap_3_9/gnd" "wrom0_precharge_cell_69/gnd"
+merge "wrom0_precharge_cell_69/gnd" "wrom0_precharge_cell_70/gnd"
+merge "wrom0_precharge_cell_70/gnd" "wrom0_precharge_cell_71/gnd"
+merge "wrom0_precharge_cell_71/gnd" "wrom0_precharge_cell_72/gnd"
+merge "wrom0_precharge_cell_72/gnd" "wrom0_precharge_cell_73/gnd"
+merge "wrom0_precharge_cell_73/gnd" "wrom0_precharge_cell_74/gnd"
+merge "wrom0_precharge_cell_74/gnd" "wrom0_precharge_cell_75/gnd"
+merge "wrom0_precharge_cell_75/gnd" "wrom0_precharge_cell_76/gnd"
+merge "wrom0_precharge_cell_76/gnd" "wrom0_rom_poly_tap_3_10/gnd"
+merge "wrom0_rom_poly_tap_3_10/gnd" "wrom0_precharge_cell_77/gnd"
+merge "wrom0_precharge_cell_77/gnd" "wrom0_precharge_cell_78/gnd"
+merge "wrom0_precharge_cell_78/gnd" "wrom0_precharge_cell_79/gnd"
+merge "wrom0_precharge_cell_79/gnd" "wrom0_precharge_cell_80/gnd"
+merge "wrom0_precharge_cell_80/gnd" "wrom0_precharge_cell_81/gnd"
+merge "wrom0_precharge_cell_81/gnd" "wrom0_precharge_cell_82/gnd"
+merge "wrom0_precharge_cell_82/gnd" "wrom0_precharge_cell_83/gnd"
+merge "wrom0_precharge_cell_83/gnd" "wrom0_precharge_cell_84/gnd"
+merge "wrom0_precharge_cell_84/gnd" "wrom0_rom_poly_tap_3_11/gnd"
+merge "wrom0_rom_poly_tap_3_11/gnd" "wrom0_precharge_cell_85/gnd"
+merge "wrom0_precharge_cell_85/gnd" "wrom0_precharge_cell_86/gnd"
+merge "wrom0_precharge_cell_86/gnd" "wrom0_precharge_cell_87/gnd"
+merge "wrom0_precharge_cell_87/gnd" "wrom0_precharge_cell_88/gnd"
+merge "wrom0_precharge_cell_88/gnd" "wrom0_precharge_cell_89/gnd"
+merge "wrom0_precharge_cell_89/gnd" "wrom0_precharge_cell_90/gnd"
+merge "wrom0_precharge_cell_90/gnd" "wrom0_precharge_cell_91/gnd"
+merge "wrom0_precharge_cell_91/gnd" "wrom0_precharge_cell_92/gnd"
+merge "wrom0_precharge_cell_92/gnd" "wrom0_rom_poly_tap_3_12/gnd"
+merge "wrom0_rom_poly_tap_3_12/gnd" "wrom0_precharge_cell_93/gnd"
+merge "wrom0_precharge_cell_93/gnd" "wrom0_precharge_cell_94/gnd"
+merge "wrom0_precharge_cell_94/gnd" "wrom0_precharge_cell_95/gnd"
+merge "wrom0_precharge_cell_95/gnd" "wrom0_precharge_cell_96/gnd"
+merge "wrom0_precharge_cell_96/gnd" "wrom0_precharge_cell_97/gnd"
+merge "wrom0_precharge_cell_97/gnd" "wrom0_precharge_cell_98/gnd"
+merge "wrom0_precharge_cell_98/gnd" "wrom0_precharge_cell_99/gnd"
+merge "wrom0_precharge_cell_99/gnd" "wrom0_precharge_cell_100/gnd"
+merge "wrom0_precharge_cell_100/gnd" "wrom0_rom_poly_tap_3_13/gnd"
+merge "wrom0_rom_poly_tap_3_13/gnd" "wrom0_precharge_cell_101/gnd"
+merge "wrom0_precharge_cell_101/gnd" "wrom0_precharge_cell_102/gnd"
+merge "wrom0_precharge_cell_102/gnd" "wrom0_precharge_cell_103/gnd"
+merge "wrom0_precharge_cell_103/gnd" "wrom0_precharge_cell_104/gnd"
+merge "wrom0_precharge_cell_104/gnd" "wrom0_precharge_cell_105/gnd"
+merge "wrom0_precharge_cell_105/gnd" "wrom0_precharge_cell_106/gnd"
+merge "wrom0_precharge_cell_106/gnd" "wrom0_precharge_cell_107/gnd"
+merge "wrom0_precharge_cell_107/gnd" "wrom0_precharge_cell_108/gnd"
+merge "wrom0_precharge_cell_108/gnd" "wrom0_rom_poly_tap_3_14/gnd"
+merge "wrom0_rom_poly_tap_3_14/gnd" "wrom0_precharge_cell_109/gnd"
+merge "wrom0_precharge_cell_109/gnd" "wrom0_precharge_cell_110/gnd"
+merge "wrom0_precharge_cell_110/gnd" "wrom0_precharge_cell_111/gnd"
+merge "wrom0_precharge_cell_111/gnd" "wrom0_precharge_cell_112/gnd"
+merge "wrom0_precharge_cell_112/gnd" "wrom0_precharge_cell_113/gnd"
+merge "wrom0_precharge_cell_113/gnd" "wrom0_precharge_cell_114/gnd"
+merge "wrom0_precharge_cell_114/gnd" "wrom0_precharge_cell_115/gnd"
+merge "wrom0_precharge_cell_115/gnd" "wrom0_precharge_cell_116/gnd"
+merge "wrom0_precharge_cell_116/gnd" "wrom0_rom_poly_tap_3_15/gnd"
+merge "wrom0_rom_poly_tap_3_15/gnd" "wrom0_precharge_cell_117/gnd"
+merge "wrom0_precharge_cell_117/gnd" "wrom0_precharge_cell_118/gnd"
+merge "wrom0_precharge_cell_118/gnd" "wrom0_precharge_cell_119/gnd"
+merge "wrom0_precharge_cell_119/gnd" "wrom0_precharge_cell_120/gnd"
+merge "wrom0_precharge_cell_120/gnd" "wrom0_precharge_cell_121/gnd"
+merge "wrom0_precharge_cell_121/gnd" "wrom0_precharge_cell_122/gnd"
+merge "wrom0_precharge_cell_122/gnd" "wrom0_precharge_cell_123/gnd"
+merge "wrom0_precharge_cell_123/gnd" "wrom0_precharge_cell_124/gnd"
+merge "wrom0_precharge_cell_124/gnd" "wrom0_rom_poly_tap_3_16/gnd"
+merge "wrom0_rom_poly_tap_3_16/gnd" "wrom0_precharge_cell_125/gnd"
+merge "wrom0_precharge_cell_125/gnd" "wrom0_precharge_cell_126/gnd"
+merge "wrom0_precharge_cell_126/gnd" "wrom0_precharge_cell_127/gnd"
+merge "wrom0_precharge_cell_127/gnd" "wrom0_precharge_cell_128/gnd"
+merge "wrom0_precharge_cell_128/gnd" "wrom0_precharge_cell_129/gnd"
+merge "wrom0_precharge_cell_129/gnd" "wrom0_precharge_cell_130/gnd"
+merge "wrom0_precharge_cell_130/gnd" "wrom0_precharge_cell_131/gnd"
+merge "wrom0_precharge_cell_131/gnd" "wrom0_precharge_cell_132/gnd"
+merge "wrom0_precharge_cell_132/gnd" "wrom0_rom_poly_tap_3_17/gnd"
+merge "wrom0_rom_poly_tap_3_17/gnd" "gnd"
+merge "wrom0_precharge_cell_81/D" "pre_bl51_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_0/vdd" "wrom0_precharge_cell_1/vdd" -43578.2 0 0 0 0 -11218816 -162804 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -153748 -18088 0 0 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_1/vdd" "wrom0_precharge_cell_2/vdd"
+merge "wrom0_precharge_cell_2/vdd" "wrom0_precharge_cell_3/vdd"
+merge "wrom0_precharge_cell_3/vdd" "wrom0_precharge_cell_4/vdd"
+merge "wrom0_precharge_cell_4/vdd" "wrom0_precharge_cell_5/vdd"
+merge "wrom0_precharge_cell_5/vdd" "wrom0_precharge_cell_6/vdd"
+merge "wrom0_precharge_cell_6/vdd" "wrom0_precharge_cell_7/vdd"
+merge "wrom0_precharge_cell_7/vdd" "wrom0_precharge_cell_8/vdd"
+merge "wrom0_precharge_cell_8/vdd" "wrom0_precharge_cell_9/vdd"
+merge "wrom0_precharge_cell_9/vdd" "wrom0_precharge_cell_10/vdd"
+merge "wrom0_precharge_cell_10/vdd" "wrom0_precharge_cell_11/vdd"
+merge "wrom0_precharge_cell_11/vdd" "wrom0_precharge_cell_12/vdd"
+merge "wrom0_precharge_cell_12/vdd" "wrom0_precharge_cell_13/vdd"
+merge "wrom0_precharge_cell_13/vdd" "wrom0_precharge_cell_14/vdd"
+merge "wrom0_precharge_cell_14/vdd" "wrom0_precharge_cell_15/vdd"
+merge "wrom0_precharge_cell_15/vdd" "wrom0_precharge_cell_16/vdd"
+merge "wrom0_precharge_cell_16/vdd" "wrom0_precharge_cell_17/vdd"
+merge "wrom0_precharge_cell_17/vdd" "wrom0_precharge_cell_18/vdd"
+merge "wrom0_precharge_cell_18/vdd" "wrom0_precharge_cell_19/vdd"
+merge "wrom0_precharge_cell_19/vdd" "wrom0_precharge_cell_20/vdd"
+merge "wrom0_precharge_cell_20/vdd" "wrom0_precharge_cell_21/vdd"
+merge "wrom0_precharge_cell_21/vdd" "wrom0_precharge_cell_22/vdd"
+merge "wrom0_precharge_cell_22/vdd" "wrom0_precharge_cell_23/vdd"
+merge "wrom0_precharge_cell_23/vdd" "wrom0_precharge_cell_24/vdd"
+merge "wrom0_precharge_cell_24/vdd" "wrom0_precharge_cell_25/vdd"
+merge "wrom0_precharge_cell_25/vdd" "wrom0_precharge_cell_26/vdd"
+merge "wrom0_precharge_cell_26/vdd" "wrom0_precharge_cell_27/vdd"
+merge "wrom0_precharge_cell_27/vdd" "wrom0_precharge_cell_28/vdd"
+merge "wrom0_precharge_cell_28/vdd" "wrom0_precharge_cell_29/vdd"
+merge "wrom0_precharge_cell_29/vdd" "wrom0_precharge_cell_30/vdd"
+merge "wrom0_precharge_cell_30/vdd" "wrom0_precharge_cell_31/vdd"
+merge "wrom0_precharge_cell_31/vdd" "wrom0_precharge_cell_32/vdd"
+merge "wrom0_precharge_cell_32/vdd" "wrom0_precharge_cell_33/vdd"
+merge "wrom0_precharge_cell_33/vdd" "wrom0_precharge_cell_34/vdd"
+merge "wrom0_precharge_cell_34/vdd" "wrom0_precharge_cell_35/vdd"
+merge "wrom0_precharge_cell_35/vdd" "wrom0_precharge_cell_36/vdd"
+merge "wrom0_precharge_cell_36/vdd" "wrom0_precharge_cell_37/vdd"
+merge "wrom0_precharge_cell_37/vdd" "wrom0_precharge_cell_38/vdd"
+merge "wrom0_precharge_cell_38/vdd" "wrom0_precharge_cell_39/vdd"
+merge "wrom0_precharge_cell_39/vdd" "wrom0_precharge_cell_40/vdd"
+merge "wrom0_precharge_cell_40/vdd" "wrom0_precharge_cell_41/vdd"
+merge "wrom0_precharge_cell_41/vdd" "wrom0_precharge_cell_42/vdd"
+merge "wrom0_precharge_cell_42/vdd" "wrom0_precharge_cell_43/vdd"
+merge "wrom0_precharge_cell_43/vdd" "wrom0_precharge_cell_44/vdd"
+merge "wrom0_precharge_cell_44/vdd" "wrom0_precharge_cell_45/vdd"
+merge "wrom0_precharge_cell_45/vdd" "wrom0_precharge_cell_46/vdd"
+merge "wrom0_precharge_cell_46/vdd" "wrom0_precharge_cell_47/vdd"
+merge "wrom0_precharge_cell_47/vdd" "wrom0_precharge_cell_48/vdd"
+merge "wrom0_precharge_cell_48/vdd" "wrom0_precharge_cell_49/vdd"
+merge "wrom0_precharge_cell_49/vdd" "wrom0_precharge_cell_50/vdd"
+merge "wrom0_precharge_cell_50/vdd" "wrom0_precharge_cell_51/vdd"
+merge "wrom0_precharge_cell_51/vdd" "wrom0_precharge_cell_52/vdd"
+merge "wrom0_precharge_cell_52/vdd" "wrom0_precharge_cell_53/vdd"
+merge "wrom0_precharge_cell_53/vdd" "wrom0_precharge_cell_54/vdd"
+merge "wrom0_precharge_cell_54/vdd" "wrom0_precharge_cell_55/vdd"
+merge "wrom0_precharge_cell_55/vdd" "wrom0_precharge_cell_56/vdd"
+merge "wrom0_precharge_cell_56/vdd" "wrom0_precharge_cell_57/vdd"
+merge "wrom0_precharge_cell_57/vdd" "wrom0_precharge_cell_58/vdd"
+merge "wrom0_precharge_cell_58/vdd" "wrom0_precharge_cell_59/vdd"
+merge "wrom0_precharge_cell_59/vdd" "wrom0_precharge_cell_60/vdd"
+merge "wrom0_precharge_cell_60/vdd" "wrom0_precharge_cell_61/vdd"
+merge "wrom0_precharge_cell_61/vdd" "wrom0_precharge_cell_62/vdd"
+merge "wrom0_precharge_cell_62/vdd" "wrom0_precharge_cell_63/vdd"
+merge "wrom0_precharge_cell_63/vdd" "wrom0_precharge_cell_64/vdd"
+merge "wrom0_precharge_cell_64/vdd" "wrom0_precharge_cell_65/vdd"
+merge "wrom0_precharge_cell_65/vdd" "wrom0_precharge_cell_66/vdd"
+merge "wrom0_precharge_cell_66/vdd" "wrom0_precharge_cell_67/vdd"
+merge "wrom0_precharge_cell_67/vdd" "wrom0_precharge_cell_68/vdd"
+merge "wrom0_precharge_cell_68/vdd" "wrom0_precharge_cell_69/vdd"
+merge "wrom0_precharge_cell_69/vdd" "wrom0_precharge_cell_70/vdd"
+merge "wrom0_precharge_cell_70/vdd" "wrom0_precharge_cell_71/vdd"
+merge "wrom0_precharge_cell_71/vdd" "wrom0_precharge_cell_72/vdd"
+merge "wrom0_precharge_cell_72/vdd" "wrom0_precharge_cell_73/vdd"
+merge "wrom0_precharge_cell_73/vdd" "wrom0_precharge_cell_74/vdd"
+merge "wrom0_precharge_cell_74/vdd" "wrom0_precharge_cell_75/vdd"
+merge "wrom0_precharge_cell_75/vdd" "wrom0_precharge_cell_76/vdd"
+merge "wrom0_precharge_cell_76/vdd" "wrom0_precharge_cell_77/vdd"
+merge "wrom0_precharge_cell_77/vdd" "wrom0_precharge_cell_78/vdd"
+merge "wrom0_precharge_cell_78/vdd" "wrom0_precharge_cell_79/vdd"
+merge "wrom0_precharge_cell_79/vdd" "wrom0_precharge_cell_80/vdd"
+merge "wrom0_precharge_cell_80/vdd" "wrom0_precharge_cell_81/vdd"
+merge "wrom0_precharge_cell_81/vdd" "wrom0_precharge_cell_82/vdd"
+merge "wrom0_precharge_cell_82/vdd" "wrom0_precharge_cell_83/vdd"
+merge "wrom0_precharge_cell_83/vdd" "wrom0_precharge_cell_84/vdd"
+merge "wrom0_precharge_cell_84/vdd" "wrom0_precharge_cell_85/vdd"
+merge "wrom0_precharge_cell_85/vdd" "wrom0_precharge_cell_86/vdd"
+merge "wrom0_precharge_cell_86/vdd" "wrom0_precharge_cell_87/vdd"
+merge "wrom0_precharge_cell_87/vdd" "wrom0_precharge_cell_88/vdd"
+merge "wrom0_precharge_cell_88/vdd" "wrom0_precharge_cell_89/vdd"
+merge "wrom0_precharge_cell_89/vdd" "wrom0_precharge_cell_90/vdd"
+merge "wrom0_precharge_cell_90/vdd" "wrom0_precharge_cell_91/vdd"
+merge "wrom0_precharge_cell_91/vdd" "wrom0_precharge_cell_92/vdd"
+merge "wrom0_precharge_cell_92/vdd" "wrom0_precharge_cell_93/vdd"
+merge "wrom0_precharge_cell_93/vdd" "wrom0_precharge_cell_94/vdd"
+merge "wrom0_precharge_cell_94/vdd" "wrom0_precharge_cell_95/vdd"
+merge "wrom0_precharge_cell_95/vdd" "wrom0_precharge_cell_96/vdd"
+merge "wrom0_precharge_cell_96/vdd" "wrom0_precharge_cell_97/vdd"
+merge "wrom0_precharge_cell_97/vdd" "wrom0_precharge_cell_98/vdd"
+merge "wrom0_precharge_cell_98/vdd" "wrom0_precharge_cell_99/vdd"
+merge "wrom0_precharge_cell_99/vdd" "wrom0_precharge_cell_100/vdd"
+merge "wrom0_precharge_cell_100/vdd" "wrom0_precharge_cell_101/vdd"
+merge "wrom0_precharge_cell_101/vdd" "wrom0_precharge_cell_102/vdd"
+merge "wrom0_precharge_cell_102/vdd" "wrom0_precharge_cell_103/vdd"
+merge "wrom0_precharge_cell_103/vdd" "wrom0_precharge_cell_104/vdd"
+merge "wrom0_precharge_cell_104/vdd" "wrom0_precharge_cell_105/vdd"
+merge "wrom0_precharge_cell_105/vdd" "wrom0_precharge_cell_106/vdd"
+merge "wrom0_precharge_cell_106/vdd" "wrom0_precharge_cell_107/vdd"
+merge "wrom0_precharge_cell_107/vdd" "wrom0_precharge_cell_108/vdd"
+merge "wrom0_precharge_cell_108/vdd" "wrom0_precharge_cell_109/vdd"
+merge "wrom0_precharge_cell_109/vdd" "wrom0_precharge_cell_110/vdd"
+merge "wrom0_precharge_cell_110/vdd" "wrom0_precharge_cell_111/vdd"
+merge "wrom0_precharge_cell_111/vdd" "wrom0_precharge_cell_112/vdd"
+merge "wrom0_precharge_cell_112/vdd" "wrom0_precharge_cell_113/vdd"
+merge "wrom0_precharge_cell_113/vdd" "wrom0_precharge_cell_114/vdd"
+merge "wrom0_precharge_cell_114/vdd" "wrom0_precharge_cell_115/vdd"
+merge "wrom0_precharge_cell_115/vdd" "wrom0_precharge_cell_116/vdd"
+merge "wrom0_precharge_cell_116/vdd" "wrom0_precharge_cell_117/vdd"
+merge "wrom0_precharge_cell_117/vdd" "wrom0_precharge_cell_118/vdd"
+merge "wrom0_precharge_cell_118/vdd" "wrom0_precharge_cell_119/vdd"
+merge "wrom0_precharge_cell_119/vdd" "wrom0_precharge_cell_120/vdd"
+merge "wrom0_precharge_cell_120/vdd" "wrom0_precharge_cell_121/vdd"
+merge "wrom0_precharge_cell_121/vdd" "wrom0_precharge_cell_122/vdd"
+merge "wrom0_precharge_cell_122/vdd" "wrom0_precharge_cell_123/vdd"
+merge "wrom0_precharge_cell_123/vdd" "wrom0_precharge_cell_124/vdd"
+merge "wrom0_precharge_cell_124/vdd" "wrom0_precharge_cell_125/vdd"
+merge "wrom0_precharge_cell_125/vdd" "wrom0_precharge_cell_126/vdd"
+merge "wrom0_precharge_cell_126/vdd" "wrom0_precharge_cell_127/vdd"
+merge "wrom0_precharge_cell_127/vdd" "wrom0_precharge_cell_128/vdd"
+merge "wrom0_precharge_cell_128/vdd" "wrom0_precharge_cell_129/vdd"
+merge "wrom0_precharge_cell_129/vdd" "wrom0_precharge_cell_130/vdd"
+merge "wrom0_precharge_cell_130/vdd" "wrom0_precharge_cell_131/vdd"
+merge "wrom0_precharge_cell_131/vdd" "wrom0_precharge_cell_132/vdd"
+merge "wrom0_precharge_cell_132/vdd" "vdd"
+merge "vdd" "upper right"
+merge "wrom0_rom_poly_tap_3_0/poly_tap" "wrom0_precharge_cell_0/G" -9668.87 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -824220 -64008 0 0 0 0 0 0 -25536 -2832 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_0/G" "wrom0_precharge_cell_1/G"
+merge "wrom0_precharge_cell_1/G" "wrom0_precharge_cell_2/G"
+merge "wrom0_precharge_cell_2/G" "wrom0_precharge_cell_3/G"
+merge "wrom0_precharge_cell_3/G" "wrom0_precharge_cell_4/G"
+merge "wrom0_precharge_cell_4/G" "wrom0_rom_poly_tap_3_1/poly_tap"
+merge "wrom0_rom_poly_tap_3_1/poly_tap" "wrom0_precharge_cell_5/G"
+merge "wrom0_precharge_cell_5/G" "wrom0_precharge_cell_6/G"
+merge "wrom0_precharge_cell_6/G" "wrom0_precharge_cell_7/G"
+merge "wrom0_precharge_cell_7/G" "wrom0_precharge_cell_8/G"
+merge "wrom0_precharge_cell_8/G" "wrom0_precharge_cell_9/G"
+merge "wrom0_precharge_cell_9/G" "wrom0_precharge_cell_10/G"
+merge "wrom0_precharge_cell_10/G" "wrom0_precharge_cell_11/G"
+merge "wrom0_precharge_cell_11/G" "wrom0_precharge_cell_12/G"
+merge "wrom0_precharge_cell_12/G" "wrom0_rom_poly_tap_3_2/poly_tap"
+merge "wrom0_rom_poly_tap_3_2/poly_tap" "wrom0_precharge_cell_13/G"
+merge "wrom0_precharge_cell_13/G" "wrom0_precharge_cell_14/G"
+merge "wrom0_precharge_cell_14/G" "wrom0_precharge_cell_15/G"
+merge "wrom0_precharge_cell_15/G" "wrom0_precharge_cell_16/G"
+merge "wrom0_precharge_cell_16/G" "wrom0_precharge_cell_17/G"
+merge "wrom0_precharge_cell_17/G" "wrom0_precharge_cell_18/G"
+merge "wrom0_precharge_cell_18/G" "wrom0_precharge_cell_19/G"
+merge "wrom0_precharge_cell_19/G" "wrom0_precharge_cell_20/G"
+merge "wrom0_precharge_cell_20/G" "wrom0_rom_poly_tap_3_3/poly_tap"
+merge "wrom0_rom_poly_tap_3_3/poly_tap" "wrom0_precharge_cell_21/G"
+merge "wrom0_precharge_cell_21/G" "wrom0_precharge_cell_22/G"
+merge "wrom0_precharge_cell_22/G" "wrom0_precharge_cell_23/G"
+merge "wrom0_precharge_cell_23/G" "wrom0_precharge_cell_24/G"
+merge "wrom0_precharge_cell_24/G" "wrom0_precharge_cell_25/G"
+merge "wrom0_precharge_cell_25/G" "wrom0_precharge_cell_26/G"
+merge "wrom0_precharge_cell_26/G" "wrom0_precharge_cell_27/G"
+merge "wrom0_precharge_cell_27/G" "wrom0_precharge_cell_28/G"
+merge "wrom0_precharge_cell_28/G" "wrom0_rom_poly_tap_3_4/poly_tap"
+merge "wrom0_rom_poly_tap_3_4/poly_tap" "wrom0_precharge_cell_29/G"
+merge "wrom0_precharge_cell_29/G" "wrom0_precharge_cell_30/G"
+merge "wrom0_precharge_cell_30/G" "wrom0_precharge_cell_31/G"
+merge "wrom0_precharge_cell_31/G" "wrom0_precharge_cell_32/G"
+merge "wrom0_precharge_cell_32/G" "wrom0_precharge_cell_33/G"
+merge "wrom0_precharge_cell_33/G" "wrom0_precharge_cell_34/G"
+merge "wrom0_precharge_cell_34/G" "wrom0_precharge_cell_35/G"
+merge "wrom0_precharge_cell_35/G" "wrom0_precharge_cell_36/G"
+merge "wrom0_precharge_cell_36/G" "wrom0_rom_poly_tap_3_5/poly_tap"
+merge "wrom0_rom_poly_tap_3_5/poly_tap" "wrom0_precharge_cell_37/G"
+merge "wrom0_precharge_cell_37/G" "wrom0_precharge_cell_38/G"
+merge "wrom0_precharge_cell_38/G" "wrom0_precharge_cell_39/G"
+merge "wrom0_precharge_cell_39/G" "wrom0_precharge_cell_40/G"
+merge "wrom0_precharge_cell_40/G" "wrom0_precharge_cell_41/G"
+merge "wrom0_precharge_cell_41/G" "wrom0_precharge_cell_42/G"
+merge "wrom0_precharge_cell_42/G" "wrom0_precharge_cell_43/G"
+merge "wrom0_precharge_cell_43/G" "wrom0_precharge_cell_44/G"
+merge "wrom0_precharge_cell_44/G" "wrom0_rom_poly_tap_3_6/poly_tap"
+merge "wrom0_rom_poly_tap_3_6/poly_tap" "wrom0_precharge_cell_45/G"
+merge "wrom0_precharge_cell_45/G" "wrom0_precharge_cell_46/G"
+merge "wrom0_precharge_cell_46/G" "wrom0_precharge_cell_47/G"
+merge "wrom0_precharge_cell_47/G" "wrom0_precharge_cell_48/G"
+merge "wrom0_precharge_cell_48/G" "wrom0_precharge_cell_49/G"
+merge "wrom0_precharge_cell_49/G" "wrom0_precharge_cell_50/G"
+merge "wrom0_precharge_cell_50/G" "wrom0_precharge_cell_51/G"
+merge "wrom0_precharge_cell_51/G" "wrom0_precharge_cell_52/G"
+merge "wrom0_precharge_cell_52/G" "wrom0_rom_poly_tap_3_7/poly_tap"
+merge "wrom0_rom_poly_tap_3_7/poly_tap" "wrom0_precharge_cell_53/G"
+merge "wrom0_precharge_cell_53/G" "wrom0_precharge_cell_54/G"
+merge "wrom0_precharge_cell_54/G" "wrom0_precharge_cell_55/G"
+merge "wrom0_precharge_cell_55/G" "wrom0_precharge_cell_56/G"
+merge "wrom0_precharge_cell_56/G" "wrom0_precharge_cell_57/G"
+merge "wrom0_precharge_cell_57/G" "wrom0_precharge_cell_58/G"
+merge "wrom0_precharge_cell_58/G" "wrom0_precharge_cell_59/G"
+merge "wrom0_precharge_cell_59/G" "wrom0_precharge_cell_60/G"
+merge "wrom0_precharge_cell_60/G" "wrom0_rom_poly_tap_3_8/poly_tap"
+merge "wrom0_rom_poly_tap_3_8/poly_tap" "wrom0_precharge_cell_61/G"
+merge "wrom0_precharge_cell_61/G" "wrom0_precharge_cell_62/G"
+merge "wrom0_precharge_cell_62/G" "wrom0_precharge_cell_63/G"
+merge "wrom0_precharge_cell_63/G" "wrom0_precharge_cell_64/G"
+merge "wrom0_precharge_cell_64/G" "wrom0_precharge_cell_65/G"
+merge "wrom0_precharge_cell_65/G" "wrom0_precharge_cell_66/G"
+merge "wrom0_precharge_cell_66/G" "wrom0_precharge_cell_67/G"
+merge "wrom0_precharge_cell_67/G" "wrom0_precharge_cell_68/G"
+merge "wrom0_precharge_cell_68/G" "wrom0_rom_poly_tap_3_9/poly_tap"
+merge "wrom0_rom_poly_tap_3_9/poly_tap" "wrom0_precharge_cell_69/G"
+merge "wrom0_precharge_cell_69/G" "wrom0_precharge_cell_70/G"
+merge "wrom0_precharge_cell_70/G" "wrom0_precharge_cell_71/G"
+merge "wrom0_precharge_cell_71/G" "wrom0_precharge_cell_72/G"
+merge "wrom0_precharge_cell_72/G" "wrom0_precharge_cell_73/G"
+merge "wrom0_precharge_cell_73/G" "wrom0_precharge_cell_74/G"
+merge "wrom0_precharge_cell_74/G" "wrom0_precharge_cell_75/G"
+merge "wrom0_precharge_cell_75/G" "wrom0_precharge_cell_76/G"
+merge "wrom0_precharge_cell_76/G" "wrom0_rom_poly_tap_3_10/poly_tap"
+merge "wrom0_rom_poly_tap_3_10/poly_tap" "wrom0_precharge_cell_77/G"
+merge "wrom0_precharge_cell_77/G" "wrom0_precharge_cell_78/G"
+merge "wrom0_precharge_cell_78/G" "wrom0_precharge_cell_79/G"
+merge "wrom0_precharge_cell_79/G" "wrom0_precharge_cell_80/G"
+merge "wrom0_precharge_cell_80/G" "wrom0_precharge_cell_81/G"
+merge "wrom0_precharge_cell_81/G" "wrom0_precharge_cell_82/G"
+merge "wrom0_precharge_cell_82/G" "wrom0_precharge_cell_83/G"
+merge "wrom0_precharge_cell_83/G" "wrom0_precharge_cell_84/G"
+merge "wrom0_precharge_cell_84/G" "wrom0_rom_poly_tap_3_11/poly_tap"
+merge "wrom0_rom_poly_tap_3_11/poly_tap" "wrom0_precharge_cell_85/G"
+merge "wrom0_precharge_cell_85/G" "wrom0_precharge_cell_86/G"
+merge "wrom0_precharge_cell_86/G" "wrom0_precharge_cell_87/G"
+merge "wrom0_precharge_cell_87/G" "wrom0_precharge_cell_88/G"
+merge "wrom0_precharge_cell_88/G" "wrom0_precharge_cell_89/G"
+merge "wrom0_precharge_cell_89/G" "wrom0_precharge_cell_90/G"
+merge "wrom0_precharge_cell_90/G" "wrom0_precharge_cell_91/G"
+merge "wrom0_precharge_cell_91/G" "wrom0_precharge_cell_92/G"
+merge "wrom0_precharge_cell_92/G" "wrom0_rom_poly_tap_3_12/poly_tap"
+merge "wrom0_rom_poly_tap_3_12/poly_tap" "wrom0_precharge_cell_93/G"
+merge "wrom0_precharge_cell_93/G" "wrom0_precharge_cell_94/G"
+merge "wrom0_precharge_cell_94/G" "wrom0_precharge_cell_95/G"
+merge "wrom0_precharge_cell_95/G" "wrom0_precharge_cell_96/G"
+merge "wrom0_precharge_cell_96/G" "wrom0_precharge_cell_97/G"
+merge "wrom0_precharge_cell_97/G" "wrom0_precharge_cell_98/G"
+merge "wrom0_precharge_cell_98/G" "wrom0_precharge_cell_99/G"
+merge "wrom0_precharge_cell_99/G" "wrom0_precharge_cell_100/G"
+merge "wrom0_precharge_cell_100/G" "wrom0_rom_poly_tap_3_13/poly_tap"
+merge "wrom0_rom_poly_tap_3_13/poly_tap" "wrom0_precharge_cell_101/G"
+merge "wrom0_precharge_cell_101/G" "wrom0_precharge_cell_102/G"
+merge "wrom0_precharge_cell_102/G" "wrom0_precharge_cell_103/G"
+merge "wrom0_precharge_cell_103/G" "wrom0_precharge_cell_104/G"
+merge "wrom0_precharge_cell_104/G" "wrom0_precharge_cell_105/G"
+merge "wrom0_precharge_cell_105/G" "wrom0_precharge_cell_106/G"
+merge "wrom0_precharge_cell_106/G" "wrom0_precharge_cell_107/G"
+merge "wrom0_precharge_cell_107/G" "wrom0_precharge_cell_108/G"
+merge "wrom0_precharge_cell_108/G" "wrom0_rom_poly_tap_3_14/poly_tap"
+merge "wrom0_rom_poly_tap_3_14/poly_tap" "wrom0_precharge_cell_109/G"
+merge "wrom0_precharge_cell_109/G" "wrom0_precharge_cell_110/G"
+merge "wrom0_precharge_cell_110/G" "wrom0_precharge_cell_111/G"
+merge "wrom0_precharge_cell_111/G" "wrom0_precharge_cell_112/G"
+merge "wrom0_precharge_cell_112/G" "wrom0_precharge_cell_113/G"
+merge "wrom0_precharge_cell_113/G" "wrom0_precharge_cell_114/G"
+merge "wrom0_precharge_cell_114/G" "wrom0_precharge_cell_115/G"
+merge "wrom0_precharge_cell_115/G" "wrom0_precharge_cell_116/G"
+merge "wrom0_precharge_cell_116/G" "wrom0_rom_poly_tap_3_15/poly_tap"
+merge "wrom0_rom_poly_tap_3_15/poly_tap" "wrom0_precharge_cell_117/G"
+merge "wrom0_precharge_cell_117/G" "wrom0_precharge_cell_118/G"
+merge "wrom0_precharge_cell_118/G" "wrom0_precharge_cell_119/G"
+merge "wrom0_precharge_cell_119/G" "wrom0_precharge_cell_120/G"
+merge "wrom0_precharge_cell_120/G" "wrom0_precharge_cell_121/G"
+merge "wrom0_precharge_cell_121/G" "wrom0_precharge_cell_122/G"
+merge "wrom0_precharge_cell_122/G" "wrom0_precharge_cell_123/G"
+merge "wrom0_precharge_cell_123/G" "wrom0_precharge_cell_124/G"
+merge "wrom0_precharge_cell_124/G" "wrom0_rom_poly_tap_3_16/poly_tap"
+merge "wrom0_rom_poly_tap_3_16/poly_tap" "wrom0_precharge_cell_125/G"
+merge "wrom0_precharge_cell_125/G" "wrom0_precharge_cell_126/G"
+merge "wrom0_precharge_cell_126/G" "wrom0_precharge_cell_127/G"
+merge "wrom0_precharge_cell_127/G" "wrom0_precharge_cell_128/G"
+merge "wrom0_precharge_cell_128/G" "wrom0_precharge_cell_129/G"
+merge "wrom0_precharge_cell_129/G" "wrom0_precharge_cell_130/G"
+merge "wrom0_precharge_cell_130/G" "wrom0_precharge_cell_131/G"
+merge "wrom0_precharge_cell_131/G" "wrom0_precharge_cell_132/G"
+merge "wrom0_precharge_cell_132/G" "wrom0_rom_poly_tap_3_17/poly_tap"
+merge "wrom0_rom_poly_tap_3_17/poly_tap" "precharge_r"
+merge "precharge_r" "a_60_50#"
+merge "wrom0_precharge_cell_101/D" "pre_bl31_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_44/D" "pre_bl88_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_131/D" "pre_bl1_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_74/D" "pre_bl58_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_37/D" "pre_bl95_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_52/D" "pre_bl80_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_8/D" "pre_bl124_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_17/D" "pre_bl115_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_61/D" "pre_bl71_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_26/D" "pre_bl106_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_79/D" "pre_bl53_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_70/D" "pre_bl62_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_88/D" "pre_bl44_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_97/D" "pre_bl35_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_106/D" "pre_bl26_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_115/D" "pre_bl17_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_124/D" "pre_bl8_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_67/D" "pre_bl65_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_132/D" "pre_bl0_out" -35.9054 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_9/D" "pre_bl123_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_12/D" "pre_bl120_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_117/D" "pre_bl15_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_42/D" "pre_bl90_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_72/D" "pre_bl60_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_40/D" "pre_bl92_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_5/D" "pre_bl127_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_49/D" "pre_bl83_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_58/D" "pre_bl74_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_14/D" "pre_bl118_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_23/D" "pre_bl109_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_35/D" "pre_bl97_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_76/D" "pre_bl56_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_85/D" "pre_bl47_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_94/D" "pre_bl38_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_103/D" "pre_bl29_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_122/D" "pre_bl10_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_129/D" "pre_bl3_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_65/D" "pre_bl67_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_28/D" "pre_bl104_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_7/D" "pre_bl125_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_95/D" "pre_bl37_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_10/D" "pre_bl122_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_46/D" "pre_bl86_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_108/D" "pre_bl24_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_55/D" "pre_bl77_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_64/D" "pre_bl68_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_73/D" "pre_bl59_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_33/D" "pre_bl99_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_126/D" "pre_bl6_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_120/D" "pre_bl12_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_63/D" "pre_bl69_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_93/D" "pre_bl39_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_56/D" "pre_bl76_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_113/D" "pre_bl19_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_19/D" "pre_bl113_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_21/D" "pre_bl111_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_30/D" "pre_bl102_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_92/D" "pre_bl40_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_34/D" "pre_bl98_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_110/D" "pre_bl22_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_43/D" "pre_bl89_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_119/D" "pre_bl13_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_86/D" "pre_bl46_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_31/D" "pre_bl101_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_123/D" "pre_bl9_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_24/D" "pre_bl108_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_3/D" "pre_bl129_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_91/D" "pre_bl41_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_0/D" "pre_bl132_out" -36.4741 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_54/D" "pre_bl78_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_111/D" "pre_bl21_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_62/D" "pre_bl70_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_18/D" "pre_bl114_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_27/D" "pre_bl105_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_71/D" "pre_bl61_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_89/D" "pre_bl43_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_80/D" "pre_bl52_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_98/D" "pre_bl34_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_107/D" "pre_bl25_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_116/D" "pre_bl16_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_84/D" "pre_bl48_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_104/D" "pre_bl28_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_47/D" "pre_bl85_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_77/D" "pre_bl55_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_22/D" "pre_bl110_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_127/D" "pre_bl5_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_1/D" "pre_bl131_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_41/D" "pre_bl91_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_6/D" "pre_bl126_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_50/D" "pre_bl82_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_59/D" "pre_bl73_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_15/D" "pre_bl117_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_68/D" "pre_bl64_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_130/D" "pre_bl2_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_82/D" "pre_bl50_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_45/D" "pre_bl87_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_102/D" "pre_bl30_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_75/D" "pre_bl57_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_38/D" "pre_bl94_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_20/D" "pre_bl112_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_125/D" "pre_bl7_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_83/D" "pre_bl49_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_13/D" "pre_bl119_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_118/D" "pre_bl14_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_100/D" "pre_bl32_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_36/D" "pre_bl96_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_53/D" "pre_bl79_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_66/D" "pre_bl66_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_29/D" "pre_bl103_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_96/D" "pre_bl36_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_11/D" "pre_bl121_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_109/D" "pre_bl23_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_99/D" "pre_bl33_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_90/D" "pre_bl42_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_121/D" "pre_bl11_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_114/D" "pre_bl18_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_57/D" "pre_bl75_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_51/D" "pre_bl81_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_87/D" "pre_bl45_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_16/D" "pre_bl116_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_60/D" "pre_bl72_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_69/D" "pre_bl63_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_25/D" "pre_bl107_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_78/D" "pre_bl54_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_105/D" "pre_bl27_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_32/D" "pre_bl100_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_4/D" "pre_bl128_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_112/D" "pre_bl20_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_39/D" "pre_bl93_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_48/D" "pre_bl84_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_128/D" "pre_bl4_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_precharge_cell_2/D" "pre_bl130_out" -42.5455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -784 -112 0 0 0 0 0 0 0 0 0 0

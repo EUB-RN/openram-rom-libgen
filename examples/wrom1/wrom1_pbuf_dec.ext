@@ -1,0 +1,56 @@
+timestamp 1617478348
+version 8.3
+tech sky130A
+style ngspice(si)
+scale 1000 1 0.5
+resistclasses 4400000 2200000 950000 3050000 120000 197000 114000 191000 120000 197000 114000 191000 48200 319800 2000000 48200 48200 12800 125 125 47 47 29 5
+use wrom1_pinv_dec_1 wrom1_pinv_dec_1_0 1 0 2446 0 1 0
+use wrom1_pinv_dec_0 wrom1_pinv_dec_0_0 1 0 0 0 1 0
+port "vdd_uq0" 3 4942 0 4970 204 m1
+port "gnd_uq0" 4 3294 0 3322 204 m1
+port "vdd" 1 1696 0 1724 204 m1
+port "gnd" 2 448 0 476 204 m1
+node "vdd_uq0" 1 86.6057 4942 0 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 5712 464 0 0 0 0 0 0 0 0 0 0
+node "gnd_uq0" 1 84.4239 3294 0 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 5712 464 0 0 0 0 0 0 0 0 0 0
+node "vdd" 1 82.974 1696 0 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 5712 464 0 0 0 0 0 0 0 0 0 0
+node "gnd" 1 89.3026 448 0 m1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 5712 464 0 0 0 0 0 0 0 0 0 0
+node "Z" 910 1072 3275 17 li 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 82178 4902 0 0 0 0 0 0 0 0 0 0 0 0
+node "li_2446_17#" 54 75.4209 2446 17 li 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 4896 356 0 0 0 0 0 0 0 0 0 0 0 0
+node "A" 25 42.7751 60 51 li 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2244 200 0 0 0 0 0 0 0 0 0 0 0 0
+substrate "gnd" 0 0 -1073741817 -1073741817 space 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+cap "vdd" "gnd" 7.06772
+cap "li_2446_17#" "gnd_uq0" 0.151423
+cap "gnd_uq0" "Z" 17.6997
+cap "li_2446_17#" "Z" 1.1363
+cap "gnd_uq0" "vdd" 5.54074
+cap "li_2446_17#" "vdd" 0.170345
+cap "A" "gnd" 0.381646
+cap "vdd" "Z" 0.00438574
+cap "vdd_uq0" "Z" 25.6614
+cap "wrom1_pinv_dec_0_0/gnd" "wrom1_pinv_dec_0_0/vdd" -3.53386
+cap "wrom1_pinv_dec_0_0/gnd" "wrom1_pinv_dec_0_0/A" -0.381646
+cap "wrom1_pinv_dec_0_0/w_956_n45#" "wrom1_pinv_dec_0_0/vdd" -0.0447679
+cap "wrom1_pinv_dec_1_0/Z" "wrom1_pinv_dec_0_0/vdd" 1.1206
+cap "wrom1_pinv_dec_1_0/gnd" "wrom1_pinv_dec_0_0/vdd" 2.08097
+cap "wrom1_pinv_dec_0_0/w_956_n45#" "wrom1_pinv_dec_0_0/Z" 17.9776
+cap "wrom1_pinv_dec_1_0/Z" "wrom1_pinv_dec_0_0/Z" 4.64666
+cap "wrom1_pinv_dec_1_0/gnd" "wrom1_pinv_dec_0_0/Z" -0.0226692
+cap "wrom1_pinv_dec_0_0/A" "wrom1_pinv_dec_0_0/Z" 13.4527
+cap "wrom1_pinv_dec_0_0/Z" "wrom1_pinv_dec_0_0/vdd" 3.37146
+cap "wrom1_pinv_dec_0_0/gnd" "wrom1_pinv_dec_0_0/vdd" -3.53386
+cap "wrom1_pinv_dec_0_0/vdd" "wrom1_pinv_dec_1_0/gnd" 2.08097
+cap "wrom1_pinv_dec_0_0/Z" "wrom1_pinv_dec_1_0/Z" 2.9976e-15
+cap "wrom1_pinv_dec_0_0/A" "wrom1_pinv_dec_1_0/gnd" 0.5053
+cap "wrom1_pinv_dec_0_0/w_956_n45#" "wrom1_pinv_dec_1_0/gnd" 1.92701
+cap "wrom1_pinv_dec_1_0/gnd" "wrom1_pinv_dec_1_0/Z" -17.6997
+cap "wrom1_pinv_dec_1_0/gnd" "wrom1_pinv_dec_0_0/Z" 0.747081
+cap "wrom1_pinv_dec_1_0/Z" "wrom1_pinv_dec_1_0/vdd" -25.6614
+merge "wrom1_pinv_dec_1_0/vdd" "vdd_uq0" -86.6057 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -5712 -464 0 0 0 0 0 0 0 0 0 0
+merge "wrom1_pinv_dec_1_0/Z" "Z" -1073.55 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -82178 -4902 0 0 0 0 0 0 0 0 0 0 0 0
+merge "wrom1_pinv_dec_0_0/gnd" "gnd_uq0" -187.526 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -11424 -928 0 0 0 0 0 0 0 0 0 0
+merge "gnd_uq0" "wrom1_pinv_dec_1_0/gnd"
+merge "wrom1_pinv_dec_1_0/gnd" "gnd"
+merge "wrom1_pinv_dec_0_0/vdd" "vdd" -95.7758 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -5712 -464 0 0 0 0 0 0 0 0 0 0
+merge "wrom1_pinv_dec_0_0/Z" "wrom1_pinv_dec_1_0/A" -82.6442 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1700 -236 0 0 0 0 0 0 0 0 0 0 0 0
+merge "wrom1_pinv_dec_1_0/A" "li_2446_17#"
+merge "wrom1_pinv_dec_0_0/A" "A" -48.3191 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2244 -200 0 0 0 0 0 0 0 0 0 0 0 0

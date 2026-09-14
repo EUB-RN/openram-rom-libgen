@@ -1,0 +1,130 @@
+magic
+tech sky130A
+magscale 1 2
+timestamp 1617478290
+<< checkpaint >>
+rect -1308 -1216 4619 4388
+<< locali >>
+rect 194 60 260 94
+rect 602 60 668 94
+rect 1010 60 1076 94
+rect 1418 60 1484 94
+rect 1826 60 1892 94
+rect 2234 60 2300 94
+rect 2642 60 2708 94
+rect 3050 60 3116 94
+<< metal1 >>
+rect 0 2833 3265 2861
+rect 0 2408 3292 2436
+rect 0 2160 3264 2188
+rect 0 1881 3265 1909
+rect 0 1456 3292 1484
+rect 0 844 3264 872
+rect 0 222 3292 250
+<< metal2 >>
+rect 189 3098 217 3126
+rect 329 3098 357 3126
+rect 597 3098 625 3126
+rect 737 3098 765 3126
+rect 1005 3098 1033 3126
+rect 1145 3098 1173 3126
+rect 1413 3098 1441 3126
+rect 1553 3098 1581 3126
+rect 1821 3098 1849 3126
+rect 1961 3098 1989 3126
+rect 2229 3098 2257 3126
+rect 2369 3098 2397 3126
+rect 2637 3098 2665 3126
+rect 2777 3098 2805 3126
+rect 3045 3098 3073 3126
+rect 3185 3098 3213 3126
+use wrom0_rom_address_control_buf  wrom0_rom_address_control_buf_0
+timestamp 1617478290
+transform -1 0 3264 0 1 0
+box -95 44 456 3128
+use wrom0_rom_address_control_buf  wrom0_rom_address_control_buf_1
+timestamp 1617478290
+transform -1 0 2856 0 1 0
+box -95 44 456 3128
+use wrom0_rom_address_control_buf  wrom0_rom_address_control_buf_2
+timestamp 1617478290
+transform -1 0 2448 0 1 0
+box -95 44 456 3128
+use wrom0_rom_address_control_buf  wrom0_rom_address_control_buf_3
+timestamp 1617478290
+transform -1 0 2040 0 1 0
+box -95 44 456 3128
+use wrom0_rom_address_control_buf  wrom0_rom_address_control_buf_4
+timestamp 1617478290
+transform -1 0 1632 0 1 0
+box -95 44 456 3128
+use wrom0_rom_address_control_buf  wrom0_rom_address_control_buf_5
+timestamp 1617478290
+transform -1 0 1224 0 1 0
+box -95 44 456 3128
+use wrom0_rom_address_control_buf  wrom0_rom_address_control_buf_6
+timestamp 1617478290
+transform -1 0 816 0 1 0
+box -95 44 456 3128
+use wrom0_rom_address_control_buf  wrom0_rom_address_control_buf_7
+timestamp 1617478290
+transform -1 0 408 0 1 0
+box -95 44 456 3128
+<< labels >>
+rlabel metal1 s 0 2160 3264 2188 4 clk
+port 1 nsew
+rlabel metal1 s 0 844 28 872 4 vdd
+port 2 nsew
+rlabel metal1 s 0 2833 28 2861 4 vdd
+port 2 nsew
+rlabel metal1 s 0 1881 28 1909 4 vdd
+port 2 nsew
+rlabel metal1 s 3264 2408 3292 2436 4 gnd
+port 3 nsew
+rlabel metal1 s 3264 1456 3292 1484 4 gnd
+port 3 nsew
+rlabel metal1 s 3264 222 3292 250 4 gnd
+port 3 nsew
+rlabel metal2 s 189 3098 217 3126 4 A0_out
+port 4 nsew
+rlabel metal2 s 329 3098 357 3126 4 Abar0_out
+port 5 nsew
+rlabel locali s 227 77 227 77 4 A0_in
+rlabel metal2 s 597 3098 625 3126 4 A1_out
+port 6 nsew
+rlabel metal2 s 737 3098 765 3126 4 Abar1_out
+port 7 nsew
+rlabel locali s 635 77 635 77 4 A1_in
+rlabel metal2 s 1005 3098 1033 3126 4 A2_out
+port 8 nsew
+rlabel metal2 s 1145 3098 1173 3126 4 Abar2_out
+port 9 nsew
+rlabel locali s 1043 77 1043 77 4 A2_in
+rlabel metal2 s 1413 3098 1441 3126 4 A3_out
+port 10 nsew
+rlabel metal2 s 1553 3098 1581 3126 4 Abar3_out
+port 11 nsew
+rlabel locali s 1451 77 1451 77 4 A3_in
+rlabel metal2 s 1821 3098 1849 3126 4 A4_out
+port 12 nsew
+rlabel metal2 s 1961 3098 1989 3126 4 Abar4_out
+port 13 nsew
+rlabel locali s 1859 77 1859 77 4 A4_in
+rlabel metal2 s 2229 3098 2257 3126 4 A5_out
+port 14 nsew
+rlabel metal2 s 2369 3098 2397 3126 4 Abar5_out
+port 15 nsew
+rlabel locali s 2267 77 2267 77 4 A5_in
+rlabel metal2 s 2637 3098 2665 3126 4 A6_out
+port 16 nsew
+rlabel metal2 s 2777 3098 2805 3126 4 Abar6_out
+port 17 nsew
+rlabel locali s 2675 77 2675 77 4 A6_in
+rlabel metal2 s 3045 3098 3073 3126 4 A7_out
+port 18 nsew
+rlabel metal2 s 3185 3098 3213 3126 4 Abar7_out
+port 19 nsew
+rlabel locali s 3083 77 3083 77 4 A7_in
+<< properties >>
+string FIXED_BBOX 0 0 3264 3098
+<< end >>

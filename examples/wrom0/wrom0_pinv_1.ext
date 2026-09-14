@@ -1,0 +1,20 @@
+timestamp 1617478292
+version 8.3
+tech sky130A
+style ngspice(si)
+scale 1000 1 0.5
+resistclasses 4400000 2200000 950000 3050000 120000 197000 114000 191000 120000 197000 114000 191000 48200 319800 2000000 48200 48200 12800 125 125 47 47 29 5
+parameters sky130_fd_pr__special_nfet_01v8 l=l w=w a1=as p1=ps a2=ad p2=pd
+parameters sky130_fd_pr__nfet_01v8 l=l w=w a1=as p1=ps a2=ad p2=pd
+parameters sky130_fd_pr__pfet_01v8 l=l w=w a1=as p1=ps a2=ad p2=pd
+node "Z" 2925 676.498 144 51 ndif 0 0 0 0 0 0 0 0 31200 956 46800 1356 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 71740 4288 0 0 0 0 0 0 0 0 0 0 0 0
+node "A" 6269 829.322 48 1232 p 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 121326 7990 0 0 2244 200 0 0 0 0 0 0 0 0 0 0 0 0
+node "vdd" 7531 2477.86 -36 1262 nw 0 0 0 0 780352 3944 0 0 4100 264 72000 2640 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 45254 2730 0 0 0 0 0 0 0 0 0 0 0 0
+substrate "gnd" 0 0 54 51 ndif 0 0 0 0 0 0 0 0 48000 1840 4100 264 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 38012 2304 0 0 0 0 0 0 0 0 0 0 0 0
+cap "Z" "A" 191.809
+cap "vdd" "A" 530.759
+cap "Z" "vdd" 275.804
+device msubckt sky130_fd_pr__nfet_01v8 222 51 223 52 l=30 w=400 "gnd" "A" 60 0 "Z" 400 15600,478 "gnd" 400 24000,920
+device msubckt sky130_fd_pr__nfet_01v8 114 51 115 52 l=30 w=400 "gnd" "A" 60 0 "gnd" 400 24000,920 "Z" 400 15600,478
+device msubckt sky130_fd_pr__pfet_01v8 222 1978 223 1979 l=30 w=600 "vdd" "A" 60 0 "Z" 600 23400,678 "vdd" 600 36000,1320
+device msubckt sky130_fd_pr__pfet_01v8 114 1978 115 1979 l=30 w=600 "vdd" "A" 60 0 "vdd" 600 36000,1320 "Z" 600 23400,678

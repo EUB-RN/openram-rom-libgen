@@ -1,0 +1,40 @@
+[2026-09-08 17:04:06.465254] |==============================================================================|
+[2026-09-08 17:04:06.465409] |=========                      OpenRAM v1.2.49                       =========|
+[2026-09-08 17:04:06.465454] |=========                                                            =========|
+[2026-09-08 17:04:06.465481] |=========               VLSI Design and Automation Lab               =========|
+[2026-09-08 17:04:06.465506] |=========        Computer Science and Engineering Department         =========|
+[2026-09-08 17:04:06.465525] |=========            University of California Santa Cruz             =========|
+[2026-09-08 17:04:06.465543] |=========                                                            =========|
+[2026-09-08 17:04:06.465562] |=========          Usage help: openram-user-group@ucsc.edu           =========|
+[2026-09-08 17:04:06.465579] |=========        Development help: openram-dev-group@ucsc.edu        =========|
+[2026-09-08 17:04:06.465597] |=========                See LICENSE for license info                =========|
+[2026-09-08 17:04:06.465614] |==============================================================================|
+[2026-09-08 17:04:06.465638] ** Start: 09/08/2026 17:04:06
+[2026-09-08 17:04:06.465663] Output files are: 
+[2026-09-08 17:04:06.465683] /home/hpw/OpenRAM/macros/macro/wrom2/wrom2.sp
+[2026-09-08 17:04:06.465701] /home/hpw/OpenRAM/macros/macro/wrom2/wrom2.v
+[2026-09-08 17:04:06.465720] /home/hpw/OpenRAM/macros/macro/wrom2/wrom2.lef
+[2026-09-08 17:04:06.465736] /home/hpw/OpenRAM/macros/macro/wrom2/wrom2.gds
+[2026-09-08 17:04:06.477882] create rom of word size 4 with 1064 num of words
+[2026-09-08 17:08:56.220231] ** Submodules: 289.7 seconds
+[2026-09-08 17:08:56.220923] ** Placement: 0.0 seconds
+[2026-09-08 17:10:19.365170] ** Routing: 83.1 seconds
+[2026-09-08 17:26:18.197194] WARNING: file magic.py: line 254: DRC Errors wrom2	1621
+
+[2026-09-08 17:28:44.210301] ERROR: file magic.py: line 385: wrom2	LVS mismatch (results in /tmp/openram_hpw_770029_temp/wrom2.lvs.report)
+
+[2026-09-08 17:28:44.221345] ** Verification: 1104.9 seconds
+[2026-09-08 17:28:44.221441] ** ROM creation: 1477.7 seconds
+[2026-09-08 17:28:44.221471] SP: Writing to /home/hpw/OpenRAM/macros/macro/wrom2/wrom2.sp
+[2026-09-08 17:28:44.531453] ** Spice writing: 0.3 seconds
+[2026-09-08 17:28:44.531560] GDS: Writing to /home/hpw/OpenRAM/macros/macro/wrom2/wrom2.gds
+[2026-09-08 17:28:44.855703] ** GDS: 0.3 seconds
+[2026-09-08 17:28:44.855782] LEF: Writing to /home/hpw/OpenRAM/macros/macro/wrom2/wrom2.lef
+[2026-09-08 17:28:44.857158] ** LEF: 0.0 seconds
+[2026-09-08 17:28:44.857192] LVS: Writing to /home/hpw/OpenRAM/macros/macro/wrom2/wrom2.lvs.sp
+[2026-09-08 17:28:45.152028] ** LVS writing: 0.3 seconds
+[2026-09-08 17:28:45.152230] Config: Writing to /home/hpw/OpenRAM/macros/macro/wrom2/wrom2.py
+[2026-09-08 17:28:45.152261] ** Config: 0.0 seconds
+[2026-09-08 17:28:45.152279] Verilog: Writing to /home/hpw/OpenRAM/macros/macro/wrom2/wrom2.v
+[2026-09-08 17:28:45.152365] ** Verilog: 0.0 seconds
+[2026-09-08 17:28:45.179769] ** End: 1478.7 seconds

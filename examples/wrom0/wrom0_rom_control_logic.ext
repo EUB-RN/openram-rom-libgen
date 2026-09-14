@@ -1,0 +1,227 @@
+timestamp 1617478292
+version 8.3
+tech sky130A
+style ngspice(si)
+scale 1000 1 0.5
+resistclasses 4400000 2200000 950000 3050000 120000 197000 114000 191000 120000 197000 114000 191000 48200 319800 2000000 48200 48200 12800 125 125 47 47 29 5
+use wrom0_rom_precharge_driver wrom0_rom_precharge_driver_0 1 0 0 0 -1 5257
+use wrom0_rom_control_nand wrom0_rom_control_nand_0 1 0 3936 0 1 0
+use wrom0_rom_clock_driver wrom0_rom_clock_driver_0 1 0 0 0 1 0
+port "gnd_uq0" 3 1919 -49 2017 49 m3
+port "vdd" 2 1919 2579 2017 2677 m3
+port "gnd" 1 2805 5208 2903 5306 m3
+node "gnd_uq0" 25 221.915 1919 -49 m3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2244 200 3328 232 4144 260 9604 392 0 0 0 0 0 0
+node "CS" 25 42.7751 4048 237 li 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2244 200 0 0 0 0 0 0 0 0 0 0 0 0
+node "clk_out" 94 826.228 3211 1182 li 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 4488 400 49632 3524 0 0 0 0 0 0 0 0 0 0
+node "clk_in" 25 42.7751 64 1244 li 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2244 200 0 0 0 0 0 0 0 0 0 0 0 0
+node "vdd" 25 219.586 1919 2579 m3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2244 200 3328 232 4144 260 9604 392 0 0 0 0 0 0
+node "prechrg" 13 28.745 4443 3925 li 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1156 136 0 0 0 0 0 0 0 0 0 0 0 0
+node "li_64_3947#" 113 2593.96 64 3947 li 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 4488 400 166896 11900 0 0 0 0 0 0 0 0 0 0
+node "gnd" 25 219.843 2805 5208 m3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2244 200 3328 232 4144 260 9604 392 0 0 0 0 0 0
+substrate "gnd" 0 0 -1073741817 -1073741817 space 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+cap "li_64_3947#" "vdd" 2.04582
+cap "clk_out" "CS" 0.776307
+cap "gnd" "li_64_3947#" 1.80761
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" "wrom0_rom_clock_driver_0/wrom0_pinv_1/Z" 0.136147
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_0_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" 0.104019
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" "wrom0_rom_clock_driver_0/wrom0_pinv_1/A" 0.136147
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" "wrom0_rom_clock_driver_0/wrom0_pinv_0/Z" 0.14354
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_0_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/Z" 0.00603883
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_5_0/Z" 0.000225028
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/gnd" 7.64603
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/gnd" 0.110845
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/gnd" 1.79605
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1/gnd" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" 2.80412
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/gnd" 0.0312075
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" 0.306429
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" 0.133334
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1/gnd" "wrom0_rom_clock_driver_0/wrom0_pinv_0_0/Z" 0.250364
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" 0.147644
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" "wrom0_rom_clock_driver_0/wrom0_pinv_0_0/Z" 2.22045e-16
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" "wrom0_rom_control_nand_0/A" 3.93282
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/gnd" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" 66.8731
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" 83.3275
+cap "wrom0_rom_control_nand_0/a_144_51#" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" 1.85358
+cap "wrom0_rom_control_nand_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" 11.7044
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/vdd" "wrom0_rom_control_nand_0/A" 7.7995
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/vdd" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" 25.4738
+cap "wrom0_rom_control_nand_0/A" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" 18.3304
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/gnd" "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" 0.0730501
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/gnd" "wrom0_rom_control_nand_0/a_144_51#" 0.471751
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/gnd" "wrom0_rom_control_nand_0/Z" 4.21696
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/gnd" "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/vdd" 0.000777382
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/vdd" "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" 1.77636e-15
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" 1.54023
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/gnd" "wrom0_rom_control_nand_0/A" 7.74267
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" "wrom0_rom_control_nand_0/A" 7.81448
+cap "wrom0_rom_control_nand_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" 15.0277
+cap "wrom0_rom_control_nand_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/gnd" 6.01638
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/vdd" "wrom0_rom_control_nand_0/Z" 4.46085
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/gnd" 0.0876949
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/vdd" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" 0.46234
+cap "wrom0_rom_control_nand_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/A" 1.28677
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" -1.24868
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" "wrom0_rom_precharge_driver_0/wrom0_pinv_0/Z" 2.90525
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" 0.0118685
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_2/Z" 9.79592
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_1/Z" 9.79592
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" 5.38346
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_0_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" -1.15178
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" "wrom0_rom_clock_driver_0/wrom0_pinv_1/A" 9.79592
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_0/Z" 0.444153
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1/A" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" -1.24868
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_0_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_0/Z" 9.80039
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" -1.07575
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_1/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" -1.24868
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_2/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" -1.24868
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_0_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" 5.38636
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_0_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/Z" 0.0044739
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_5_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/Z" 0.278829
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/Z" 23.4575
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" 0.0334702
+cap "wrom0_rom_control_nand_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" 0.0999865
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/Z" 30.315
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" 0.827784
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_5_0/Z" 9.80843
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" "wrom0_rom_control_nand_0/A" 1.04427
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_0_0/Z" "wrom0_rom_control_nand_0/Z" 0.00604536
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_2/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" 0.0312075
+cap "wrom0_rom_control_nand_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/Z" 0.0181361
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" 0.119136
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" 0.0602472
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_5_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" 38.5893
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_1/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" 0.0509151
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/Z" 7.65656
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" 0.204769
+cap "wrom0_rom_control_nand_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/vdd" 15.9495
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/vdd" "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/Z" 28.54
+cap "wrom0_rom_control_nand_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" 8.85484
+cap "wrom0_rom_control_nand_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" 0.0181361
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_5_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/vdd" -3.74604
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/Z" 2.17977
+cap "wrom0_rom_control_nand_0/A" "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/Z" 9.79592
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/vdd" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" 9.92942
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/Z" 2.15674
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/vdd" "wrom0_rom_control_nand_0/A" 90.0335
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/vdd" "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" 28.6489
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_5_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" 29.3878
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_7_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" 0.00519123
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_7_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" 0.162937
+cap "wrom0_rom_control_nand_0/A" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" 1.71649
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" 0.323237
+cap "wrom0_rom_control_nand_0/A" "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" 4.92593
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/A" "wrom0_rom_control_nand_0/Z" 5.43378
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" "wrom0_rom_control_nand_0/Z" 20.3482
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/Z" 5.22449
+cap "wrom0_rom_control_nand_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/Z" 15.0675
+cap "wrom0_rom_control_nand_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_7_0/Z" 10.7671
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/A" "wrom0_rom_control_nand_0/Z" 0.203549
+cap "wrom0_rom_control_nand_0/Z" "wrom0_rom_control_nand_0/A" 2.87887
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/vdd" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" 1.40608
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/vdd" "wrom0_rom_control_nand_0/Z" 158.37
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/vdd" "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/Z" 4.59536
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" "wrom0_rom_precharge_driver_0/wrom0_pinv_2/Z" 71.9243
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/Z" 34.6531
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" "wrom0_rom_clock_driver_0/wrom0_pinv_1/Z" 0.412442
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" "wrom0_rom_precharge_driver_0/wrom0_pinv_0/Z" 63.7478
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" "wrom0_rom_precharge_driver_0/wrom0_pinv_2/gnd" 1.2953
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" "wrom0_rom_clock_driver_0/wrom0_pinv_0_0/Z" 0.521509
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_1/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" 0.137887
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" "wrom0_rom_clock_driver_0/wrom0_pinv_1/A" 0.169915
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_2/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" 0.136147
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" 1.94214
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" 239.046
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/Z" 0.0496475
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" "wrom0_rom_precharge_driver_0/wrom0_pinv_1/Z" 63.312
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" 0.593636
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/Z" "wrom0_rom_control_nand_0/Z" 27.542
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/Z" "wrom0_rom_control_nand_0/Z" 1.43594
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_2/gnd" "wrom0_rom_control_nand_0/Z" 5.97478
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" "wrom0_rom_control_nand_0/Z" 1.56822
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/Z" 3.01235
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_0_0/Z" "wrom0_rom_control_nand_0/Z" 0.169915
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/Z" 0.922395
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/Z" 0.057389
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" "wrom0_rom_precharge_driver_0/wrom0_pinv_5_0/Z" 1.41119
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/Z" "wrom0_rom_control_nand_0/Z" 37.5662
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_5_0/Z" 3.981e-05
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" "wrom0_rom_control_nand_0/Z" 244.357
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_5_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/Z" 0.170819
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_5_0/Z" "wrom0_rom_control_nand_0/Z" 88.7322
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" "wrom0_rom_control_nand_0/Z" 0.148943
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" "wrom0_rom_control_nand_0/Z" 2.27137
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/vdd" "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/Z" 2.0069
+cap "wrom0_rom_control_nand_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/Z" 164.316
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" "wrom0_rom_control_nand_0/Z" 1.52924
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/Z" 0.00047772
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/vdd" "wrom0_rom_precharge_driver_0/wrom0_pinv_5_0/Z" 0.972488
+cap "wrom0_rom_control_nand_0/Z" "wrom0_rom_control_nand_0/B" 0.0723152
+cap "wrom0_rom_control_nand_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_5_0/Z" 18.0849
+cap "wrom0_rom_control_nand_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_7_0/Z" 56.3895
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/vdd" "wrom0_rom_control_nand_0/Z" 197.901
+cap "wrom0_rom_control_nand_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/gnd" 21.8155
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_5_0/Z" 0.00131373
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/Z" 0.837859
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/Z" "wrom0_rom_control_nand_0/B" 0.058129
+cap "wrom0_rom_control_nand_0/A" "wrom0_rom_control_nand_0/Z" 0.169915
+cap "wrom0_rom_control_nand_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/Z" 147.236
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_7_0/Z" "wrom0_rom_control_nand_0/Z" 176.426
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/vdd" "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/Z" 0.595788
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/gnd" "wrom0_rom_control_nand_0/Z" 5.10168
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/vdd" "wrom0_rom_control_nand_0/Z" 239.131
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/A" "wrom0_rom_control_nand_0/Z" 2.0947
+cap "wrom0_rom_control_nand_0/B" "wrom0_rom_control_nand_0/Z" 0.082646
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" "wrom0_rom_precharge_driver_0/wrom0_pinv_2/gnd" 0.0440552
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" 0.0221198
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" 0.116327
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/Z" 0.0984812
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_5_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" 0.248846
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" "wrom0_rom_precharge_driver_0/wrom0_pinv_2/gnd" 0.019488
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_5_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_2/gnd" 0.0145639
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/A" "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/gnd" 0.0550152
+cap "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/vdd" "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/gnd" 1.75853
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/gnd" 0.250166
+cap "li_64_3947#" "wrom0_rom_precharge_driver_0/wrom0_pinv_7_0/Z" 0.349177
+cap "li_64_3947#" "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/gnd" 0.000286589
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/gnd" 16.9504
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_5_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/gnd" 16.4373
+cap "wrom0_rom_precharge_driver_0/wrom0_pinv_5_0/Z" "li_64_3947#" 0.174116
+cap "li_64_3947#" "wrom0_rom_precharge_driver_0/wrom0_pinv_7_0/Z" 0.220297
+merge "wrom0_rom_precharge_driver_0/A" "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" -1922.8 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -3944 -368 0 0 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_rom_precharge_driver_0/wrom0_pinv_2/A" "wrom0_rom_control_nand_0/Z"
+merge "wrom0_rom_control_nand_0/Z" "li_64_3947#"
+merge "wrom0_rom_clock_driver_0/Z" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" -412.397 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -3944 -400 0 0 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/Z" "wrom0_rom_control_nand_0/B"
+merge "wrom0_rom_control_nand_0/B" "clk_out"
+merge "wrom0_rom_clock_driver_0/A" "wrom0_rom_clock_driver_0/wrom0_pinv_1/A" -47.3969 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2244 -200 0 0 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_rom_clock_driver_0/wrom0_pinv_1/A" "clk_in"
+merge "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/gnd" "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/gnd" -293.319 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -4488 -468 0 0 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/gnd" "wrom0_rom_precharge_driver_0/wrom0_pinv_2/gnd"
+merge "wrom0_rom_precharge_driver_0/wrom0_pinv_2/gnd" "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/gnd"
+merge "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/gnd" "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/gnd"
+merge "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/gnd" "wrom0_rom_control_nand_0/gnd"
+merge "wrom0_rom_control_nand_0/gnd" "wrom0_rom_clock_driver_0/gnd"
+merge "wrom0_rom_clock_driver_0/gnd" "wrom0_rom_precharge_driver_0/gnd"
+merge "wrom0_rom_precharge_driver_0/gnd" "gnd"
+merge "gnd" "wrom0_rom_clock_driver_0/wrom0_pinv_1/gnd"
+merge "wrom0_rom_clock_driver_0/wrom0_pinv_1/gnd" "gnd_uq0"
+merge "wrom0_rom_clock_driver_0/wrom0_pinv_3_0/vdd" "wrom0_rom_precharge_driver_0/wrom0_pinv_7_0/vdd" -3863.17 0 0 0 0 -606918 -11994 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -152924 -8970 0 0 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_rom_precharge_driver_0/wrom0_pinv_7_0/vdd" "wrom0_rom_control_nand_0/vdd"
+merge "wrom0_rom_control_nand_0/vdd" "wrom0_rom_control_nand_0/w_n36_1262#"
+merge "wrom0_rom_control_nand_0/w_n36_1262#" "wrom0_rom_clock_driver_0/vdd"
+merge "wrom0_rom_clock_driver_0/vdd" "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/vdd"
+merge "wrom0_rom_clock_driver_0/wrom0_pinv_2_0/vdd" "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/vdd"
+merge "wrom0_rom_clock_driver_0/wrom0_pinv_1_0/vdd" "wrom0_rom_clock_driver_0/wrom0_pinv_0_0/vdd"
+merge "wrom0_rom_clock_driver_0/wrom0_pinv_0_0/vdd" "wrom0_rom_clock_driver_0/wrom0_pinv_0/vdd"
+merge "wrom0_rom_clock_driver_0/wrom0_pinv_0/vdd" "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd"
+merge "wrom0_rom_clock_driver_0/wrom0_pinv_1/vdd" "wrom0_rom_precharge_driver_0/vdd"
+merge "wrom0_rom_precharge_driver_0/vdd" "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/vdd"
+merge "wrom0_rom_precharge_driver_0/wrom0_pinv_6_0/vdd" "wrom0_rom_precharge_driver_0/wrom0_pinv_5_0/vdd"
+merge "wrom0_rom_precharge_driver_0/wrom0_pinv_5_0/vdd" "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/vdd"
+merge "wrom0_rom_precharge_driver_0/wrom0_pinv_4_0/vdd" "wrom0_rom_precharge_driver_0/wrom0_pinv_0/vdd"
+merge "wrom0_rom_precharge_driver_0/wrom0_pinv_0/vdd" "wrom0_rom_precharge_driver_0/wrom0_pinv_1/vdd"
+merge "wrom0_rom_precharge_driver_0/wrom0_pinv_1/vdd" "wrom0_rom_precharge_driver_0/wrom0_pinv_2/vdd"
+merge "wrom0_rom_precharge_driver_0/wrom0_pinv_2/vdd" "vdd"
+merge "wrom0_rom_precharge_driver_0/Z" "wrom0_rom_precharge_driver_0/wrom0_pinv_7_0/Z" -28.745 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1156 -136 0 0 0 0 0 0 0 0 0 0 0 0
+merge "wrom0_rom_precharge_driver_0/wrom0_pinv_7_0/Z" "prechrg"
+merge "wrom0_rom_control_nand_0/A" "CS" -167.28 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2244 -200 0 0 0 0 0 0 0 0 0 0 0 0

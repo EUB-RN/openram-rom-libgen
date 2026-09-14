@@ -1,0 +1,138 @@
+magic
+tech sky130A
+magscale 1 2
+timestamp 1617478389
+<< checkpaint >>
+rect -1355 -1216 1716 4388
+<< nwell >>
+rect -57 774 111 942
+<< pwell >>
+rect -24 169 78 303
+<< psubdiff >>
+rect 2 253 52 277
+rect 2 219 10 253
+rect 44 219 52 253
+rect 2 195 52 219
+<< nsubdiff >>
+rect 2 875 52 899
+rect 2 841 10 875
+rect 44 841 52 875
+rect 2 817 52 841
+<< psubdiffcont >>
+rect 10 219 44 253
+<< nsubdiffcont >>
+rect 10 841 44 875
+<< poly >>
+rect 94 1749 124 2255
+<< locali >>
+rect 48 2718 82 2734
+rect 48 2668 82 2684
+rect 80 2272 114 2288
+rect 80 2222 114 2238
+rect 188 2272 222 2288
+rect 188 2222 222 2238
+rect 48 1766 82 1782
+rect 48 1716 82 1732
+rect 10 875 44 891
+rect 10 825 44 841
+rect 214 698 248 1320
+rect 10 253 44 269
+rect 10 203 44 219
+rect 148 60 214 94
+<< viali >>
+rect 48 2684 82 2718
+rect 80 2238 114 2272
+rect 188 2238 222 2272
+rect 48 1732 82 1766
+rect 10 841 44 875
+rect 10 219 44 253
+<< metal1 >>
+rect -1 2822 226 2872
+rect 33 2675 39 2727
+rect 91 2675 97 2727
+rect 0 2398 317 2446
+rect 68 2272 126 2278
+rect 68 2238 80 2272
+rect 114 2238 126 2272
+rect 68 2232 126 2238
+rect 83 2160 111 2232
+rect 173 2229 179 2281
+rect 231 2229 237 2281
+rect -1 1870 226 1920
+rect 33 1723 39 1775
+rect 91 1723 97 1775
+rect 0 1446 317 1494
+rect -2 875 56 881
+rect -2 841 10 875
+rect 44 872 56 875
+rect 44 844 316 872
+rect 44 841 56 844
+rect -2 835 56 841
+rect -2 253 56 259
+rect -2 219 10 253
+rect 44 250 56 253
+rect 44 222 316 250
+rect 44 219 56 222
+rect -2 213 56 219
+<< via1 >>
+rect 39 2718 91 2727
+rect 39 2684 48 2718
+rect 48 2684 82 2718
+rect 82 2684 91 2718
+rect 39 2675 91 2684
+rect 179 2272 231 2281
+rect 179 2238 188 2272
+rect 188 2238 222 2272
+rect 222 2238 231 2272
+rect 179 2229 231 2238
+rect 39 1766 91 1775
+rect 39 1732 48 1766
+rect 48 1732 82 1766
+rect 82 1732 91 1766
+rect 39 1723 91 1732
+<< metal2 >>
+rect 51 2733 79 3126
+rect 39 2727 91 2733
+rect 39 2669 91 2675
+rect 191 2287 219 3126
+rect 179 2281 231 2287
+rect 51 2241 179 2269
+rect 51 1781 79 2241
+rect 179 2223 231 2229
+rect 39 1775 91 1781
+rect 39 1717 91 1723
+use sky130_fd_bd_sram__openram_sp_nand2_dec  sky130_fd_bd_sram__openram_sp_nand2_dec_0
+timestamp 1479558102
+transform 0 -1 316 1 0 2174
+box 10 -140 954 398
+use sky130_fd_bd_sram__openram_sp_nand2_dec  sky130_fd_bd_sram__openram_sp_nand2_dec_1
+timestamp 1479558102
+transform 0 -1 316 1 0 1222
+box 10 -140 954 398
+use wrom2_inv_array_mod  wrom2_inv_array_mod_0
+timestamp 1617478389
+transform 0 -1 316 1 0 0
+box 44 0 1212 411
+<< labels >>
+rlabel metal1 s 83 2160 111 2188 4 clk
+port 1 nsew
+rlabel metal2 s 191 3098 219 3126 4 A_out
+port 2 nsew
+rlabel metal2 s 51 3098 79 3126 4 Abar_out
+port 3 nsew
+rlabel locali s 181 77 181 77 4 A_in
+rlabel metal1 s -1 2822 226 2872 4 vdd
+port 4 nsew
+rlabel metal1 s -1 1870 226 1920 4 vdd
+port 4 nsew
+rlabel metal1 s 0 844 316 872 4 vdd
+port 4 nsew
+rlabel metal1 s 0 2398 317 2446 4 gnd
+port 5 nsew
+rlabel metal1 s 0 1446 317 1494 4 gnd
+port 5 nsew
+rlabel metal1 s 0 222 316 250 4 gnd
+port 5 nsew
+<< properties >>
+string FIXED_BBOX 0 0 408 170
+<< end >>

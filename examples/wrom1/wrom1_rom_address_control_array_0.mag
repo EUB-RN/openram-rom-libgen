@@ -1,0 +1,70 @@
+magic
+tech sky130A
+magscale 1 2
+timestamp 1617478350
+<< checkpaint >>
+rect -1308 -1216 2579 4388
+<< locali >>
+rect 194 60 260 94
+rect 602 60 668 94
+rect 1010 60 1076 94
+<< metal1 >>
+rect 0 2833 1225 2861
+rect 0 2408 1252 2436
+rect 0 2160 1224 2188
+rect 0 1881 1225 1909
+rect 0 1456 1252 1484
+rect 0 844 1224 872
+rect 0 222 1252 250
+<< metal2 >>
+rect 189 3098 217 3126
+rect 329 3098 357 3126
+rect 597 3098 625 3126
+rect 737 3098 765 3126
+rect 1005 3098 1033 3126
+rect 1145 3098 1173 3126
+use wrom1_rom_address_control_buf  wrom1_rom_address_control_buf_0
+timestamp 1617478348
+transform -1 0 1224 0 1 0
+box -95 44 456 3128
+use wrom1_rom_address_control_buf  wrom1_rom_address_control_buf_1
+timestamp 1617478348
+transform -1 0 816 0 1 0
+box -95 44 456 3128
+use wrom1_rom_address_control_buf  wrom1_rom_address_control_buf_2
+timestamp 1617478348
+transform -1 0 408 0 1 0
+box -95 44 456 3128
+<< labels >>
+rlabel metal1 s 0 2160 1224 2188 4 clk
+port 1 nsew
+rlabel metal1 s 0 844 28 872 4 vdd
+port 2 nsew
+rlabel metal1 s 0 2833 28 2861 4 vdd
+port 2 nsew
+rlabel metal1 s 0 1881 28 1909 4 vdd
+port 2 nsew
+rlabel metal1 s 1224 2408 1252 2436 4 gnd
+port 3 nsew
+rlabel metal1 s 1224 222 1252 250 4 gnd
+port 3 nsew
+rlabel metal1 s 1224 1456 1252 1484 4 gnd
+port 3 nsew
+rlabel metal2 s 189 3098 217 3126 4 A0_out
+port 4 nsew
+rlabel metal2 s 329 3098 357 3126 4 Abar0_out
+port 5 nsew
+rlabel locali s 227 77 227 77 4 A0_in
+rlabel metal2 s 597 3098 625 3126 4 A1_out
+port 6 nsew
+rlabel metal2 s 737 3098 765 3126 4 Abar1_out
+port 7 nsew
+rlabel locali s 635 77 635 77 4 A1_in
+rlabel metal2 s 1005 3098 1033 3126 4 A2_out
+port 8 nsew
+rlabel metal2 s 1145 3098 1173 3126 4 Abar2_out
+port 9 nsew
+rlabel locali s 1043 77 1043 77 4 A2_in
+<< properties >>
+string FIXED_BBOX 0 0 1224 3098
+<< end >>

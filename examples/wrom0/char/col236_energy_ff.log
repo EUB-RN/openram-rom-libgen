@@ -1,0 +1,35 @@
+
+Note: No compatibility mode selected!
+
+
+Circuit: * wrom0 kolon 236 -- aktif cevrim enerjisi (kolon basina)
+
+Doing analysis at TEMP = -40.000000 and TNOM = 27.000000
+
+Using SPARSE 1.3 as Direct Linear Solver
+Operating point simulation skipped by 'uic',
+  now using transient initial conditions.
+
+No. of Data Rows : 1711
+
+  Measurements for Transient Analysis
+
+q_c2                =   -3.50905e-13 from=  2.00000e-07 to=  4.00000e-07
+q_c3                =   -3.51100e-13 from=  4.00000e-07 to=  6.00000e-07
+e_col_pj            =  6.84645e-01
+
+
+Total analysis time (seconds) = 1.07681
+
+Total elapsed time (seconds) = 107.663 
+
+Total DRAM available = 31789.582 MB.
+DRAM currently available =  439.516 MB.
+Maximum ngspice program size =  420.539 MB.
+Current ngspice program size =  353.695 MB.
+
+Shared ngspice pages =   11.293 MB.
+Text (code) pages =    6.520 MB.
+Stack = 0 bytes.
+Library pages =  398.375 MB.
+

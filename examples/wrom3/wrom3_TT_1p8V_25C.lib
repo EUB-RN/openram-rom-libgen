@@ -1,0 +1,279 @@
+/* -------------------------------------------------------------------
+ * wrom3 -- TT_1p8V_25C
+ * OTOMATIK URETILDI: asic/scripts/rom_char/gen_rom_lib.py  -- ELLE DUZENLEMEYIN
+ *
+ * OpenRAM ROM derleyicisi .lib yazmaz; bu dosya LEF pinleri +
+ * wrom3.sp'den cikarilan devre yapisi uzerinden uretildi.
+ *
+ * Model: on-sarjli NAND-tipi (seri zincirli) ROM, cikista mandal YOK.
+ *   clk0 = 0 -> bitline on-sarj (dout0 tumu 1)
+ *   clk0 = 1 -> degerlendirme; secili 'bit=0' hucreler bitline'i
+ *   en kotu durumda ~77 seri NMOS uzerinden bosaltir (kolon 10);
+ *   dout0 14.002 ns sonra gecerli
+ *   clk0 dusunce dout0 GECERSIZLESIR. Tuketici ya clk0'in dusen
+ *   kenarinda ornekler, ya da makro ters saatle surulur (clk0 = ~clk)
+ *   ve veri sistem saatinin yukselen kenarinda yakalanir.
+ *
+ * KAYNAK: access/t_pre degerleri gercek Magic parazitik C + o kosenin KENDI sky130 modeli; on uc+cevre gucu char/periph_{active,idle}_*.log (2026-09-06), bitline char/col10_worst_case_parasitic*.log (2026-09-01), arka uc+egim char/backend_*.log (2026-09-06), sizinti char/col10_leak_*.log (2026-09-05), kolon enerjisi char/col10_energy_*.log (2026-09-05) ngspice
+ * olcumunden geliyor -- BU kose (TT_1p8V_25C) kendi sky130 model
+ * dosyasiyla (tt/ss/ff) AYRI AYRI simule edildi; sabit carpanla
+ * olcekleme YAPILMADI. Olcum bunun gerekli oldugunu gosterdi: eski
+ * SS x1.85 varsayimi gercekte olculen x2.76'ya gore %33 IYIMSERDI.
+ * Yontem: docs/guides/rom_lib_uretimi.md. Bu betik --access/--t-pre
+ * gecilmezse eski analitik varsayilan (yanlis NOR modeline dayanir)
+ * kullanir -- imza icin HER ZAMAN olculen degerle cagirin.
+ *
+ * ACCESS UC TERIMDEN OLUSUR (hepsi olculdu):
+ *   clk0 -> precharge/wordline : 0.7801 ns
+ *   precharge -> bitline %50   : 14.0025 ns
+ *   bitline -> dout0           : 1.1348 .. 1.3517 ns (cikis yukune gore)
+ *   TOPLAM (en kotu yuk)       : 16.1343 ns
+ * Onceki surumlerde yalnizca ORTA terim vardi; on uc ve arka uc
+ * (bitline eviricisi + 264:8 kolon mux + cikis tamponu) EKSIKTI.
+ * Cikis gecis suresi OLCULDU: 0.4016 .. 0.6618 ns
+ *
+ * GUC MODELI: clk0 pininde internal_power = CEVRIM BASINA ENERJI
+ * (pJ); frekansi guc araci uygular (P = E*f*aktivite).
+ *   when "cs0"  = 120.8344 pJ  (okuma: kolon dizisi + cevre birimi)
+ *   when "!cs0" = 3.4112 pJ  (BOSTA: cs0 yalnizca on-sarji
+ *     kapatir; clk_int agaci + adres tamponlari + satir kod
+ *     cozucu + 128 wordline secili olmasa da anahtarlanir.
+ *     Bu blok eksik birakilirsa OpenSTA sessizce 0 sayar.)
+ * ----------------------------------------------------------------- */
+library (wrom3_TT_1p8V_25C) {
+    delay_model : "table_lookup";
+    time_unit : "1ns";
+    voltage_unit : "1V";
+    current_unit : "1mA";
+    resistance_unit : "1kohm";
+    capacitive_load_unit(1, pF);
+    leakage_power_unit : "1mW";
+    pulling_resistance_unit : "1kohm";
+
+    operating_conditions(OC) {
+        process : 1.0;
+        voltage : 1.80;
+        temperature : 25;
+    }
+    default_operating_conditions : OC;
+    nom_process : 1.0;
+    nom_voltage : 1.80;
+    nom_temperature : 25;
+
+    input_threshold_pct_fall       : 50.0;
+    output_threshold_pct_fall      : 50.0;
+    input_threshold_pct_rise       : 50.0;
+    output_threshold_pct_rise      : 50.0;
+    slew_lower_threshold_pct_fall  : 10.0;
+    slew_upper_threshold_pct_fall  : 90.0;
+    slew_lower_threshold_pct_rise  : 10.0;
+    slew_upper_threshold_pct_rise  : 90.0;
+
+    default_cell_leakage_power    : 0.0;
+    default_leakage_power_density : 0.0;
+    default_input_pin_cap    : 1.0;
+    default_inout_pin_cap    : 1.0;
+    default_output_pin_cap   : 0.0;
+    default_max_transition   : 0.7942;
+    default_fanout_load      : 1.0;
+    default_max_fanout       : 4.0;
+    default_connection_class : universal;
+
+    voltage_map ( VCCD1, 1.80 );
+    voltage_map ( VSSD1, 0 );
+
+    lu_table_template(CELL_TABLE) {
+        variable_1 : input_net_transition;
+        variable_2 : total_output_net_capacitance;
+        index_1("0.00125, 0.005, 0.04");
+        index_2("0.0017224999999999999, 0.006889999999999999, 0.027559999999999998");
+    }
+
+    lu_table_template(CONSTRAINT_TABLE) {
+        variable_1 : related_pin_transition;
+        variable_2 : constrained_pin_transition;
+        index_1("0.00125, 0.005, 0.04");
+        index_2("0.00125, 0.005, 0.04");
+    }
+
+    type (rom_data) {
+        base_type : array;
+        data_type : bit;
+        bit_width : 32;
+        bit_from : 31;
+        bit_to : 0;
+    }
+
+    type (rom_addr) {
+        base_type : array;
+        data_type : bit;
+        bit_width : 11;
+        bit_from : 10;
+        bit_to : 0;
+    }
+
+cell (wrom3) {
+    memory() {
+        type : rom;
+        address_width : 11;
+        word_width : 32;
+    }
+    interface_timing : true;
+    dont_use   : true;
+    map_only   : true;
+    dont_touch : true;
+    area : 61710.0390;
+
+    pg_pin(vccd1) {
+        voltage_name : VCCD1;
+        pg_type : primary_power;
+    }
+    pg_pin(vssd1) {
+        voltage_name : VSSD1;
+        pg_type : primary_ground;
+    }
+
+    leakage_power () {
+        value : 0.000169;
+    }
+    cell_leakage_power : 0.000169;
+
+    bus(dout0) {
+        bus_type : rom_data;
+        direction : output;
+        max_capacitance : 0.027559999999999998;
+        min_capacitance : 0.0017224999999999999;
+        memory_read() {
+            address : addr0;
+        }
+        pin(dout0[31:0]) {
+        timing() {
+            timing_sense : non_unate;
+            related_pin : "clk0";
+            timing_type : rising_edge;
+            cell_rise(CELL_TABLE) {
+            values("15.9174, 15.9697, 16.1343",\
+                    "15.9174, 15.9697, 16.1343",\
+                    "15.9174, 15.9697, 16.1343");
+            }
+            cell_fall(CELL_TABLE) {
+            values("15.9174, 15.9697, 16.1343",\
+                    "15.9174, 15.9697, 16.1343",\
+                    "15.9174, 15.9697, 16.1343");
+            }
+            rise_transition(CELL_TABLE) {
+            values("0.4016, 0.4535, 0.6618",\
+                    "0.4016, 0.4535, 0.6618",\
+                    "0.4016, 0.4535, 0.6618");
+            }
+            fall_transition(CELL_TABLE) {
+            values("0.4016, 0.4535, 0.6618",\
+                    "0.4016, 0.4535, 0.6618",\
+                    "0.4016, 0.4535, 0.6618");
+            }
+        }
+        }
+    }
+
+    bus(addr0) {
+        bus_type : rom_addr;
+        direction : input;
+        capacitance : 0.006;
+        max_transition : 0.04;
+        pin(addr0[10:0]) {
+        timing() {
+            timing_type : setup_rising;
+            related_pin : "clk0";
+            rise_constraint(CONSTRAINT_TABLE) {
+                values("0.0321, 0.0321, 0.0321",\
+                    "0.0321, 0.0321, 0.0321",\
+                    "0.0321, 0.0321, 0.0321");
+            }
+            fall_constraint(CONSTRAINT_TABLE) {
+                values("0.0321, 0.0321, 0.0321",\
+                    "0.0321, 0.0321, 0.0321",\
+                    "0.0321, 0.0321, 0.0321");
+            }
+        }
+        timing() {
+            timing_type : hold_rising;
+            related_pin : "clk0";
+            rise_constraint(CONSTRAINT_TABLE) {
+                values("16.1343, 16.1343, 16.1343",\
+                    "16.1343, 16.1343, 16.1343",\
+                    "16.1343, 16.1343, 16.1343");
+            }
+            fall_constraint(CONSTRAINT_TABLE) {
+                values("16.1343, 16.1343, 16.1343",\
+                    "16.1343, 16.1343, 16.1343",\
+                    "16.1343, 16.1343, 16.1343");
+            }
+        }
+        }
+    }
+
+    pin(cs0) {
+        direction : input;
+        capacitance : 0.003;
+        max_transition : 0.04;
+        timing() {
+            timing_type : setup_rising;
+            related_pin : "clk0";
+            rise_constraint(CONSTRAINT_TABLE) {
+                values("0.0321, 0.0321, 0.0321",\
+                    "0.0321, 0.0321, 0.0321",\
+                    "0.0321, 0.0321, 0.0321");
+            }
+            fall_constraint(CONSTRAINT_TABLE) {
+                values("0.0321, 0.0321, 0.0321",\
+                    "0.0321, 0.0321, 0.0321",\
+                    "0.0321, 0.0321, 0.0321");
+            }
+        }
+        timing() {
+            timing_type : hold_rising;
+            related_pin : "clk0";
+            rise_constraint(CONSTRAINT_TABLE) {
+                values("16.1343, 16.1343, 16.1343",\
+                    "16.1343, 16.1343, 16.1343",\
+                    "16.1343, 16.1343, 16.1343");
+            }
+            fall_constraint(CONSTRAINT_TABLE) {
+                values("16.1343, 16.1343, 16.1343",\
+                    "16.1343, 16.1343, 16.1343",\
+                    "16.1343, 16.1343, 16.1343");
+            }
+        }
+    }
+
+    pin(clk0) {
+        clock : true;
+        direction : input;
+        capacitance : 0.0025;
+        max_transition : 0.04;
+        timing() {
+            timing_type : "min_pulse_width";
+            related_pin : clk0;
+            rise_constraint(scalar) { values("16.6343"); }
+            fall_constraint(scalar) { values("12.0543"); }
+        }
+        timing() {
+            timing_type : "minimum_period";
+            related_pin : clk0;
+            rise_constraint(scalar) { values("28.6886"); }
+            fall_constraint(scalar) { values("28.6886"); }
+        }
+        internal_power() {
+            when : "cs0";
+            rise_power(scalar) { values("120.8344"); }
+            fall_power(scalar) { values("120.8344"); }
+        }
+        internal_power() {
+            when : "!cs0";
+            rise_power(scalar) { values("3.4112"); }
+            fall_power(scalar) { values("3.4112"); }
+        }
+    }
+
+}
+}
