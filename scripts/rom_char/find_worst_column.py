@@ -1,43 +1,42 @@
 #!/usr/bin/env python3
-"""En kotu kolonu ve seri zincir uzunlugunu OpenRAM ROM netlistinden bulur.
+"""Find the worst column and its series-chain length from an OpenRAM ROM netlist.
 
-NEDEN BU DOSYA VAR
-------------------
-Karakterizasyon akisinin butun zamanlama olcumu tek bir kolona dayanir:
-`gen_col_tb_parasitic.py <makro> <kolon>` o kolonun bitline'ini kurar ve
-`regen_rom_libs.sh`'in tablosundaki access/t_pre degerleri oradan gelir.
-Ama o kolon numarasi (eski makrolarda 155/67/83/116) DISARIDAN veriliyordu
-ve nasil bulundugu hicbir yerde yaziliydi -- makro her yeniden uretildiginde
-elle bulunmasi gereken bir bosluktu. Bu betik o boslugu kapatir.
+WHY THIS FILE EXISTS
+--------------------
+Every timing measurement in the flow rests on a single column:
+`gen_col_tb_parasitic.py <macro> <column>` builds that column's bitline, and the
+access/t_pre numbers in the .lib come from it. That column number used to be
+supplied from OUTSIDE (155/67/83/116 on older macros) with no record of how it
+had been found -- a gap that had to be filled by hand every time the macro was
+regenerated. This script closes it.
 
-NE SAYIYOR
-----------
-NAND tipi (seri zincirli) ROM'da bir bitline, satir sayisi kadar hucrenin
-seri baglanmasidir. Iki hucre tipi var (bkz. `<makro>.sp`):
+WHAT IS COUNTED
+---------------
+In a NAND-style (series chain) ROM a bitline is as many cells in series as
+there are rows. There are two cell types (see `<macro>.sp`):
 
-    rom_base_one_cell   -> gercek NMOS, kapisi wordline'da   (ZINCIRDE DIRENC)
-    rom_base_zero_cell  -> kaynak/drain kisa devre           (sadece tel)
+    rom_base_one_cell   -> a real NMOS, gate on the wordline  (RESISTANCE)
+    rom_base_zero_cell  -> source/drain shorted               (wire only)
 
-Bitline'i bosaltma suresini belirleyen sey, o kolondaki `one_cell` SAYISIDIR
--- yani seri baglanmis gercek transistor adedi. En cok `one_cell` iceren
-kolon en yavas kolondur ve karakterizasyon onun uzerinden yapilmalidir.
+What sets the discharge time is the NUMBER of `one_cell`s in that column --
+i.e. how many real transistors are in series. The column with the most
+`one_cell`s is the slowest one, and characterization must use it.
 
-Netlistteki hucre ornekleri `Xbit_r<satir>_c<kolon>` diye adlandirilmis;
-alt devre adi devam (`+`) satirlarinin sonunda duruyor.
+Cell instances in the netlist are named `Xbit_r<row>_c<column>`; the
+sub-circuit name sits at the end of the continuation (`+`) lines.
 
-NEDEN ZINCIR UZUNLUGU AYRICA ONEMLI
------------------------------------
-`t_access` zincir uzunluguyla ~KARELI olcekleniyor (dagitik RC). Bkz.
-docs/guides/rom_lib_uretimi.md Bolum 5 -- olculen uc nokta (zincir 267 ->
-94.1 ns, 150 -> 31.7 ns, 75 -> 9.2 ns) t/L^2 icin 1.32/1.41/1.64e-3 veriyor.
-Yani zincir uzunlugu, makro yeniden uretildiginde access'in ne olacagini
-OLCUM YAPMADAN kestirmeye yarar; `words_per_row` degistirmenin etkisi de
-dogrudan burada gorunur.
+WHY THE CHAIN LENGTH MATTERS TOO
+--------------------------------
+`t_access` scales roughly QUADRATICALLY with the chain length (distributed RC).
+Three measured points (chain 267 -> 94.1 ns, 150 -> 31.7 ns, 75 -> 9.2 ns) give
+1.32/1.41/1.64e-3 for t/L^2. So the chain length lets you predict what access
+will be after a regeneration WITHOUT simulating, and the effect of changing
+`words_per_row` shows up directly here.
 
-Kullanim:
-    python3 find_worst_column.py                 # agactaki tum makrolar
-    python3 find_worst_column.py wrom0 wrom2     # secili makrolar
-    python3 find_worst_column.py --sp yol/x.sp   # dogrudan bir netlist
+Usage:
+    python3 find_worst_column.py                 # every macro in the tree
+    python3 find_worst_column.py wrom0 wrom2     # selected macros
+    python3 find_worst_column.py --sp path/x.sp  # a netlist directly
 """
 
 import argparse
@@ -52,19 +51,19 @@ INST_RE = re.compile(r"^Xbit_r(\d+)_c(\d+)\s*$")
 
 
 def analyse(sp_path):
-    """(satir, kolon, en_kotu_kolon, zincir, ortalama, min) dondurur."""
+    """Return (rows, cols, worst_col, chain, average, minimum)."""
     with open(sp_path) as fh:
         lines = fh.read().split("\n")
 
     one = collections.Counter()
     rows, cols = set(), set()
-    # DIKKAT: `Xbit_r<r>_c<c>` adi UC ayri alt devrede geciyor -- ana dizi,
-    # satir kod cozucu dizisi ve kolon kod cozucu dizisi. Kapsam yapilmazsa
-    # kod cozucu hucreleri de sayilir; kirlenme yalnizca dusuk kolon
-    # numaralarina dustugu icin hem zincir uzunlugu hem de EN KOTU KOLON
-    # SECIMI yanlis cikar (2026-09-08'de wrom1/wrom2'de dogrulandi: secilen
-    # kolon gercek en kotu degildi, .lib bu yuzden iyimserdi).
-    # Bu yuzden yalnizca `*_rom_base_array` alt devresi sayilir.
+    # CAREFUL: the name `Xbit_r<r>_c<c>` appears in THREE different
+    # sub-circuits -- the main array, the row decoder array and the column
+    # decoder array. Without scoping, decoder cells get counted too; the
+    # contamination lands only on low column numbers, so both the chain length
+    # AND THE CHOICE OF WORST COLUMN come out wrong (confirmed on wrom1/wrom2
+    # on 2026-09-08: the column picked was not the real worst one, which made
+    # the .lib optimistic). Hence only `*_rom_base_array` is counted.
     cur_subckt = None
     i = 0
     while i < len(lines):
@@ -77,7 +76,8 @@ def analyse(sp_path):
         rows.add(int(m.group(1)))
         col = int(m.group(2))
         cols.add(col)
-        # ornek govdesi devam satirlarinda; alt devre adi en sondaki token
+        # the instance body is on the continuation lines; the sub-circuit name
+        # is the last token
         j = i + 1
         buf = []
         while j < len(lines) and lines[j].startswith("+"):
@@ -100,36 +100,36 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("macros", nargs="*", default=None,
-                    help="makro adlari (varsayilan: agactaki tum makrolar)")
+                    help="macro names (default: every macro in the tree)")
     ap.add_argument("--macros-dir", default=None,
-                    help="makro agaci (varsayilan: ROM_MACROS_DIR / <depo>/examples)")
-    ap.add_argument("--sp", help="dogrudan bir .sp yolu (makro adi yerine)")
+                    help="macro tree (default: ROM_MACROS_DIR / <repo>/examples)")
+    ap.add_argument("--sp", help="a netlist path directly (instead of a macro name)")
     args = ap.parse_args()
 
     targets = []
     if args.sp:
         targets.append((os.path.basename(args.sp).replace(".sp", ""), args.sp))
     else:
-        # rom_paths gec import edilir: bu modulu ITHAL EDER, dongusel
-        # import olmasin diye modul seviyesinde degil.
+        # rom_paths is imported late: it IMPORTS this module, so importing it at
+        # module level would be circular.
         sys.path.insert(0, HERE)
         import rom_paths
         names = args.macros or rom_paths.discover(args.macros_dir)
         if not names:
-            sys.exit("makro bulunamadi: %s" % rom_paths.macros_dir(args.macros_dir))
+            sys.exit("no macros found in %s" % rom_paths.macros_dir(args.macros_dir))
         for n in names:
             targets.append((n, rom_paths.netlist(n, args.macros_dir)))
 
     print("%-8s %6s %6s %14s %11s %8s %6s"
-          % ("makro", "satir", "kolon", "en_kotu_kolon", "seri_NMOS", "ort", "min"))
+          % ("macro", "rows", "cols", "worst_column", "series_NMOS", "avg", "min"))
     rows_out = []
     for name, path in targets:
         if not os.path.exists(path):
-            print("%-8s  netlist yok: %s" % (name, path), file=sys.stderr)
+            print("%-8s  no netlist: %s" % (name, path), file=sys.stderr)
             continue
         r = analyse(path)
         if r is None:
-            print("%-8s  Xbit_r*_c* ornegi bulunamadi -- netlist formati farkli?"
+            print("%-8s  no Xbit_r*_c* instances -- different netlist format?"
                   % name, file=sys.stderr)
             continue
         nrows, ncols, wcol, chain, avg, mn = r
@@ -138,12 +138,13 @@ def main():
         rows_out.append((name, wcol, chain))
 
     if rows_out:
-        # NOT: bu degerleri artik ELLE kopyalamaya gerek YOK -- rom_paths.py
-        # ayni analizi yapip run_*.sh ve regen_rom_libs.sh'a otomatik verir.
-        # Bu ciktisi denetim/gozlem icindir.
-        print("\nSonraki adim (kolon argumani istege bagli, verilmezse buradan gelir):")
+        # NOTE: these values no longer need to be copied anywhere by hand --
+        # rom_paths.py runs the same analysis and feeds run_*.sh and
+        # regen_rom_libs.sh automatically. This output is for inspection.
+        print("\nNext (the column argument is optional -- it comes from here):")
         for name, _wcol, _ in rows_out:
             print("  python3 gen_col_tb_parasitic.py %s" % name)
+
 
 if __name__ == "__main__":
     main()

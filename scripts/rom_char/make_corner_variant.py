@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Var olan TT gercek-parazitik testbench'inden SS/FF kose varyanti uretir:
-.lib secicisini, VDD'yi ve sicakligi degistirir -- devrenin geri kalani
-(gercek parazitik kapasitans dahil) BIREBIR AYNI kalir.
+"""Derive an SS/FF corner variant from an existing TT parasitic testbench:
+only the .lib selector, VDD and the temperature change -- the rest of the
+circuit (real extracted parasitic capacitance included) stays IDENTICAL.
 
-Kullanim: make_corner_variant.py <macro> [en_kotu_kolon] <ss|ff>
-          (kolon verilmezse netlistten turetilir)
-Kaynak dosya: <makro_dizini>/char/col<kolon>_worst_case_parasitic.sp
-              (once gen_col_tb_parasitic.py ile uretilmis olmali)
-Cikti: ayni dizine col<kolon>_worst_case_parasitic_<ss|ff>.sp
+Usage: make_corner_variant.py <macro> [worst_column] <ss|ff>
+       (with no column, it is derived from the netlist)
+Input:  <macro_dir>/char/col<column>_worst_case_parasitic.sp
+        (produced first by gen_col_tb_parasitic.py)
+Output: col<column>_worst_case_parasitic_<ss|ff>.sp in the same directory
 """
 import sys, re, os
 
@@ -15,9 +15,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rom_paths
 
 if len(sys.argv) < 3:
-    sys.exit("Kullanim: make_corner_variant.py <macro> [kolon] <ss|ff>")
+    sys.exit("usage: make_corner_variant.py <macro> [column] <ss|ff>")
 MACRO = sys.argv[1]
-# Kolon atlanabilir: <macro> <ss|ff> -> en kotu kolon netlistten gelir
+# The column may be omitted: <macro> <ss|ff> -> worst column from the netlist
 if len(sys.argv) == 3:
     COL, CORNER = rom_paths.geometry(MACRO)["worst_col"], sys.argv[2]
 else:
@@ -39,4 +39,4 @@ if ".temp" not in text:
 
 OUT = SRC.replace(".sp", f"_{CORNER}.sp")
 open(OUT, "w").write(text)
-print(f"yazildi: {OUT}  (VDD={p['vdd']}, temp={p['temp']}C, lib={CORNER})")
+print(f"written: {OUT}  (VDD={p['vdd']}, temp={p['temp']}C, lib={CORNER})")

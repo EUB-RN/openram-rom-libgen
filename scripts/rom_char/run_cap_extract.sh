@@ -1,47 +1,47 @@
 #!/bin/sh
-# Bir ROM makrosu icin GERCEK Magic parazitik KAPASITANS cikarimi.
-# Direnc (extresist) BILEREK atlandi: tum makroyu (on binlerce hucre) tek
-# seferde islemeye calisirken Magic 8.3.629 segfault veriyor (2026-08-28'de
-# dogrulandi).
+# REAL Magic parasitic CAPACITANCE extraction for one ROM macro.
+# Resistance (extresist) is deliberately skipped: extracting resistance for the
+# whole macro (tens of thousands of cells) in one go segfaults Magic 8.3.629
+# (confirmed 2026-08-28).
 #
-# Kullanim: run_cap_extract.sh <makro_adi>
-# Ornek:    run_cap_extract.sh wrom0
-# Cikti:    <makro_dizini>/<makro>_cap_only.spice
+# Usage: run_cap_extract.sh <macro_name>
+# Example: run_cap_extract.sh wrom0
+# Output: <macro_dir>/<macro>_cap_only.spice
 #
-# Sonra: python3 scripts/rom_char/gen_col_tb_parasitic.py <makro>
-#        (en kotu kolon netlistten turetilir)
+# Next: python3 scripts/rom_char/gen_col_tb_parasitic.py <macro>
+#       (the worst column is derived from the netlist)
 #
-# Ortam degiskenleri: ROM_MACROS_DIR, MAGIC_BIN, OPENRAM_TECH, PDK_ROOT
+# Environment: ROM_MACROS_DIR, MAGIC_BIN, OPENRAM_TECH, PDK_ROOT
 
 set -e
 . "$(dirname "$0")/common.sh"
 
 MACRO="$1"
 if [ -z "$MACRO" ]; then
-    echo "Kullanim: $0 <makro_adi>" >&2
-    echo "Agactaki makrolar: $(macro_list)" >&2
+    echo "usage: $0 <macro_name>" >&2
+    echo "macros in the tree: $(macro_list)" >&2
     exit 1
 fi
 
 MACRO_DIR="$MACROS_DIR/$MACRO"
-[ -d "$MACRO_DIR" ] || { echo "HATA: $MACRO_DIR yok" >&2; exit 1; }
+[ -d "$MACRO_DIR" ] || { echo "ERROR: no such directory: $MACRO_DIR" >&2; exit 1; }
 cd "$MACRO_DIR"
 
-# OpenRAM/PDK yollari kuruluma gore degisir -- ortamdan alinir.
+# OpenRAM/PDK paths depend on the installation -- taken from the environment.
 if [ -z "$OPENRAM_TECH" ]; then
-    echo "HATA: OPENRAM_TECH ayarli degil." >&2
-    echo "  ornek: export OPENRAM_TECH=\$HOME/OpenRAM/technology" >&2
+    echo "ERROR: OPENRAM_TECH is not set." >&2
+    echo "  example: export OPENRAM_TECH=\$HOME/OpenRAM/technology" >&2
     exit 1
 fi
 export OPENRAM_TECH
 export PDK_ROOT="${PDK_ROOT:-$HOME/OpenLane/pdks}"
 MAGIC="${MAGIC_BIN:-magic}"
 command -v "$MAGIC" >/dev/null 2>&1 || [ -x "$MAGIC" ] || {
-    echo "HATA: magic bulunamadi ('$MAGIC'). MAGIC_BIN ile yolunu verin." >&2
+    echo "ERROR: magic not found ('$MAGIC'). Set MAGIC_BIN to its path." >&2
     exit 1
 }
 
-echo "$(date): Baslangic - $MACRO icin sadece-C parazitik cikarim"
+echo "$(date): start - capacitance-only extraction for $MACRO"
 
 "$MAGIC" -dnull -noconsole << EOF
 drc off
@@ -68,7 +68,7 @@ port makeall
 extract style ngspice(si)
 extract unique all
 extract all
-puts "Finished extract (C dahil)"
+puts "Finished extract (with C)"
 ext2spice hierarchy on
 ext2spice format ngspice
 ext2spice cthresh 0
@@ -83,4 +83,4 @@ ext2spice -o ${MACRO}_cap_only.spice
 puts "Finished ext2spice C-ONLY"
 quit -noprompt
 EOF
-echo "$(date): Bitti rc=$?"
+echo "$(date): done rc=$?"

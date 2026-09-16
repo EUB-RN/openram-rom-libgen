@@ -1,26 +1,26 @@
 #!/usr/bin/env python3
-"""ROM hucresinin ESDEGER KAPI KAPASITANSINI olcer (kose basina).
+"""Measure the EQUIVALENT GATE CAPACITANCE of a ROM cell, per corner.
 
-NEDEN: gen_periphery_power_tb.py silinen hucre dizisinin wordline yukunu
-geri koyarken hucre kapilarini DOGRUSAL C ile modelliyor. Enerji olcumu
-icin dogru kucultme budur -- bir dugumu VDD'ye cikarmanin besleme kaynagindan
-cektigi yuk Q(VDD)'dir, dolayisiyla
+WHY: when gen_periphery_power_tb.py puts back the wordline load of the deleted
+cell array, it models the cell gates as a LINEAR C. For an energy measurement
+that is the correct reduction -- the charge a supply delivers to pull a node to
+VDD is Q(VDD), so using
 
-    C_esd = Q(VDD) / VDD
+    C_eq = Q(VDD) / VDD
 
-kullanmak CEVRIM ENERJISINI birebir korur (dogrusal olmayan C-V egrisinin
-sekli enerjiye girmez, yalnizca toplam yuk girer).
+preserves the CYCLE ENERGY exactly (the shape of the non-linear C-V curve does
+not enter the energy, only the total charge does).
 
-Ciplak cihazi m=<adet> ile koymak da ayni enerjiyi verirdi, ama 264 kat
-genis ve siddetli dogrusal olmayan bir kapasitans ngspice'i yakinsatmiyordu
-(2026-09-06: uc ayri denemede "Timestep too small").
+Placing the bare device with m=<count> would give the same energy, but a
+capacitance hundreds of times wider and strongly non-linear kept ngspice from
+converging (2026-09-06: "Timestep too small" in three separate attempts).
 
-Bu deck TEK cihaz kosar -- saniyeler surer. Hucre ici parazitik C'ler
-(C0/C2/C5 vb.) BURADA YOK; onlari periphery betigi cikarilan netlistten
-ayrica topluyor, cift sayim olmaz.
+This deck simulates a SINGLE device -- it takes seconds. The cell's internal
+parasitic Cs (C0/C2/C5 and friends) are NOT here; the periphery script collects
+those from the extracted netlist separately, so nothing is counted twice.
 
-Kullanim: gen_cell_gate_tb.py <macro> <out.sp> [--corner tt|ss|ff]
-                              [--vdd 1.8] [--temp 25]
+Usage: gen_cell_gate_tb.py <macro> <out.sp> [--corner tt|ss|ff]
+                           [--vdd 1.8] [--temp 25]
 """
 import argparse, os, re, sys
 
@@ -35,12 +35,12 @@ ap.add_argument("--corner", default="tt", choices=["tt", "ss", "ff"])
 ap.add_argument("--vdd", default="1.8")
 ap.add_argument("--temp", default="25")
 ap.add_argument("--macros-dir", default=None,
-                help="makro agaci (varsayilan: ROM_MACROS_DIR / <depo>/examples)")
+                help="macro tree (default: ROM_MACROS_DIR / <repo>/examples)")
 args = ap.parse_args()
 
 SP = rom_paths.cap_netlist(args.macro, args.macros_dir)
 if not os.path.exists(SP):
-    sys.exit(f"HATA: {SP} yok -- once run_cap_extract.sh calistirin")
+    sys.exit(f"ERROR: {SP} does not exist -- run run_cap_extract.sh first")
 
 SUFFIX = {"f": 1e-15, "p": 1e-12, "n": 1e-9, "u": 1e-6, "m": 1e-3, "k": 1e3}
 def to_float(tok):
@@ -54,7 +54,7 @@ def fix_units(line):
                   lambda m: f"{m.group(1)}={to_float(m.group(2))*1e12:.6g}u", line)
     return line
 
-# hucre alt-devresindeki ciplak cihaz satirini al (port adlariyla yazili)
+# grab the bare device line from the cell sub-circuit (written with port names)
 def cell_device(sub):
     grab, cur, out = False, None, []
     for raw in open(SP):
@@ -75,17 +75,17 @@ devs = []
 for i, c in enumerate(cells):
     d = cell_device(c)
     if d is None:
-        sys.exit(f"HATA: {c} icinde cihaz yok")
+        sys.exit(f"ERROR: no device inside {c}")
     t = d.split()
-    # port adlari: G -> surulen dugum, kalanlar toprakta (bitline statik)
+    # port names: G -> the driven node, the rest to ground (static bitline)
     nets = [f"g{i}" if n == "G" else "0" for n in t[1:5]]
     devs.append(f"X{i} " + " ".join(nets) + " " + " ".join(t[5:]))
 devs = "\n".join(fix_units(d) for d in devs)
 
-tb = f"""* {args.macro} -- hucre ESDEGER KAPI KAPASITANSI ({args.corner})
-* C_esd = Q(VDD)/VDD  -- cevrim enerjisini koruyan kucultme.
-* Kaynak/govde toprakta: wordline yukselirken hucrenin gordugu durum.
-* Hucre ici parazitik C'ler BURADA YOK (periphery betigi ayrica ekler).
+tb = f"""* {args.macro} -- cell EQUIVALENT GATE CAPACITANCE ({args.corner})
+* C_eq = Q(VDD)/VDD -- the reduction that preserves cycle energy.
+* Source/body grounded: what the cell sees while the wordline rises.
+* The cell's internal parasitic Cs are NOT here (the periphery script adds them).
 
 .lib {rom_paths.sky130_lib()} {args.corner}
 .temp {args.temp}
@@ -106,4 +106,4 @@ Vg1 g1 0 PWL(0 0 {{TR}} {{VDD}})
 .end
 """
 open(args.out, "w").write(tb)
-print(f"yazildi: {args.out}  ({args.macro}, {args.corner})")
+print(f"written: {args.out}  ({args.macro}, {args.corner})")

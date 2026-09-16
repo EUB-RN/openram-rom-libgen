@@ -1,26 +1,33 @@
 #!/usr/bin/env python3
-"""Bir ROM makrosu icin GERCEK Magic parazitik kapasitansiyla en kotu
-kolonun erisim/on-sarj suresini olcer (schematik-only gen_col_tb.py'nin
-parazitikli versiyonu).
+"""Measure the access / precharge time of the worst column of a ROM macro with
+REAL Magic parasitic capacitance.
 
-ON KOSUL: <macro>_cap_only.spice zaten uretilmis olmali -- Magic ile:
+PREREQUISITE: <macro>_cap_only.spice must already exist -- from Magic:
   extract style ngspice(si); extract all
   ext2spice cthresh 0; ext2spice rthresh infinite; ext2spice extresist off
   ext2spice -o <macro>_cap_only.spice
-(rthresh infinite + extresist off: SADECE kapasitans, direnc DAHIL DEGIL --
-extresist tum makroyu (~34k hucre) tek seferde islemeye calisirken Magic
-8.3.629'da segfault veriyor; bkz. docs/guides/rom_lib_uretimi.md.)
+(rthresh infinite + extresist off: CAPACITANCE ONLY, no resistance -- trying to
+extract resistance for the whole macro at once segfaults Magic 8.3.629.
+run_cap_extract.sh does all of this for you.)
 
-Kolon secimi isim eslestirmesiyle DEGIL, graf yuruyusuyle yapilir --
-Magic'in cikardigi ic dugumler "instance/port" tarzi otomatik isimler tasir
-(orn. wrom0_rom_base_one_cell_17122/D), schematik'teki bl_int_N_M gibi
-okunabilir isimler DEGIL. Parametre birimleri de (w,l,pd,ps metre; ad,as
-m^2) ngspice'in kabul ettigi bicime (w,l,pd,ps ciplak mikron; ad,as 'u'
-sonekli mikron^2) cevrilir -- deneysel olarak dogrulandi, bkz. Bolum 5.
+The column is selected by WALKING THE GRAPH, not by matching names: the
+internal nodes Magic emits carry automatic "instance/port" names (e.g.
+wrom0_rom_base_one_cell_17122/D), not readable schematic names like
+bl_int_N_M. Parameter units are converted too (w,l,pd,ps in metres and ad,as in
+m^2 become bare microns and 'u'-suffixed micron^2, which is what ngspice
+accepts) -- verified experimentally.
 
-Kullanim: python3 gen_col_tb_parasitic.py <macro> [en_kotu_kolon]
-Ornek:    python3 gen_col_tb_parasitic.py wrom0        # kolon otomatik
-          python3 gen_col_tb_parasitic.py wrom0 236    # elle sec
+KNOWN LIMITATION: the deck carries the parasitic Cs found INSIDE the cell
+sub-circuits, but not the C elements at the `*_rom_base_array` level (bitline
+wire and inter-column coupling). On wrom0 column 236 those sum to about +3 fF
+against the ~5 fF the deck does carry, i.e. the discharge time here is somewhat
+optimistic. gen_backend_delay_tb.py and gen_periphery_power_tb.py handle the
+same situation with an explicit alive/dead + negative-net-capacitance rule;
+porting that rule here is the obvious next improvement.
+
+Usage:  python3 gen_col_tb_parasitic.py <macro> [worst_column]
+Example: python3 gen_col_tb_parasitic.py wrom0        # column found for you
+         python3 gen_col_tb_parasitic.py wrom0 236    # or choose it
 """
 import re, sys, os, collections, subprocess
 
@@ -28,16 +35,16 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rom_paths
 
 if len(sys.argv) < 2:
-    sys.exit("Kullanim: gen_col_tb_parasitic.py <macro> [en_kotu_kolon]")
+    sys.exit("usage: gen_col_tb_parasitic.py <macro> [worst_column]")
 MACRO = sys.argv[1]
-# Kolon verilmezse netlistten TURETILIR (en cok seri one_cell iceren
-# kolon) -- elle tablo tutmaya gerek yok, bkz. find_worst_column.py.
+# With no column given it is DERIVED from the netlist (the column with the most
+# series one_cells) -- no hand-kept table needed, see find_worst_column.py.
 COL = int(sys.argv[2]) if len(sys.argv) > 2 else \
       rom_paths.geometry(MACRO)["worst_col"]
 BASE = rom_paths.macro_dir(MACRO)
 SP = rom_paths.cap_netlist(MACRO)
 if not os.path.exists(SP):
-    sys.exit(f"HATA: {SP} yok -- once run_cap_extract.sh calistirin")
+    sys.exit(f"ERROR: {SP} does not exist -- run run_cap_extract.sh first")
 START = f"bl_0_{COL}"
 
 SUFFIX = {"f":1e-15, "p":1e-12, "n":1e-9, "u":1e-6, "m":1e-3, "k":1e3}
@@ -89,13 +96,13 @@ path_insts, cur, prev, steps = [], START, None, 0
 while not cur.startswith("gnd") and cur != "0" and steps < 2000:
     cand = [(n, l) for n, l in edges.get(cur, []) if l not in path_insts]
     if not cand:
-        print(f"HATA: {cur} icin ileri komsu yok", file=sys.stderr); sys.exit(1)
+        print(f"ERROR: no forward neighbour for {cur}", file=sys.stderr); sys.exit(1)
     nxt, l = cand[0]
     path_insts.append(l); prev, cur = cur, nxt; steps += 1
 
 n_one = len(path_insts)
-path_nodes = [START]   # sirali liste -- set DEGIL, cikti dosyasi calistirma
-                        # bagimsiz (deterministik) olsun diye
+path_nodes = [START]   # an ordered list, NOT a set, so the output file is
+                        # deterministic from run to run
 n = START
 for l in path_insts:
     t = l.split(); nets = t[1:-1]
@@ -107,7 +114,8 @@ for node in path_nodes:
     zero_on_path.extend(zero_insts.get(node, []))
 n_zero = len(zero_on_path)
 
-print(f"{MACRO} kolon {COL}: {n_one} seri NMOS + {n_zero} olu hucre (graf yuruyusuyle)", file=sys.stderr)
+print(f"{MACRO} column {COL}: {n_one} series NMOS + {n_zero} dead cells "
+      f"(by graph walk)", file=sys.stderr)
 
 def get_subckt(name):
     return "\n".join(blocks_raw_lines(name))
@@ -136,8 +144,8 @@ wl_src = "\n".join(f"Vwl{i} {n} 0 DC {{VDD}}" for i, n in enumerate(wl_nodes))
 gnd_extra = sorted(set(re.findall(r"gnd_uq\d+", chain + defs)))
 gnd_src = "\n".join(f"Vgnd{n} {n} 0 DC 0" for n in gnd_extra)
 
-tb = f"""* {MACRO} -- GERCEK PARAZITIK C ile kolon {COL} izole olcum
-* {n_one} seri NMOS + {n_zero} olu hucre (graf yuruyusu, isim-bagimsiz)
+tb = f"""* {MACRO} -- isolated measurement of column {COL} with REAL PARASITIC C
+* {n_one} series NMOS + {n_zero} dead cells (graph walk, name independent)
 
 .lib {rom_paths.sky130_lib()} tt
 
@@ -173,23 +181,24 @@ Xbl_inv gnd vdd vdd {START} bl_b {MACRO}_pinv_dec_3
 outp = os.path.join(rom_paths.char_dir(MACRO),
                     f"col{COL}_worst_case_parasitic.sp")
 open(outp, "w").write(tb)
-print(f"yazildi: {outp}", file=sys.stderr)
+print(f"written: {outp}", file=sys.stderr)
 
 logp = outp.replace(".sp", ".log")
-# ngspice yolu ortamdan (NGSPICE_BIN); eskiden bir nix store yolu sabitti.
+# ngspice path from the environment (NGSPICE_BIN); it used to be a hard-coded
+# nix store path.
 NG = os.environ.get("NGSPICE_BIN", "ngspice")
 try:
     subprocess.run([NG, "-b", "-o", logp, outp], capture_output=True, text=True)
 except FileNotFoundError:
-    sys.exit(f"HATA: ngspice bulunamadi ('{NG}'). NGSPICE_BIN ile yolunu verin.\n"
-             f"      Deck yazildi: {outp}")
+    sys.exit(f"ERROR: ngspice not found ('{NG}'). Set NGSPICE_BIN to its path.\n"
+             f"       The deck was written: {outp}")
 log = open(logp).read()
 import re as re2
 for pat in ("t_dis_50", "t_dis_10", "t_pre_90", "t_pre_99"):
     m = re2.search(pat + r"\s*=\s*([0-9.eE+-]+)", log)
-    print(f"{MACRO} {pat} = {m.group(1) if m else 'BULUNAMADI'}")
+    print(f"{MACRO} {pat} = {m.group(1) if m else 'NOT FOUND'}")
 errs = [l for l in log.splitlines() if "error" in l.lower() or "shorted" in l.lower() or "modelname" in l.lower()]
 if errs:
-    print(f"{MACRO} HATALAR:")
+    print(f"{MACRO} ERRORS:")
     for e in errs[:5]:
         print(" ", e)

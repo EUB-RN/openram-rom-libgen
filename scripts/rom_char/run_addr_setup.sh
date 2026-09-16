@@ -1,37 +1,38 @@
 #!/bin/sh
-# addr0 -> kod cozucu SETUP olcumu, tum makrolar x uc kose.
+# addr0 -> decoder SETUP measurement, every macro x three corners.
 #
-# NE OLCULUYOR
-# ------------
-# .lib'deki `setup_rising`: addr0/cs0'in clk0 yukselmeden ONCE kararli
-# kalmasi gereken sure. Bu makroda fiziksel karsiligi net:
+# WHAT IS MEASURED
+# ----------------
+# `setup_rising` in the .lib: how long addr0/cs0 must be stable BEFORE clk0
+# rises. In this macro it has an exact physical counterpart:
 #
-#     rom_address_control_buf yapisi (netlistten):
+#     rom_address_control_buf structure (from the netlist):
 #         addr0 -> inv_array_mod/Z -> nand2_dec(A=inv/Z, clk) -> A_out
 #
-# yani adres, tampondan DOGRUDAN SAATLI NAND'a giriyor; arada ayri bir
-# on-kod cozucu kati yok. Adresin kararli olmasi gereken son nokta
-# inv_array_mod'un Z'sidir ve olculen sey addr0 -> o net gecikmesidir.
+# i.e. the address goes from the buffer STRAIGHT into a clocked NAND; there is
+# no separate predecode stage in between. The last point at which the address
+# must be stable is inv_array_mod's Z, and what we measure is the addr0 -> that
+# net delay.
 #
-# NEDEN ONEMLI: kod cozucu ON-SARJLI. On-sarj fazinda tum wordline'lar
-# yukselir, evaluate'te SECILMEYENLER duser. Adres evaluate baslarken
-# oturmamissa YANLIS wordline duser -- ve bitline gibi kod cozucu dugumu de
-# bir sonraki on-sarja kadar geri DOLMAZ. Yani setup ihlali metastabilite
-# degil, sessiz ve kalici yanlis okuma uretir.
+# WHY IT MATTERS: the decoder is PRECHARGED. During precharge every wordline
+# rises; during evaluate the UNSELECTED ones fall. If the address has not
+# settled when evaluate begins, the WRONG wordline falls -- and, like a
+# bitline, a decoder node does not come back until the next precharge. So a
+# setup violation is not metastability: it is a silent, persistent misread.
 #
-# NEDEN AYRI DECK: adres gecisi ekstra anahtarlama enerjisi getirir;
-# periph_active/idle deck'lerine eklenirse E_cevrim olcumunu sisirir.
-# Bu betik ayni ureticiyi --addr-alt ile cagirip AYRI bir deck kosturur,
-# guc akisina dokunmaz.
+# WHY A SEPARATE DECK: an address transition costs extra switching energy; put
+# into the periph_active/idle decks it would inflate the per-cycle energy
+# measurement. This script calls the same generator with --addr-alt and runs a
+# SEPARATE deck, leaving the power flow untouched.
 #
-# EN KOTU ADRES: 0 -> tum adres bitleri 1 (LEF'teki addr0[] pin sayisindan
-# turetilir). Butun tamponlar ayni anda anahtarlanir, besleme cokmesi dahil.
-# Eskiden 2047 (11 bit) sabitti; adres genisligi degisince bu sessizce
-# eksik uyarana donusuyordu.
+# WORST-CASE ADDRESS: 0 -> all address bits high (derived from the number of
+# addr0[] pins in the LEF). Every buffer switches at once, supply droop
+# included. This used to be a literal 2047 (11 bits), which silently became a
+# weaker stimulus whenever the address width changed.
 #
-# Kullanim: scripts/rom_char/run_addr_setup.sh [makro ...]
-# Cikti:    <makro>/char/periph_setup_<kose>.log
-#           ve ozet tablo (stdout); regen_rom_libs.sh bunu --setup'a gecirir.
+# Usage: scripts/rom_char/run_addr_setup.sh [macro ...]
+# Output: <macro>/char/periph_setup_<corner>.log plus a summary table;
+#         regen_rom_libs.sh feeds it to --setup.
 
 set -e
 . "$(dirname "$0")/common.sh"
@@ -50,14 +51,14 @@ for m in $MACROS; do
     v=$(echo "$ck" | cut -d: -f2)
     t=$(echo "$ck" | cut -d: -f3)
 
-    # hucre esdeger kapi kapasitansi -- periph deck'iyle ayni girdi
+    # equivalent cell gate capacitance -- same input as the periph deck
     cgl="$G_CHAR/cellgate_${c}.log"
     if [ ! -f "$cgl" ]; then
-      echo "  $m $c: cellgate log yok (once run_periphery_power.sh), atlandi"
+      echo "  $m $c: no cellgate log (run run_periphery_power.sh first), skipped"
       continue
     fi
     cg=$(meas "$cgl" c_one_ff)
-    [ -z "$cg" ] && { echo "  $m $c: C_esd yok, atlandi"; continue; }
+    [ -z "$cg" ] && { echo "  $m $c: no C_eq, skipped"; continue; }
 
     sp="$G_CHAR/periph_setup_${c}.sp"
     lg="$G_CHAR/periph_setup_${c}.log"
@@ -71,17 +72,17 @@ done
 wait
 
 echo ""
-echo "makro   kose   olculen setup (ns)   [addr0 -> kod cozucu NAND girisi]"
+echo "macro   corner  measured setup (ns)   [addr0 -> decoder NAND input]"
 for m in $MACROS; do
   load_geom "$m" || continue
   for ck in $CORNERS; do
     c=$(echo "$ck" | cut -d: -f1)
     lg="$G_CHAR/periph_setup_${c}.log"
     [ -f "$lg" ] || continue
-    # tum tampon olcumlerinin EN KOTUSU
+    # the WORST of all the buffer measurements
     w=$(grep -E "^t_addr2dec[0-9]+" "$lg" 2>/dev/null \
         | awk '{ if ($3 ~ /^[0-9.eE+-]+$/ && $3+0 > mx) mx = $3+0 } END { if (mx>0) printf "%.4f", mx*1e9 }')
     cnt=$(grep -cE "^t_addr2dec[0-9]+" "$lg" 2>/dev/null || echo 0)
-    printf "%-7s %-4s   %-8s   (%s olcum)\n" "$m" "$c" "${w:-YOK}" "$cnt"
+    printf "%-7s %-6s  %-8s   (%s measurements)\n" "$m" "$c" "${w:-NONE}" "$cnt"
   done
 done

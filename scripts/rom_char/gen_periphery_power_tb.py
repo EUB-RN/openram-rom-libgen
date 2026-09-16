@@ -1,105 +1,111 @@
 #!/usr/bin/env python3
-"""ROM makrosunun CEVRE BIRIMI (periphery) cevrim enerjisini olcer.
+"""Measure the PERIPHERY switching energy per cycle of a ROM macro.
 
-NEDEN GEREKLI -- `when : "!cs0"` bosluğu:
-  wrom*.lib'de clk0 pininde yalnizca `internal_power(){ when : "cs0"; }`
-  vardi. Makro secili DEGILKEN (cs0=0) saat geldiginde harcanan enerji
-  hic yazilmamisti. OpenSTA eslesen bir blok bulamayinca o duruma sessizce
-  0 yazar -- uyari bile vermez. Netlist bunun yanlis oldugunu gosteriyor:
+WHY IT IS NEEDED -- the `when : "!cs0"` gap:
+  The .lib files only had `internal_power(){ when : "cs0"; }` on clk0. The
+  energy spent when a clock arrives while the macro is DESELECTED (cs0=0) was
+  never written down. When OpenSTA finds no matching block it silently scores
+  that state as zero -- not even a warning. The netlist shows that is wrong:
 
-    Xrom_control  clk0 cs0 precharge clk_int ...      (wrom0.sp:116011)
-      clk_int = clock_driver(clk0)          -> cs0'dan BAGIMSIZ
-      precharge = ~NAND(cs0, clk_int)       -> cs0=0 iken SABIT 0
+    Xrom_control  clk0 cs0 precharge clk_int ...     (top level of <macro>.sp)
+      clk_int = clock_driver(clk0)          -> INDEPENDENT of cs0
+      precharge = ~NAND(cs0, clk_int)       -> stuck at 0 while cs0=0
 
-  yani cs0=0 iken:
-    * satir kod cozucu (`wrom0_rom_row_decode`) clk_int ile surulmeye
-      devam eder -> adres tamponlari, kod cozucu ic dugumleri ve
-      wordline'lar HER CEVRIM anahtarlanir,
-    * kolon kod cozucu ve on-sarj dizisi `precharge` ile surulur ->
-      SABIT kalir, anahtarlanmaz,
-    * bitline'lar VDD'de tutulur, ayak transistoru kapali -> yalnizca
-      sizinti (bu zaten `leakage_power` alaninda sayili).
+  so with cs0=0:
+    * the row decoder (`<macro>_rom_row_decode`) keeps being driven by
+      clk_int -> address buffers, decoder internals and the wordlines switch
+      EVERY CYCLE,
+    * the column decoder and the precharge array are driven by `precharge` ->
+      they stay put and do not switch,
+    * the bitlines are held at VDD with the foot transistor off -> leakage
+      only (already covered by `leakage_power`).
 
-  Sonuc: `!cs0` enerjisi TAMAMEN cevre birimidir. Bu betik onu olcer.
+  So the `!cs0` energy is ENTIRELY periphery. This script measures it.
 
-YONTEM -- mevcut akisla AYNI ("dilim x adet", her hucreyi tek tek DEGIL):
-  gen_col_power_tb.py nasil TEK kolonu olcup 264 ile carpiyorsa, burada da
-  34320 transistorluk hucre dizisi SIMULE EDILMEZ. Cikarilan netlistten
-  (<macro>_cap_only.spice, gercek Magic parazitik C) yalnizca cevre birimi
-  ornekleri tutulur:
+METHOD -- the same as the rest of the flow ("a slice x a count", never every
+cell individually):
+  Just as gen_col_power_tb.py measures ONE column and multiplies, the cell
+  array (tens of thousands of transistors) is NOT simulated here. From the
+  extracted netlist (<macro>_cap_only.spice, real Magic parasitic C) only the
+  periphery instances are kept:
 
-    Xwrom0_rom_control_logic_0   (30 cihaz)
-    Xwrom0_rom_row_decode_0      (2630 cihaz -- adres tamponu + kod cozucu
-                                  + wordline tamponlari dahil)
-                                  toplam ~2660 cihaz, ngspice'te saniyeler
+    X<macro>_rom_control_logic_0   (tens of devices)
+    X<macro>_rom_row_decode_0      (thousands -- address buffers, decoder and
+                                    wordline drivers included)
+                                   a few thousand devices: seconds in ngspice
 
-  Silinen hucre dizisinin YUKU kaybolmasin diye, dizinin her portu icin
-  o porta GATE'inden bagli cihazlar sayilir ve TEK ornek + `m=<sayi>`
-  ile geri konur (SPICE'in kendi carpani -- 264 ayri ornek acmadan ayni
-  kapi kapasitansi). Ustune dizinin ICINDEKI parazitik tel kapasitansi
-  (o porta degen C elemanlarinin toplami) lump olarak eklenir.
-  Boylece wordline'lar gercek yuklerini gorur.
+  So that the deleted array's LOAD does not vanish, for every array port the
+  devices attached to it by their GATE are counted and put back as ONE instance
+  with `m=<count>` (SPICE's own multiplier -- the same gate capacitance without
+  expanding hundreds of instances). On top of that the parasitic wire
+  capacitance INSIDE the array (the sum of the C elements touching that port)
+  is added as a lump. That way the wordlines see their real load.
 
-  Ust seviye C elemanlari: iki ucu da yasayan dugumdeyse aynen korunur;
-  bir ucu silinen bloga gidiyorsa o uc vssd1'e cevrilir (kuplaj kapasitansini
-  toprakli lump olarak saymak -- standart, hafif KARAMSAR yaklasim);
-  iki ucu da olmusssa atilir.
+  Top-level C elements: kept as-is when both ends are on surviving nodes;
+  when one end goes into a deleted block that end is moved to vssd1 (counting
+  coupling capacitance as a grounded lump -- standard and mildly PESSIMISTIC);
+  dropped when both ends are dead.
 
-NEDEN ENERJI, NEDEN GUC DEGIL:
-  Liberty `internal_power` = anahtarlama basina ENERJI (pJ). Frekansi guc
-  araci uygular: P = E * f * aktivite. Yuk integrali olcup E = Q*VDD yaziyoruz.
+WHY ENERGY AND NOT POWER:
+  Liberty `internal_power` is ENERGY per switching event (pJ). The power tool
+  applies the frequency: P = E * f * activity. We integrate charge and write
+  E = Q*VDD.
 
-Modlar (--cs):
-  0  -> `when : "!cs0"` degeri. Secili degilken bir clk0 cevriminin enerjisi.
-  1  -> aktif cevrimin CEVRE BIRIMI payi. Mevcut `--energy-pj` sayisi
-        (264 x kolon) buna EKLENMELI; regen_rom_libs.sh'daki
-        "cevre birimi dahil degil" notu boylece kapanir.
+Modes (--cs):
+  0  -> the `when : "!cs0"` value: energy of one clk0 cycle while deselected.
+  1  -> the PERIPHERY share of an active cycle. The `--energy-pj` number
+        (columns x per-column energy) must be ADDED to it; regen_rom_libs.sh
+        does that sum.
 
-Kullanim:
+Usage:
   gen_periphery_power_tb.py <macro> <0|1> <out.sp>
       [--corner tt|ss|ff] [--vdd 1.8] [--temp 25] [--tclk 200n] [--addr N]
 """
 import argparse, collections, os, re, sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import rom_paths
+
 ap = argparse.ArgumentParser()
 ap.add_argument("macro")
 ap.add_argument("cs", type=int, choices=[0, 1],
-                help="0 = bosta (!cs0), 1 = secili (cs0)")
+                help="0 = idle (!cs0), 1 = selected (cs0)")
 ap.add_argument("out")
 ap.add_argument("--corner", default="tt", choices=["tt", "ss", "ff"])
 ap.add_argument("--vdd", default="1.8")
 ap.add_argument("--temp", default="25")
 ap.add_argument("--tclk", default="200n",
-                help="cevrim periyodu; ENERJI buna BAGIMSIZ olmali "
-                     "-- iki farkli deger ile kosup dogrulanabilir")
+                help="cycle period; the ENERGY must be INDEPENDENT of it "
+                     "-- verify by running two different values")
 ap.add_argument("--addr-alt", type=int, default=None,
-                help="verilirse adres, olculen clk kenarindan onceki ON-SARJ "
-                     "fazinda --addr'den buna gecirilir ve addr0 -> kod cozucu "
-                     "gecikmesi (SETUP) olculur. Kod cozucu ON-SARJLI oldugu "
-                     "icin adres, evaluate BASLARKEN oturmus olmali: yanlis "
-                     "wordline duserse bitline gibi o da geri donmez.")
+                help="if given, the address is switched from --addr to this "
+                     "during the PRECHARGE phase before the measured clock "
+                     "edge, and the addr0 -> decoder delay (SETUP) is "
+                     "measured. Because the decoder is PRECHARGED the address "
+                     "must be settled WHEN evaluate begins: if the wrong "
+                     "wordline falls it does not come back, just like a bitline.")
 ap.add_argument("--addr", type=int, default=0,
-                help="sabit tutulacak adres (kod cozucu bu satiri secer)")
+                help="the address held constant (selects that row)")
 ap.add_argument("--gate-cap-ff", type=float, default=None,
-                help="hucre basina ESDEGER kapi kapasitansi (fF) -- "
-                     "gen_cell_gate_tb.py ile olculur. Verilirse wordline "
-                     "yuku ciplak cihaz yerine DOGRUSAL C ile modellenir "
-                     "(enerji ayni, yakinsama cok daha saglam).")
+                help="EQUIVALENT gate capacitance per cell (fF), measured by "
+                     "gen_cell_gate_tb.py. If given, the wordline load is "
+                     "modelled as a LINEAR C instead of bare devices (same "
+                     "energy, far more robust convergence).")
 ap.add_argument("--steps", type=int, default=200,
-                help="cevrim basina zaman adimi sayisi")
+                help="time steps per cycle")
 ap.add_argument("--cycles", type=int, default=8,
-                help="kosulacak cevrim sayisi (en az 4). Son iki tam cevrim "
-                     "olculur; ikisinin esit cikmasi oturmayi kanitlar.")
+                help="number of cycles to run (at least 4). The last two full "
+                     "cycles are measured; equal values prove settling.")
 ap.add_argument("--macros-dir", default=None,
-                help="makro agaci (varsayilan: ROM_MACROS_DIR / <depo>/examples)")
+                help="macro tree (default: ROM_MACROS_DIR / <repo>/examples)")
 args = ap.parse_args()
 
 M = args.macro
 SP = rom_paths.cap_netlist(M, args.macros_dir)
 if not os.path.exists(SP):
-    sys.exit(f"HATA: {SP} yok -- once run_cap_extract.sh calistirin")
+    sys.exit(f"ERROR: {SP} does not exist -- run run_cap_extract.sh first")
 
-# --- birim duzeltmesi: gen_col_tb_parasitic.py ile AYNI (dogrulanmis) ------
+# --- unit fix-up: IDENTICAL to gen_col_tb_parasitic.py (validated) --------
 SUFFIX = {"f": 1e-15, "p": 1e-12, "n": 1e-9, "u": 1e-6, "m": 1e-3, "k": 1e3}
 def to_float(tok):
     m = re.match(r"^([0-9.eE+-]+)([a-zA-Z]?)$", tok)
@@ -114,9 +120,9 @@ def fix_units(line):
                   lambda m: f"{m.group(1)}={to_float(m.group(2))*1e12:.6g}u", line)
     return line
 
-# --- netlisti mantiksal satirlara ayir (devam satirlari birlestirilmis) ----
+# --- split the netlist into logical lines (continuations joined) ----------
 def blocks(path):
-    """subckt adi -> mantiksal satir listesi (ilk eleman .subckt basligi)."""
+    """subckt name -> list of logical lines (the first one is the header)."""
     out, cur, name = collections.OrderedDict(), None, None
     def flush():
         nonlocal cur
@@ -149,19 +155,19 @@ TOP = M
 ARRAY = f"{M}_rom_base_array"
 for need in (TOP, ARRAY):
     if need not in B:
-        sys.exit(f"HATA: {SP} icinde .subckt {need} yok")
+        sys.exit(f"ERROR: no .subckt {need} in {SP}")
 
 top_lines = B[TOP]
 top_ports = top_lines[0].split()[2:]
 top_insts = [l for l in top_lines if l.startswith("X")]
 top_caps  = [l for l in top_lines if l.startswith("C")]
 
-# --- tutulacak / silinecek ornekler ---------------------------------------
+# --- instances to keep / delete -------------------------------------------
 KEEP_SUB = {f"{M}_rom_control_logic", f"{M}_rom_row_decode"}
 keep = [l for l in top_insts if l.split()[-1] in KEEP_SUB]
 drop = [l for l in top_insts if l.split()[-1] not in KEEP_SUB]
 if len(keep) != 2:
-    sys.exit(f"HATA: cevre birimi ornekleri bulunamadi (bulunan: "
+    sys.exit(f"ERROR: periphery instances not found (found: "
              f"{[l.split()[-1] for l in top_insts]})")
 
 SUPPLY_HI, SUPPLY_LO = "vccd1", "vssd1"
@@ -170,18 +176,18 @@ for l in keep:
     alive.update(l.split()[1:-1])
 alive.update(p for p in top_ports if re.match(r"^(clk0|cs0|addr0\[)", p))
 
-# --- silinen hucre dizisinin yukunu geri koy ------------------------------
+# --- put back the load of the deleted cell array --------------------------
 arr = B[ARRAY]
 arr_ports = arr[0].split()[2:]
 arr_inst = [l for l in drop if l.split()[-1] == ARRAY]
 if not arr_inst:
-    sys.exit(f"HATA: ust seviyede {ARRAY} ornegi yok")
+    sys.exit(f"ERROR: no {ARRAY} instance at top level")
 p2n = dict(zip(arr_ports, arr_inst[0].split()[1:-1]))
 
-# Dizinin ICINDEKI yuku topla. IC ICE gecmis alt-devrelere de INILIR
-# (orn. on-sarj PMOS'lari base_array > precharge_array > precharge_cell
-# zincirinde duruyor); yalnizca ust kademeye bakmak on-sarj agini
-# yuksuz birakirdi.
+# Collect the load INSIDE the array, DESCENDING into nested sub-circuits (the
+# precharge PMOSes, for instance, sit in the base_array > precharge_array >
+# precharge_cell chain); looking only at the top level would leave the
+# precharge net unloaded.
 def gate_index(sub):
     ports = B[sub][0].split()[2:]
     return ports.index("G") if "G" in ports else None
@@ -190,7 +196,7 @@ gate_cnt = collections.Counter()      # (subckt, arr_port) -> adet
 wire_c   = collections.Counter()      # arr_port -> toplam parazitik C (F)
 
 def collect(sub, xlate, mult=1, depth=0):
-    """xlate: alt-devrenin yerel dugum adi -> dizi portu (yalnizca ilgilenilenler)"""
+    """xlate: sub-circuit local node name -> array port (only the ones we want)"""
     if depth > 8:
         return
     for l in B[sub][1:]:
@@ -220,14 +226,14 @@ def collect(sub, xlate, mult=1, depth=0):
 
 collect(ARRAY, {p: p for p in p2n})
 
-# Hucrenin GATE tarafindaki yuku: cihazin kendisi (m=<adet>) + hucre ici
-# gate parazitikleri (lump). ALT-DEVRE cagrisi + m=<adet> KULLANILMAZ:
-# ngspice X satirindaki m'yi alt-devreyi ACARAK uyguluyor -- 128x264 ornek
-# aciliyor ve kosum tum diziyi simule etmekle ayni maliyete cikiyor
-# (2026-09-06'da olculdu: tek cevrim 2 dk'da bitmedi). Ciplak cihaz + m ise
-# SPICE seviyesinde TEK cihazdir.
+# The load on the GATE side of a cell: the device itself (m=<count>) plus the
+# cell's internal gate parasitics (lumped). A SUB-CIRCUIT call with m=<count>
+# is NOT used: ngspice implements m on an X line by EXPANDING the sub-circuit
+# -- tens of thousands of instances, as expensive as simulating the whole
+# array (measured 2026-09-06: one cycle had not finished in 2 minutes). A bare
+# device with m is ONE device at SPICE level.
 def cell_gate_model(sub):
-    """(cihaz satiri, alt-devre portlari, gate'e dusen hucre ici C [F])"""
+    """(device line, sub-circuit ports, internal C landing on the gate [F])"""
     dev, cg = None, 0.0
     for l in B[sub][1:]:
         t = l.split()
@@ -240,7 +246,7 @@ def cell_gate_model(sub):
                 pass
     return dev, B[sub][0].split()[2:], cg
 
-# yalnizca ust seviyede HALA YASAYAN dugumlere yuk koy
+# only load the nodes that are STILL ALIVE at top level
 load_lines, load_report = [], []
 for i, (port, net) in enumerate(sorted(p2n.items())):
     if net not in alive or net in (SUPPLY_HI, SUPPLY_LO, "0"):
@@ -255,20 +261,20 @@ for i, (port, net) in enumerate(sorted(p2n.items())):
         cw += cg * c
         ncell += c
         if args.gate_cap_ff is not None:
-            # Kapi yuku DOGRUSAL C olarak modellenir. Enerji icin dogru
-            # kucultme budur: bir dugumu VDD'ye cikarmanin VDD'den cektigi
-            # yuk Q(VDD)'dir, dolayisiyla C_esd = Q(VDD)/VDD kullanmak
-            # ENERJIYI birebir korur. Cihazi m=<adet> ile koymak ayni
-            # enerjiyi verir ama 264 kat genis, siddetli DOGRUSAL OLMAYAN
-            # bir kapasitans yaratip ngspice'i yakinsatmiyordu
-            # (2026-09-06: "Timestep too small", uc ayri denemede).
+            # The gate load is modelled as a LINEAR C. That is the correct
+            # reduction for energy: the charge drawn from VDD to pull a node to
+            # VDD is Q(VDD), so using C_eq = Q(VDD)/VDD preserves the ENERGY
+            # exactly. Placing the device with m=<count> gives the same energy
+            # but creates a capacitance hundreds of times wider and strongly
+            # NON-LINEAR, which kept ngspice from converging (2026-09-06:
+            # "Timestep too small" in three separate attempts).
             cw += args.gate_cap_ff * 1e-15 * c
             continue
         t = dev.split()
-        # Cihaz dugumleri alt-devre port adlariyla yazili. G -> olculen ag;
-        # kalanlar kendi besleme kutbune baglanir (PMOS'un govde/kaynagini
-        # toprakla baglamak kapi kapasitansini YANLIS cikarir), bitline
-        # tarafi ise toprakta -- bu kosumda bitline'lar statik.
+        # The device nodes are written with sub-circuit port names. G -> the
+        # measured net; the rest go to their own supply rail (tying a PMOS body
+        # or source to ground gives the WRONG gate capacitance), and the
+        # bitline side sits at ground -- bitlines are static in this run.
         nets = [net if n == "G"
                 else (SUPPLY_HI if n.startswith("vdd") else SUPPLY_LO)
                 for n in t[1:5]]
@@ -280,7 +286,7 @@ for i, (port, net) in enumerate(sorted(p2n.items())):
     if ncell or cw > 0:
         load_report.append((port, ncell, cw))
 
-# --- ust seviye C elemanlari: yasayan/olu kurali --------------------------
+# --- top-level C elements: the alive/dead rule ----------------------------
 kept_c, retarget = [], collections.Counter()
 n_drop = 0
 for l in top_caps:
@@ -308,16 +314,16 @@ for i_rt, (n, v) in enumerate(sorted(retarget.items())):
         continue
     kept_c.append(f"C_rt{i_rt} {n} {SUPPLY_LO} {v*1e15:.5f}f")
 
-# --- NEGATIF NET KAPASITANS DUZELTMESI -----------------------------------
-# Magic ext2spice (cthresh 0) alt-taban duzeltmesi olarak NEGATIF degerli C
-# yaziyor; bunlar ancak kupleyen bloklarin POZITIF terimleriyle birlikte
-# anlamli. Hucre dizisini silince o pozitif terimler de gitti ve 1185 dugumun
-# NET kapasitansi negatife dondu -- cozucu icin bu bir bomba: her denemede
-# t~1e-13..1e-10'da "Timestep too small" ile patliyordu (2026-09-06, alti
-# ayri secenek/uyaran kombinasyonu).
-# Duzeltme en az mudahale ile: yalnizca NET TOPLAMI negatif olan dugume,
-# toplami sifira getiren bir C eklenir. Kaynakla surulen dugumlere (besleme,
-# clk0, cs0, addr) dokunulmaz -- onlarin gerilimini kapasitans belirlemiyor.
+# --- NEGATIVE NET CAPACITANCE FIX ----------------------------------------
+# Magic's ext2spice (cthresh 0) writes NEGATIVE-valued Cs as substrate
+# corrections; they only make sense together with the POSITIVE terms of the
+# blocks they couple to. Deleting the cell array removed those positive terms
+# and the NET capacitance of over a thousand nodes went negative -- which is
+# fatal for the solver: every attempt blew up with "Timestep too small" at
+# t~1e-13..1e-10 (2026-09-06, six different option/stimulus combinations).
+# The fix is minimal: for each node whose NET SUM is negative, add a C that
+# brings the sum back to zero. Nodes driven by a source (supplies, clk0, cs0,
+# addr) are left alone -- capacitance does not set their voltage.
 driven = {SUPPLY_HI, SUPPLY_LO, "0"} | {
     p for p in top_ports if re.match(r"^(clk0|cs0|addr0\[)", p)}
 node_c = collections.Counter()
@@ -337,9 +343,9 @@ for i_fx, (n, v) in enumerate(sorted(node_c.items())):
     n_fix += 1
     c_fix_tot += -v
 
-# --- alt-devre tanimlari: yalnizca GERCEKTEN kullanilanlar ---------------
-# Kullanilmayan tanimlari da yazmak ngspice'i gereksiz mesgul ediyor
-# (kolon kod cozucu / mux / bitline evirici blogu ~10k satir).
+# --- sub-circuit definitions: only the ones ACTUALLY used ----------------
+# Emitting unused definitions makes ngspice do pointless work (the column
+# decoder / mux / bitline inverter blocks are ~10k lines).
 need, seen = set(l.split()[-1] for l in keep), set()
 while need - seen:
     n = (need - seen).pop()
@@ -350,7 +356,7 @@ while need - seen:
             if sub in B:
                 need.add(sub)
 defs = []
-for name in seen:
+for name in sorted(seen):   # sorted: deterministic output file
     if name in (TOP, ARRAY):
         continue
     ls = B[name]
@@ -360,12 +366,12 @@ defs = "\n".join(defs)
 
 keep_fixed = "\n".join(fix_units(l) for l in keep)
 
-# --- on-sarjli KOD COZUCU zincir dugumleri: baslangic sarti --------------
-# Satir kod cozucu de NAND-zinciri yapisinda; zincir ici dugumlerin toprakla
-# DC yolu yok. uic ile hepsi 0'dan baslayinca ngspice zaman adimini
-# kucultup pes ediyordu ("Timestep too small ... rom_base_one_cell_53/s",
-# 2026-09-06). clk_int dusukken dogru fiziksel durum ON-SARJLI olmak;
-# kolon olcumundeki `.ic v(bl)={VDD}` ile ayni cozum.
+# --- initial condition for the precharged DECODER chain nodes ------------
+# The row decoder is a NAND-chain structure too; its internal chain nodes have
+# no DC path to ground. Starting them all at 0 with uic made ngspice shrink the
+# time step until it gave up ("Timestep too small ... rom_base_one_cell_53/s",
+# 2026-09-06). While clk_int is low the physically correct state is PRECHARGED
+# -- the same trick as `.ic v(bl)={VDD}` in the column measurement.
 ic_nodes = [n for n in
             (l.split()[1:-1] for l in keep if l.split()[-1].endswith("row_decode"))
             for n in n
@@ -373,12 +379,12 @@ ic_nodes = [n for n in
             or re.search(r"/bl_\d+_\d+$", n)]
 ic_txt = "\n".join(f".ic v({n})={{VDD}}" for n in sorted(set(ic_nodes)))
 
-# --- ON UC GECIKMESI: clk0 -> precharge / wordline -----------------------
-# .lib'deki `access` clk0 yukselen kenarindan dout0 gecerli olana kadardir.
-# Kolon olcumu (t_dis_50) ise TRIG'i ic `precharge` agindan aliyor, yani
-# clk0'dan precharge/wordline'a kadar olan kisim HIC sayilmamisti.
-# Burada olculur; toplam:  access = max(t_clk2pre, t_clk2wl) + t_dis_50
-#                                   + t_bl2dout (gen_backend_delay_tb.py)
+# --- FRONT END DELAY: clk0 -> precharge / wordline -----------------------
+# `access` in the .lib runs from the rising edge of clk0 until dout0 is valid.
+# The column measurement (t_dis_50) triggers off the internal `precharge` net,
+# so the piece from clk0 to precharge/wordline was never counted.
+# It is measured here; total: access = max(t_clk2pre, t_clk2wl) + t_dis_50
+#                                    + t_bl2dout (gen_backend_delay_tb.py)
 ctl = set(next(l for l in keep if l.split()[-1].endswith("control_logic"))
           .split()[1:-1])
 rowd = set(next(l for l in keep if l.split()[-1].endswith("row_decode"))
@@ -389,19 +395,19 @@ clk_int = sorted(ctl & rowd - supplies)
 pre_net = sorted(ctl & arrn - supplies)
 wl_meas = [n for k in range(8)
            for n in rowd if re.search(r"/wl_%d$" % k, n)]
-# RISE=N kullanilamaz: ngspice her sinyalin gecislerini t=0'dan AYRI
-# sayiyor, ic dugumler baslangicta glitch atinca clk0'in 2. yukselisiyle
-# hedefin 2. yukselisi ayni cevrime denk gelmiyordu (negatif gecikme
-# cikiyordu, 2026-09-06). Bunun yerine ZAMAN PENCERESI (TD) ile 2. clk
-# kenarindan hemen once basliyoruz; hem trig hem targ o kenarin ilk
-# gecisini yakalar. 2. cevrim secildi: devre 1. cevrimde oturuyor.
+# RISE=N cannot be used: ngspice counts each signal's transitions SEPARATELY
+# from t=0, so when internal nodes glitch at start-up, clk0's 2nd rise and the
+# target's 2nd rise no longer belong to the same cycle (negative delays,
+# 2026-09-06). Instead we use a TIME WINDOW (TD) starting just before the
+# measured clock edge; both trig and targ then catch the first crossing after
+# it. A late cycle is used so the circuit has settled.
 _tclk = to_float(args.tclk)
 _edge = (args.cycles - 2) * _tclk        # olculecek clk0 yukselen kenari
 _td_trig = _edge - _tclk / 20.0
-# TARG penceresi TAM kenardan basliyor: kod cozucu on-sarjli oldugu icin
-# wordline'lar clk0'in DUSEN kenarinda da yukseliyor (on-sarj fazi). TARG
-# icin TD'yi kenardan once verince olcum o dusus-kenari yukselisini
-# yakalayip NEGATIF gecikme uretiyordu (2026-09-06: t_clk2wl = -99 ns).
+# The TARG window starts EXACTLY at the edge: because the decoder is
+# precharged, the wordlines also rise on clk0's FALLING edge (the precharge
+# phase). Giving TARG a TD before the edge made the measurement catch that
+# falling-edge rise and produce a NEGATIVE delay (2026-09-06: t_clk2wl = -99 ns).
 _td_targ = _edge
 fe = []
 def _m(name, node):
@@ -412,17 +418,15 @@ def _m(name, node):
             f"TD={_td_targ:.6e}"]
 if clk_int:
     fe += _m("t_clk2int", clk_int[0])
-# Hangi wordline'in secildigi adres kodlamasina bagli ve Magic'in urettigi
-# isimlerden okunamiyor; ilk sekiz wordline olculur, clk0'in YUKSELEN
-# kenarindan sonra yukselen HANGISIYSE secilen odur (digerleri icin olcum
-# "failed" doner, bu beklenen ve bilgi verici bir sonuctur).
-# Kod cozucunun POLARITESI dogrudan olculur: on-sarj fazinda (clk0 dusuk)
-# butun wordline'lar yukseliyorsa, degerlendirme fazinda SECILMEYEN satirlar
-# duser ve secilen zaten yuksek kalir. Bu durumda clk0 yukselen kenarindan
-# sonra wordline'da YUKSELEN kenar HIC olmaz -- ve kolon olcumunun
-# "wordline'lar DC yuksek" varsayimi DOGRU demektir; on uc terimi yalnizca
-# clk0 -> precharge olur. Hem yukselis hem dusus olculuyor ki bu cikarim
-# varsayim degil KANIT olsun.
+# Which wordline is selected depends on the address encoding and cannot be
+# read off the names Magic generates; the first few wordlines are measured, and
+# whichever one moves after clk0's RISING edge is the selected one (the others
+# report "failed", which is expected and informative).
+# The decoder POLARITY is measured rather than assumed: if all wordlines rise
+# during the precharge phase (clk0 low), then in evaluate the UNSELECTED rows
+# fall. Both the rise and the fall are measured so this conclusion is EVIDENCE,
+# not an assumption -- and it is what justifies the column deck holding all
+# wordlines at DC VDD, with the front-end term being clk0 -> precharge only.
 for k, n in enumerate(wl_meas):
     fe += _m(f"t_clk2wl{k}", n)
     pad = " " * len(f"t_wlfall{k}")
@@ -431,33 +435,33 @@ for k, n in enumerate(wl_meas):
            f"+                {pad}TARG v({n}) VAL='VDD/2' FALL=1 "
            f"TD={_td_targ:.6e}"]
 if pre_net and args.cs:
-    # cs0=0 iken precharge hic yukselmez -- olcum yalnizca cs0=1'de anlamli
+    # with cs0=0 precharge never rises -- the measurement only means something at cs0=1
     fe += _m("t_clk2pre", pre_net[0])
 
-# --- adres bitleri ve gecis ani (hem olcum hem uyaran kullanir) -----------
-# 13 sabiti kaldirildi: makro word_size=4 ile 11 bit adresle uretiliyor,
-# pin sayisi LEF'ten gelen top_ports'tan turetiliyor.
+# --- address bits and switching instant (used by both stimulus and measure) -
+# The bit count is derived from top_ports (i.e. from the LEF pin list); it used
+# to be a hard-coded 13.
 _abits = sorted(int(mm.group(1))
                 for p_ in top_ports
                 for mm in [re.match(r"addr0\[(\d+)\]$", p_)] if mm)
-# Olculen clk0 yukselen kenari _edge + TCLK/2'de; ondan onceki ON-SARJ fazi
-# [_edge, _edge+TCLK/2]. Adres o fazin ortasinda gecirilir -> kenardan
-# TCLK/4 once, kod cozucunun oturmasi icin bol zaman.
+# The measured clk0 rising edge is at _edge + TCLK/2; the PRECHARGE phase
+# before it is [_edge, _edge+TCLK/2]. The address is switched in the middle of
+# that phase -> TCLK/4 before the edge, plenty of time for the decoder.
 _t_sw = _edge + _tclk / 4.0
 
-# --- SETUP: addr0 -> kod cozucu -------------------------------------------
-# Kod cozucu ON-SARJLI: on-sarj fazinda butun wordline'lar yukselir,
-# evaluate'te SECILMEYENLER duser. Dolayisiyla adres, clk0 yukselirken kod
-# cozucunun GIRISLERINDE oturmus olmali. Olculen sey tam olarak bu yol:
-#     addr0 -> inv_array_mod (adres tamponu) -> pbuf_dec (on-kod cozucu)
-# Bu, .lib'deki setup_rising'in fiziksel karsiligidir. Olculmeden once
-# BASE'deki 0.15 ns analitik tahmini kullaniliyordu (bkz. gen_rom_lib.py).
+# --- SETUP: addr0 -> decoder ----------------------------------------------
+# The decoder is PRECHARGED: every wordline rises during precharge and the
+# UNSELECTED ones fall during evaluate. So the address must be settled at the
+# decoder INPUTS when clk0 rises, and that is exactly the path measured here:
+#     addr0 -> inv_array_mod (address buffer) -> the clocked decoder NAND
+# This is the physical counterpart of setup_rising in the .lib. Before it was
+# measured, the analytic 0.15 ns guess in BASE was used (see gen_rom_lib.py).
 if args.addr_alt is not None:
     _sw_bits = [i for i in _abits
                 if ((args.addr >> i) & 1) != ((args.addr_alt >> i) & 1)]
     if _sw_bits:
         _trig_pin = f"addr0[{_sw_bits[0]}]"
-        _td = _t_sw - _tclk / 40.0        # gecisten hemen once basla
+        _td = _t_sw - _tclk / 40.0        # start just before the transition
 
         def _ms(name, node):
             pad = " " * len(name)
@@ -466,19 +470,19 @@ if args.addr_alt is not None:
                     f"+                {pad}TARG v({node}) VAL='VDD/2' "
                     f"CROSS=1 TD={_td:.6e}"]
 
-        # HEDEF: kod cozucu NAND'inin A girisi. Netlist yapisi:
-        #     X..._nand2_dec_N  gnd vdd  <A>  clk  <Z>  <ic>
-        # yani adres, tampondan DOGRUDAN saatli NAND'a giriyor; arada ayri
-        # bir on-kod cozucu kati yok. Adresin kararli olmasi gereken son
-        # nokta bu A netidir -- setup'in fiziksel karsiligi.
+        # TARGET: the A input of the decoder NAND. Netlist structure:
+        #     X..._nand2_dec_N  gnd vdd  <A>  clk  <Z>  <internal>
+        # i.e. the address goes from the buffer STRAIGHT into a clocked NAND;
+        # there is no separate predecode stage. The last point at which the
+        # address must be stable is that A net -- the physical meaning of setup.
         #
-        # wordline tamponu girisleri (pbuf_dec) HEDEF DEGIL: kod cozucu
-        # on-sarjli oldugu icin on-sarj fazinda tum wordline'lar yuksek ve
-        # adres degisince hic kipirdamiyorlar (olcum "failed" doner).
-        # rom_address_control_buf'in yapisi (netlistten):
+        # The wordline buffer inputs (pbuf_dec) are NOT the target: because the
+        # decoder is precharged, all wordlines are high during precharge and do
+        # not move when the address changes (the measurement reports "failed").
+        # Structure of rom_address_control_buf (from the netlist):
         #     addr0 -> inv_array_mod/Z -> nand2_dec(A=inv/Z, clk) -> A_out
-        # yani inv_array_mod'un Z'si ZATEN kod cozucu NAND'inin A girisidir.
-        # Adres bit basina bir tampon var; HEPSI olculur ve en kotusu alinir.
+        # so inv_array_mod's Z IS the A input of the decoder NAND. There is one
+        # buffer per address bit; ALL are measured and the worst one is used.
         _samp = sorted(n for n in rowd if re.search(r"inv_array_mod_\d+/Z$", n))
         for _k, _n in enumerate(_samp):
             fe += _ms(f"t_addr2dec{_k}", _n)
@@ -486,13 +490,13 @@ fe_txt = "\n".join(fe)
 caps_txt = "\n".join(kept_c)
 loads_txt = "\n".join(load_lines)
 
-# --- uyaran ---------------------------------------------------------------
+# --- stimulus -------------------------------------------------------------
 if args.addr_alt is None:
     addr_src = "\n".join(
         f"Vaddr{i} addr0[{i}] 0 DC {{{'VDD' if (args.addr >> i) & 1 else '0'}}}"
         for i in _abits)
 else:
-    # Gecis 100 ps -- uyaranin kendisi olculen gecikmeye girmesin.
+    # 100 ps transition -- so the stimulus itself does not enter the delay.
     _lines = []
     for i in _abits:
         a = (args.addr >> i) & 1
@@ -507,76 +511,76 @@ else:
                 f"{_t_sw + 100e-12:.6e} {v1})")
     addr_src = "\n".join(_lines)
 cs_val = "{VDD}" if args.cs else "0"
-mode = "AKTIF (cs0=1)" if args.cs else "BOSTA (cs0=0)  -->  when : \"!cs0\""
+mode = "ACTIVE (cs0=1)" if args.cs else "IDLE (cs0=0)  -->  when : \"!cs0\""
 wl_n = sum(1 for p, c, w in load_report if re.match(r"^wl_", p))
 cells = sum(c for p, c, w in load_report if re.match(r"^wl_", p))
 
-tb = f"""* {M} -- CEVRE BIRIMI cevrim enerjisi -- {mode}
-* Tutulan: rom_control_logic (saat surucu + control_nand + prechg surucu)
-*          rom_row_decode    (adres tamponu + kod cozucu + wl tamponlari)
-* Silinen: hucre dizisi / kolon mux / kolon kod cozucu / bitline+cikis
-*          eviricileri. Dizinin YUKU geri konuldu:
-*            {wl_n} wordline, toplam {cells} hucre kapisi (tek ornek + m=<adet>)
-*            + dizi ici parazitik tel C (lump)
-* Ust seviye C: {len(kept_c)} korundu/toplandi, {n_drop} atildi (iki ucu da olu),
-*               {clamped} negatif toplam sifirlandi (Magic alt-taban duzeltmesi)
-* Negatif NET kapasitans duzeltmesi: {n_fix} dugum, toplam {c_fix_tot*1e15:.1f} fF
-* cs0={args.cs}: {'precharge anahtarlanir' if args.cs else 'precharge SABIT 0 -- yalnizca clk_int agaci calisir'}
-* Enerji FREKANSTAN BAGIMSIZ olmali; --tclk degistirip dogrulayin.
+tb = f"""* {M} -- PERIPHERY energy per cycle -- {mode}
+* Kept:    rom_control_logic (clock driver + control_nand + prechg driver)
+*          rom_row_decode    (address buffers + decoder + wl drivers)
+* Deleted: cell array / column mux / column decoder / bitline and output
+*          inverters. The array's LOAD was put back:
+*            {wl_n} wordlines, {cells} cell gates total (one instance + m=<count>)
+*            + the array's internal parasitic wire C (lumped)
+* Top-level C: {len(kept_c)} kept/merged, {n_drop} dropped (both ends dead),
+*              {clamped} negative sums clamped (Magic substrate correction)
+* Negative NET capacitance fix: {n_fix} nodes, {c_fix_tot*1e15:.1f} fF total
+* cs0={args.cs}: {'precharge toggles' if args.cs else 'precharge STUCK AT 0 -- only the clk_int tree runs'}
+* The energy must be FREQUENCY INDEPENDENT; verify by changing --tclk.
 
 .lib {rom_paths.sky130_lib()} {args.corner}
 .temp {args.temp}
 .param VDD={args.vdd}
 .param TCLK={args.tclk}
 
-* Besleme SABIT. Rampa denendi ve KALDIRILDI: asagidaki .ic zincir
-* dugumlerini VDD'de baslatiyor; besleme ayni anda 0'dan tirmaninca
-* baslangic durumu KENDI ICINDE TUTARSIZ oluyor (dugum 1.8 V, kaynak 0 V)
-* ve cozucu t~1e-11'de patliyordu (2026-09-06, dort ayri secenek setinde).
+* The supply is CONSTANT. A ramp was tried and REMOVED: the .ic lines below
+* start the chain nodes at VDD, and if the supply climbs from 0 at the same
+* time the initial state is SELF-INCONSISTENT (node 1.8 V, source 0 V) and the
+* solver blew up at t~1e-11 (2026-09-06, four different option sets).
 Vvdd {SUPPLY_HI} 0 DC {{VDD}}
 Vgnd {SUPPLY_LO} 0 DC 0
 Vcs cs0 0 DC {cs_val}
-* Kenar 500 ps: 100 ps'lik basamak bu buyuklukteki agda yakinsamayi
-* zorluyordu. Yarim periyot 100 ns oldugu icin AKTARILAN YUK (= enerji)
-* kenar suresinden etkilenmez.
+* 500 ps edge: a 100 ps step made convergence hard on a network this size.
+* With a half period of 100 ns the CHARGE TRANSFERRED (= the energy) does not
+* depend on the edge rate.
 Vclk clk0 0 PULSE(0 {{VDD}} {{TCLK/2}} 500p 500p {{TCLK/2-500p}} {{TCLK}})
 {addr_src}
 
-* --- cevre birimi ornekleri (parazitikli, cikarilan netlistten aynen) ---
+* --- periphery instances (with parasitics, verbatim from the extraction) ---
 {keep_fixed}
 
-* --- kod cozucu zincir dugumleri on-sarjli baslar ({len(set(ic_nodes))} dugum) ---
+* --- decoder chain nodes start precharged ({len(set(ic_nodes))} nodes) ---
 {ic_txt}
 
-* --- silinen hucre dizisinin yuku (dilim x adet) ---
+* --- load of the deleted cell array (slice x count) ---
 {loads_txt}
 
-* --- ust seviye parazitik C ---
+* --- top-level parasitic C ---
 {caps_txt}
 
-* --- alt-devre tanimlari ---
+* --- sub-circuit definitions ---
 {defs}
 
-* abstol: sizinti olcumundeki 1e-15 BURADA GEREKMEZ (olculen akimlar uA
-* mertebesinde) ve yakinsamayi zorlastiriyor.
+* abstol: the 1e-15 used for the leakage measurement is NOT needed here (the
+* currents are on the order of uA) and only makes convergence harder.
 .options gmin=1e-12 abstol=1e-12 reltol=1e-3 itl1=500 itl4=100
-* uic SART: on-sarjli kod cozucunun ic dugumlerinin DC yolu yok; .op
-* yakinsamiyor (2026-09-06'da denendi -- 10 dk sonra hala calisma
-* noktasindaydi). Kolon olcumunde de ayni sebeple uic kullaniliyor.
+* uic IS REQUIRED: the internal nodes of the precharged decoder have no DC
+* path, so .op does not converge (tried 2026-09-06 -- still at the operating
+* point after 10 minutes). The column measurement uses uic for the same reason.
 .tran '{args.tclk}/{args.steps}' '{args.cycles}*TCLK' uic
-* SON IKI cevrim ayri olculur: esit cikmalari devrenin OTURDUGUNU gosterir
-* (uic ile tum dugumler 0'dan basliyor). cs0=1'de on-sarj agi cok agir
-* yuklu oldugu icin 4 cevrim YETMIYORDU -- 2026-09-06'da c2/c3 farki
-* %30'a kadar cikti; bu yuzden olcum penceresi --cycles ile birlikte
-* kayiyor ve varsayilan cevrim sayisi buyutuldu.
+* The LAST TWO cycles are measured separately: equal values show the circuit
+* has SETTLED (with uic every node starts at 0). At cs0=1 the precharge network
+* is so heavily loaded that 4 cycles were NOT enough -- on 2026-09-06 the c2/c3
+* gap reached 30%, so the measurement window now moves with --cycles and the
+* default cycle count was raised.
 .measure tran q_c2 integ i(Vvdd) from='{args.cycles - 3}*TCLK' to='{args.cycles - 2}*TCLK'
 .measure tran q_c3 integ i(Vvdd) from='{args.cycles - 2}*TCLK' to='{args.cycles - 1}*TCLK'
 .measure tran e_periph_pj param='abs(q_c3)*VDD*1e12'
 
-* --- on uc gecikmesi (access'in ilk terimi) ---
+* --- front-end delay (the first term of access) ---
 {fe_txt}
 .end
 """
 open(args.out, "w").write(tb)
-print(f"yazildi: {args.out}  ({M}, cs0={args.cs}, kose={args.corner}, "
-      f"{wl_n} wordline / {cells} hucre kapisi, {len(kept_c)} C)")
+print(f"written: {args.out}  ({M}, cs0={args.cs}, corner={args.corner}, "
+      f"{wl_n} wordlines / {cells} cell gates, {len(kept_c)} C)")

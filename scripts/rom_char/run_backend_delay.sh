@@ -1,24 +1,23 @@
 #!/bin/sh
-# ARKA UC gecikmesi (bitline -> dout0), uc kose x uc yuk.
+# BACK END delay (bitline -> dout0), three corners x three output loads.
 #
-# NEDEN: .lib'deki `access` clk0 -> dout0 suresidir, ama olculen tek sey
-# bitline'in bosalmasiydi (t_dis_50, TRIG'i ic `precharge` agindan alan).
-# Aradaki uc kademe -- bitline eviricisi, <kolon>:<kelime> mux'u ve cikis
-# tamponu -- hic olculmemisti. Bitline cok yavas dustugu icin (wrom0 TT'de
-# ~52 mV/ns) bu terim tahminle gecilemez.
+# WHY: `access` in the .lib is clk0 -> dout0, but the only thing being measured
+# was the bitline discharge (t_dis_50, triggered off the internal `precharge`
+# net). The three stages in between -- bitline inverter, column mux and output
+# buffer -- were never measured. The bitline falls so slowly (~52 mV/ns for
+# wrom0 at TT) that this term cannot be guessed.
 #
-# Ayrica bu kosum .lib CELL_TABLE'inin index_2 (cikis yuku) eksenini
-# GERCEKTEN olcer; onceki dosyalarda uc yuk noktasi da ayni sayiyi
-# tasiyordu.
+# It also makes the index_2 (output load) axis of the .lib CELL_TABLE REAL;
+# previously all three load points carried the same number.
 #
-# Toplam:  access = max(t_clk2wl, t_clk2pre)   [run_periphery_power.sh]
-#                 + t_dis_50                   [col*_worst_case_parasitic]
-#                 + t_bl2dout                  [BU betik]
+# Total:  access = max(t_clk2wl, t_clk2pre)   [run_periphery_power.sh]
+#                + t_dis_50                   [col*_worst_case_parasitic]
+#                + t_bl2dout                  [THIS script]
 #
-# En kotu kolon netlistten turetilir (rom_paths.py); eskiden bu dosyada
-# "wrom0:236" tablosu olarak sabitti.
+# The worst column comes from the netlist (rom_paths.py); it used to be a
+# "wrom0:236" table in this file.
 #
-# Kullanim: scripts/rom_char/run_backend_delay.sh [makro ...]
+# Usage: scripts/rom_char/run_backend_delay.sh [macro ...]
 
 set -e
 . "$(dirname "$0")/common.sh"
@@ -36,7 +35,7 @@ for m in $MACROS; do
     src="$G_CHAR/${G_COLTAG}_worst_case_parasitic${sfx}.log"
     d50=$(meas "$src" t_dis_50)
     d10=$(meas "$src" t_dis_10)
-    [ -z "$d50" ] && { echo "$m $c: t_dis_50 yok ($src)"; continue; }
+    [ -z "$d50" ] && { echo "$m $c: no t_dis_50 ($src)"; continue; }
     for cl in $LOADS; do
       tag=$(echo "$cl" | tr -d '.')
       sp="$G_CHAR/backend_${c}_${tag}.sp"
@@ -52,7 +51,7 @@ done
 wait
 
 echo
-printf "%-7s %-4s %10s %14s %14s\n" makro kose "yuk(fF)" "t_bl2dout(ns)" "dout_slew(ns)"
+printf "%-7s %-6s %10s %14s %14s\n" macro corner "load(fF)" "t_bl2dout(ns)" "dout_slew(ns)"
 for m in $MACROS; do
   load_geom "$m" || continue
   for ck in $CORNERS; do
@@ -63,11 +62,11 @@ for m in $MACROS; do
       d=$(meas "$lg" t_bl2dout)
       sl=$(meas "$lg" t_dout_slew)
       if [ -z "$d" ]; then
-        printf "%-7s %-4s %10s %14s\n" "$m" "$c" "$cl" "OLCULEMEDI"
+        printf "%-7s %-6s %10s %14s\n" "$m" "$c" "$cl" "FAILED"
       else
-        # awk kullaniliyor: python -c icinde ic ice tirnak f-string'i bozuyor
+        # awk, not python -c: nested quotes inside an f-string break the here-doc
         echo "$d $sl" | awk -v m="$m" -v c="$c" -v cl="$cl" \
-          '{printf "%-7s %-4s %10s %14.4f %14.4f\n", m, c, cl, $1*1e9, $2*1e9}'
+          '{printf "%-7s %-6s %10s %14.4f %14.4f\n", m, c, cl, $1*1e9, $2*1e9}'
       fi
     done
   done

@@ -1,29 +1,30 @@
 #!/usr/bin/env python3
-"""ROM makrosunun IZOLE KOLON'u uzerinden sizinti ve cevrim enerjisi olcer.
+"""Measure leakage and cycle energy on ONE ISOLATED COLUMN of a ROM macro.
 
-NEDEN KOLON, NEDEN TAM MAKRO DEGIL:
-  Tam makro (~34k transistor) ngspice'te 28+ dk surup 7.3 GB RAM yiyor ve
-  24 kosum (4 makro x 3 kose x 2 mod) gerekiyor -- pratik degil.
-  Bu on-sarjli mimaride hem sizinti hem dinamik enerji KOLON BASINA
-  ayrilabilir, cunku kolonlarin hepsi her cevrimde ayni isi yapiyor:
-    sizinti  = N x (kapali ayak transistorunun alt-esik sizintisi) + cevre
-    enerji   = N x (bir bitline'in sarj/desarj enerjisi)           + cevre
-  (N = kolon sayisi; netlistten sayilir, bkz. rom_paths.py)
-  Kolon netlisti PARAZITIK C icerir (gen_col_tb_parasitic.py ciktisi), yani
-  dinamik enerji icin gereken gercek kapasiteler dahildir.
+WHY A COLUMN AND NOT THE WHOLE MACRO:
+  The full macro (~34k transistors) takes 28+ minutes and 7.3 GB of RAM in
+  ngspice, and the flow needs 24 runs (4 macros x 3 corners x 2 modes) -- not
+  practical. In this precharged architecture both leakage and dynamic energy
+  decompose PER COLUMN, because every column does the same work every cycle:
+    leakage = N x (sub-threshold leakage of the off foot transistor) + periphery
+    energy  = N x (charge/discharge energy of one bitline)           + periphery
+  (N = column count, taken from the netlist -- see rom_paths.py)
+  The column netlist carries PARASITIC C (the output of
+  gen_col_tb_parasitic.py), so the capacitances dynamic energy needs are in.
 
-NEDEN ENERJI, NEDEN GUC DEGIL:
-  Liberty `internal_power` = anahtarlama basina ENERJI (pJ), guc degil.
-  Frekansi guc araci uygular: P = E * f * aktivite. Bu yuzden yuk
-  integrali (Coulomb) olcup E = Q*VDD yaziyoruz -> frekanstan BAGIMSIZ.
+WHY ENERGY AND NOT POWER:
+  Liberty `internal_power` is ENERGY per switching event (pJ), not power. The
+  power tool applies the frequency: P = E * f * activity. So we integrate the
+  charge (coulombs) and write E = Q*VDD -> INDEPENDENT of frequency.
 
-Modlar:
-  idle    -- precharge=0 sabit (on-sarj fazi, ayak KAPALI): DC sizinti (.op).
-             gmin=1e-15 sart -- 1e-12 sonucu %79 sisiriyordu (bkz. idle blogu).
-  active  -- precharge anahtarlanir: bir TAM cevrimin yuk integrali -> enerji.
+Modes:
+  idle    -- precharge held at 0 (precharge phase, foot OFF): DC leakage (.op).
+             gmin=1e-15 is required -- 1e-12 inflated the result by 79% (see
+             the idle block below).
+  active  -- precharge toggles: charge integral of one FULL cycle -> energy.
 
-Kullanim:
-  gen_col_power_tb.py <macro> <kolon> <idle|active> <out.sp>
+Usage:
+  gen_col_power_tb.py <macro> <column> <idle|active> <out.sp>
       [--corner tt|ss|ff] [--vdd 1.8] [--temp 25] [--tclk 200n]
 """
 import sys, re, argparse, os
@@ -41,34 +42,34 @@ ap.add_argument("--corner", default="tt", choices=["tt", "ss", "ff"])
 ap.add_argument("--vdd", default="1.8")
 ap.add_argument("--temp", default="25")
 ap.add_argument("--tclk", default="200n",
-                help="active modda cevrim periyodu; ENERJI buna bagimsiz olmali "
-                     "-- iki farkli deger ile kosup dogrulanabilir")
+                help="cycle period in active mode; the ENERGY should be "
+                     "independent of it -- verify by running two values")
 ap.add_argument("--macros-dir", default=None,
-                help="makro agaci (varsayilan: ROM_MACROS_DIR / <depo>/examples)")
+                help="macro tree (default: ROM_MACROS_DIR / <repo>/examples)")
 args = ap.parse_args()
 
 SRC = os.path.join(rom_paths.char_dir(args.macro, args.macros_dir),
                    f"col{args.col}_worst_case_parasitic.sp")
-# Kolon sayisi netlistten gelir -- deck basligindaki "toplam = N x bu
-# deger" ifadesi eskiden 264 diye SABIT yaziliydi ve makro yeniden
-# uretilince yaniltiyordu.
+# The column count comes from the netlist -- the "total = N x this value" line
+# in the deck header used to be a hard-coded 264, which became misleading as
+# soon as the macro was regenerated.
 NCOL = rom_paths.geometry(args.macro, args.macros_dir)["cols"]
 if not os.path.exists(SRC):
-    sys.exit(f"HATA: {SRC} yok -- once gen_col_tb_parasitic.py calistirin")
+    sys.exit(f"ERROR: {SRC} does not exist -- run gen_col_tb_parasitic.py first")
 
-# Mevcut (dogrulanmis) kolon testbench'ini oku; devre govdesini aynen kullan,
-# sadece uyaranlari ve olcumleri degistir. Boylece timing ile AYNI devre.
+# Read the existing (validated) column testbench and reuse its circuit body
+# verbatim, changing only stimuli and measurements. Same circuit as timing.
 body, in_defs = [], False
 for line in open(SRC):
     s = line.rstrip("\n")
     ls = s.lstrip().lower()
-    # atlanacaklar: baslik/uyaran/analiz -- devre ve subckt tanimlari KALIR
-    # DIKKAT: ".ends" da ".end" ile basliyor -- alt-devre kapanislari
-    # SILINMEMELI, yoksa "Mismatch of .subckt ... .ends" hatasi alinir.
+    # skip header/stimulus/analysis -- the circuit and subckt definitions STAY
+    # CAREFUL: ".ends" also starts with ".end" -- sub-circuit terminators must
+    # NOT be dropped, or ngspice reports "Mismatch of .subckt ... .ends".
     first = ls.split()[0] if ls.split() else ""
     if first in (".lib", ".temp", ".param", ".tran", ".measure", ".ic", ".end"):
         continue
-    if s.startswith("+") and body and body[-1] == "":   # .measure devam satiri
+    if s.startswith("+") and body and body[-1] == "":   # .measure continuation
         continue
     if re.match(r"^V(vdd|precharge|wl\d+|gndgnd_uq\d+)\b", s):
         continue
@@ -76,7 +77,7 @@ for line in open(SRC):
 
 circuit = "\n".join(l for l in body if l.strip())
 
-# devrede gecen wordline ve turetilmis toprak dugumlerini bul
+# find the wordline and derived-ground nodes used by the circuit
 wl_nodes = sorted(set(re.findall(r"\bwl_0_\d+\b", circuit)),
                   key=lambda s: int(s.split("_")[-1]))
 gnd_extra = sorted(set(re.findall(r"\bgnd_uq\d+\b", circuit)))
@@ -93,37 +94,37 @@ Vvdd vdd 0 DC {{VDD}}
 {wl_src}"""
 
 if args.mode == "idle":
-    tb = f"""* {args.macro} kolon {args.col} -- IDLE SIZINTI (kolon basina)
-* precharge=0: on-sarj fazi, ayak transistoru KAPALI, bitline VDD'de.
-* Baskin sizinti yolu: VDD -> prechg PMOS(acik) -> zincir(acik) -> ayak(KAPALI) -> gnd
-* Toplam makro sizintisi ~ {NCOL} x (bu deger) + cevre birimi.
+    tb = f"""* {args.macro} column {args.col} -- IDLE LEAKAGE (per column)
+* precharge=0: precharge phase, foot transistor OFF, bitline at VDD.
+* Dominant leakage path: VDD -> prechg PMOS(on) -> chain(on) -> foot(OFF) -> gnd
+* Whole-macro leakage ~ {NCOL} x (this value) + periphery.
 {HEAD}
 Vprecharge precharge 0 DC 0
 
 {circuit}
 
-* gmin: ngspice'in yakinsama icin HER DUGUME ekledigi yapay iletkenlik.
-* Cok buyuk secilirse sizinti olcumune KARISIR. 2026-09-05 taramasi:
-*   gmin=1e-12 -> 0.656 nA   (%79 yapay!)
+* gmin: the artificial conductance ngspice adds to EVERY node to converge.
+* Set too high it CONTAMINATES the leakage measurement. Sweep of 2026-09-05:
+*   gmin=1e-12 -> 0.656 nA   (79% artificial!)
 *   gmin=1e-15 -> 0.366 nA
-*   gmin=1e-18 -> 0.366 nA   (ayni -> yakinsadi)
-* 1e-15 yeterli ve guvenli.
+*   gmin=1e-18 -> 0.366 nA   (same -> converged)
+* 1e-15 is sufficient and safe.
 .options gmin=1e-15 abstol=1e-15 reltol=1e-3 itl1=500
-* .op KULLANILIYOR (transient DEGIL): "uic"li transient'te tum dugumler
-* 0'dan baslayip 85 transistorluk direncli zincirden yavasca doluyor;
-* 600 ns'de bile oturmuyordu (65->19->8.7 nA hala azaliyordu) ve sarj
-* akimi sizinti sanilarak ~100x YUKSEK olculuyordu. .op bu kolonda
-* (136 cihaz) yakinsiyor -- tam makroda (34k) yakinsamiyordu.
-* Sonuc log'da "vvdd#branch" satirindan okunur (.measure op ngspice'te
-* sayisal cikti uretmiyor).
+* .op IS USED (NOT a transient): in a transient with "uic" every node starts
+* at 0 and charges slowly through a resistive chain of dozens of transistors;
+* even at 600 ns it had not settled (65 -> 19 -> 8.7 nA, still falling) and the
+* charging current was mistaken for leakage, ~100x too high. .op converges on
+* this column (136 devices) where it did not on the full macro (34k).
+* The result is read from the "vvdd#branch" line of the log (`.measure op`
+* produces no numeric output in ngspice).
 .op
 .end
 """
 else:
-    tb = f"""* {args.macro} kolon {args.col} -- AKTIF CEVRIM ENERJISI (kolon basina)
-* Bir tam cevrimde VDD'den cekilen YUK integrali -> E = Q*VDD.
-* Enerji FREKANSTAN BAGIMSIZ; --tclk degistirilerek dogrulanabilir.
-* Toplam makro enerjisi ~ {NCOL} x (bu deger) + cevre birimi.
+    tb = f"""* {args.macro} column {args.col} -- ACTIVE CYCLE ENERGY (per column)
+* Charge integral drawn from VDD over one full cycle -> E = Q*VDD.
+* The energy is FREQUENCY INDEPENDENT; verify by changing --tclk.
+* Whole-macro energy ~ {NCOL} x (this value) + periphery.
 {HEAD}
 .param TCLK={args.tclk}
 Vprecharge precharge 0 PULSE(0 {{VDD}} {{TCLK/2}} 100p 100p {{TCLK/2-100p}} {{TCLK}})
@@ -131,12 +132,12 @@ Vprecharge precharge 0 PULSE(0 {{VDD}} {{TCLK/2}} 100p 100p {{TCLK/2-100p}} {{TC
 {circuit}
 
 .tran '{args.tclk}/400' '4*TCLK' uic
-* 2. VE 3. cevrim ayri olculur: esit cikmalari devrenin OTURDUGUNU gosterir
-* (uic ile tum dugumler 0'dan basliyor, zincir yavas doluyor).
-* 3. cevrim daha oturmus oldugu icin .lib'e O yazilir.
-* FREKANS BAGIMSIZLIGI DOGRULANDI (2026-09-05, wrom0 kolon 155, TT):
+* Cycles 2 AND 3 are measured separately: equal values prove the circuit has
+* SETTLED (with uic every node starts at 0 and the chain fills slowly).
+* Cycle 3 is the more settled one, so THAT is what goes into the .lib.
+* FREQUENCY INDEPENDENCE VERIFIED (2026-09-05, wrom0 column 155, TT):
 *   TCLK=200n -> q_c3 = 2.342e-13 C
-*   TCLK=400n -> q_c3 = 2.419e-13 C   (periyot 2x, yuk %3.3 farkli)
+*   TCLK=400n -> q_c3 = 2.419e-13 C   (period 2x, charge 3.3% different)
 .measure tran q_c2 integ i(Vvdd) from='TCLK' to='2*TCLK'
 .measure tran q_c3 integ i(Vvdd) from='2*TCLK' to='3*TCLK'
 .measure tran e_col_pj param='abs(q_c3)*VDD*1e12'
@@ -144,5 +145,5 @@ Vprecharge precharge 0 PULSE(0 {{VDD}} {{TCLK/2}} 100p 100p {{TCLK/2-100p}} {{TC
 """
 
 open(args.out, "w").write(tb)
-print(f"yazildi: {args.out}  ({args.macro} kolon {args.col}, {args.mode}, "
-      f"kose={args.corner}, {len(wl_nodes)} wordline)")
+print(f"written: {args.out}  ({args.macro} column {args.col}, {args.mode}, "
+      f"corner={args.corner}, {len(wl_nodes)} wordlines)")

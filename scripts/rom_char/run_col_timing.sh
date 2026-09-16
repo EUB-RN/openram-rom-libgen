@@ -1,19 +1,19 @@
 #!/bin/sh
-# KOLON ZAMANLAMASI: en kotu kolonun bitline bosalma (t_dis_50/t_dis_10) ve
-# on-sarj (t_pre_90/t_pre_99) sureleri, uc kosede.
+# COLUMN TIMING: bitline discharge (t_dis_50/t_dis_10) and precharge
+# (t_pre_90/t_pre_99) of the worst column, three corners.
 #
-# Bu adim akisin cekirdegi: .lib'deki access'in ORTA terimi ve t_pre
-# dogrudan buradan gelir (regen_rom_libs.sh bu loglari okur).
+# This is the core of the flow: the MIDDLE term of `access` and t_pre in the
+# .lib come straight from these logs (regen_rom_libs.sh reads them).
 #
-# NE YAPAR
-#   1) TT deck'ini uretir + kosar   (gen_col_tb_parasitic.py -- ayni zamanda
-#      en kotu kolonu netlistten kendi bulur, graf yuruyusuyle)
-#   2) SS/FF varyantlarini uretir   (make_corner_variant.py -- devre BIREBIR
-#      ayni, yalnizca model/VDD/sicaklik degisir) ve kosar
+# WHAT IT DOES
+#   1) builds and runs the TT deck   (gen_col_tb_parasitic.py -- which also
+#      finds the worst column itself, by walking the netlist graph)
+#   2) builds and runs the SS/FF variants (make_corner_variant.py -- exact same
+#      circuit, only the models/VDD/temperature change)
 #
-# ON KOSUL: <makro>_cap_only.spice (run_cap_extract.sh)
+# PREREQUISITE: <macro>_cap_only.spice (run_cap_extract.sh)
 #
-# Kullanim: scripts/rom_char/run_col_timing.sh [makro ...]
+# Usage: scripts/rom_char/run_col_timing.sh [macro ...]
 
 set -e
 . "$(dirname "$0")/common.sh"
@@ -22,7 +22,7 @@ export NGSPICE_BIN="$NG"
 
 for m in $(macro_list "$@"); do
   load_geom "$m" || continue
-  echo "== $m  (en kotu kolon $G_WORST_COL, seri NMOS $G_CHAIN) =="
+  echo "== $m  (worst column $G_WORST_COL, series NMOS $G_CHAIN) =="
   python3 "$ROM_CHAR_DIR/gen_col_tb_parasitic.py" "$m" "$G_WORST_COL"
   for c in ss ff; do
     python3 "$ROM_CHAR_DIR/make_corner_variant.py" "$m" "$G_WORST_COL" "$c" >/dev/null

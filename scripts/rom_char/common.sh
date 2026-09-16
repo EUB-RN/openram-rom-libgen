@@ -1,32 +1,34 @@
 # shellcheck shell=sh
-# Tum run_*.sh betiklerinin ortak tabani -- `. "$(dirname "$0")/common.sh"`
+# Shared base for every run_*.sh -- `. "$(dirname "$0")/common.sh"`
 #
-# NE SAGLIYOR
-#   ROOT, MACROS_DIR, CHAR_DIR yollari (ROM_MACROS_DIR ile degistirilebilir)
-#   NG / JOBS                         (NGSPICE_BIN, JOBS ile degistirilebilir)
-#   CORNERS "<etiket>:<vdd>:<sicaklik>:<fmax_MHz>"
-#   macro_list  -- argumanlar yoksa makro agacindaki TUM makrolar
-#   load_geom   -- G_COLS / G_WORST_COL / G_CHAIN / G_CHAR ... degiskenleri
-#   meas        -- ngspice .measure satirindan deger ceker
+# WHAT IT PROVIDES
+#   ROOT, MACROS_DIR, LIB_DIR, VERILOG_DIR   (see ROM_MACROS_DIR / ROM_OUT_DIR)
+#   NG / JOBS                                (NGSPICE_BIN, JOBS)
+#   CORNERS "<tag>:<vdd>:<temperature>:<fmax_MHz>"
+#   macro_list  -- every macro in the tree when no arguments are given
+#   load_geom   -- sets G_COLS / G_WORST_COL / G_CHAIN / G_CHAR / ...
+#   meas        -- pull a value out of an ngspice .measure line
 #
-# NEDEN: onceki halde makro listesi, en kotu kolon tablosu, kolon sayisi
-# (256) ve depo yolu her betikte ELLE tekrar ediyordu; ROM yeniden
-# uretildiginde hepsi birden guncellenmezse olcum sessizce yanlis oluyordu.
-# Bkz. rom_paths.py.
+# WHY: the macro list, the worst-column table, the column count (256) and the
+# repository path used to be repeated by hand in every script; if they were
+# not all updated together after a ROM was regenerated, the measurements went
+# silently wrong. See rom_paths.py.
 
 ROM_CHAR_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$ROM_CHAR_DIR/../.." && pwd)"
 MACROS_DIR="$(python3 "$ROM_CHAR_DIR/rom_paths.py" --macros-dir-only)"
+LIB_DIR="$(python3 "$ROM_CHAR_DIR/rom_paths.py" --lib-dir)"
+VERILOG_DIR="$(python3 "$ROM_CHAR_DIR/rom_paths.py" --verilog-dir)"
 
 NG="${NGSPICE_BIN:-ngspice}"
 JOBS="${JOBS:-4}"
 
-# etiket:vdd:sicaklik:fmax(MHz)  -- fmax yalnizca ozet tablodaki P=E*f icin
+# tag:vdd:temperature:fmax(MHz) -- fmax only feeds the P=E*f summary column
 CORNERS="${ROM_CORNERS:-tt:1.8:25:38.2 ss:1.6:100:19.1 ff:1.95:-40:60.7}"
-# .lib CELL_TABLE index_2 (cikis yuku, fF)
+# .lib CELL_TABLE index_2 points (output load, fF)
 LOADS="${LOADS:-1.7225 6.89 27.56}"
 
-# kose etiketi -> .lib kose adi
+# corner tag -> .lib corner name
 corner_lib_name() {
   case "$1" in
     tt) echo "TT_1p8V_25C" ;;
@@ -36,7 +38,7 @@ corner_lib_name() {
   esac
 }
 
-# islenecek makrolar: arguman varsa onlar, yoksa agactaki hepsi
+# macros to process: the arguments, or everything in the tree
 macro_list() {
   if [ "$#" -gt 0 ]; then
     echo "$@"
@@ -45,22 +47,22 @@ macro_list() {
   fi
 }
 
-# G_* geometri degiskenlerini yukler (netlistten turetilir, onbellekli)
+# load the G_* geometry variables (derived from the netlist, cached)
 load_geom() {
   _g=$(python3 "$ROM_CHAR_DIR/rom_paths.py" "$1" --sh) || return 1
   eval "$_g"
 }
 
-# ngspice .measure satirindan deger: meas <log> <olcum_adi>
+# value of an ngspice .measure line: meas <log> <measurement name>
 meas() {
   [ -f "$1" ] || return 0
   grep -m1 "^$2 " "$1" | awk '{print $3}'
 }
 
-# ngspice var mi? (uretici betikler onsuz da calisir, kosum calismaz)
+# is ngspice available? (the generators work without it, the runs do not)
 need_ngspice() {
   command -v "$NG" >/dev/null 2>&1 && return 0
   [ -x "$NG" ] && return 0
-  echo "HATA: ngspice bulunamadi ('$NG'). NGSPICE_BIN ile yolunu verin." >&2
+  echo "ERROR: ngspice not found ('$NG'). Set NGSPICE_BIN to its path." >&2
   exit 1
 }

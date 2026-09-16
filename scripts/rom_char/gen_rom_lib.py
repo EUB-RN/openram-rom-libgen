@@ -1,38 +1,38 @@
 #!/usr/bin/env python3
 """
-OpenRAM ROM makrosu icin Liberty (.lib) zamanlama modeli uretir.
+Generate a Liberty (.lib) timing model for an OpenRAM ROM macro.
 
-NEDEN: OpenRAM'in characterizer'i sadece SRAM icin .lib yaziyor. ROM
-derleyicisi (rom_compiler) yalnizca .sp/.v/.lef/.gds uretir. Sentez ve STA
-icin gereken .lib'i bu betik, LEF'ten cikarilan pin/alan bilgisi ve komut
-satirindan verilen zamanlama/guc sayilariyla uretir.
+WHY: OpenRAM's characterizer only writes a .lib for SRAM. The ROM compiler
+(rom_compiler) emits just .sp/.v/.lef/.gds. This script builds the .lib that
+synthesis and STA need, from the pin/area information in the LEF plus the
+timing/power numbers given on the command line.
 
-Makro yapisi (netlistten): klasik on-sarjli (precharged) ROM, MANDAL YOK:
-    clk_out  = clock_driver(clk0)          (evirici zinciri, evirmez)
+Macro structure (from the netlist): a classic precharged ROM with NO LATCH:
+    clk_out  = clock_driver(clk0)          (inverter chain, non-inverting)
     prechrg  = ~NAND(cs0, clk_out) = cs0 & clk0
-    precharge_cell = PMOS, gate = prechrg  -> prechrg=0 iken on-sarj
-    adres tamponu: A_out = NAND(clk_out, ~A)  -> kod cozme yalnizca clk=1
-    dout0 = 2 evirici (bitline_inverter + output_buffer)
-Sonuc:
-    clk0 = 0 -> bitline'lar VDD'ye on-sarj edilir, dout0 tumu 1
-    clk0 = 1 -> kod cozucu acilir, secili hucreler bitline'i bosaltir
-    dout0 SADECE clk0 yuksek fazinda gecerlidir.
-access = clk0 yukselen kenardan dout0 gecerli olana kadar gecen sure
-         (kod cozme + wordline + bitline bosaltma + tampon).
+    precharge_cell = PMOS, gate = prechrg  -> precharges while prechrg=0
+    address buffer: A_out = NAND(clk_out, ~A)  -> decoding only while clk=1
+    dout0 = two inverters (bitline_inverter + output_buffer)
+Therefore:
+    clk0 = 0 -> the bitlines are precharged to VDD, dout0 is all ones
+    clk0 = 1 -> the decoder opens, selected cells discharge their bitline
+    dout0 is valid ONLY during clk0's high phase.
+access = time from clk0's rising edge until dout0 is valid
+         (decode + wordline + bitline discharge + buffers).
 
-DIKKAT -- asagidaki BASE tablosu yalnizca VARSAYILANDIR ve analitik
-tahmindir. Imza akisinda bu degerler KULLANILMAZ: regen_rom_libs.sh her
-terimi ngspice log'undan okuyup --measured ile buraya gecirir. --measured
-verildiginde CORNERS tablosundaki derating carpanlari da uygulanmaz (deger
-zaten o koseye ait; carpmak cift sayim olurdu).
+CAREFUL -- the BASE table below is only a DEFAULT and an analytic guess. The
+sign-off flow does NOT use those values: regen_rom_libs.sh reads every term out
+of an ngspice log and passes them here with --measured. Under --measured the
+derating factors in the CORNERS table are not applied either (the value already
+belongs to that corner; multiplying would double count).
 
 Kullanim:
-    # normal akis (tum sayilar olculmus, ust betik cagirir):
+    # normal flow (all values measured, called by the top-level script):
     scripts/rom_char/regen_rom_libs.sh
 
-    # tek makro, elle:
+    # a single macro, by hand:
     python3 scripts/rom_char/gen_rom_lib.py --macro wrom0 --memory-type rom
-    python3 scripts/rom_char/gen_rom_lib.py --lef yol/x.lef --corner TT_1p8V_25C
+    python3 scripts/rom_char/gen_rom_lib.py --lef path/x.lef --corner TT_1p8V_25C
     python3 scripts/rom_char/gen_rom_lib.py --macro wrom0 --access 2.4 --hold 2.4
 """
 
@@ -48,20 +48,20 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import rom_paths                                        # noqa: E402
 
-# --lef verilmezse agactaki ILK makronun LEF'i kullanilir; eskiden
-# "rom_17kbyte" adi sabitti ve baska makroda sessizce yanlis pin
-# listesi uretiyordu.
+# Without --lef the FIRST macro in the tree is used; this used to be a
+# hard-coded "rom_17kbyte", which silently produced the wrong pin list for any
+# other macro.
 _found = rom_paths.discover()
 DEFAULT_LEF = rom_paths.lef(_found[0]) if _found else None
 
 # ---------------------------------------------------------------------------
-# Zamanlama knob'lari (ns / mW). TT temel, digerleri derating carpani.
+# Timing knobs (ns / mW). TT is the base, the others are derating factors.
 # ---------------------------------------------------------------------------
-# access  : clk0 yukselen kenar -> dout0 gecerli (en kucuk yukte)
-# t_pre   : bitline on-sarj suresi -> clk0'in dusuk fazi en az bu kadar olmali
-# setup   : addr0/cs0, clk0 yukselmeden once bu kadar kararli olmali
-# hold    : addr0/cs0, clk0 yukseldikten sonra bu kadar kararli kalmali
-#           (degerlendirme penceresi boyunca adres degisemez -> ~access)
+# access  : clk0 rising edge -> dout0 valid (at the smallest load)
+# t_pre   : bitline precharge time -> clk0's low phase must be at least this
+# setup   : addr0/cs0 must be stable this long before clk0 rises
+# hold    : addr0/cs0 must stay stable this long after clk0 rises
+#           (the address cannot change during evaluate -> ~access)
 BASE = {
     "access": 3.00,
     "t_pre": 2.80,
@@ -70,25 +70,29 @@ BASE = {
     "leakage_mw": 0.050,
 }
 
-# ad -> (proses, gerilim, sicaklik, gecikme carpani, kisit carpani)
+# name -> (process, voltage, temperature, delay factor, constraint factor)
 CORNERS = OrderedDict([
     ("TT_1p8V_25C", (1.0, 1.80, 25, 1.00, 1.00)),
     ("SS_1p6V_100C", (1.0, 1.60, 100, 1.85, 1.50)),
     ("FF_1p95V_n40C", (1.0, 1.95, -40, 0.65, 0.70)),
 ])
 
-# Yuk/egim tablolari -- OpenRAM'in SRAM lib'leriyle ayni index'ler (pF, ns)
+# Load/slew tables -- the same indices as OpenRAM's SRAM libs (pF, ns)
 CAP_INDEX = [0.0017224999999999999, 0.006889999999999999, 0.027559999999999998]
 SLEW_INDEX = [0.00125, 0.005, 0.04]
-# Cikis surucusu pinv_dec_4 (wp=5.0 wn=1.68); yuk duyarliligi OpenRAM'in
-# ayni sinif surucu kullanan SRAM lib'inden alindi.
+# Output driver pinv_dec_4 (wp=5.0 wn=1.68); the load sensitivity was taken
+# from an OpenRAM SRAM lib using the same class of driver.
+# NOTE: these are fallbacks only -- with --backend-ns/--out-slew-ns the
+# measured numbers are used instead.
 LOAD_DELTA = [0.000, 0.029, 0.145]
 OUT_SLEW = [0.002, 0.005, 0.016]
 
-# Giris pin kapasiteleri -- netlistteki kapi genisliklerinden (pF)
-#   clk0 -> clock_driver ilk evirici (pinv: wp=1.12 wn=0.36 um)
-#   cs0  -> control_nand girisi      (wp=1.12 wn=0.74 um)
-#   addr -> inv_array_mod girisi     (wp=3.00 wn=0.74 um)
+# Input pin capacitances -- estimated from gate widths in the netlist (pF).
+# These are ANALYTIC, not measured; they are the one part of the .lib that
+# still comes from a hand calculation.
+#   clk0 -> first inverter of the clock driver (pinv: wp=1.12 wn=0.36 um)
+#   cs0  -> control_nand input                 (wp=1.12 wn=0.74 um)
+#   addr -> inv_array_mod input                (wp=3.00 wn=0.74 um)
 PIN_CAP = {"clk0": 0.0025, "cs0": 0.0030, "_default": 0.0060}
 MAX_CAP = 0.027559999999999998
 MIN_CAP = 0.0017224999999999999
@@ -96,18 +100,18 @@ MAX_TRANSITION = 0.04
 
 
 def parse_lef(path):
-    """LEF'ten makro adi, boyut ve pin listesi (yon korunarak) cikarir."""
+    """Extract macro name, size and pin list (directions kept) from the LEF."""
     with open(path) as fh:
         text = fh.read()
 
     m = re.search(r"^\s*MACRO\s+(\S+)", text, re.M)
     if not m:
-        sys.exit("LEF icinde MACRO bulunamadi: %s" % path)
+        sys.exit("no MACRO found in the LEF: %s" % path)
     name = m.group(1)
 
     m = re.search(r"^\s*SIZE\s+([\d.]+)\s+BY\s+([\d.]+)\s*;", text, re.M)
     if not m:
-        sys.exit("LEF icinde SIZE bulunamadi: %s" % path)
+        sys.exit("no SIZE found in the LEF: %s" % path)
     width, height = float(m.group(1)), float(m.group(2))
 
     pins = OrderedDict()
@@ -125,7 +129,7 @@ def parse_lef(path):
 
 
 def group_buses(pins):
-    """pin[3] seklindeki pinleri bus'lara toplar."""
+    """Group pins written as pin[3] into buses."""
     buses = OrderedDict()
     scalars = OrderedDict()
     for pname, info in pins.items():
@@ -143,7 +147,7 @@ def group_buses(pins):
 
 
 def table(rows, pad):
-    """3x3 lookup tablosunu Liberty values(...) govdesi olarak bicimler."""
+    """Format a 3x3 lookup table as a Liberty values(...) body."""
     out = []
     for i, row in enumerate(rows):
         prefix = "" if i == 0 else pad
@@ -169,67 +173,69 @@ def constraint_block(setup_rows, hold_rows, indent):
 
 def gen_lib(name, area, buses, scalars, corner, args):
     proc, volt, temp, dscale, cscale = CORNERS[corner]
-    # --measured: access/t_pre/hold ZATEN bu koseye ait (o kosenin kendi
-    # sky130 modeliyle ngspice'te olculdu) -> tekrar olceklemek CIFT SAYIM.
-    # SETUP: hala DOGRUDAN olculmedi, ama artik --measured modunda cagiran
-    # taraf KOSE BASINA bir deger geciyor (regen_rom_libs.sh: olculen
-    # t_clk2pre'nin 3 kati). t_clk2pre, clk0'dan on-sarj/wordline'a giden
-    # OLCULMUS yoldur; adres yolu ayni wordline'a daha cok decode kati
-    # uzerinden varir (adres tamponu -> predecode -> nand2_dec -> row_decode
-    # -> wordline_driver), dolayisiyla 3x kotumser bir ust sinirdir.
-    # Kose basina deger geldigi icin cscale ile TEKRAR olceklemek cift
-    # sayim olurdu -> --measured'da sscale = 1. Marjlar (pw_high/pw_low
-    # icindeki 0.5/0.2) analitik oldugu icin kose deratingi ile olceklenmeye
-    # devam eder.
+    # --measured: access/t_pre/hold ALREADY belong to this corner (measured in
+    # ngspice with that corner's own sky130 models) -> scaling them again would
+    # be DOUBLE COUNTING.
+    # SETUP is now measured too (run_addr_setup.sh); when no measurement exists
+    # the caller passes a pessimistic bound of 3 x t_clk2pre instead. Either
+    # way the value is already per-corner, so scaling it with cscale again
+    # would double count -> sscale = 1 under --measured. The margins (the
+    # 0.5/0.2 inside pw_high/pw_low) are analytic, so they keep being scaled by
+    # the corner derating.
     mscale = 1.0 if args.measured else dscale   # olculen buyuklukler
     hscale = 1.0 if args.measured else cscale   # hold, olculen access'i izler
-    sscale = 1.0 if args.measured else cscale   # setup, kose basina geliyor
+    sscale = 1.0 if args.measured else cscale   # setup arrives per corner
     access = args.access * mscale
     t_pre = args.t_pre * mscale
     setup = args.setup * sscale
     hold = args.hold * hscale
-    # --- access'in UC TERIMI --------------------------------------------
-    # .lib'deki `access` clk0 yukselen kenarindan dout0 gecerli olana
-    # kadardir. Kolon olcumu (t_dis_50) bunun yalnizca ORTA terimidir --
-    # TRIG'i ic `precharge` agindan alir ve bitline'da biter:
+    # --- the THREE TERMS of access ---------------------------------------
+    # `access` in the .lib runs from clk0's rising edge until dout0 is valid.
+    # The column measurement (t_dis_50) is only the MIDDLE term -- it triggers
+    # off the internal `precharge` net and ends at the bitline:
     #   1) t_front : clk0 -> precharge / wordline
     #                (gen_periphery_power_tb.py: t_clk2pre / t_clk2wl)
-    #   2) access  : precharge -> bitline %50  (col*_worst_case_parasitic)
+    #   2) access  : precharge -> bitline 50%  (col*_worst_case_parasitic)
     #   3) backend : bitline -> dout0          (gen_backend_delay_tb.py)
-    #                bitline eviricisi + 264:8 kolon mux + cikis tamponu
-    # 1 ve 3 gecilmezse eski (EKSIK) davranis korunur; .lib basliginda
-    # bunun eksik oldugu ayrica yazilir.
+    #                bitline inverter + column mux + output buffer
+    # Without 1 and 3 the old (INCOMPLETE) behaviour is kept, and the .lib
+    # header says so explicitly.
     t_front = (args.t_front or 0.0) * (1.0 if args.measured else dscale)
     be = None
     if args.backend_ns:
         be = [float(x) for x in args.backend_ns.split(",")]
         if len(be) != 3:
-            sys.exit("--backend-ns tam 3 deger ister (CELL_TABLE index_2)")
+            sys.exit("--backend-ns needs exactly 3 values (CELL_TABLE index_2)")
     sl = None
     if args.out_slew_ns:
         sl = [float(x) for x in args.out_slew_ns.split(",")]
         if len(sl) != 3:
-            sys.exit("--out-slew-ns tam 3 deger ister")
-    # pencereler ve hold en kotu cikis yukundeki TAM access'i kullanir --
-    # veri o ana kadar gecerli degil.
+            sys.exit("--out-slew-ns needs exactly 3 values")
+    # the windows and hold use the FULL access at the worst output load --
+    # the data is not valid before that.
     access_eff = (t_front + access + max(be)) if be else (access + max(LOAD_DELTA))
 
-    # NOT: pencereler ve hold, access'in TAM halini (on uc + bitline + arka
-    # uc, en kotu cikis yukunde) kullanir -- veri o ana kadar gecerli degil.
+    # NOTE: the windows and hold use the COMPLETE access (front end + bitline
+    # + back end, at the worst output load) -- data is not valid before that.
     pw_high = access_eff + 0.5 * dscale  # degerlendirme + pay (pay analitik)
     pw_low = t_pre + 0.2 * dscale        # on-sarj + pay (pay analitik)
     period = pw_high + pw_low
-    leak = args.leakage_mw  # dogrudan olculen deger -- kose bazinda ARTIK
-                             # ayri ayri geciliyor, tersine dscale ile
-                             # olceklenmiyor (eski ters-dscale varsayimi
-                             # SS/FF timing carpanlari gibi yanlis cikabilirdi)
+    # column mux ratio: <columns>:<data bits> -- for the .lib header
+    _dbits = len(buses["dout0"]["bits"]) if "dout0" in buses else 0
+    mux_ratio = ("%d:%d" % (args.cols, _dbits) if args.cols and _dbits
+                 else "column")
+
+    leak = args.leakage_mw  # measured directly -- now passed per corner and
+                             # NOT scaled by an inverse dscale (that old
+                             # assumption could be as wrong as the SS/FF timing
+                             # factors turned out to be)
 
     delay_rows = ([[t_front + access + b for b in be]] * 3 if be
                   else [[access + d for d in LOAD_DELTA]] * 3)
     slew_rows = [list(sl)] * 3 if sl else [list(OUT_SLEW)] * 3
     if be:
-        # adres/cs0 degerlendirme penceresi boyunca kararli kalmali; pencere
-        # artik TAM access kadar (on uc + bitline + arka uc).
+        # addr0/cs0 must stay stable through evaluate; that window is now the
+        # FULL access (front end + bitline + back end).
         hold = access_eff
     setup_rows = [[setup] * 3] * 3
     hold_rows = [[hold] * 3] * 3
@@ -243,71 +249,76 @@ def gen_lib(name, area, buses, scalars, corner, args):
     w = o.append
     w("/* -------------------------------------------------------------------")
     w(" * %s -- %s" % (name, corner))
-    w(" * OTOMATIK URETILDI: scripts/rom_char/gen_rom_lib.py  -- ELLE DUZENLEMEYIN")
+    w(" * AUTO-GENERATED by scripts/rom_char/gen_rom_lib.py -- DO NOT EDIT")
     w(" *")
-    w(" * OpenRAM ROM derleyicisi .lib yazmaz; bu dosya LEF pinleri +")
-    w(" * %s.sp'den cikarilan devre yapisi uzerinden uretildi." % name)
+    w(" * The OpenRAM ROM compiler does not write a .lib; this file was built")
+    w(" * from the LEF pins plus the circuit structure extracted from %s.sp."
+      % name)
     w(" *")
-    w(" * Model: on-sarjli NAND-tipi (seri zincirli) ROM, cikista mandal YOK.")
-    w(" *   clk0 = 0 -> bitline on-sarj (dout0 tumu 1)")
-    w(" *   clk0 = 1 -> degerlendirme; secili 'bit=0' hucreler bitline'i")
+    w(" * Model: precharged NAND-style (series chain) ROM, NO output latch.")
+    w(" *   clk0 = 0 -> bitlines precharge (dout0 all ones)")
+    w(" *   clk0 = 1 -> evaluate; the selected cells discharge the bitline")
     if args.chain_len:
-        w(" *   en kotu durumda ~%d seri NMOS uzerinden bosaltir (kolon %s);"
+        w(" *   worst case through ~%d series NMOS (column %s);"
           % (args.chain_len, args.worst_col if args.worst_col else "?"))
-        w(" *   dout0 %.3f ns sonra gecerli" % access)
+        w(" *   dout0 valid %.3f ns later" % access)
     else:
-        w(" *   secili hucreler bitline'i seri zincir uzerinden bosaltir;")
-        w(" *   dout0 %.3f ns sonra gecerli" % access)
-    w(" *   clk0 dusunce dout0 GECERSIZLESIR. Tuketici ya clk0'in dusen")
-    w(" *   kenarinda ornekler, ya da makro ters saatle surulur (clk0 = ~clk)")
-    w(" *   ve veri sistem saatinin yukselen kenarinda yakalanir.")
+        w(" *   through the series chain;")
+        w(" *   dout0 valid %.3f ns later" % access)
+    w(" *   dout0 becomes INVALID when clk0 falls. The consumer must either")
+    w(" *   sample on clk0's falling edge, or drive the macro with an inverted")
+    w(" *   clock (clk0 = ~clk) and capture on the system clock's rising edge.")
     w(" *")
-    w(" * KAYNAK: access/t_pre degerleri %s ngspice"
-      % (args.char_source if args.char_source else "izole-kolon"))
-    w(" * olcumunden geliyor -- BU kose (%s) kendi sky130 model" % corner)
-    w(" * dosyasiyla (tt/ss/ff) AYRI AYRI simule edildi; sabit carpanla")
-    w(" * olcekleme YAPILMADI. Olcum bunun gerekli oldugunu gosterdi: eski")
-    w(" * SS x1.85 varsayimi gercekte olculen x2.76'ya gore %33 IYIMSERDI.")
-    w(" * Yontem: docs/guides/rom_lib_uretimi.md. Bu betik --access/--t-pre")
-    w(" * gecilmezse eski analitik varsayilan (yanlis NOR modeline dayanir)")
-    w(" * kullanir -- imza icin HER ZAMAN olculen degerle cagirin.")
+    w(" * SOURCE: access/t_pre come from ngspice measurements on %s"
+      % (args.char_source if args.char_source else "an isolated column"))
+    w(" * -- THIS corner (%s) was simulated separately with its own" % corner)
+    w(" * sky130 model files (tt/ss/ff); no fixed scaling factor was used.")
+    w(" * Measurement showed that this matters: the old SS x1.85 assumption was")
+    w(" * 33% optimistic against the x2.76 that was actually measured.")
+    w(" * Without --access/--t-pre this script falls back to analytic defaults")
+    w(" * (based on a wrong NOR model) -- for sign-off ALWAYS call it with")
+    w(" * measured values, i.e. through regen_rom_libs.sh.")
     w(" *")
     if be:
-        w(" * ACCESS UC TERIMDEN OLUSUR (hepsi olculdu):")
+        w(" * ACCESS IS THE SUM OF THREE TERMS (all measured):")
         w(" *   clk0 -> precharge/wordline : %.4f ns" % t_front)
-        w(" *   precharge -> bitline %%50   : %.4f ns" % access)
-        w(" *   bitline -> dout0           : %.4f .. %.4f ns (cikis yukune gore)"
+        w(" *   precharge -> bitline 50%%   : %.4f ns" % access)
+        w(" *   bitline -> dout0           : %.4f .. %.4f ns (vs output load)"
           % (min(be), max(be)))
-        w(" *   TOPLAM (en kotu yuk)       : %.4f ns" % access_eff)
-        w(" * Onceki surumlerde yalnizca ORTA terim vardi; on uc ve arka uc")
-        w(" * (bitline eviricisi + 264:8 kolon mux + cikis tamponu) EKSIKTI.")
+        w(" *   TOTAL (worst load)         : %.4f ns" % access_eff)
+        w(" * Earlier versions had only the MIDDLE term; the front end and the")
+        w(" * back end (bitline inverter + %s column mux + output buffer) were"
+          % mux_ratio)
+        w(" * MISSING.")
     else:
-        w(" * UYARI: access yalnizca bitline terimini kapsiyor. clk0 ->")
-        w(" * precharge/wordline ve bitline -> dout0 (evirici + mux + cikis")
-        w(" * tamponu) EKSIK. --t-front / --backend-ns ile olculen degerleri")
-        w(" * gecin (scripts/rom_char/gen_backend_delay_tb.py).")
+        w(" * WARNING: access covers only the bitline term. clk0 ->")
+        w(" * precharge/wordline and bitline -> dout0 (inverter + mux + output")
+        w(" * buffer) are MISSING. Pass the measured values with --t-front /")
+        w(" * --backend-ns (scripts/rom_char/gen_backend_delay_tb.py).")
     if sl:
-        w(" * Cikis gecis suresi OLCULDU: %.4f .. %.4f ns" % (min(sl), max(sl)))
+        w(" * Output transition time MEASURED: %.4f .. %.4f ns" % (min(sl), max(sl)))
     else:
-        w(" * UYARI: rise/fall_transition OLCULMEDI (sabit tahmin) --")
-        w(" * olcum bunun 30-300 kat dusuk oldugunu gosterdi.")
+        w(" * WARNING: rise/fall_transition NOT MEASURED (fixed guess) --")
+        w(" * measurement showed that guess was 30-300x too low.")
     if args.energy_pj or args.energy_idle_pj:
         w(" *")
-        w(" * GUC MODELI: clk0 pininde internal_power = CEVRIM BASINA ENERJI")
-        w(" * (pJ); frekansi guc araci uygular (P = E*f*aktivite).")
+        w(" * POWER MODEL: internal_power on clk0 is ENERGY PER CYCLE (pJ);")
+        w(" * the power tool applies the frequency (P = E*f*activity).")
         if args.energy_pj:
-            w(" *   when \"cs0\"  = %.4f pJ  (okuma: kolon dizisi + cevre birimi)"
+            w(" *   when \"cs0\"  = %.4f pJ  (read: column array + periphery)"
               % args.energy_pj)
         if args.energy_idle_pj:
-            w(" *   when \"!cs0\" = %.4f pJ  (BOSTA: cs0 yalnizca on-sarji"
+            w(" *   when \"!cs0\" = %.4f pJ  (IDLE: cs0 only gates the"
               % args.energy_idle_pj)
-            w(" *     kapatir; clk_int agaci + adres tamponlari + satir kod")
-            w(" *     cozucu + 128 wordline secili olmasa da anahtarlanir.")
-            w(" *     Bu blok eksik birakilirsa OpenSTA sessizce 0 sayar.)")
+            w(" *     precharge; the clk_int tree, the address buffers, the row")
+            w(" *     decoder and %s wordlines switch even when deselected."
+              % (args.rows if args.rows else "all"))
+            w(" *     Leave this block out and OpenSTA silently scores it 0.)")
         else:
-            w(" *   when \"!cs0\" = YAZILMADI -- bosta guc SIFIR sayilir, bu")
-            w(" *     YANLIS. scripts/rom_char/gen_periphery_power_tb.py ile olcup")
-            w(" *     --energy-idle-pj ile gecin.")
+            w(" *   when \"!cs0\" = NOT WRITTEN -- idle power is then taken as")
+            w(" *     ZERO, which is WRONG. Measure it with")
+            w(" *     scripts/rom_char/gen_periphery_power_tb.py and pass")
+            w(" *     --energy-idle-pj.")
     w(" * ----------------------------------------------------------------- */")
     w("library (%s_%s) {" % (name, corner))
     w('    delay_model : "table_lookup";')
@@ -343,10 +354,10 @@ def gen_lib(name, area, buses, scalars, corner, args):
     w("    default_input_pin_cap    : 1.0;")
     w("    default_inout_pin_cap    : 1.0;")
     w("    default_output_pin_cap   : 0.0;")
-    # default_max_transition olculen cikis egimini KAPSAMALI: SS'de dout0
-    # gecis suresi 5.35 ns'ye kadar cikiyor (bitline cok yavas dustugu icin),
-    # eski sabit 0.5 ns kutuphaneyi KENDI ICINDE tutarsiz birakiyordu --
-    # araclar makronun kendi cikisini max_transition ihlali sayardi.
+    # default_max_transition MUST COVER the measured output slew: at SS the
+    # dout0 transition reaches 5.35 ns (the bitline falls very slowly), and the
+    # old fixed 0.5 ns left the library SELF-INCONSISTENT -- tools flagged the
+    # macro's own output as a max_transition violation.
     w("    default_max_transition   : %.4f;"
       % (max(sl) * 1.2 if sl else 0.5))
     w("    default_fanout_load      : 1.0;")
@@ -388,8 +399,8 @@ def gen_lib(name, area, buses, scalars, corner, args):
     w("")
     w("cell (%s) {" % name)
     w("    memory() {")
-    # Liberty "rom" tipini de tanir; bazi eski parser'lar sadece "ram"
-    # kabul ettigi icin varsayilan ram (--memory-type rom ile degistirin).
+    # Liberty also knows the "rom" type; the default is "ram" because some old
+    # parsers only accept that (switch with --memory-type rom).
     w("        type : %s;" % args.memory_type)
     w("        address_width : %d;" % addr_bits)
     w("        word_width : %d;" % data_bits)
@@ -486,37 +497,42 @@ def gen_lib(name, area, buses, scalars, corner, args):
     w('            fall_constraint(scalar) { values("%.4f"); }' % period)
     w("        }")
     if args.energy_pj or args.energy_idle_pj:
-        # internal_power = anahtarlama basina ENERJI (guc DEGIL!).
-        # Liberty birimleri V*mA*ns = pJ. Frekansi guc araci kendi uygular:
-        #     P_dinamik = E * f * aktivite
-        # Bu yuzden karakterizasyonda frekans bilmeye gerek YOK. Olculen
-        # buyukluk bir cevrimde VDD'den cekilen YUK integrali Q; E = Q*VDD.
-        # Frekans bagimsizligi deneysel dogrulandi (2026-09-05, wrom0 kol.155):
-        #     TCLK=200n -> q=2.342e-13 C ; TCLK=400n -> q=2.419e-13 C  (%3.3)
-        # ROM her clk cevriminde TUM bitline'lari on-sarj edip
-        # degerlendirdigi icin enerji clk0 pinine yazilir.
-        # "when" SART: OpenSTA kosulsuz internal_power blogunu SAYMIYOR
-        # (2026-09-05'te dogrulandi -- kosulsuz blokla Macro internal power
-        # hic degismedi, report_power ornekte 0.000000e+00 gosterdi).
-        # Calisan referans: sky130_sram_*.lib, pin(clk0) icinde
+        # internal_power is ENERGY per switching event (NOT power!).
+        # Its Liberty units are V*mA*ns = pJ. The power tool applies the
+        # frequency itself:
+        #     P_dynamic = E * f * activity
+        # so characterization never needs to know the frequency. What is
+        # measured is the charge Q drawn from VDD over one cycle; E = Q*VDD.
+        # Frequency independence was verified experimentally (2026-09-05):
+        #     TCLK=200n -> q=2.342e-13 C ; TCLK=400n -> q=2.419e-13 C  (3.3%)
+        # The energy is attached to the clk0 pin because the ROM precharges and
+        # evaluates ALL bitlines on every clock cycle.
+        # The "when" clause IS REQUIRED: OpenSTA does not count an
+        # unconditional internal_power block (verified 2026-09-05 -- with an
+        # unconditional block the macro internal power never changed and
+        # report_power showed 0.000000e+00).
+        # Working reference: sky130_sram_*.lib, inside pin(clk0)
         #   internal_power(){ when : "!csb0 & !web0"; rise_power(scalar){...} }
-        # ROM'da cs0 aktif-YUKSEK (control_nand(CS, clk_out)), okuma cs0=1'de.
+        # In this ROM cs0 is active HIGH (control_nand(CS, clk_out)), so a read
+        # happens at cs0=1.
         #
-        # IKI DURUM DA YAZILIR. Eksik birakilan durum icin OpenSTA sessizce
-        # 0 sayar -- uyari bile vermez, guc raporu oldugundan dusuk cikar.
-        # Referans OpenRAM SRAM .lib'i de dort csb/web kombinasyonunu birden
-        # yaziyor (sky130_sram_1kbyte_..._TT_1p8V_25C.lib:327-360).
+        # BOTH STATES ARE WRITTEN. For a state left out, OpenSTA silently
+        # scores zero -- without a warning -- and the power report comes out too
+        # low. The reference OpenRAM SRAM .lib also writes all four csb/web
+        # combinations.
         #
-        # !cs0 NEDEN SIFIR DEGIL: cs0 yalnizca on-sarj yolunu kapatir.
-        #     clk_int   = clock_driver(clk0)        -> cs0'dan BAGIMSIZ
-        #     precharge = ~NAND(cs0, clk_int)       -> cs0=0 iken SABIT 0
-        # Satir kod cozucu clk_int ile surulur (wrom0.sp: Xrom_row_decoder'in
-        # clk portu clk_int'e bagli), yani makro secili DEGILKEN de her
-        # cevrimde saat agaci + adres tamponlari + kod cozucu + 128 wordline
-        # anahtarlanir. Bitline'lar VDD'de tutulur (ayak transistoru kapali)
-        # -> onlarin payi yalnizca sizintidir, o da leakage_power'da sayili.
-        # Olcum: scripts/rom_char/gen_periphery_power_tb.py (cevre birimi izole,
-        # hucre dizisi lump yukle temsil edilir -- kolon yonteminin aynisi).
+        # WHY !cs0 IS NOT ZERO: cs0 only gates the precharge path.
+        #     clk_int   = clock_driver(clk0)        -> INDEPENDENT of cs0
+        #     precharge = ~NAND(cs0, clk_int)       -> stuck at 0 while cs0=0
+        # The row decoder is driven by clk_int (its clk port is tied to
+        # clk_int at top level), so even while the macro is DESELECTED the
+        # clock tree, the address buffers, the decoder and all the wordlines
+        # switch every cycle. The bitlines stay at VDD with the foot transistor
+        # off -> their contribution is leakage only, already counted in
+        # leakage_power.
+        # Measured by scripts/rom_char/gen_periphery_power_tb.py (periphery in
+        # isolation, the cell array represented by a lumped load -- the same
+        # method as the column slice).
         if args.energy_pj:
             w("        internal_power() {")
             w('            when : "cs0";')
@@ -544,80 +560,91 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--lef", default=DEFAULT_LEF)
     ap.add_argument("--macro", default=None,
-                    help="makro adi -- LEF yolu agactan bulunur (--lef yerine)")
+                    help="macro name -- its LEF is found in the tree (instead of --lef)")
     ap.add_argument("--macros-dir", default=None,
-                    help="makro agaci (varsayilan: ROM_MACROS_DIR / <depo>/examples)")
+                    help="macro tree (default: ROM_MACROS_DIR / <repo>/examples)")
     ap.add_argument("--outdir", default=None,
-                    help="varsayilan: LEF ile ayni dizin")
+                    help="output directory (default: $ROM_OUT_DIR/lib)")
     ap.add_argument("--corner", action="append", choices=list(CORNERS),
-                    help="uretilecek kose (birden fazla verilebilir)")
+                    help="corner to generate (may be given more than once)")
     ap.add_argument("--memory-type", default="ram", choices=["ram", "rom"])
     ap.add_argument("--chain-len", type=int, default=None,
-                    help="en kotu kolondaki seri NMOS sayisi (yalnizca .lib basligi icin)")
+                    help="series NMOS count of the worst column (.lib header only)")
     ap.add_argument("--worst-col", type=int, default=None,
-                    help="en kotu kolon numarasi (yalnizca .lib basligi icin)")
+                    help="worst column number (.lib header only)")
+    ap.add_argument("--rows", type=int, default=None,
+                    help="array row count (= number of wordlines, .lib header only)")
+    ap.add_argument("--cols", type=int, default=None,
+                    help="array column count (.lib header only)")
     ap.add_argument("--char-source", default=None,
-                    help="olcum kaynagi aciklamasi (yalnizca .lib basligi icin)")
+                    help="description of the measurement source (.lib header only)")
     ap.add_argument("--energy-pj", type=float, default=None,
-                    help="bir okuma cevriminin ENERJISI (pJ, olculen). Verilirse "
-                         "clk0 pinine internal_power blogu yazilir. Frekans "
-                         "GEREKMEZ -- guc araci P=E*f*aktivite'yi kendi hesaplar.")
+                    help="ENERGY of one read cycle (pJ, measured). If given, "
+                         "an internal_power block is written on clk0. No "
+                         "frequency needed -- the power tool computes "
+                         "P=E*f*activity itself.")
     ap.add_argument("--t-front", type=float, default=None,
-                    help="clk0 -> precharge/wordline gecikmesi (ns, olculen). "
-                         "Kolon olcumu TRIG'i ic precharge agindan aldigi icin "
-                         "bu terim access'te EKSIKTI.")
+                    help="clk0 -> precharge/wordline delay (ns, measured). "
+                         "Because the column measurement triggers off the "
+                         "internal precharge net, this term was MISSING from "
+                         "access.")
     ap.add_argument("--backend-ns", default=None,
-                    help="bitline -> dout0 gecikmesi, CELL_TABLE index_2'nin "
-                         "UC yuk noktasi icin virgullu (ns, olculen): bitline "
-                         "eviricisi + kolon mux + cikis tamponu. Verilmezse "
-                         "eski (eksik) LOAD_DELTA tahmini kullanilir.")
+                    help="bitline -> dout0 delay as a comma-separated list "
+                         "(ns, measured) for the THREE CELL_TABLE index_2 load "
+                         "points: bitline inverter + column mux + output "
+                         "buffer. Without it the old (incomplete) LOAD_DELTA "
+                         "guess is used.")
     ap.add_argument("--out-slew-ns", default=None,
-                    help="dout0 gecis suresi (%%10-%%90), uc yuk noktasi icin "
-                         "virgullu (ns, olculen). Verilmezse eski sabit "
-                         "OUT_SLEW tahmini kullanilir -- o tahmin olcumun "
-                         "30-300 kati altinda cikti.")
+                    help="dout0 transition time (10%%-90%%) as a comma-"
+                         "separated list (ns, measured) for the three load "
+                         "points. Without it the old fixed OUT_SLEW guess is "
+                         "used -- which turned out to be 30-300x too low.")
     ap.add_argument("--energy-idle-pj", type=float, default=None,
-                    help="makro SECILI DEGILKEN (cs0=0) bir clk0 cevriminin "
-                         "ENERJISI (pJ, olculen). Verilirse clk0 pinine "
-                         "when:\"!cs0\" internal_power blogu yazilir. cs0 "
-                         "yalnizca on-sarji kapatir; saat agaci ve satir kod "
-                         "cozucu bosta da calisir -- bu deger SIFIR DEGILDIR.")
+                    help="ENERGY of one clk0 cycle while the macro is "
+                         "DESELECTED (cs0=0) (pJ, measured). If given, a "
+                         "when:\"!cs0\" internal_power block is written on "
+                         "clk0. cs0 only gates the precharge; the clock tree "
+                         "and the row decoder keep running -- this value is "
+                         "NOT ZERO.")
     ap.add_argument("--measured", action="store_true",
-                    help="gecilen access/t_pre ZATEN --corner ile verilen koseye ait "
-                         "(o kosenin kendi ngspice olcumu); CORNERS tablosundaki "
-                         "dscale/cscale carpanlari UYGULANMAZ. Uc kose de ayri "
-                         "olculdugu icin imza akisinda DOGRU kullanim budur.")
+                    help="the access/t_pre passed in ALREADY belong to the "
+                         "corner given with --corner (that corner's own "
+                         "ngspice measurement); the dscale/cscale factors in "
+                         "the CORNERS table are NOT applied. Since all three "
+                         "corners are measured separately, this is the correct "
+                         "usage for sign-off.")
     for key, val in BASE.items():
         ap.add_argument("--" + key.replace("_", "-"), dest=key, type=float,
-                        default=val, help="varsayilan %s" % val)
+                        default=val, help="default %s" % val)
     args = ap.parse_args()
 
     if args.macro:
         args.lef = rom_paths.lef(args.macro, args.macros_dir)
     if not args.lef:
-        sys.exit("HATA: LEF yok. --lef <yol> veya --macro <ad> verin "
-                 "(ya da ROM_MACROS_DIR ayarlayin).")
+        sys.exit("ERROR: no LEF. Pass --lef <path> or --macro <name> "
+                 "(or set ROM_MACROS_DIR).")
 
     name, width, height, pins = parse_lef(args.lef)
     area = width * height
     buses, scalars = group_buses(pins)
-    outdir = args.outdir or os.path.dirname(os.path.abspath(args.lef))
+    # Deliverables go to $ROM_OUT_DIR/lib by default, not next to the macro.
+    outdir = args.outdir or rom_paths.lib_dir()
     corners = args.corner or list(CORNERS)
 
-    print("makro   : %s" % name)
-    print("boyut   : %.2f x %.2f um -> alan %.2f um2" % (width, height, area))
-    print("bus     : %s" % ", ".join(
+    print("macro    : %s" % name)
+    print("size     : %.2f x %.2f um -> area %.2f um2" % (width, height, area))
+    print("buses    : %s" % ", ".join(
         "%s[%d:0] (%s)" % (b, len(i["bits"]) - 1, i["direction"])
         for b, i in buses.items()))
-    print("skaler  : %s" % ", ".join(scalars))
-    print("access  : %.3f ns (TT), hold %.3f ns, on-sarj %.3f ns"
+    print("scalars  : %s" % ", ".join(scalars))
+    print("access   : %.3f ns (TT), hold %.3f ns, precharge %.3f ns"
           % (args.access, args.hold, args.t_pre))
     for corner in corners:
         text = gen_lib(name, area, buses, scalars, corner, args)
         path = os.path.join(outdir, "%s_%s.lib" % (name, corner))
         with open(path, "w") as fh:
             fh.write(text)
-        print("yazildi : %s (%d satir)" % (path, text.count("\n")))
+        print("written  : %s (%d lines)" % (path, text.count("\n")))
 
 
 if __name__ == "__main__":

@@ -1,42 +1,42 @@
 #!/usr/bin/env python3
-"""ROM'un ARKA UC gecikmesini olcer: bitline -> dout0.
+"""Measure the ROM's BACK END delay: bitline -> dout0.
 
-NEDEN GEREKLI:
-  Mevcut `access` sayisi (col<N>_worst_case_parasitic.log, t_dis_50) yalnizca
-  BITLINE'a kadar olan yolu kapsiyor:
+WHY IT IS NEEDED:
+  The existing `access` number (col<N>_worst_case_parasitic.log, t_dis_50)
+  covers only the path up to the BITLINE:
       .measure t_dis_50 TRIG v(precharge) ... TARG v(bl_0_155) ...
-  Oysa .lib'deki `access`, clk0 yukselen kenarindan dout0'in gecerli
-  olmasina kadar gecen suredir. Netliste gore (wrom0.sp ust seviye):
-      bl_N -> rom_bitline_inverter -> bl_b_N -> rom_column_mux (264:8 gecis
-      transistoru) -> rom_out_prebuf_k -> rom_output_buffer -> dout0[k]
-  Bu uc kademe HIC olculmemisti. Ustelik bitline cok yavas dusuyor
-  (wrom0 TT'de %50->%10 gecisi 13.8 ns, ~52 mV/ns), yani evirici esigi
-  cok gec/erken tetiklenebilir -- tahminle gecilecek bir terim degil.
+  But `access` in the .lib runs from the rising edge of clk0 until dout0 is
+  valid. Per the netlist (top level of <macro>.sp):
+      bl_N -> rom_bitline_inverter -> bl_b_N -> rom_column_mux (pass
+      transistors) -> rom_out_prebuf_k -> rom_output_buffer -> dout0[k]
+  Those three stages were never measured. And since the bitline falls very
+  slowly (13.8 ns from 50% to 10% on wrom0 at TT, ~52 mV/ns) the inverter
+  threshold can trip much later or earlier than expected -- not a term you can
+  guess.
 
-YONTEM (periphery betigiyle ayni "dilim x adet" mantigi):
-  Cikarilan netlistten (<macro>_cap_only.spice, gercek Magic parazitik C)
-  ust seviyede YALNIZCA arka uc ornekleri tutulur:
-      rom_bitline_inverter (528 cihaz) + rom_column_mux_array (264)
-      + rom_output_buffer (16)                          = 808 cihaz
-  Hucre dizisi, kod cozucu ve kontrol mantigi silinir. Silinen bloklarin
-  ucundaki dugumler (bl_0_*, kolon sec) ideal kaynakla surulur, dolayisiyla
-  onlarin yuku gecikmeye girmez -- zaten girmemesi gerekir, o kisim
-  t_dis_50'de sayili.
+METHOD (the same "slice x count" idea as the periphery script):
+  From the extracted netlist (<macro>_cap_only.spice, real Magic parasitic C)
+  ONLY the back-end instances are kept at top level:
+      rom_bitline_inverter + rom_column_mux_array + rom_output_buffer
+  The cell array, decoders and control logic are deleted. The nodes left
+  dangling by the deleted blocks (bl_0_*, the column selects) are driven by
+  ideal sources, so their load does not enter this delay -- which is correct,
+  that part is already counted in t_dis_50.
 
-  Surulen bitline dalga sekli TAHMIN DEGIL: olculen t_dis_50/t_dis_10'dan
-  cikan gercek egim kullanilir (%50 -> %10 arasi 0.4*VDD). Boylece evirici
-  gercekte gordugu yavas kenari gorur.
+  The driven bitline waveform is NOT a guess: it uses the real slope implied by
+  the measured t_dis_50/t_dis_10 (0.4*VDD between the 50% and 10% points), so
+  the inverter sees the slow edge it really sees.
 
-  NEGATIF NET KAPASITANS DUZELTMESI periphery betigindeki ile ayni ve
-  yine ZORUNLU: Magic'in alt-taban duzeltme terimleri silinen bloklarin
-  pozitif terimleri olmadan net negatife donuyor ve cozucu patliyor.
+  The NEGATIVE NET CAPACITANCE FIX is the same as in the periphery script and
+  just as REQUIRED: without the positive terms of the deleted blocks, Magic's
+  substrate correction terms make a net go negative and the solver blows up.
 
-CIKTI: dout0'in cikis yukune GORE gecikme -- .lib CELL_TABLE'inin
-  index_2 (total_output_net_capacitance) ekseni artik gercekten olculur;
-  onceki dosyalarda uc yuk noktasi da AYNI sayiyi tasiyordu.
+OUTPUT: delay as a function of dout0's output load -- the index_2
+  (total_output_net_capacitance) axis of the .lib CELL_TABLE is now really
+  measured; in earlier files all three load points carried the SAME number.
 
-Kullanim:
-  gen_backend_delay_tb.py <macro> <kolon> <out.sp>
+Usage:
+  gen_backend_delay_tb.py <macro> <column> <out.sp>
       --t-dis-50 <s> --t-dis-10 <s> [--corner tt|ss|ff] [--vdd] [--temp]
 """
 import argparse, collections, os, re, sys
@@ -50,25 +50,25 @@ ap.add_argument("macro")
 ap.add_argument("col", type=int)
 ap.add_argument("out")
 ap.add_argument("--t-dis-50", type=float, required=True,
-                help="olculen: precharge %%50 -> bitline %%50 (saniye)")
+                help="measured: precharge 50%% -> bitline 50%% (seconds)")
 ap.add_argument("--t-dis-10", type=float, required=True,
-                help="olculen: precharge %%50 -> bitline %%10 (saniye)")
+                help="measured: precharge 50%% -> bitline 10%% (seconds)")
 ap.add_argument("--corner", default="tt", choices=["tt", "ss", "ff"])
 ap.add_argument("--vdd", default="1.8")
 ap.add_argument("--temp", default="25")
 ap.add_argument("--load-ff", type=float, default=6.89,
-                help="dout0 cikis yuku (fF). .lib CELL_TABLE index_2 "
-                     "noktalari: 1.7225 / 6.89 / 27.56 -- her biri AYRI "
-                     "kosulur, boylece yuk ekseni gercekten olculur "
-                     "(onceki .lib'lerde uc nokta da ayni sayiyi tasiyordu).")
+                help="dout0 output load (fF). The .lib CELL_TABLE index_2 "
+                     "points are 1.7225 / 6.89 / 27.56 -- each is run "
+                     "SEPARATELY so the load axis is genuinely measured (in "
+                     "earlier .libs all three carried the same number).")
 ap.add_argument("--macros-dir", default=None,
-                help="makro agaci (varsayilan: ROM_MACROS_DIR / <depo>/examples)")
+                help="macro tree (default: ROM_MACROS_DIR / <repo>/examples)")
 args = ap.parse_args()
 
 M = args.macro
 SP = rom_paths.cap_netlist(M, args.macros_dir)
 if not os.path.exists(SP):
-    sys.exit(f"HATA: {SP} yok -- once run_cap_extract.sh calistirin")
+    sys.exit(f"ERROR: {SP} does not exist -- run run_cap_extract.sh first")
 
 SUFFIX = {"f": 1e-15, "p": 1e-12, "n": 1e-9, "u": 1e-6, "m": 1e-3, "k": 1e3}
 def to_float(tok):
@@ -123,16 +123,16 @@ KEEP_SUB = {f"{M}_rom_bitline_inverter", f"{M}_rom_column_mux_array",
             f"{M}_rom_output_buffer"}
 keep = [l for l in top_insts if l.split()[-1] in KEEP_SUB]
 if len(keep) != 3:
-    sys.exit(f"HATA: arka uc ornekleri eksik: {[l.split()[-1] for l in top_insts]}")
+    sys.exit(f"ERROR: back-end instances missing: {[l.split()[-1] for l in top_insts]}")
 
 SUPPLY_HI, SUPPLY_LO = "vccd1", "vssd1"
 alive = {SUPPLY_HI, SUPPLY_LO, "0"}
 for l in keep:
     alive.update(l.split()[1:-1])
 
-# --- hangi mux transistoru bizim kolonu hangi cikisa baglar? -------------
-# Kolon->cikis eslemesi ISIMDEN TAHMIN EDILMEZ; mux dizisinin netlisti
-# uzerinden okunur (Magic'in urettigi isimler sirali degil).
+# --- which mux transistor connects our column to which output? -----------
+# The column->output mapping is NOT guessed from names; it is read out of the
+# mux array netlist (the names Magic generates are not in order).
 mux_sub = f"{M}_rom_column_mux_array"
 mux_inst = [l for l in keep if l.split()[-1] == mux_sub][0]
 mux_ports = B[mux_sub][0].split()[2:]
@@ -143,18 +143,16 @@ i_bl, i_out, i_sel = (cell_ports.index(x) for x in ("bl", "bl_out", "sel"))
 inv_sub = f"{M}_rom_bitline_inverter"
 inv_inst = [l for l in keep if l.split()[-1] == inv_sub][0]
 ip2n = dict(zip(B[inv_sub][0].split()[2:], inv_inst.split()[1:-1]))
-# Magic alt-devre portlarini in_N/out_N diye yeniden adlandiriyor; hedef
-# kolonu UST SEVIYE ag adindan (bl_0_<kolon>) bulup port adina ceviriyoruz.
-# Magic hem alt-devre portlarini (in_N/out_N) hem ust seviye ag adlarini
-# (wrom0_rom_base_array_0/bl_0_155) yeniden adlandiriyor; hedef kolonu
-# ag adinin SONEKINDEN buluyoruz.
+# Magic renames both the sub-circuit ports (in_N/out_N) and the top-level net
+# names (e.g. wrom0_rom_base_array_0/bl_0_155), so the target column is found
+# from the SUFFIX of the net name and then mapped back to a port name.
 cand = [n for n in ip2n.values() if n.split("/")[-1] == f"bl_0_{args.col}"]
 if len(cand) != 1:
-    sys.exit(f"HATA: kolon {args.col} bitline'i tek olarak bulunamadi: {cand}")
+    sys.exit(f"ERROR: bitline of column {args.col} is not unique: {cand}")
 src_net = cand[0]
 inv_n2p = {v: k for k, v in ip2n.items()}
 src_port = inv_n2p[src_net]
-# eviricinin bu bit icin cikisi: ayni hucre ornegindeki Z
+# the inverter output for this bit: the Z of the same cell instance
 inv_cell_out = None
 for l in B[inv_sub][1:]:
     if not l.startswith("X"):
@@ -169,7 +167,7 @@ for l in B[inv_sub][1:]:
         inv_cell_out = ip2n.get(nets[ports.index("Z")], nets[ports.index("Z")])
         break
 if inv_cell_out is None:
-    sys.exit("HATA: bitline eviricisinin cikisi bulunamadi")
+    sys.exit("ERROR: could not find the bitline inverter output")
 
 sel_net = out_net = None
 for l in B[mux_sub][1:]:
@@ -184,9 +182,9 @@ for l in B[mux_sub][1:]:
         out_net = mp2n[nets[i_out]]
         break
 if sel_net is None:
-    sys.exit(f"HATA: kolon {args.col} icin mux transistoru bulunamadi")
+    sys.exit(f"ERROR: no mux transistor found for column {args.col}")
 
-# cikis tamponunun bu prebuf'a bagli dout0 biti
+# the dout0 bit of the output buffer fed by this prebuf
 buf_sub = f"{M}_rom_output_buffer"
 buf_inst = [l for l in keep if l.split()[-1] == buf_sub][0]
 bp2n = dict(zip(B[buf_sub][0].split()[2:], buf_inst.split()[1:-1]))
@@ -204,9 +202,9 @@ for l in B[buf_sub][1:]:
         dout_net = bp2n.get(nets[ports.index("Z")], nets[ports.index("Z")])
         break
 if dout_net is None:
-    sys.exit("HATA: dout0 biti bulunamadi")
+    sys.exit("ERROR: could not find the dout0 bit")
 
-# --- ust seviye C: yasayan/olu kurali + negatif net duzeltmesi ------------
+# --- top-level C: alive/dead rule + negative-net fix ---------------------
 kept_c, retarget = [], collections.Counter()
 n_drop = 0
 for l in top_caps:
@@ -230,10 +228,10 @@ for i, (n, v) in enumerate(sorted(retarget.items())):
     if v > 0:
         kept_c.append(f"C_rt{i} {n} {SUPPLY_LO} {v*1e15:.5f}f")
 
-# Kaynakla SURULEN dugumler: yalnizca dizi bitline'lari (bl_0_*) ve kolon
-# secleri. Eviricinin CIKISLARI (bl_*) surulmuyor -- onlari da "driven"
-# saymak negatif net kapasitans duzeltmesini atlatiyordu ve cozucu ilk
-# zaman noktasinda patliyordu (2026-09-06).
+# Nodes DRIVEN by a source: only the array bitlines (bl_0_*) and the column
+# selects. The inverter OUTPUTS (bl_*) are not driven -- treating them as
+# "driven" as well skipped the negative-net-capacitance fix and the solver blew
+# up at the very first time point (2026-09-06).
 bl_in_nets = {n for n in ip2n.values()
               if re.match(r"^bl_0_\d+$", n.split("/")[-1])}
 sel_nets_all = {mp2n[q] for q in mux_ports
@@ -255,7 +253,7 @@ for i, (n, v) in enumerate(sorted(node_c.items())):
     kept_c.append(f"C_fx{i} {n} {SUPPLY_LO} {-v*1e15:.5f}f")
     n_fix += 1; c_fix += -v
 
-# --- kullanilan alt-devre tanimlari --------------------------------------
+# --- sub-circuit definitions actually used -------------------------------
 need, seen = set(l.split()[-1] for l in keep), set()
 while need - seen:
     n = (need - seen).pop()
@@ -264,7 +262,7 @@ while need - seen:
         if l.startswith("X") and l.split()[-1] in B:
             need.add(l.split()[-1])
 defs = []
-for name in seen:
+for name in sorted(seen):   # sorted: deterministic output file
     if name == TOP:
         continue
     defs.append("\n".join(fix_units(l) if l.startswith("X") else l
@@ -272,10 +270,10 @@ for name in seen:
     defs.append(".ends")
 defs = "\n".join(defs)
 
-# --- uyaran ---------------------------------------------------------------
+# --- stimulus -------------------------------------------------------------
 VDD = float(args.vdd)
-# Olculen egim: %50 -> %10 arasinda 0.4*VDD dusuyor. Bu egimle VDD->0 tam
-# gecis suresi: TFALL. Kenar t=TSTART'ta basliyor.
+# Measured slope: 0.4*VDD falls between the 50% and 10% points. At that slope
+# a full VDD->0 transition takes TFALL. The edge starts at t=TSTART.
 tfall = (args.t_dis_10 - args.t_dis_50) / 0.4
 TSTART = 5e-9
 
@@ -296,16 +294,17 @@ meas_txt = "\n".join([
     f"+                         TARG v({dout_net}) VAL='0.1*VDD' FALL=1",
 ])
 
-tb = f"""* {M} -- ARKA UC gecikmesi: bitline -> dout0  (kolon {args.col}, {args.corner})
-* Yol: bl_0_{args.col} -> bitline_inverter -> column_mux(sel) -> output_buffer -> dout0
-* Tutulan: rom_bitline_inverter + rom_column_mux_array + rom_output_buffer
-* Silinen: hucre dizisi / kod cozucu / kontrol mantigi (ucundaki dugumler
-*          ideal kaynakla surulur -- o kisim zaten t_dis_50'de sayili)
-* Ust seviye C: {len(kept_c)} korundu, {n_drop} atildi;
-*   negatif net kapasitans duzeltmesi {n_fix} dugum / {c_fix*1e15:.1f} fF
-* Surulen bitline kenari OLCULEN egimden: t_dis_50={args.t_dis_50*1e9:.4f} ns,
-*   t_dis_10={args.t_dis_10*1e9:.4f} ns -> VDD->0 tam gecis {tfall*1e9:.3f} ns
-* Olculen bit: {dout_net}   (sec: {sel_net})   cikis yuku: {args.load_ff} fF
+tb = f"""* {M} -- BACK END delay: bitline -> dout0  (column {args.col}, {args.corner})
+* Path: bl_0_{args.col} -> bitline_inverter -> column_mux(sel) -> output_buffer -> dout0
+* Kept: rom_bitline_inverter + rom_column_mux_array + rom_output_buffer
+* Deleted: cell array / decoders / control logic (the nodes they leave behind
+*          are driven by ideal sources -- that part is already in t_dis_50)
+* Top-level C: {len(kept_c)} kept, {n_drop} dropped;
+*   negative-net-capacitance fix on {n_fix} nodes / {c_fix*1e15:.1f} fF
+* The driven bitline edge comes from the MEASURED slope:
+*   t_dis_50={args.t_dis_50*1e9:.4f} ns, t_dis_10={args.t_dis_10*1e9:.4f} ns
+*   -> full VDD->0 transition {tfall*1e9:.3f} ns
+* Measured bit: {dout_net}   (select: {sel_net})   output load: {args.load_ff} fF
 
 .lib {rom_paths.sky130_lib()} {args.corner}
 .temp {args.temp}
@@ -316,13 +315,13 @@ tb = f"""* {M} -- ARKA UC gecikmesi: bitline -> dout0  (kolon {args.col}, {args.
 Vvdd {SUPPLY_HI} 0 DC {{VDD}}
 Vgnd {SUPPLY_LO} 0 DC 0
 
-* olculen kolonun bitline'i: on-sarjli VDD'den olculen egimle iner
+* the measured column's bitline: falls from precharged VDD at the measured slope
 Vsrc {src_net} 0 PWL(0 {{VDD}} {{TSTART}} {{VDD}} '{TSTART:.6e}+{tfall:.6e}' 0)
 
-* diger bitline'lar on-sarjda kalir
+* the other bitlines stay precharged
 {hold_hi}
 
-* kolon secimi
+* column select
 {sel_src}
 
 {chr(10).join(blocks_txt)}
@@ -340,5 +339,5 @@ Vsrc {src_net} 0 PWL(0 {{VDD}} {{TSTART}} {{VDD}} '{TSTART:.6e}+{tfall:.6e}' 0)
 .end
 """
 open(args.out, "w").write(tb)
-print(f"yazildi: {args.out}  ({M} kolon {args.col} -> {dout_net}, "
-      f"{args.corner}, bl kenari {tfall*1e9:.2f} ns, yuk {args.load_ff} fF)")
+print(f"written: {args.out}  ({M} column {args.col} -> {dout_net}, "
+      f"{args.corner}, bl edge {tfall*1e9:.2f} ns, load {args.load_ff} fF)")

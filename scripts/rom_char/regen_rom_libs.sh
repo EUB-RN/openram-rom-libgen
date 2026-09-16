@@ -1,51 +1,53 @@
 #!/bin/sh
-# Agactaki TUM ROM makrolari icin 3 kosenin .lib dosyalarini OLCULEN
-# degerlerle uretir.  Kullanim:
-#     scripts/rom_char/regen_rom_libs.sh [makro ...]
-#     ROM_MACROS_DIR=/yol/asic/macros scripts/rom_char/regen_rom_libs.sh
+# Generate the .lib files for every ROM macro in the tree, three corners each,
+# from MEASURED values.  Usage:
+#     scripts/rom_char/regen_rom_libs.sh [macro ...]
+#     ROM_MACROS_DIR=/path/to/macros scripts/rom_char/regen_rom_libs.sh
+# Output: $ROM_OUT_DIR/lib (default <repo>/output/lib)
 #
-# ZAMANLAMA (access = uc terim, hepsi olculdu):
-#   1) on uc   clk0 -> precharge : char/periph_active_<kose>.log  t_clk2pre
-#   2) bitline precharge -> bl%50: char/col<N>_worst_case_parasitic*.log
-#   3) arka uc bitline -> dout0  : char/backend_<kose>_<yuk>.log   t_bl2dout
-#   cikis egimi                  : ayni dosya, t_dout_slew
-# SIZINTI: char/col<N>_leak_<kose>.log   (.op tablosundaki vvdd#branch)
-# ENERJI : kolon dizisi  <kolon_sayisi> x char/col<N>_energy_<kose>.log e_col_pj
-#          + cevre birimi           char/periph_active_<kose>.log  e_periph_pj
-#   bosta  (when "!cs0")           : char/periph_idle_<kose>.log   e_periph_pj
-# SETUP  : char/periph_setup_<kose>.log  t_addr2dec* (en kotusu)
+# TIMING (access = three terms, all measured):
+#   1) front end   clk0 -> precharge : char/periph_active_<corner>.log t_clk2pre
+#   2) bitline     precharge -> bl 50%: char/col<N>_worst_case_parasitic*.log
+#   3) back end    bitline -> dout0  : char/backend_<corner>_<load>.log t_bl2dout
+#   output slew                      : same file, t_dout_slew
+# LEAKAGE: char/col<N>_leak_<corner>.log   (vvdd#branch from the .op table)
+# ENERGY : column array <columns> x char/col<N>_energy_<corner>.log e_col_pj
+#          + periphery              char/periph_active_<corner>.log  e_periph_pj
+#   idle   (when "!cs0")            : char/periph_idle_<corner>.log  e_periph_pj
+# SETUP  : char/periph_setup_<corner>.log  t_addr2dec* (worst of them)
 #
-# 1, 3, cevre enerjisi ve cikis egimi 2026-09-06'da eklendi; oncesinde
-# access yalnizca ORTA terimi kapsiyordu, egim sabit tahmindi ve bosta guc
-# hic yazilmadigi icin OpenSTA onu sessizce 0 sayiyordu.
+# Terms 1 and 3, the periphery energy and the output slew were added on
+# 2026-09-06; before that `access` covered only the MIDDLE term, the slew was
+# a fixed guess, and because idle power was never written OpenSTA silently
+# treated it as zero.
 #
-# TUM SAYILAR LOG DOSYALARINDAN OKUNUR -- elle kopyalanan tek sayi yok.
-# Onceki surumde makro adlari, en kotu kolon/zincir ve access/t_pre/sizinti
-# degerleri bu dosyada bir TABLO olarak duruyordu; ROM yeniden uretilince
-# (word_size / words_per_row / .bin degisince) tablo sessizce gecersiz
-# kaliyordu. Artik:
-#   * makro listesi     <- agactaki <makro>/<makro>.sp dizinleri
-#   * en kotu kolon     <- netlist taramasi (rom_paths.py / find_worst_column)
-#   * zincir uzunlugu   <- ayni tarama
-#   * kolon sayisi      <- ayni tarama (enerji/sizinti carpani; eskiden 256)
-#   * access / t_pre    <- col<N>_worst_case_parasitic*.log (t_dis_50/t_pre_99)
-#   * sizinti           <- col<N>_leak_<kose>.log
+# EVERY NUMBER IS READ FROM A LOG -- nothing is copied by hand. An earlier
+# version kept the macro names, the worst column/chain and the
+# access/t_pre/leakage values in a TABLE inside this file; regenerating the
+# ROM (new word_size / words_per_row / .bin) silently invalidated it. Now:
+#   * macro list       <- <macro>/<macro>.sp directories in the tree
+#   * worst column     <- netlist scan (rom_paths.py / find_worst_column)
+#   * chain length     <- same scan
+#   * column count     <- same scan (energy/leakage multiplier; was a literal 256)
+#   * access / t_pre   <- col<N>_worst_case_parasitic*.log (t_dis_50/t_pre_99)
+#   * leakage          <- col<N>_leak_<corner>.log
 #
-# t_pre icin t_pre_99 kullanilir, t_pre_90 DEGIL: %90 geri sarj ~0.5 ns
-# cikar ve min_pulse_width(fall) 20x kucuk yazilir.
+# t_pre uses t_pre_99, NOT t_pre_90: 90% recharge comes out ~0.5 ns and would
+# write a min_pulse_width(fall) 20x too small.
 #
-# --measured SART: degerler zaten koseye ait, CORNERS tablosundaki dscale
-# carpani UYGULANMAMALI (yoksa cift sayim -> SS 38 yerine 70 ns cikar).
+# --measured IS REQUIRED: the values already belong to that corner, so the
+# derating factors in the CORNERS table must NOT be applied on top (double
+# counting would turn SS 38 ns into 70 ns).
 
 set -e
 . "$(dirname "$0")/common.sh"
 
 GEN="$ROM_CHAR_DIR/gen_rom_lib.py"
 
-# .lib CELL_TABLE index_2 noktalarinin dosya adi etiketi (1.7225 -> 17225)
+# file-name tag of a .lib CELL_TABLE index_2 point (1.7225 -> 17225)
 load_tags() { for cl in $LOADS; do echo "$cl" | tr -d '.'; done; }
 
-# virgullu ns listesi: $1=char dizini $2=kose $3=olcum adi
+# comma-separated list in ns: $1=char dir  $2=corner  $3=measurement name
 be_list() {
   out=""
   for t in $(load_tags); do
@@ -57,7 +59,7 @@ be_list() {
 }
 
 for m in $(macro_list "$@"); do
-  load_geom "$m" || { echo "$m: geometri okunamadi, atlandi"; continue; }
+  load_geom "$m" || { echo "$m: cannot read geometry, skipped"; continue; }
   col="$G_WORST_COL"
   LEF="$G_LEF"
 
@@ -65,7 +67,7 @@ for m in $(macro_list "$@"); do
     c=$(echo  "$ck" | cut -d: -f1)
     vdd=$(echo "$ck" | cut -d: -f2)
     corner=$(corner_lib_name "$c")
-    # TT dosyasi soneksiz, digerleri _ss / _ff
+    # the TT file has no suffix, the others are _ss / _ff
     [ "$c" = tt ] && sfx="" || sfx="_$c"
 
     PAR="$G_CHAR/${G_COLTAG}_worst_case_parasitic${sfx}.log"
@@ -74,30 +76,31 @@ for m in $(macro_list "$@"); do
     EC="$G_CHAR/${G_COLTAG}_energy_${c}.log"
     LK="$G_CHAR/${G_COLTAG}_leak_${c}.log"
 
-    # 2) bitline terimi + on-sarj suresi (o kosenin kendi kosumu)
+    # 2) bitline term + precharge time (that corner's own run)
     acc=$(meas "$PAR" t_dis_50 | awk '{printf "%.4f", $1*1e9}')
     pre=$(meas "$PAR" t_pre_99 | awk '{printf "%.4f", $1*1e9}')
 
-    # sizinti: .measure degil, .op tablosundaki besleme akimi.
-    # P = |I| x <kolon sayisi> x VDD  -> mW
+    # Leakage is not a .measure: it is the supply current in the .op table.
+    # P = |I| x <column count> x VDD  -> mW
     leak=$(grep -m1 "vvdd#branch" "$LK" 2>/dev/null | awk -v n="$G_COLS" -v v="$vdd" \
              '{ i = $2 < 0 ? -$2 : $2; printf "%.7f", i*n*v*1e3 }')
 
-    # 1) on uc: clk0 -> precharge. Kolon olcumu TRIG'i ic precharge agindan
-    #    aldigi icin bu terim access'te EKSIKTI. (wl yolu t_clk2wl0 ile
-    #    capraz kontrol edildi: uc kosede de precharge yolundan HIZLI, yani
-    #    kritik olan precharge.)
+    # 1) front end: clk0 -> precharge. The column measurement triggers off the
+    #    internal precharge net, so this term was MISSING from access. (Cross-
+    #    checked against the wordline path with t_clk2wl0: in all three
+    #    corners the wordline is FASTER than the precharge path, so precharge
+    #    is the critical one.)
     tf=$(meas "$PA" t_clk2pre | awk '{printf "%.4f", $1*1e9}')
-    # 3) arka uc: bitline -> dout0 + cikis egimi, uc yuk noktasinda
+    # 3) back end: bitline -> dout0 plus output slew, at three load points
     be=$(be_list "$G_CHAR" "$c" t_bl2dout)
     sl=$(be_list "$G_CHAR" "$c" t_dout_slew)
-    # enerji: kolon dizisi (G_COLS kolon) + cevre birimi
+    # energy: column array (G_COLS columns) + periphery
     e_act=$(awk -v n="$G_COLS" -v ec="$(meas "$EC" e_col_pj)" \
                 -v ep="$(meas "$PA" e_periph_pj)" \
                 'BEGIN{ if (ec == "" || ep == "") exit 1; printf "%.4f", n*ec + ep }') || e_act=""
     e_idle=$(meas "$PI" e_periph_pj | awk '{printf "%.4f", $1}')
 
-    # eksik olcum = sessiz yanlis .lib. Hangi terimin eksik oldugunu SOYLE.
+    # A missing measurement means a silently wrong .lib. Say which term it is.
     missing=""
     for pair in "acc:$acc" "pre:$pre" "leak:$leak" "tf:$tf" "be:$be" \
                 "sl:$sl" "e_act:$e_act" "e_idle:$e_idle"; do
@@ -106,49 +109,51 @@ for m in $(macro_list "$@"); do
       fi
     done
     if [ -n "$missing" ]; then
-      echo "$m $c: eksik olcum ($missing) -- atlandi"
+      echo "$m $c: missing measurement ($missing) -- skipped"
       continue
     fi
 
-    # setup: DOGRUDAN OLCULUYOR (2026-09-08).
-    # run_addr_setup.sh, addr0'i on-sarj fazinda gecirip
-    #   addr0 -> inv_array_mod/Z  (= kod cozucu NAND'inin A girisi)
-    # gecikmesini olcer; adres bit basina tamponun EN KOTUSU alinir.
-    # Kod cozucu SAATLI NAND oldugu icin adresin kararli olmasi gereken son
-    # nokta tam olarak burasidir.
+    # setup: MEASURED DIRECTLY since 2026-09-08.
+    # run_addr_setup.sh switches addr0 during the precharge phase and measures
+    #   addr0 -> inv_array_mod/Z  (= the A input of the decoder NAND)
+    # taking the WORST of the per-address-bit buffers. The decoder is a CLOCKED
+    # NAND, so that net is exactly where the address has to be stable.
     #
-    # Onceki hal 3 x t_clk2pre analitik ust siniriydi (SS'de ~4.93 ns);
-    # olculen deger SS'de 0.053 ns cikti, yani sinir ~90x kotumserdi.
-    # Olcum yoksa (log uretilmemisse) o kotumser sinira DUSULUR -- sessizce
-    # kucuk bir sayi yazmaktansa buyuk yazmak guvenli taraftir.
+    # It used to be an analytic upper bound of 3 x t_clk2pre (~4.93 ns at SS);
+    # the measured value at SS is 0.053 ns, i.e. the bound was ~90x pessimistic.
+    # With no measurement we FALL BACK to that pessimistic bound -- writing a
+    # large number is the safe side, writing a small one silently is not.
     stl="$G_CHAR/periph_setup_${c}.log"
     stp=$(awk '/^t_addr2dec[0-9]+/ { if ($3 ~ /^[0-9.eE+-]+$/ && $3+0 > mx) mx = $3+0 }
                END { if (mx > 0) printf "%.4f", mx*1e9 }' "$stl" 2>/dev/null)
     if [ -z "$stp" ]; then
       stp=$(awk -v t="$tf" 'BEGIN{printf "%.4f", 3.0*t}')
-      echo "  $m $c: setup olcumu yok -> kotumser sinir $stp ns kullanildi"
+      echo "  $m $c: no setup measurement -> using pessimistic bound $stp ns"
     fi
 
-    SRC="gercek Magic parazitik C + o kosenin KENDI sky130 modeli; \
-${G_ROWS}x${G_COLS} dizi, en kotu kolon ${col} (seri NMOS ${G_CHAIN}); \
-on uc+cevre gucu char/periph_{active,idle}_${c}.log, \
+    SRC="real Magic parasitic C + that corner's OWN sky130 models; \
+${G_ROWS}x${G_COLS} array, worst column ${col} (series NMOS ${G_CHAIN}); \
+front end + periphery power char/periph_{active,idle}_${c}.log, \
 bitline char/${G_COLTAG}_worst_case_parasitic${sfx}.log, \
-arka uc+egim char/backend_${c}_*.log, \
-sizinti char/${G_COLTAG}_leak_${c}.log, \
-kolon enerjisi char/${G_COLTAG}_energy_${c}.log"
+back end + slew char/backend_${c}_*.log, \
+leakage char/${G_COLTAG}_leak_${c}.log, \
+column energy char/${G_COLTAG}_energy_${c}.log"
 
     python3 "$GEN" --lef "$LEF" --memory-type rom --measured \
+      --outdir "$LIB_DIR" \
       --corner "$corner" --access "$acc" --hold "$acc" --t-pre "$pre" \
       --setup "$stp" \
       --leakage-mw "$leak" --energy-pj "$e_act" --energy-idle-pj "$e_idle" \
       --t-front "$tf" --backend-ns "$be" --out-slew-ns "$sl" \
-      --chain-len "$G_CHAIN" --worst-col "$col" --char-source "$SRC" >/dev/null
+      --chain-len "$G_CHAIN" --worst-col "$col" \
+      --rows "$G_ROWS" --cols "$G_COLS" --char-source "$SRC" >/dev/null
 
-    printf "%-7s %-4s access = %.4f + %s + %s = %.4f ns  E=%s pJ  E_bosta=%s pJ\n" \
+    printf "%-7s %-4s access = %.4f + %s + %s = %.4f ns  E=%s pJ  E_idle=%s pJ\n" \
       "$m" "$c" "$tf" "$acc" "$(echo "$be" | cut -d, -f3)" \
       "$(awk -v a="$tf" -v b="$acc" -v d="$(echo "$be" | cut -d, -f3)" \
             'BEGIN{print a+b+d}')" "$e_act" "$e_idle"
   done
 done
-echo "Tamam -- .lib dosyalari olculen zamanlama (on uc + bitline + arka uc),"
-echo "cikis egimi, sizinti ve enerji (aktif + bosta) ile uretildi."
+echo "Done -- .lib files written to $LIB_DIR with measured timing"
+echo "(front end + bitline + back end), output slew, leakage and energy"
+echo "(active + idle)."
