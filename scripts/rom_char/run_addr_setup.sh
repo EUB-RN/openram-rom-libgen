@@ -1,5 +1,5 @@
 #!/bin/sh
-# addr0 -> kod cozucu SETUP olcumu, 4 makro x 3 kose.
+# addr0 -> kod cozucu SETUP olcumu, tum makrolar x uc kose.
 #
 # NE OLCULUYOR
 # ------------
@@ -24,43 +24,44 @@
 # Bu betik ayni ureticiyi --addr-alt ile cagirip AYRI bir deck kosturur,
 # guc akisina dokunmaz.
 #
-# Kullanim: run_addr_setup.sh
-# Cikti:    asic/macros/<makro>/char/periph_setup_<kose>.log
-#           ve ozet tablo (stdout) -- gen_rom_lib.py'ye --setup ile gecilir.
+# EN KOTU ADRES: 0 -> tum adres bitleri 1 (LEF'teki addr0[] pin sayisindan
+# turetilir). Butun tamponlar ayni anda anahtarlanir, besleme cokmesi dahil.
+# Eskiden 2047 (11 bit) sabitti; adres genisligi degisince bu sessizce
+# eksik uyarana donusuyordu.
+#
+# Kullanim: scripts/rom_char/run_addr_setup.sh [makro ...]
+# Cikti:    <makro>/char/periph_setup_<kose>.log
+#           ve ozet tablo (stdout); regen_rom_libs.sh bunu --setup'a gecirir.
 
 set -e
-REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
-cd "$REPO_ROOT"
-
-GENP=asic/scripts/rom_char/gen_periphery_power_tb.py
-NG="${NGSPICE_BIN:-ngspice}"
+. "$(dirname "$0")/common.sh"
+need_ngspice
+GENP="$ROM_CHAR_DIR/gen_periphery_power_tb.py"
 JOBS="${JOBS:-6}"
 
-# Adres 0 -> 0x7FF: 11 bitin HEPSI degisir, yani en kotu durum (butun
-# tamponlar ayni anda anahtarlanir, kaynak/besleme cokmesi dahil).
-ADDR=0
-ADDR_ALT=2047
-
+MACROS=$(macro_list "$@")
 n=0
-for row in "wrom0" "wrom1" "wrom2" "wrom3"; do
-  m="$row"
-  for ck in "tt:1.8:25" "ss:1.6:100" "ff:1.95:-40"; do
+for m in $MACROS; do
+  load_geom "$m" || continue
+  ADDR=0
+  ADDR_ALT=$(awk -v b="$G_ADDR_BITS" 'BEGIN{printf "%d", 2^b - 1}')
+  for ck in $CORNERS; do
     c=$(echo "$ck" | cut -d: -f1)
     v=$(echo "$ck" | cut -d: -f2)
     t=$(echo "$ck" | cut -d: -f3)
 
     # hucre esdeger kapi kapasitansi -- periph deck'iyle ayni girdi
-    cgl="asic/macros/$m/char/cellgate_${c}.log"
+    cgl="$G_CHAR/cellgate_${c}.log"
     if [ ! -f "$cgl" ]; then
       echo "  $m $c: cellgate log yok (once run_periphery_power.sh), atlandi"
       continue
     fi
-    cg=$(grep -m1 "c_one_ff" "$cgl" | awk '{print $3}')
+    cg=$(meas "$cgl" c_one_ff)
     [ -z "$cg" ] && { echo "  $m $c: C_esd yok, atlandi"; continue; }
 
-    sp="asic/macros/$m/char/periph_setup_${c}.sp"
-    lg="asic/macros/$m/char/periph_setup_${c}.log"
-    python3 $GENP "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
+    sp="$G_CHAR/periph_setup_${c}.sp"
+    lg="$G_CHAR/periph_setup_${c}.log"
+    python3 "$GENP" "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
             --gate-cap-ff "$cg" --addr "$ADDR" --addr-alt "$ADDR_ALT" >/dev/null
     ( $NG -b -o "$lg" "$sp" >/dev/null 2>&1 || true ) &
     n=$((n+1))
@@ -71,9 +72,11 @@ wait
 
 echo ""
 echo "makro   kose   olculen setup (ns)   [addr0 -> kod cozucu NAND girisi]"
-for m in wrom0 wrom1 wrom2 wrom3; do
-  for c in tt ss ff; do
-    lg="asic/macros/$m/char/periph_setup_${c}.log"
+for m in $MACROS; do
+  load_geom "$m" || continue
+  for ck in $CORNERS; do
+    c=$(echo "$ck" | cut -d: -f1)
+    lg="$G_CHAR/periph_setup_${c}.log"
     [ -f "$lg" ] || continue
     # tum tampon olcumlerinin EN KOTUSU
     w=$(grep -E "^t_addr2dec[0-9]+" "$lg" 2>/dev/null \

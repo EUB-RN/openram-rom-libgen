@@ -3,17 +3,27 @@
 .lib secicisini, VDD'yi ve sicakligi degistirir -- devrenin geri kalani
 (gercek parazitik kapasitans dahil) BIREBIR AYNI kalir.
 
-Kullanim: make_corner_variant.py <macro> <en_kotu_kolon> <ss|ff>
-Kaynak dosya: asic/macros/<macro>/char/col<kolon>_worst_case_parasitic.sp
+Kullanim: make_corner_variant.py <macro> [en_kotu_kolon] <ss|ff>
+          (kolon verilmezse netlistten turetilir)
+Kaynak dosya: <makro_dizini>/char/col<kolon>_worst_case_parasitic.sp
               (once gen_col_tb_parasitic.py ile uretilmis olmali)
 Cikti: ayni dizine col<kolon>_worst_case_parasitic_<ss|ff>.sp
 """
 import sys, re, os
 
-MACRO, COL, CORNER = sys.argv[1], sys.argv[2], sys.argv[3]  # corner: ss | ff
-HERE = os.path.dirname(os.path.abspath(__file__))
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
-SRC = f"{REPO}/asic/macros/{MACRO}/char/col{COL}_worst_case_parasitic.sp"
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import rom_paths
+
+if len(sys.argv) < 3:
+    sys.exit("Kullanim: make_corner_variant.py <macro> [kolon] <ss|ff>")
+MACRO = sys.argv[1]
+# Kolon atlanabilir: <macro> <ss|ff> -> en kotu kolon netlistten gelir
+if len(sys.argv) == 3:
+    COL, CORNER = rom_paths.geometry(MACRO)["worst_col"], sys.argv[2]
+else:
+    COL, CORNER = sys.argv[2], sys.argv[3]
+SRC = os.path.join(rom_paths.char_dir(MACRO),
+                   f"col{COL}_worst_case_parasitic.sp")
 
 PARAMS = {
     "ss": dict(vdd=1.6, temp=100, tag="SS_1p6V_100C"),

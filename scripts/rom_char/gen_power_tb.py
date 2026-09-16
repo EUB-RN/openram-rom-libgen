@@ -24,6 +24,10 @@ Kullanim: gen_power_tb.py <macro> <idle|active> <out.sp> [--tclk 200n]
 """
 import sys, re, argparse
 
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import rom_paths
+
 ap = argparse.ArgumentParser()
 ap.add_argument("macro")
 ap.add_argument("mode", choices=["idle", "active"])
@@ -37,13 +41,15 @@ ap.add_argument("--temp", default="25")
 ap.add_argument("--netlist", default=None,
                 help="varsayilan: idle->sematik .sp, active->_cap_only.spice "
                      "(gercek parazitik C)")
+ap.add_argument("--macros-dir", default=None,
+                help="makro agaci (varsayilan: ROM_MACROS_DIR / <depo>/examples)")
 args = ap.parse_args()
 
 MACRO, MODE, OUT = args.macro, args.mode, args.out
-REPO = "/home/hpw/Desktop/2026_teknofest_Silicore"
-SCHEM = f"{REPO}/asic/macros/{MACRO}/{MACRO}.sp"
+SCHEM = rom_paths.netlist(MACRO, args.macros_dir)
 # active: parazitikli netlist (dinamik enerji kapasiteye baglidir)
-DEFAULT_NL = SCHEM if MODE == "idle" else f"{REPO}/asic/macros/{MACRO}/{MACRO}_cap_only_fixed.spice"
+DEFAULT_NL = SCHEM if MODE == "idle" else os.path.join(
+    rom_paths.macro_dir(MACRO, args.macros_dir), MACRO + "_cap_only_fixed.spice")
 NL = args.netlist or DEFAULT_NL
 
 
@@ -87,7 +93,7 @@ conn = " ".join(port_signal(p) for p in ports)
 gnd_extra = sorted(set(re.findall(r"gnd_uq\d+", conn)))
 gnd_src = "\n".join(f"Vgnd{n} {n} 0 DC 0" for n in gnd_extra)
 
-HEAD = f""".lib /home/hpw/OpenLane/pdks/sky130A/libs.tech/ngspice/sky130.lib.spice {args.corner}
+HEAD = f""".lib {rom_paths.sky130_lib()} {args.corner}
 .temp {args.temp}
 .param VDD={args.vdd}
 .include {NL}

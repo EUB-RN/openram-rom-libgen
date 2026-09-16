@@ -3,34 +3,37 @@
 OpenRAM ROM makrosu icin Liberty (.lib) zamanlama modeli uretir.
 
 NEDEN: OpenRAM'in characterizer'i sadece SRAM icin .lib yaziyor. ROM
-derleyicisi (rom_compiler) yalnizca .sp/.v/.lef/.gds uretir -- bkz.
-macros/rom_17kbyte/rom_17kbyte.log ciktisindaki dosya listesi. Sentez ve
-STA icin gereken .lib'i bu betik, LEF'ten cikarilan pin/alan bilgisi ve
-asagidaki BASE tablosundaki zamanlama sayilariyla uretir.
+derleyicisi (rom_compiler) yalnizca .sp/.v/.lef/.gds uretir. Sentez ve STA
+icin gereken .lib'i bu betik, LEF'ten cikarilan pin/alan bilgisi ve komut
+satirindan verilen zamanlama/guc sayilariyla uretir.
 
-DIKKAT -- zamanlama sayilari OLCUM DEGIL, analitik tahmindir:
-  rom_17kbyte.sp icinde ne flip-flop ne latch var. Yapi klasik on-sarjli
-  (precharged) NOR ROM:
-      clk_out  = clock_driver(clk0)          (8 evirici, evirmez)
-      prechrg  = ~NAND(cs0, clk_out) = cs0 & clk0
-      precharge_cell = PMOS, gate = prechrg  -> prechrg=0 iken on-sarj
-      adres tamponu: A_out = NAND(clk_out, ~A)  -> kod cozme yalnizca clk=1
-      dout0 = 2 evirici (bitline_inverter + output_buffer), MANDAL YOK
-  Sonuc:
-      clk0 = 0 -> bitline'lar VDD'ye on-sarj edilir, dout0 tumu 1
-      clk0 = 1 -> kod cozucu acilir, secili hucreler bitline'i bosaltir
-      dout0 SADECE clk0 yuksek fazinda gecerlidir.
-  BASE["access"] = clk0 yukselen kenardan dout0 gecerli olana kadar
-  gecen sure (kod cozme + wordline + bitline bosaltma + tampon).
+Makro yapisi (netlistten): klasik on-sarjli (precharged) ROM, MANDAL YOK:
+    clk_out  = clock_driver(clk0)          (evirici zinciri, evirmez)
+    prechrg  = ~NAND(cs0, clk_out) = cs0 & clk0
+    precharge_cell = PMOS, gate = prechrg  -> prechrg=0 iken on-sarj
+    adres tamponu: A_out = NAND(clk_out, ~A)  -> kod cozme yalnizca clk=1
+    dout0 = 2 evirici (bitline_inverter + output_buffer)
+Sonuc:
+    clk0 = 0 -> bitline'lar VDD'ye on-sarj edilir, dout0 tumu 1
+    clk0 = 1 -> kod cozucu acilir, secili hucreler bitline'i bosaltir
+    dout0 SADECE clk0 yuksek fazinda gecerlidir.
+access = clk0 yukselen kenardan dout0 gecerli olana kadar gecen sure
+         (kod cozme + wordline + bitline bosaltma + tampon).
 
-  Gercek olcumle degistirmek icin ngspice olan makinede rom_17kbyte.sp
-  uzerinde en kotu adres icin transient kosun, sonra:
-      python3 asic/scripts/rom_char/gen_rom_lib.py --access <olculen> --t-pre <olculen>
+DIKKAT -- asagidaki BASE tablosu yalnizca VARSAYILANDIR ve analitik
+tahmindir. Imza akisinda bu degerler KULLANILMAZ: regen_rom_libs.sh her
+terimi ngspice log'undan okuyup --measured ile buraya gecirir. --measured
+verildiginde CORNERS tablosundaki derating carpanlari da uygulanmaz (deger
+zaten o koseye ait; carpmak cift sayim olurdu).
 
 Kullanim:
-    python3 asic/scripts/rom_char/gen_rom_lib.py                 # 3 kose uretir
-    python3 asic/scripts/rom_char/gen_rom_lib.py --corner TT_1p8V_25C
-    python3 asic/scripts/rom_char/gen_rom_lib.py --access 2.4 --hold 2.4
+    # normal akis (tum sayilar olculmus, ust betik cagirir):
+    scripts/rom_char/regen_rom_libs.sh
+
+    # tek makro, elle:
+    python3 scripts/rom_char/gen_rom_lib.py --macro wrom0 --memory-type rom
+    python3 scripts/rom_char/gen_rom_lib.py --lef yol/x.lef --corner TT_1p8V_25C
+    python3 scripts/rom_char/gen_rom_lib.py --macro wrom0 --access 2.4 --hold 2.4
 """
 
 from __future__ import annotations
@@ -42,8 +45,14 @@ import sys
 from collections import OrderedDict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ASIC = os.path.dirname(os.path.dirname(HERE))
-DEFAULT_LEF = os.path.join(ASIC, "macros", "rom_17kbyte", "rom_17kbyte.lef")
+sys.path.insert(0, HERE)
+import rom_paths                                        # noqa: E402
+
+# --lef verilmezse agactaki ILK makronun LEF'i kullanilir; eskiden
+# "rom_17kbyte" adi sabitti ve baska makroda sessizce yanlis pin
+# listesi uretiyordu.
+_found = rom_paths.discover()
+DEFAULT_LEF = rom_paths.lef(_found[0]) if _found else None
 
 # ---------------------------------------------------------------------------
 # Zamanlama knob'lari (ns / mW). TT temel, digerleri derating carpani.
@@ -76,7 +85,7 @@ SLEW_INDEX = [0.00125, 0.005, 0.04]
 LOAD_DELTA = [0.000, 0.029, 0.145]
 OUT_SLEW = [0.002, 0.005, 0.016]
 
-# Giris pin kapasiteleri -- rom_17kbyte.sp'deki kapi genisliklerinden (pF)
+# Giris pin kapasiteleri -- netlistteki kapi genisliklerinden (pF)
 #   clk0 -> clock_driver ilk evirici (pinv: wp=1.12 wn=0.36 um)
 #   cs0  -> control_nand girisi      (wp=1.12 wn=0.74 um)
 #   addr -> inv_array_mod girisi     (wp=3.00 wn=0.74 um)
@@ -234,7 +243,7 @@ def gen_lib(name, area, buses, scalars, corner, args):
     w = o.append
     w("/* -------------------------------------------------------------------")
     w(" * %s -- %s" % (name, corner))
-    w(" * OTOMATIK URETILDI: asic/scripts/rom_char/gen_rom_lib.py  -- ELLE DUZENLEMEYIN")
+    w(" * OTOMATIK URETILDI: scripts/rom_char/gen_rom_lib.py  -- ELLE DUZENLEMEYIN")
     w(" *")
     w(" * OpenRAM ROM derleyicisi .lib yazmaz; bu dosya LEF pinleri +")
     w(" * %s.sp'den cikarilan devre yapisi uzerinden uretildi." % name)
@@ -276,7 +285,7 @@ def gen_lib(name, area, buses, scalars, corner, args):
         w(" * UYARI: access yalnizca bitline terimini kapsiyor. clk0 ->")
         w(" * precharge/wordline ve bitline -> dout0 (evirici + mux + cikis")
         w(" * tamponu) EKSIK. --t-front / --backend-ns ile olculen degerleri")
-        w(" * gecin (asic/scripts/rom_char/gen_backend_delay_tb.py).")
+        w(" * gecin (scripts/rom_char/gen_backend_delay_tb.py).")
     if sl:
         w(" * Cikis gecis suresi OLCULDU: %.4f .. %.4f ns" % (min(sl), max(sl)))
     else:
@@ -297,7 +306,7 @@ def gen_lib(name, area, buses, scalars, corner, args):
             w(" *     Bu blok eksik birakilirsa OpenSTA sessizce 0 sayar.)")
         else:
             w(" *   when \"!cs0\" = YAZILMADI -- bosta guc SIFIR sayilir, bu")
-            w(" *     YANLIS. asic/scripts/rom_char/gen_periphery_power_tb.py ile olcup")
+            w(" *     YANLIS. scripts/rom_char/gen_periphery_power_tb.py ile olcup")
             w(" *     --energy-idle-pj ile gecin.")
     w(" * ----------------------------------------------------------------- */")
     w("library (%s_%s) {" % (name, corner))
@@ -506,7 +515,7 @@ def gen_lib(name, area, buses, scalars, corner, args):
         # cevrimde saat agaci + adres tamponlari + kod cozucu + 128 wordline
         # anahtarlanir. Bitline'lar VDD'de tutulur (ayak transistoru kapali)
         # -> onlarin payi yalnizca sizintidir, o da leakage_power'da sayili.
-        # Olcum: asic/scripts/rom_char/gen_periphery_power_tb.py (cevre birimi izole,
+        # Olcum: scripts/rom_char/gen_periphery_power_tb.py (cevre birimi izole,
         # hucre dizisi lump yukle temsil edilir -- kolon yonteminin aynisi).
         if args.energy_pj:
             w("        internal_power() {")
@@ -534,6 +543,10 @@ def main():
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--lef", default=DEFAULT_LEF)
+    ap.add_argument("--macro", default=None,
+                    help="makro adi -- LEF yolu agactan bulunur (--lef yerine)")
+    ap.add_argument("--macros-dir", default=None,
+                    help="makro agaci (varsayilan: ROM_MACROS_DIR / <depo>/examples)")
     ap.add_argument("--outdir", default=None,
                     help="varsayilan: LEF ile ayni dizin")
     ap.add_argument("--corner", action="append", choices=list(CORNERS),
@@ -578,6 +591,12 @@ def main():
         ap.add_argument("--" + key.replace("_", "-"), dest=key, type=float,
                         default=val, help="varsayilan %s" % val)
     args = ap.parse_args()
+
+    if args.macro:
+        args.lef = rom_paths.lef(args.macro, args.macros_dir)
+    if not args.lef:
+        sys.exit("HATA: LEF yok. --lef <yol> veya --macro <ad> verin "
+                 "(ya da ROM_MACROS_DIR ayarlayin).")
 
     name, width, height, pins = parse_lef(args.lef)
     area = width * height

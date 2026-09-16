@@ -38,7 +38,7 @@ DIKKAT -- OpenRAM TUZAGI
 Makro her yeniden derlendiginde OpenRAM `<makro>.v`'yi SIFIRDAN yazar ve bu
 modeli sessizce siler. Yeniden uretim sonrasi:
 
-    python3 asic/scripts/rom_char/gen_macro_behavioral_v.py
+    python3 scripts/rom_char/gen_macro_behavioral_v.py
 
 Uretilen dosyanin basligindaki imza satiri, dosyanin bu betikten mi yoksa
 OpenRAM'den mi geldigini ayirt etmeye yarar.
@@ -55,8 +55,9 @@ import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
-MACROS = os.path.join(REPO, "asic", "macros")
+sys.path.insert(0, HERE)
+import rom_paths
+REPO = rom_paths.ROOT
 
 SIGNATURE = "GERCEK DAVRANIS MODELI -- gen_macro_behavioral_v.py"
 
@@ -149,7 +150,7 @@ TEMPLATE = '''// OpenROM ROM model
 //
 // DIKKAT: OpenRAM makroyu her yeniden derlediginde BU DOSYAYI SIFIRDAN YAZAR
 // ve asagidaki modeli siler. Yeniden uretim sonrasi geri uygulamak icin:
-//     python3 asic/scripts/rom_char/gen_macro_behavioral_v.py {macro}
+//     python3 scripts/rom_char/gen_macro_behavioral_v.py {macro}
 //
 // NEDEN OpenRAM'in KENDI MODELI KULLANILMIYOR
 // -------------------------------------------
@@ -293,22 +294,23 @@ endmodule
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("macros", nargs="*", help="varsayilan: wrom0..wrom3")
+    ap.add_argument("macros", nargs="*",
+                    help="varsayilan: agactaki tum makrolar")
+    ap.add_argument("--macros-dir", default=None,
+                    help="makro agaci (varsayilan: ROM_MACROS_DIR / <depo>/examples)")
     ap.add_argument("--corner", default=DEFAULT_CORNER,
                     help="zamanlama degerlerinin alinacagi kose (varsayilan: %s)" % DEFAULT_CORNER)
     args = ap.parse_args()
 
-    names = args.macros or ["wrom%d" % k for k in range(4)]
-    # find_worst_column.py ciktisiyla ayni kaynak: netlistten sayilir.
-    sys.path.insert(0, HERE)
-    try:
-        from find_worst_column import analyse
-    except Exception:
-        analyse = None
+    names = args.macros or rom_paths.discover(args.macros_dir)
+    if not names:
+        print("makro bulunamadi: %s" % rom_paths.macros_dir(args.macros_dir),
+              file=sys.stderr)
+        return 1
 
     rc = 0
     for macro in names:
-        mdir = os.path.join(MACROS, macro)
+        mdir = rom_paths.macro_dir(macro, args.macros_dir)
         if not os.path.isdir(mdir):
             print("%-7s dizin yok, atlandi" % macro, file=sys.stderr)
             rc = 1
@@ -331,11 +333,9 @@ def main():
             rc = 1
             continue
 
-        wcol = chain = rows = cols = "?"
-        if analyse:
-            r = analyse(os.path.join(mdir, macro + ".sp"))
-            if r:
-                rows, cols, wcol, chain = r[0], r[1], r[2], r[3]
+        # geometri tek kaynaktan: rom_paths (netlist + LEF + config)
+        g = rom_paths.geometry(macro, args.macros_dir)
+        rows, cols, wcol, chain = g["rows"], g["cols"], g["worst_col"], g["chain"]
 
         out = TEMPLATE.format(
             macro=macro, sig=SIGNATURE, corner=args.corner, libname=libname,

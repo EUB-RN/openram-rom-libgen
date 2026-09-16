@@ -5,9 +5,10 @@ NEDEN KOLON, NEDEN TAM MAKRO DEGIL:
   Tam makro (~34k transistor) ngspice'te 28+ dk surup 7.3 GB RAM yiyor ve
   24 kosum (4 makro x 3 kose x 2 mod) gerekiyor -- pratik degil.
   Bu on-sarjli mimaride hem sizinti hem dinamik enerji KOLON BASINA
-  ayrilabilir, cunku 264 kolonun hepsi her cevrimde ayni isi yapiyor:
-    sizinti  = 264 x (kapali ayak transistorunun alt-esik sizintisi) + cevre
-    enerji   = 264 x (bir bitline'in sarj/desarj enerjisi)          + cevre
+  ayrilabilir, cunku kolonlarin hepsi her cevrimde ayni isi yapiyor:
+    sizinti  = N x (kapali ayak transistorunun alt-esik sizintisi) + cevre
+    enerji   = N x (bir bitline'in sarj/desarj enerjisi)           + cevre
+  (N = kolon sayisi; netlistten sayilir, bkz. rom_paths.py)
   Kolon netlisti PARAZITIK C icerir (gen_col_tb_parasitic.py ciktisi), yani
   dinamik enerji icin gereken gercek kapasiteler dahildir.
 
@@ -27,6 +28,10 @@ Kullanim:
 """
 import sys, re, argparse, os
 
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import rom_paths
+
 ap = argparse.ArgumentParser()
 ap.add_argument("macro")
 ap.add_argument("col", type=int)
@@ -38,10 +43,16 @@ ap.add_argument("--temp", default="25")
 ap.add_argument("--tclk", default="200n",
                 help="active modda cevrim periyodu; ENERJI buna bagimsiz olmali "
                      "-- iki farkli deger ile kosup dogrulanabilir")
+ap.add_argument("--macros-dir", default=None,
+                help="makro agaci (varsayilan: ROM_MACROS_DIR / <depo>/examples)")
 args = ap.parse_args()
 
-REPO = "/home/hpw/Desktop/2026_teknofest_Silicore"
-SRC = f"{REPO}/asic/macros/{args.macro}/char/col{args.col}_worst_case_parasitic.sp"
+SRC = os.path.join(rom_paths.char_dir(args.macro, args.macros_dir),
+                   f"col{args.col}_worst_case_parasitic.sp")
+# Kolon sayisi netlistten gelir -- deck basligindaki "toplam = N x bu
+# deger" ifadesi eskiden 264 diye SABIT yaziliydi ve makro yeniden
+# uretilince yaniltiyordu.
+NCOL = rom_paths.geometry(args.macro, args.macros_dir)["cols"]
 if not os.path.exists(SRC):
     sys.exit(f"HATA: {SRC} yok -- once gen_col_tb_parasitic.py calistirin")
 
@@ -73,7 +84,7 @@ gnd_extra = sorted(set(re.findall(r"\bgnd_uq\d+\b", circuit)))
 wl_src = "\n".join(f"Vwl{i} {n} 0 DC {{VDD}}" for i, n in enumerate(wl_nodes))
 gnd_src = "\n".join(f"Vg{n} {n} 0 DC 0" for n in gnd_extra)
 
-HEAD = f""".lib /home/hpw/OpenLane/pdks/sky130A/libs.tech/ngspice/sky130.lib.spice {args.corner}
+HEAD = f""".lib {rom_paths.sky130_lib()} {args.corner}
 .temp {args.temp}
 .param VDD={args.vdd}
 
@@ -85,7 +96,7 @@ if args.mode == "idle":
     tb = f"""* {args.macro} kolon {args.col} -- IDLE SIZINTI (kolon basina)
 * precharge=0: on-sarj fazi, ayak transistoru KAPALI, bitline VDD'de.
 * Baskin sizinti yolu: VDD -> prechg PMOS(acik) -> zincir(acik) -> ayak(KAPALI) -> gnd
-* Toplam makro sizintisi ~ 264 x (bu deger) + cevre birimi.
+* Toplam makro sizintisi ~ {NCOL} x (bu deger) + cevre birimi.
 {HEAD}
 Vprecharge precharge 0 DC 0
 
@@ -112,7 +123,7 @@ else:
     tb = f"""* {args.macro} kolon {args.col} -- AKTIF CEVRIM ENERJISI (kolon basina)
 * Bir tam cevrimde VDD'den cekilen YUK integrali -> E = Q*VDD.
 * Enerji FREKANSTAN BAGIMSIZ; --tclk degistirilerek dogrulanabilir.
-* Toplam makro enerjisi ~ 264 x (bu deger) + cevre birimi.
+* Toplam makro enerjisi ~ {NCOL} x (bu deger) + cevre birimi.
 {HEAD}
 .param TCLK={args.tclk}
 Vprecharge precharge 0 PULSE(0 {{VDD}} {{TCLK/2}} 100p 100p {{TCLK/2-100p}} {{TCLK}})

@@ -1,6 +1,6 @@
 /* -------------------------------------------------------------------
  * wrom1 -- SS_1p6V_100C
- * OTOMATIK URETILDI: asic/scripts/rom_char/gen_rom_lib.py  -- ELLE DUZENLEMEYIN
+ * OTOMATIK URETILDI: scripts/rom_char/gen_rom_lib.py  -- ELLE DUZENLEMEYIN
  *
  * OpenRAM ROM derleyicisi .lib yazmaz; bu dosya LEF pinleri +
  * wrom1.sp'den cikarilan devre yapisi uzerinden uretildi.
@@ -14,7 +14,7 @@
  *   kenarinda ornekler, ya da makro ters saatle surulur (clk0 = ~clk)
  *   ve veri sistem saatinin yukselen kenarinda yakalanir.
  *
- * KAYNAK: access/t_pre degerleri gercek Magic parazitik C + o kosenin KENDI sky130 modeli; on uc+cevre gucu char/periph_{active,idle}_*.log (2026-09-06), bitline char/col214_worst_case_parasitic*.log (2026-09-01), arka uc+egim char/backend_*.log (2026-09-06), sizinti char/col214_leak_*.log (2026-09-05), kolon enerjisi char/col214_energy_*.log (2026-09-05) ngspice
+ * KAYNAK: access/t_pre degerleri gercek Magic parazitik C + o kosenin KENDI sky130 modeli; 134x256 dizi, en kotu kolon 214 (seri NMOS 88); on uc+cevre gucu char/periph_{active,idle}_ss.log, bitline char/col214_worst_case_parasitic_ss.log, arka uc+egim char/backend_ss_*.log, sizinti char/col214_leak_ss.log, kolon enerjisi char/col214_energy_ss.log ngspice
  * olcumunden geliyor -- BU kose (SS_1p6V_100C) kendi sky130 model
  * dosyasiyla (tt/ss/ff) AYRI AYRI simule edildi; sabit carpanla
  * olcekleme YAPILMADI. Olcum bunun gerekli oldugunu gosterdi: eski

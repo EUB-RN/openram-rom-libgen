@@ -90,11 +90,12 @@ ap.add_argument("--steps", type=int, default=200,
 ap.add_argument("--cycles", type=int, default=8,
                 help="kosulacak cevrim sayisi (en az 4). Son iki tam cevrim "
                      "olculur; ikisinin esit cikmasi oturmayi kanitlar.")
-ap.add_argument("--repo", default="/home/hpw/Desktop/2026_teknofest_Silicore")
+ap.add_argument("--macros-dir", default=None,
+                help="makro agaci (varsayilan: ROM_MACROS_DIR / <depo>/examples)")
 args = ap.parse_args()
 
 M = args.macro
-SP = f"{args.repo}/asic/macros/{M}/{M}_cap_only.spice"
+SP = rom_paths.cap_netlist(M, args.macros_dir)
 if not os.path.exists(SP):
     sys.exit(f"HATA: {SP} yok -- once run_cap_extract.sh calistirin")
 
@@ -523,7 +524,7 @@ tb = f"""* {M} -- CEVRE BIRIMI cevrim enerjisi -- {mode}
 * cs0={args.cs}: {'precharge anahtarlanir' if args.cs else 'precharge SABIT 0 -- yalnizca clk_int agaci calisir'}
 * Enerji FREKANSTAN BAGIMSIZ olmali; --tclk degistirip dogrulayin.
 
-.lib /home/hpw/OpenLane/pdks/sky130A/libs.tech/ngspice/sky130.lib.spice {args.corner}
+.lib {rom_paths.sky130_lib()} {args.corner}
 .temp {args.temp}
 .param VDD={args.vdd}
 .param TCLK={args.tclk}

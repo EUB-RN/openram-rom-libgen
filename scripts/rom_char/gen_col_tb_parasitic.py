@@ -18,15 +18,26 @@ okunabilir isimler DEGIL. Parametre birimleri de (w,l,pd,ps metre; ad,as
 m^2) ngspice'in kabul ettigi bicime (w,l,pd,ps ciplak mikron; ad,as 'u'
 sonekli mikron^2) cevrilir -- deneysel olarak dogrulandi, bkz. Bolum 5.
 
-Kullanim: python3 gen_col_tb_parasitic.py <macro> <en_kotu_kolon>
-Ornek:    python3 gen_col_tb_parasitic.py wrom0 155
+Kullanim: python3 gen_col_tb_parasitic.py <macro> [en_kotu_kolon]
+Ornek:    python3 gen_col_tb_parasitic.py wrom0        # kolon otomatik
+          python3 gen_col_tb_parasitic.py wrom0 236    # elle sec
 """
-import re, sys, collections, subprocess
+import re, sys, os, collections, subprocess
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import rom_paths
+
+if len(sys.argv) < 2:
+    sys.exit("Kullanim: gen_col_tb_parasitic.py <macro> [en_kotu_kolon]")
 MACRO = sys.argv[1]
-COL = int(sys.argv[2])
-BASE = f"/home/hpw/Desktop/2026_teknofest_Silicore/asic/macros/{MACRO}"
-SP = f"{BASE}/{MACRO}_cap_only.spice"
+# Kolon verilmezse netlistten TURETILIR (en cok seri one_cell iceren
+# kolon) -- elle tablo tutmaya gerek yok, bkz. find_worst_column.py.
+COL = int(sys.argv[2]) if len(sys.argv) > 2 else \
+      rom_paths.geometry(MACRO)["worst_col"]
+BASE = rom_paths.macro_dir(MACRO)
+SP = rom_paths.cap_netlist(MACRO)
+if not os.path.exists(SP):
+    sys.exit(f"HATA: {SP} yok -- once run_cap_extract.sh calistirin")
 START = f"bl_0_{COL}"
 
 SUFFIX = {"f":1e-15, "p":1e-12, "n":1e-9, "u":1e-6, "m":1e-3, "k":1e3}
@@ -128,7 +139,7 @@ gnd_src = "\n".join(f"Vgnd{n} {n} 0 DC 0" for n in gnd_extra)
 tb = f"""* {MACRO} -- GERCEK PARAZITIK C ile kolon {COL} izole olcum
 * {n_one} seri NMOS + {n_zero} olu hucre (graf yuruyusu, isim-bagimsiz)
 
-.lib /home/hpw/OpenLane/pdks/sky130A/libs.tech/ngspice/sky130.lib.spice tt
+.lib {rom_paths.sky130_lib()} tt
 
 .param VDD=1.8
 .param TCLK=200n
@@ -159,14 +170,19 @@ Xbl_inv gnd vdd vdd {START} bl_b {MACRO}_pinv_dec_3
 .tran 100p '2*TCLK'
 .end
 """
-outp = f"{BASE}/char/col{COL}_worst_case_parasitic.sp"
+outp = os.path.join(rom_paths.char_dir(MACRO),
+                    f"col{COL}_worst_case_parasitic.sp")
 open(outp, "w").write(tb)
 print(f"yazildi: {outp}", file=sys.stderr)
 
 logp = outp.replace(".sp", ".log")
-r = subprocess.run(
-    ["/nix/store/4ssrcgdvyb8car0yxay8cwfa5wc89f1w-ngspice-45/bin/ngspice",
-     "-b", "-o", logp, outp], capture_output=True, text=True)
+# ngspice yolu ortamdan (NGSPICE_BIN); eskiden bir nix store yolu sabitti.
+NG = os.environ.get("NGSPICE_BIN", "ngspice")
+try:
+    subprocess.run([NG, "-b", "-o", logp, outp], capture_output=True, text=True)
+except FileNotFoundError:
+    sys.exit(f"HATA: ngspice bulunamadi ('{NG}'). NGSPICE_BIN ile yolunu verin.\n"
+             f"      Deck yazildi: {outp}")
 log = open(logp).read()
 import re as re2
 for pat in ("t_dis_50", "t_dis_10", "t_pre_90", "t_pre_99"):

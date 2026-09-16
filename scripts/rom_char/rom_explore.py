@@ -38,7 +38,9 @@ import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-MACROS_DIR = os.path.join(os.path.dirname(os.path.dirname(HERE)), "macros")
+sys.path.insert(0, HERE)
+import rom_paths
+MACROS_DIR = rom_paths.macros_dir()
 INST_RE = re.compile(r"^Xbit_r(\d+)_c(\d+)\s*$")
 
 

@@ -24,18 +24,23 @@ Kullanim: gen_cell_gate_tb.py <macro> <out.sp> [--corner tt|ss|ff]
 """
 import argparse, os, re, sys
 
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import rom_paths
+
 ap = argparse.ArgumentParser()
 ap.add_argument("macro")
 ap.add_argument("out")
 ap.add_argument("--corner", default="tt", choices=["tt", "ss", "ff"])
 ap.add_argument("--vdd", default="1.8")
 ap.add_argument("--temp", default="25")
-ap.add_argument("--repo", default="/home/hpw/Desktop/2026_teknofest_Silicore")
+ap.add_argument("--macros-dir", default=None,
+                help="makro agaci (varsayilan: ROM_MACROS_DIR / <depo>/examples)")
 args = ap.parse_args()
 
-SP = f"{args.repo}/asic/macros/{args.macro}/{args.macro}_cap_only.spice"
+SP = rom_paths.cap_netlist(args.macro, args.macros_dir)
 if not os.path.exists(SP):
-    sys.exit(f"HATA: {SP} yok")
+    sys.exit(f"HATA: {SP} yok -- once run_cap_extract.sh calistirin")
 
 SUFFIX = {"f": 1e-15, "p": 1e-12, "n": 1e-9, "u": 1e-6, "m": 1e-3, "k": 1e3}
 def to_float(tok):
@@ -82,7 +87,7 @@ tb = f"""* {args.macro} -- hucre ESDEGER KAPI KAPASITANSI ({args.corner})
 * Kaynak/govde toprakta: wordline yukselirken hucrenin gordugu durum.
 * Hucre ici parazitik C'ler BURADA YOK (periphery betigi ayrica ekler).
 
-.lib /home/hpw/OpenLane/pdks/sky130A/libs.tech/ngspice/sky130.lib.spice {args.corner}
+.lib {rom_paths.sky130_lib()} {args.corner}
 .temp {args.temp}
 .param VDD={args.vdd}
 .param TR=10n

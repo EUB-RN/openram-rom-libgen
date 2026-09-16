@@ -35,7 +35,7 @@ OLCUM YAPMADAN kestirmeye yarar; `words_per_row` degistirmenin etkisi de
 dogrudan burada gorunur.
 
 Kullanim:
-    python3 find_worst_column.py                 # asic/macros/wrom{0..3}
+    python3 find_worst_column.py                 # agactaki tum makrolar
     python3 find_worst_column.py wrom0 wrom2     # secili makrolar
     python3 find_worst_column.py --sp yol/x.sp   # dogrudan bir netlist
 """
@@ -47,7 +47,6 @@ import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-MACROS_DIR = os.path.join(os.path.dirname(os.path.dirname(HERE)), "macros")
 
 INST_RE = re.compile(r"^Xbit_r(\d+)_c(\d+)\s*$")
 
@@ -101,7 +100,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("macros", nargs="*", default=None,
-                    help="makro adlari (varsayilan: wrom0..wrom3)")
+                    help="makro adlari (varsayilan: agactaki tum makrolar)")
+    ap.add_argument("--macros-dir", default=None,
+                    help="makro agaci (varsayilan: ROM_MACROS_DIR / <depo>/examples)")
     ap.add_argument("--sp", help="dogrudan bir .sp yolu (makro adi yerine)")
     args = ap.parse_args()
 
@@ -109,9 +110,15 @@ def main():
     if args.sp:
         targets.append((os.path.basename(args.sp).replace(".sp", ""), args.sp))
     else:
-        names = args.macros or ["wrom%d" % k for k in range(4)]
+        # rom_paths gec import edilir: bu modulu ITHAL EDER, dongusel
+        # import olmasin diye modul seviyesinde degil.
+        sys.path.insert(0, HERE)
+        import rom_paths
+        names = args.macros or rom_paths.discover(args.macros_dir)
+        if not names:
+            sys.exit("makro bulunamadi: %s" % rom_paths.macros_dir(args.macros_dir))
         for n in names:
-            targets.append((n, os.path.join(MACROS_DIR, n, n + ".sp")))
+            targets.append((n, rom_paths.netlist(n, args.macros_dir)))
 
     print("%-8s %6s %6s %14s %11s %8s %6s"
           % ("makro", "satir", "kolon", "en_kotu_kolon", "seri_NMOS", "ort", "min"))
@@ -131,14 +138,12 @@ def main():
         rows_out.append((name, wcol, chain))
 
     if rows_out:
-        print("\nregen_rom_libs.sh tablosuna:  makro:kolon:zincir")
-        for name, wcol, chain in rows_out:
-            print('  "%s:%d:%d:<TT_acc>:<TT_pre>:<SS_acc>:<SS_pre>:<FF_acc>:<FF_pre>:<leak...>"'
-                  % (name, wcol, chain))
-        print("\nSonraki adim:")
-        for name, wcol, _ in rows_out:
-            print("  python3 gen_col_tb_parasitic.py %s %d" % (name, wcol))
-
+        # NOT: bu degerleri artik ELLE kopyalamaya gerek YOK -- rom_paths.py
+        # ayni analizi yapip run_*.sh ve regen_rom_libs.sh'a otomatik verir.
+        # Bu ciktisi denetim/gozlem icindir.
+        print("\nSonraki adim (kolon argumani istege bagli, verilmezse buradan gelir):")
+        for name, _wcol, _ in rows_out:
+            print("  python3 gen_col_tb_parasitic.py %s" % name)
 
 if __name__ == "__main__":
     main()

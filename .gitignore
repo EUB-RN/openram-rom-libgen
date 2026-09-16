@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+# rom_paths.py geometri onbellegi (netlistten yeniden uretilir)
+.geometry.json

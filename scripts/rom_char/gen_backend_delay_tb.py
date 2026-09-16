@@ -41,6 +41,10 @@ Kullanim:
 """
 import argparse, collections, os, re, sys
 
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import rom_paths
+
 ap = argparse.ArgumentParser()
 ap.add_argument("macro")
 ap.add_argument("col", type=int)
@@ -57,13 +61,14 @@ ap.add_argument("--load-ff", type=float, default=6.89,
                      "noktalari: 1.7225 / 6.89 / 27.56 -- her biri AYRI "
                      "kosulur, boylece yuk ekseni gercekten olculur "
                      "(onceki .lib'lerde uc nokta da ayni sayiyi tasiyordu).")
-ap.add_argument("--repo", default="/home/hpw/Desktop/2026_teknofest_Silicore")
+ap.add_argument("--macros-dir", default=None,
+                help="makro agaci (varsayilan: ROM_MACROS_DIR / <depo>/examples)")
 args = ap.parse_args()
 
 M = args.macro
-SP = f"{args.repo}/asic/macros/{M}/{M}_cap_only.spice"
+SP = rom_paths.cap_netlist(M, args.macros_dir)
 if not os.path.exists(SP):
-    sys.exit(f"HATA: {SP} yok")
+    sys.exit(f"HATA: {SP} yok -- once run_cap_extract.sh calistirin")
 
 SUFFIX = {"f": 1e-15, "p": 1e-12, "n": 1e-9, "u": 1e-6, "m": 1e-3, "k": 1e3}
 def to_float(tok):
@@ -302,7 +307,7 @@ tb = f"""* {M} -- ARKA UC gecikmesi: bitline -> dout0  (kolon {args.col}, {args.
 *   t_dis_10={args.t_dis_10*1e9:.4f} ns -> VDD->0 tam gecis {tfall*1e9:.3f} ns
 * Olculen bit: {dout_net}   (sec: {sel_net})   cikis yuku: {args.load_ff} fF
 
-.lib /home/hpw/OpenLane/pdks/sky130A/libs.tech/ngspice/sky130.lib.spice {args.corner}
+.lib {rom_paths.sky130_lib()} {args.corner}
 .temp {args.temp}
 .param VDD={args.vdd}
 .param TFALL={tfall:.6e}
