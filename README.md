@@ -298,6 +298,10 @@ the precharged-NAND behaviour described above.
 # 2) column timing: bitline discharge + precharge, three corners
 ./scripts/rom_char/run_col_timing.sh               #  -> col<N>_worst_case_parasitic*.log
 
+# 2b) optional: per-cell wire resistance, and a deck that includes it
+python3 scripts/rom_char/gen_resistance_model.py wrom0
+python3 scripts/rom_char/gen_col_tb_parasitic.py wrom0 --with-resistance
+
 # 3) back-end delay + output slew, three corners x three loads
 ./scripts/rom_char/run_backend_delay.sh            #  -> backend_<corner>_<load>.log
 
@@ -353,6 +357,7 @@ per corner, the rest are seconds.
 | `rom_explore.py` | array structure summary, column histogram, row map |
 | `run_cap_extract.sh` | capacitance-only parasitic extraction with Magic |
 | `gen_col_tb_parasitic.py` | isolated testbench for the worst column (graph walk, name independent) |
+| `gen_resistance_model.py` | per-cell series wire resistance: Magic per cell + analytic where it segfaults |
 | `make_corner_variant.py` | SS/FF variant of the TT deck (identical circuit) |
 | `run_col_timing.sh` | ties those two together: column timing at three corners |
 | `gen_backend_delay_tb.py` / `run_backend_delay.sh` | bitline -> `dout0` and output slew vs load |
@@ -385,9 +390,18 @@ Ordered by how much they can move a number:
 2. **`rom_column_decode` is never measured.** The mux select is an ideal source
    in the back-end deck. The margin is large (14-43 ns of bitline against maybe
    1 ns for an 8-way precharged decoder) but it is unproven.
-3. **No resistance is extracted** (`extresist off`, because Magic segfaults on
-   the whole macro). Bitline and wordline wire resistance are absent; only
-   channel resistance is modelled.
+3. **Wire resistance is measured but not yet switched on by default.** Magic
+   segfaults extracting resistance for the whole macro, so
+   `gen_resistance_model.py` extracts it per cell (where Magic is happy) and
+   computes it from the .mag geometry plus the PDK sheet resistances where it
+   is not. On the example macros: 505 ohm per `one_cell`, 0.24 ohm per
+   `zero_cell` strap, 41.5 kohm over the worst chain. Feeding that into the
+   column deck (`gen_col_tb_parasitic.py --with-resistance`) moves the bitline
+   term by **+15% at TT, +6.6% at SS, +28% at FF** -- so the committed .lib
+   files are optimistic by that much. The wordline is not affected: the array
+   straps it to metal every 8 columns (33 polycont per row, 8.16 um apart), so
+   only ~1.3 kohm of poly is ever in series and its RC is in the tens of
+   picoseconds.
 4. **The `index_1` (input slew) axis is flat** -- all three rows of the
    CELL_TABLE carry the same value. Only the load axis is measured.
 5. **Input pin capacitances are analytic estimates** from gate widths

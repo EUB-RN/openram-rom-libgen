@@ -6,12 +6,17 @@
 # .lib come straight from these logs (regen_rom_libs.sh reads them).
 #
 # WHAT IT DOES
+#   0) builds the per-cell wire resistance model (gen_resistance_model.py --
+#      Magic on a single cell, analytic where Magic segfaults). The column deck
+#      needs it: wire resistance is included by default and moves the bitline
+#      term by +15% (tt) / +6.6% (ss) / +28% (ff).
 #   1) builds and runs the TT deck   (gen_col_tb_parasitic.py -- which also
 #      finds the worst column itself, by walking the netlist graph)
 #   2) builds and runs the SS/FF variants (make_corner_variant.py -- exact same
 #      circuit, only the models/VDD/temperature change)
 #
 # PREREQUISITE: <macro>_cap_only.spice (run_cap_extract.sh)
+# Set NO_RESISTANCE=1 to reproduce the old capacitance-only decks.
 #
 # Usage: scripts/rom_char/run_col_timing.sh [macro ...]
 
@@ -23,7 +28,16 @@ export NGSPICE_BIN="$NG"
 for m in $(macro_list "$@"); do
   load_geom "$m" || continue
   echo "== $m  (worst column $G_WORST_COL, series NMOS $G_CHAIN) =="
-  python3 "$ROM_CHAR_DIR/gen_col_tb_parasitic.py" "$m" "$G_WORST_COL"
+  if [ "${NO_RESISTANCE:-0}" = 1 ]; then
+    RFLAG=--no-resistance
+  else
+    RFLAG=""
+    python3 "$ROM_CHAR_DIR/gen_resistance_model.py" "$m" || {
+      echo "  $m: resistance model failed -- falling back to capacitance only"
+      RFLAG=--no-resistance
+    }
+  fi
+  python3 "$ROM_CHAR_DIR/gen_col_tb_parasitic.py" "$m" "$G_WORST_COL" $RFLAG
   for c in ss ff; do
     python3 "$ROM_CHAR_DIR/make_corner_variant.py" "$m" "$G_WORST_COL" "$c" >/dev/null
     sp="$G_CHAR/${G_COLTAG}_worst_case_parasitic_${c}.sp"
