@@ -1,0 +1,76 @@
+/* good.lib with ONE defect, for tests/test_checker.py.
+ * DEFECT: a negative delay */
+library (good) {
+    delay_model : "table_lookup";
+    time_unit : "1ns";
+    voltage_unit : "1V";
+    current_unit : "1mA";
+    leakage_power_unit : "1mW";
+
+    voltage_map ( VDD, 1.80 );
+    voltage_map ( VSS, 0.00 );
+
+    lu_table_template(T) {
+        variable_1 : input_net_transition;
+        variable_2 : total_output_net_capacitance;
+        index_1("0.001, 0.005, 0.04");
+        index_2("0.002, 0.007, 0.03");
+    }
+
+    type (word) {
+        base_type : array;
+        data_type : bit;
+        bit_width : 4;
+        bit_from : 3;
+        bit_to : 0;
+    }
+
+cell (c) {
+    area : 1.0;
+
+    pg_pin(vdd) {
+        voltage_name : VDD;
+        pg_type : primary_power;
+    }
+    pg_pin(vss) {
+        voltage_name : VSS;
+        pg_type : primary_ground;
+    }
+
+    leakage_power () {
+        related_pg_pin : vdd;
+        value : 0.001;
+    }
+
+    pin(clk) {
+        direction : input;
+        clock : true;
+        related_power_pin  : vdd;
+        related_ground_pin : vss;
+        internal_power() {
+            related_pg_pin : vdd;
+            when : "en";
+            rise_power(scalar) { values("1.0"); }
+            fall_power(scalar) { values("1.0"); }
+        }
+    }
+    bus(q) {
+        bus_type : word;
+        direction : output;
+        min_capacitance : 0.002;
+        max_capacitance : 0.03;
+        pin(q[3:0]) {
+        related_power_pin  : vdd;
+        related_ground_pin : vss;
+        timing() {
+            related_pin : "clk";
+            timing_type : rising_edge;
+            cell_rise(T) { values("1,-1,1", "1,1,1", "1,1,1"); }
+            cell_fall(T) { values("1,1,1", "1,1,1", "1,1,1"); }
+            rise_transition(T) { values("1,1,1", "1,1,1", "1,1,1"); }
+            fall_transition(T) { values("1,1,1", "1,1,1", "1,1,1"); }
+        }
+        }
+    }
+}
+}
