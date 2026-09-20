@@ -174,7 +174,10 @@ def geometry(macro, explicit=None, use_cache=True, quiet=False):
         raise SystemExit("ERROR: no netlist at %s\n"
                          "       (is ROM_MACROS_DIR correct?)" % sp)
     st = os.stat(sp)
-    stamp = "%d:%d" % (st.st_mtime_ns, st.st_size)
+    # v2 added best_col/best_chain. The stamp carries a schema version so an
+    # old cache from before that is refreshed instead of silently answering
+    # without the new keys.
+    stamp = "v2:%d:%d" % (st.st_mtime_ns, st.st_size)
 
     cache = _cache_path(macro, explicit)
     if use_cache and os.path.exists(cache):
@@ -189,7 +192,7 @@ def geometry(macro, explicit=None, use_cache=True, quiet=False):
     if r is None:
         raise SystemExit("ERROR: no Xbit_r*_c* instances in %s -- is this an "
                          "OpenRAM ROM netlist?" % sp)
-    rows, cols, worst_col, chain, avg, mn = r
+    rows, cols, worst_col, chain, avg, mn, best_col = r
 
     word_size, wpr = _config_sizes(macro, explicit)
     addr_bits, data_bits = _lef_widths(macro, explicit)
@@ -225,6 +228,9 @@ def geometry(macro, explicit=None, use_cache=True, quiet=False):
         "chain": chain,
         "chain_avg": round(avg, 2),
         "chain_min": mn,
+        # the shortest chain -- the EARLY path (retain times in the .lib)
+        "best_col": best_col,
+        "best_chain": mn,
         "word_size": word_size or 0,
         "words_per_row": wpr or 0,
         "addr_bits": addr_bits,
@@ -327,7 +333,8 @@ def check(macro, explicit=None):
 
 # ------------------------------------------------------------------- CLI ---
 _SH_KEYS = ["macro", "dir", "char", "sp", "lef", "rows", "cols", "worst_col",
-            "chain", "word_size", "words_per_row", "addr_bits", "data_bits",
+            "chain", "best_col", "best_chain",
+            "word_size", "words_per_row", "addr_bits", "data_bits",
             "words"]
 
 
@@ -380,6 +387,7 @@ def main(argv):
             print("G_%s='%s'" % (k.upper(), g[k]))
         # the worst column appears in many file names -- ready-made prefix
         print("G_COLTAG='col%d'" % g["worst_col"])
+        print("G_BESTTAG='col%d'" % g["best_col"])
         return 0
 
     print("macro          : %(macro)s" % g)
@@ -387,6 +395,8 @@ def main(argv):
     print("geometry       : %(rows)d rows x %(cols)d columns" % g)
     print("worst column   : %(worst_col)d  (series NMOS chain %(chain)d; "
           "avg %(chain_avg)s, min %(chain_min)d)" % g)
+    print("best column    : %(best_col)d  (series NMOS chain %(best_chain)d "
+          "-- the early path)" % g)
     print("capacity       : %(words)d x %(data_bits)d bit, %(addr_bits)d "
           "address bits" % g)
     print("config         : word_size=%(word_size)s words_per_row=%(words_per_row)s"

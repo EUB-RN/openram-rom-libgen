@@ -92,8 +92,14 @@ def analyse(sp_path):
     if not one:
         return None
     worst_col, chain = one.most_common(1)[0]
+    # The BEST column matters as much as the worst one now: the worst column
+    # bounds the late path (access, setup) and the best column bounds the
+    # EARLY path (the retain times -- how soon dout0 can start moving). A .lib
+    # with only the worst column carries no early data at all, and a hold
+    # check against the capture flop then has nothing to fail on.
+    best_col = min(one, key=lambda c: (one[c], c))
     return (len(rows), len(cols), worst_col, chain,
-            sum(one.values()) / len(one), min(one.values()))
+            sum(one.values()) / len(one), one[best_col], best_col)
 
 
 def main():
@@ -120,8 +126,9 @@ def main():
         for n in names:
             targets.append((n, rom_paths.netlist(n, args.macros_dir)))
 
-    print("%-8s %6s %6s %14s %11s %8s %6s"
-          % ("macro", "rows", "cols", "worst_column", "series_NMOS", "avg", "min"))
+    print("%-8s %6s %6s %14s %11s %8s %6s %13s"
+          % ("macro", "rows", "cols", "worst_column", "series_NMOS", "avg",
+             "min", "best_column"))
     rows_out = []
     for name, path in targets:
         if not os.path.exists(path):
@@ -132,9 +139,9 @@ def main():
             print("%-8s  no Xbit_r*_c* instances -- different netlist format?"
                   % name, file=sys.stderr)
             continue
-        nrows, ncols, wcol, chain, avg, mn = r
-        print("%-8s %6d %6d %14d %11d %8.1f %6d"
-              % (name, nrows, ncols, wcol, chain, avg, mn))
+        nrows, ncols, wcol, chain, avg, mn, bcol = r
+        print("%-8s %6d %6d %14d %11d %8.1f %6d %13d"
+              % (name, nrows, ncols, wcol, chain, avg, mn, bcol))
         rows_out.append((name, wcol, chain))
 
     if rows_out:

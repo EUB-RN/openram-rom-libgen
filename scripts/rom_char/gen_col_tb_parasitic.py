@@ -38,9 +38,28 @@ import rom_paths
 # reproduces the old capacitance-only deck for comparison.
 ARGV = [a for a in sys.argv[1:] if not a.startswith("--")]
 WITH_R = "--no-resistance" not in sys.argv
+# --tag names the deck. The default keeps every existing file name, and the
+# early-path run (the BEST column, for the .lib retain times) uses
+# --tag=best_case_parasitic so it cannot collide: wrom3's WORST column happens
+# to be column 10, which is another macro's best, and a shared name would have
+# had one run silently overwrite the other.
+TAG = "worst_case_parasitic"
+# --ones=<n> builds a SYNTHETIC column: the first n one_cells of the walked
+# chain stay as transistors and every remaining one becomes what a stored 0
+# physically is -- a metal1 strap across the cell, plus the cell's own
+# capacitance. See the note next to the conversion below for why this is the
+# only way to reach the macro's fastest possible array.
+ONES = None
+for _a in sys.argv[1:]:
+    if _a.startswith("--tag="):
+        TAG = _a.split("=", 1)[1]
+    elif _a.startswith("--ones="):
+        ONES = int(_a.split("=", 1)[1])
+        if ONES < 0:
+            sys.exit("--ones cannot be negative")
 if not ARGV:
-    sys.exit("usage: gen_col_tb_parasitic.py <macro> [worst_column] "
-             "[--no-resistance]")
+    sys.exit("usage: gen_col_tb_parasitic.py <macro> [column] "
+             "[--no-resistance] [--tag=<name>]")
 MACRO = ARGV[0]
 # With no column given it is DERIVED from the netlist (the column with the most
 # series one_cells) -- no hand-kept table needed, see find_worst_column.py.
@@ -122,6 +141,95 @@ n_zero = len(zero_on_path)
 print(f"{MACRO} column {COL}: {n_one} series NMOS + {n_zero} dead cells "
       f"(by graph walk)", file=sys.stderr)
 
+# --- synthetic chain: the FASTEST array this geometry can hold --------------
+# The .lib's retain times are an EARLY bound, and the early bound the flow had
+# was the best column of THIS macro's contents (wrom0: column 10, 48 series
+# NMOS). That is not the fastest array -- it is the fastest array that happens
+# to be programmed. A ROM's contents are per instance: reprogram it and the
+# same geometry discharges faster.
+#
+# How fast can it get? A stored 0 is a metal1 strap across the cell, so it
+# collapses two bitline segments into one node and leaves the series path
+# entirely -- it only loads it. A stored 1 is a real NMOS in series. So the
+# discharge resistance is set by the number of stored ONES, and the fastest
+# column is the one holding the FEWEST.
+#
+# The floor is ZERO. A column whose 134 stored bits are all 0 reads 0 at every
+# address -- useless, but legal and electrically fine, because the FOOT
+# TRANSISTOR stays in series whatever the contents are: it is gated by the
+# precharge net, not by a wordline, and it is what isolates the chain from
+# ground while the bitline charges. (An early version of this converted the
+# foot along with the data cells, which tied the column to ground for good and
+# made it look 5x too fast. That is how the foot was found.)
+#
+# Measured on wrom0 column 10 at tt: 0 data cells 0.5080 ns, 1 cell 0.5738 ns,
+# all 47 cells 10.0972 ns. The floor is 13% below the one-cell case but 20x
+# below the programmed column, i.e. at the limit the bound stops being about
+# the array at all and is set by the fixed circuitry -- the foot transistor,
+# the precharge PMOS, the bitline wire and the bitline inverter. That is why
+# this has to be measured per macro (the fixed part is geometry) and why it
+# does NOT have to be re-measured when the contents change.
+#
+# The conversion is physically faithful rather than a scaling: each removed
+# one_cell becomes the strap it would actually be (the measured zero_cell
+# resistance) plus a zero_cell instance for the capacitance it still has. The
+# bitline wire capacitance does not move, because the bitline runs the full
+# height of the array whatever is stored in it.
+strap_lines = []
+if ONES is not None and ONES < len(path_insts):
+    if not WITH_R:
+        sys.exit("--ones needs the resistance model (the strap resistance is "
+                 "the whole point); drop --no-resistance.")
+    import json as _json0
+    _rj0 = os.path.join(rom_paths.char_dir(MACRO), "resistance_model.json")
+    if not os.path.exists(_rj0):
+        sys.exit(f"ERROR: {_rj0} does not exist -- run gen_resistance_model.py")
+    _r_strap = _json0.load(open(_rj0))["cells"].get(
+        f"{MACRO}_rom_base_zero_cell", {}).get("series_ohm")
+    if _r_strap is None:
+        sys.exit("ERROR: no series resistance for the zero_cell in " + _rj0)
+
+    # NOT every element of the walked path is a data cell. The last one is the
+    # FOOT TRANSISTOR: it is an instance of the same one_cell subcircuit, but
+    # its gate is the precharge net, not a wordline, and it is what isolates
+    # the chain from ground while the bitline charges. Converting it to a
+    # strap ties the column to ground for good -- the bitline then only
+    # reaches 1.76 V instead of 1.80 V and "discharges" 5x faster, which is
+    # how this was found (2026-09-19).
+    #
+    # The foot is identified by its gate net rather than by its position, so
+    # a macro that orders the chain differently still works.
+    data_idx = [i for i, l in enumerate(path_insts)
+                if re.match(r"wl_\d+_\d+$", l.split()[3])]
+    foot = [i for i in range(len(path_insts)) if i not in set(data_idx)]
+    if not data_idx:
+        sys.exit("ERROR: no wordline-driven cell on the path -- cannot tell "
+                 "data cells from the foot transistor")
+    if ONES > len(data_idx):
+        sys.exit(f"--ones={ONES} exceeds the {len(data_idx)} data cells on "
+                 f"column {COL} (the path also carries {len(foot)} foot "
+                 f"transistor(s), which are never converted)")
+
+    keep = set(data_idx[:ONES]) | set(foot)
+    converted, kept = [], []
+    for i, l in enumerate(path_insts):
+        (kept if i in keep else converted).append(l)
+
+    # Walk the ORIGINAL node order so each strap spans exactly the segment its
+    # transistor used to.
+    for k, l in enumerate(converted):
+        i = path_insts.index(l)
+        S, D = path_nodes[i], path_nodes[i + 1]
+        G = l.split()[3]
+        strap_lines.append(f"Rstrap{k} {S} {D} {_r_strap:.4f}")
+        strap_lines.append(f"Xsyn_zero{k} {S} {G} gnd {MACRO}_rom_base_zero_cell")
+    path_insts = kept
+    n_one = len(path_insts)
+    print(f"{MACRO} SYNTHETIC column {COL}: {ONES} of {len(data_idx)} data "
+          f"cells kept as NMOS, {len(converted)} converted to "
+          f"{_r_strap:.3f} ohm straps, {len(foot)} foot transistor(s) "
+          f"untouched", file=sys.stderr)
+
 def get_subckt(name):
     return "\n".join(blocks_raw_lines(name))
 
@@ -180,7 +288,7 @@ if WITH_R:
         fixed.append(" ".join(t))
     path_insts = fixed
 
-chain_raw = "\n".join(path_insts + zero_on_path)
+chain_raw = "\n".join(path_insts + zero_on_path + strap_lines)
 chain = "\n".join(fix_units(l) if l.startswith("X") else l for l in chain_raw.splitlines())
 if res_lines:
     chain = chain + "\n" + "\n".join(res_lines)
@@ -218,6 +326,13 @@ Xbl_inv gnd vdd vdd {START} bl_b {MACRO}_pinv_dec_3
 +                      TARG v({START})   VAL='VDD/2' FALL=1
 .measure tran t_dis_10 TRIG v(precharge) VAL='VDD/2' RISE=1
 +                      TARG v({START})   VAL='0.1*VDD' FALL=1
+* t_pre_50: the bitline crosses the bitline-inverter trip point on the way
+* back up -- this is the moment dout0 STOPS being valid after clk0 falls.
+* It feeds the falling_edge arc of the .lib (gen_rom_lib.py --t-invalid).
+* t_pre_90/t_pre_99 are the recharge-complete times and are much later, so
+* they must NOT be used for that arc.
+.measure tran t_pre_50 TRIG v(precharge) VAL='VDD/2' FALL=1
++                      TARG v({START})   VAL='VDD/2' RISE=1
 .measure tran t_pre_90 TRIG v(precharge) VAL='VDD/2' FALL=1
 +                      TARG v({START})   VAL='0.9*VDD' RISE=1
 .measure tran t_pre_99 TRIG v(precharge) VAL='VDD/2' FALL=1
@@ -230,7 +345,7 @@ Xbl_inv gnd vdd vdd {START} bl_b {MACRO}_pinv_dec_3
 # run_backend_delay.sh, run_col_power.sh, run_col_energy.sh and
 # regen_rom_libs.sh all look for this exact name.
 outp = os.path.join(rom_paths.char_dir(MACRO),
-                    f"col{COL}_worst_case_parasitic.sp")
+                    f"col{COL}_{TAG}.sp")
 open(outp, "w").write(tb)
 print(f"written: {outp}", file=sys.stderr)
 
@@ -245,7 +360,7 @@ except FileNotFoundError:
              f"       The deck was written: {outp}")
 log = open(logp).read()
 import re as re2
-for pat in ("t_dis_50", "t_dis_10", "t_pre_90", "t_pre_99"):
+for pat in ("t_dis_50", "t_dis_10", "t_pre_50", "t_pre_90", "t_pre_99"):
     m = re2.search(pat + r"\s*=\s*([0-9.eE+-]+)", log)
     print(f"{MACRO} {pat} = {m.group(1) if m else 'NOT FOUND'}")
 errs = [l for l in log.splitlines() if "error" in l.lower() or "shorted" in l.lower() or "modelname" in l.lower()]

@@ -91,6 +91,13 @@ ap.add_argument("--gate-cap-ff", type=float, default=None,
                      "gen_cell_gate_tb.py. If given, the wordline load is "
                      "modelled as a LINEAR C instead of bare devices (same "
                      "energy, far more robust convergence).")
+ap.add_argument("--clk-slew", default="0.5n",
+                help="clk0 rise/fall time. This is the index_1 "
+                     "(input_net_transition) axis of the .lib: the front-end "
+                     "term t_clk2pre is the ONLY part of access that depends "
+                     "on it, so run_slew_sweep.sh sweeps this and nothing "
+                     "else. The default 0.5n is the value every earlier "
+                     "measurement used.")
 ap.add_argument("--steps", type=int, default=200,
                 help="time steps per cycle")
 ap.add_argument("--cycles", type=int, default=8,
@@ -515,6 +522,10 @@ mode = "ACTIVE (cs0=1)" if args.cs else "IDLE (cs0=0)  -->  when : \"!cs0\""
 wl_n = sum(1 for p, c, w in load_report if re.match(r"^wl_", p))
 cells = sum(c for p, c, w in load_report if re.match(r"^wl_", p))
 
+# The PULSE edge is written into the deck verbatim, so it accepts any SPICE
+# time literal ("50p", "0.5n", "1.5e-9").
+slew = args.clk_slew
+
 tb = f"""* {M} -- PERIPHERY energy per cycle -- {mode}
 * Kept:    rom_control_logic (clock driver + control_nand + prechg driver)
 *          rom_row_decode    (address buffers + decoder + wl drivers)
@@ -540,10 +551,14 @@ tb = f"""* {M} -- PERIPHERY energy per cycle -- {mode}
 Vvdd {SUPPLY_HI} 0 DC {{VDD}}
 Vgnd {SUPPLY_LO} 0 DC 0
 Vcs cs0 0 DC {cs_val}
-* 500 ps edge: a 100 ps step made convergence hard on a network this size.
+* Edge rate {args.clk_slew} (--clk-slew). It is the .lib's index_1 axis: the
+* front-end term t_clk2pre is the only part of access that depends on it.
 * With a half period of 100 ns the CHARGE TRANSFERRED (= the energy) does not
-* depend on the edge rate.
-Vclk clk0 0 PULSE(0 {{VDD}} {{TCLK/2}} 500p 500p {{TCLK/2-500p}} {{TCLK}})
+* depend on the edge rate, so the energy numbers stay comparable across a
+* sweep. A 100 ps step was tried early on and made convergence hard on a
+* network this size, which is why the axis does not reach into the low
+* picoseconds.
+Vclk clk0 0 PULSE(0 {{VDD}} {{TCLK/2}} {slew} {slew} {{TCLK/2-{slew}}} {{TCLK}})
 {addr_src}
 
 * --- periphery instances (with parasitics, verbatim from the extraction) ---
@@ -563,7 +578,22 @@ Vclk clk0 0 PULSE(0 {{VDD}} {{TCLK/2}} 500p 500p {{TCLK/2-500p}} {{TCLK}})
 
 * abstol: the 1e-15 used for the leakage measurement is NOT needed here (the
 * currents are on the order of uA) and only makes convergence harder.
-.options gmin=1e-12 abstol=1e-12 reltol=1e-3 itl1=500 itl4=100
+*
+* method=gear IS REQUIRED (2026-09-19). With the default trapezoidal
+* integrator this deck is not step converged: sweeping the step over
+* 1 / 0.25 / 0.2 ns gave 5.1949 / 6.0798 / 5.9715 pJ -- a 17% spread that is
+* not even monotonic -- and 0.1 ns ABORTED outright at t = 3 ps with
+* "Timestep too small ... trouble with node ...nand2_dec...nfet_01v8#body".
+* That is trapezoidal ringing on the extracted body nodes, and it lands
+* straight in the i(Vvdd) charge integral this deck measures.
+* With gear the same sweep over 1 / 0.5 / 0.4 / 0.2 / 0.1 ns gives
+* 6.2581 / 6.2515 / 6.2479 / 6.2710 / 6.2746 pJ -- 0.43% across a 10x range,
+* and nothing aborts. The step is therefore NOT the knob that matters here;
+* --steps 200 stays the default.
+* Rejected alternatives: cshunt=1e-18 did not stop the abort; relaxing the
+* tolerances (abstol/gmin 1e-10, reltol 1e-2) ran to the end but returned
+* 8.2109 pJ, 31% high -- it breaks the charge integral silently.
+.options gmin=1e-12 abstol=1e-12 reltol=1e-3 itl1=500 itl4=100 method=gear
 * uic IS REQUIRED: the internal nodes of the precharged decoder have no DC
 * path, so .op does not converge (tried 2026-09-06 -- still at the operating
 * point after 10 minutes). The column measurement uses uic for the same reason.

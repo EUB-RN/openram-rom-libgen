@@ -14,16 +14,24 @@ import sys, re, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rom_paths
 
-if len(sys.argv) < 3:
-    sys.exit("usage: make_corner_variant.py <macro> [column] <ss|ff>")
-MACRO = sys.argv[1]
+# --tag must match the one gen_col_tb_parasitic.py was given.
+TAG = "worst_case_parasitic"
+ARGV = []
+for _a in sys.argv[1:]:
+    if _a.startswith("--tag="):
+        TAG = _a.split("=", 1)[1]
+    else:
+        ARGV.append(_a)
+if len(ARGV) < 2:
+    sys.exit("usage: make_corner_variant.py <macro> [column] <ss|ff> "
+             "[--tag=<name>]")
+MACRO = ARGV[0]
 # The column may be omitted: <macro> <ss|ff> -> worst column from the netlist
-if len(sys.argv) == 3:
-    COL, CORNER = rom_paths.geometry(MACRO)["worst_col"], sys.argv[2]
+if len(ARGV) == 2:
+    COL, CORNER = rom_paths.geometry(MACRO)["worst_col"], ARGV[1]
 else:
-    COL, CORNER = sys.argv[2], sys.argv[3]
-SRC = os.path.join(rom_paths.char_dir(MACRO),
-                   f"col{COL}_worst_case_parasitic.sp")
+    COL, CORNER = ARGV[1], ARGV[2]
+SRC = os.path.join(rom_paths.char_dir(MACRO), f"col{COL}_{TAG}.sp")
 
 PARAMS = {
     "ss": dict(vdd=1.6, temp=100, tag="SS_1p6V_100C"),

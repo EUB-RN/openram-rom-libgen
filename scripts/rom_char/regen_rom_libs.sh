@@ -10,6 +10,10 @@
 #   2) bitline     precharge -> bl 50%: char/col<N>_worst_case_parasitic*.log
 #   3) back end    bitline -> dout0  : char/backend_<corner>_<load>.log t_bl2dout
 #   output slew                      : same file, t_dout_slew
+# INVALIDATION (falling_edge arc on dout0, clk0 falls -> data gone):
+#   t_clk2pre + t_pre_50 + the SMALLEST-load t_bl2dout -- the earliest the
+#   output can leave its valid level. Without it STA assumes dout0 holds to
+#   the next capture edge, which is a false pass on an unlatched ROM.
 # LEAKAGE: char/col<N>_leak_<corner>.log   (vvdd#branch from the .op table)
 # ENERGY : column array <columns> x char/col<N>_energy_<corner>.log e_col_pj
 #          + periphery              char/periph_active_<corner>.log  e_periph_pj
@@ -33,7 +37,8 @@
 #   * leakage          <- col<N>_leak_<corner>.log
 #
 # t_pre uses t_pre_99, NOT t_pre_90: 90% recharge comes out ~0.5 ns and would
-# write a min_pulse_width(fall) 20x too small.
+# write a min_pulse_width(fall) 20x too small. The falling_edge arc is the
+# opposite case: it wants the EARLIEST crossing, so it uses t_pre_50.
 #
 # --measured IS REQUIRED: the values already belong to that corner, so the
 # derating factors in the CORNERS table must NOT be applied on top (double
@@ -91,9 +96,89 @@ for m in $(macro_list "$@"); do
     #    corners the wordline is FASTER than the precharge path, so precharge
     #    is the critical one.)
     tf=$(meas "$PA" t_clk2pre | awk '{printf "%.4f", $1*1e9}')
+    # index_1 (clk0 slew): the front-end term at each point of the axis.
+    # run_slew_sweep.sh writes periph_slew<i>_<corner>.log. Without them the
+    # axis stays flat, which is what every earlier run produced -- say so
+    # rather than silently writing three copies of one number.
+    tf_list=""
+    i=0
+    for _sl in $SLEWS; do
+      v=$(meas "$G_CHAR/periph_slew${i}_${c}.log" t_clk2pre \
+          | awk '{printf "%.4f", $1*1e9}')
+      [ -z "$v" ] && { tf_list=""; break; }
+      tf_list="${tf_list:+$tf_list,}$v"
+      i=$((i+1))
+    done
+    if [ -z "$tf_list" ]; then
+      echo "  $m $c: no slew sweep -> index_1 stays FLAT (run run_slew_sweep.sh)"
+      tf_list="$tf"
+      slew_arg=""
+    else
+      slew_arg="--slew-index $(echo "$SLEWS" | tr ' ' ',')"
+    fi
     # 3) back end: bitline -> dout0 plus output slew, at three load points
     be=$(be_list "$G_CHAR" "$c" t_bl2dout)
     sl=$(be_list "$G_CHAR" "$c" t_dout_slew)
+    # falling_edge arc: clk0 falls -> dout0 leaves its valid level. Same path
+    # as access but in reverse and with the MINIMUM of every term, because
+    # what has to be proven is that the consumer captured BEFORE the data went
+    # away (see gen_rom_lib.py --t-invalid).
+    #   t_clk2pre + t_pre_50 + t_bl2dout at the SMALLEST load
+    # t_pre_50 comes from the column deck; logs written before it was added do
+    # not have it. Dropping that term makes the arc EARLIER, which is the safe
+    # direction, so the fallback is a warning and not a skip.
+    # EARLY PATH: how soon dout0 can leave the previous value. Same three
+    # terms as access but each at its fastest: the front end at that slew
+    # point, the fastest discharge, and the back end at the smallest load.
+    #
+    # The discharge term is the FASTEST ARRAY, not the best column of this
+    # .bin. A stored 0 is a metal strap and leaves the series path; a stored 1
+    # is a transistor in it, so the discharge speed is set by the CONTENTS.
+    # The best programmed column is only the fastest array that happens to be
+    # loaded -- reprogram the same geometry and it gets faster, and a retain
+    # time that assumed otherwise would be too late. run_early_path.sh
+    # measures the limit case (one data cell) as <best col>_fastest_array.
+    FAST="$G_CHAR/${G_BESTTAG}_fastest_array${sfx}.log"
+    EARLY="$G_CHAR/${G_BESTTAG}_best_case_parasitic${sfx}.log"
+    e_dis=$(meas "$FAST" t_dis_50 | awk '{printf "%.4f", $1*1e9}')
+    e_prog=$(meas "$EARLY" t_dis_50 | awk '{printf "%.4f", $1*1e9}')
+    if [ -z "$e_dis" ] && [ -n "$e_prog" ]; then
+      echo "  $m $c: no fastest-array log -> retain_* falls back to this"
+      echo "        .bin's best column ($e_prog ns). Valid only while the"
+      echo "        contents do not change; run run_early_path.sh."
+      e_dis="$e_prog"
+    fi
+    retain_arg=""
+    if [ -z "$e_dis" ]; then
+      echo "  $m $c: no early-path log -> NO retain_* in the .lib; a hold"
+      echo "        check has nothing to fail on (run run_early_path.sh)"
+    else
+      retain_list=""
+      for v in $(echo "$tf_list" | tr ',' ' '); do
+        r=$(awk -v a="$v" -v d="$e_dis" -v b="$(echo "$be" | cut -d, -f1)" \
+                'BEGIN{printf "%.4f", a+d+b}')
+        retain_list="${retain_list:+$retain_list,}$r"
+      done
+      retain_arg="--retain-ns $retain_list"
+    fi
+
+    # The falling arc wants the EARLIEST bitline trip point, so take the
+    # smaller of whichever columns have been measured. The best-column deck
+    # (run_early_path.sh) carries t_pre_50 as a by-product, which is how this
+    # term became available before run_col_timing.sh was re-run.
+    tp50=$(for f in "$PAR" "$EARLY"; do
+             meas "$f" t_pre_50 | awk '{printf "%.4f\n", $1*1e9}'
+           done | sort -n | head -1)
+    be_min=$(echo "$be" | cut -d, -f1)
+    if [ -z "$tp50" ]; then
+      echo "  $m $c: no t_pre_50 in $(basename "$PAR") -> falling-edge arc drops"
+      echo "        the bitline recharge term (earlier = safe). Re-run"
+      echo "        run_col_timing.sh to measure it."
+      tinv=$(awk -v a="$tf" -v b="$be_min" 'BEGIN{printf "%.4f", a+b}')
+    else
+      tinv=$(awk -v a="$tf" -v p="$tp50" -v b="$be_min" \
+                 'BEGIN{printf "%.4f", a+p+b}')
+    fi
     # energy: column array (G_COLS columns) + periphery
     e_act=$(awk -v n="$G_COLS" -v ec="$(meas "$EC" e_col_pj)" \
                 -v ep="$(meas "$PA" e_periph_pj)" \
@@ -144,7 +229,9 @@ column energy char/${G_COLTAG}_energy_${c}.log"
       --corner "$corner" --access "$acc" --hold "$acc" --t-pre "$pre" \
       --setup "$stp" \
       --leakage-mw "$leak" --energy-pj "$e_act" --energy-idle-pj "$e_idle" \
-      --t-front "$tf" --backend-ns "$be" --out-slew-ns "$sl" \
+      --t-front "$tf_list" $slew_arg $retain_arg \
+      --backend-ns "$be" --out-slew-ns "$sl" \
+      --t-invalid "$tinv" \
       --chain-len "$G_CHAIN" --worst-col "$col" \
       --rows "$G_ROWS" --cols "$G_COLS" --char-source "$SRC" >/dev/null
 
@@ -157,3 +244,16 @@ done
 echo "Done -- .lib files written to $LIB_DIR with measured timing"
 echo "(front end + bitline + back end), output slew, leakage and energy"
 echo "(active + idle)."
+
+# Never hand out a file that was never read back. This is the cheap structural
+# pass (syntax, table shapes, arc completeness); tests/run_tests.sh adds the
+# ROM semantics and, where it is installed, OpenSTA's own reader.
+CHECK="$(cd "$(dirname "$0")/../.." && pwd)/tests/check_lib.py"
+if [ -f "$CHECK" ]; then
+  echo
+  if ! python3 "$CHECK" "$LIB_DIR"/*.lib; then
+    echo "The generated .lib files did NOT pass validation -- see above." >&2
+    echo "Run tests/run_tests.sh for the full report." >&2
+    exit 1
+  fi
+fi

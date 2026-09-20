@@ -77,9 +77,18 @@ CORNERS = OrderedDict([
     ("FF_1p95V_n40C", (1.0, 1.95, -40, 0.65, 0.70)),
 ])
 
-# Load/slew tables -- the same indices as OpenRAM's SRAM libs (pF, ns)
+# Load/slew tables (pF, ns).
+# CAP_INDEX came from OpenRAM's SRAM libs and IS measured -- run_backend_delay.sh
+# sweeps exactly these three loads.
 CAP_INDEX = [0.0017224999999999999, 0.006889999999999999, 0.027559999999999998]
-SLEW_INDEX = [0.00125, 0.005, 0.04]
+# SLEW_INDEX used to be [0.00125, 0.005, 0.04], inherited from the same SRAM
+# libs and never measured: all three rows of every table carried one number, so
+# the macro appeared not to care how fast its clock arrived. It is now the axis
+# run_slew_sweep.sh actually drives (--slew-index), and max_transition on the
+# input pins is its top point, so the library cannot declare a slew it was
+# never characterised at. The default below is the fallback for a call that
+# passes no axis.
+SLEW_INDEX = [0.05, 0.2, 0.5]
 # Output driver pinv_dec_4 (wp=5.0 wn=1.68); the load sensitivity was taken
 # from an OpenRAM SRAM lib using the same class of driver.
 # NOTE: these are fallbacks only -- with --backend-ns/--out-slew-ns the
@@ -96,7 +105,6 @@ OUT_SLEW = [0.002, 0.005, 0.016]
 PIN_CAP = {"clk0": 0.0025, "cs0": 0.0030, "_default": 0.0060}
 MAX_CAP = 0.027559999999999998
 MIN_CAP = 0.0017224999999999999
-MAX_TRANSITION = 0.04
 
 
 def parse_lef(path):
@@ -144,6 +152,21 @@ def group_buses(pins):
     for b in buses.values():
         b["bits"].sort()
     return buses, scalars
+
+
+def _three(value, flag):
+    """A CLI number that may be given once (flat) or once per index_1 point."""
+    if value is None:
+        return [0.0, 0.0, 0.0]
+    if isinstance(value, (int, float)):
+        return [float(value)] * 3
+    parts = [p for p in str(value).split(",") if p.strip()]
+    if len(parts) == 1:
+        return [float(parts[0])] * 3
+    if len(parts) != 3:
+        sys.exit("%s takes 1 or 3 comma-separated values, got %d"
+                 % (flag, len(parts)))
+    return [float(p) for p in parts]
 
 
 def table(rows, pad):
@@ -200,7 +223,28 @@ def gen_lib(name, area, buses, scalars, corner, args):
     #                bitline inverter + column mux + output buffer
     # Without 1 and 3 the old (INCOMPLETE) behaviour is kept, and the .lib
     # header says so explicitly.
-    t_front = (args.t_front or 0.0) * (1.0 if args.measured else dscale)
+    # --- the slew axis, and what varies along it --------------------------
+    slew_index = ([float(x) for x in args.slew_index.split(",")]
+                  if args.slew_index else list(SLEW_INDEX))
+    if len(slew_index) != 3:
+        sys.exit("--slew-index needs exactly 3 values (CELL_TABLE index_1)")
+    if any(b <= a for a, b in zip(slew_index, slew_index[1:])):
+        sys.exit("--slew-index must be strictly increasing: %s" % slew_index)
+    # An input may not be declared faster or slower than the axis it was
+    # characterised on. This used to be a fixed 0.04 ns while every front-end
+    # measurement ran at 0.5 ns -- the library declared a limit no measurement
+    # had ever touched.
+    max_transition = max(slew_index)
+
+    # t_front is the ONLY term of access that depends on the clk0 edge (the
+    # bitline measurement triggers off the internal precharge net and the back
+    # end is driven by the bitline), so one value per slew point is the whole
+    # index_1 dependence. One value is still accepted and means "flat", which
+    # is what every run before run_slew_sweep.sh existed produced.
+    t_front_list = _three(args.t_front, "--t-front")
+    dsc = 1.0 if args.measured else dscale
+    t_front_list = [v * dsc for v in t_front_list]
+    t_front = max(t_front_list)      # the late one, for the header and windows
     be = None
     if args.backend_ns:
         be = [float(x) for x in args.backend_ns.split(",")]
@@ -230,15 +274,96 @@ def gen_lib(name, area, buses, scalars, corner, args):
                              # assumption could be as wrong as the SS/FF timing
                              # factors turned out to be)
 
-    delay_rows = ([[t_front + access + b for b in be]] * 3 if be
+    # A REAL 2-D table at last: index_1 (clk0 slew) moves t_front, index_2
+    # (output load) moves the back-end term. Both axes are measured; the
+    # bitline term in the middle sits on neither.
+    delay_rows = ([[tf + access + b for b in be] for tf in t_front_list] if be
                   else [[access + d for d in LOAD_DELTA]] * 3)
+
+    # --- the EARLY path: retain_rise / retain_fall -------------------------
+    # Everything above is LATE data, measured on the worst column. retain_* is
+    # Liberty's early bound: how long dout0 keeps the PREVIOUS cycle's value
+    # after clk0 rises. Without it the tool believes the old data is held right
+    # up to the access time, so a race that eats it before the capture flop
+    # takes it passes silently -- there is simply nothing for a hold check to
+    # fail on.
+    #
+    # It needs the BEST column (shortest series chain, fastest discharge), not
+    # the worst; run_early_path.sh measures it. The caller passes the complete
+    # sum per slew point, flat over the load axis: the load-dependent part is
+    # the back-end term and taking its smallest-load value at every load keeps
+    # the bound the earliest one everywhere -- the same argument as the
+    # falling_edge arc.
+    retain_list = (_three(args.retain_ns, "--retain-ns")
+                   if args.retain_ns else None)
+    if retain_list:
+        retain_list = [v * dsc for v in retain_list]
+        retain_rows = [[v] * 3 for v in retain_list]
+        # retaining_* is the transition time of that early change. It is not
+        # separately measured; the output slew of the same buffer at the
+        # smallest load is the closest thing the flow has, and it is stated
+        # here rather than passed off as a measurement.
+        retaining_rows = [[(min(sl) if sl else OUT_SLEW[0])] * 3] * 3
+    else:
+        retain_rows = retaining_rows = None
     slew_rows = [list(sl)] * 3 if sl else [list(OUT_SLEW)] * 3
+    # --- the falling_edge arc on dout0 -----------------------------------
+    # There is no output latch: once clk0 falls the precharge PMOS turns on,
+    # the bitline is pulled back to VDD and every dout0 bit returns to 1.
+    # The data is gone. Without this arc the Liberty model says nothing about
+    # it, so STA assumes dout0 holds until the next capture edge and reports a
+    # FALSE PASS -- the header text above is not data a tool can read.
+    #
+    # The number is the EARLIEST invalidation, i.e. the sum of the three
+    # minimum terms along the same path the access time uses, in reverse:
+    #   clk0 fall -> precharge   t_clk2pre   (same inverter chain + NAND)
+    #   precharge -> bitline 50% t_pre_50    (inverter trip point, NOT
+    #                                         t_pre_90/99 = recharge complete)
+    #   bitline   -> dout0       t_bl2dout at the SMALLEST load
+    # Earliest is the right choice: what has to be proven is that the consumer
+    # captured BEFORE the data went away, which is a min-delay question, and a
+    # single NLDM table serves both min and max analysis. Being early is
+    # pessimistic for max analysis and safe for min -- the other way round
+    # would be a silent hole.
+    #
+    # The table is FLAT over index_2 on purpose: the load-dependent part is
+    # the back-end term, and taking its smallest-load value at every load
+    # keeps the arc the earliest one everywhere.
+    t_invalid = ((args.t_invalid or 0.0) * (1.0 if args.measured else dscale)
+                 if args.t_invalid else None)
+    invalid_rows = [[t_invalid] * 3] * 3 if t_invalid else None
     if be:
         # addr0/cs0 must stay stable through evaluate; that window is now the
         # FULL access (front end + bitline + back end).
         hold = access_eff
     setup_rows = [[setup] * 3] * 3
     hold_rows = [[hold] * 3] * 3
+
+    # --- power/ground pins, and the rails they belong to -------------------
+    # These names USED TO BE the literal pair vccd1/vssd1. They come out of the
+    # LEF now (USE POWER / USE GROUND), for the same reason the macro list and
+    # the geometry do: a ROM built on another PDK, or with renamed supplies,
+    # otherwise got a .lib whose pg_pins named nets it does not have.
+    pwr_pins = [n for n, i in scalars.items() if i["use"] == "power"]
+    gnd_pins = [n for n, i in scalars.items() if i["use"] == "ground"]
+    if not pwr_pins or not gnd_pins:
+        # Without a supply pin there is nothing to attach power to; say so
+        # rather than writing a plausible-looking pair nobody checked.
+        print("WARNING: %s: the LEF declares no %s pin -- falling back to "
+              "%s. Power analysis will be attributed to a net that may not "
+              "exist."
+              % (name, "POWER" if not pwr_pins else "GROUND",
+                 "vccd1/vssd1"), file=sys.stderr)
+        pwr_pins = pwr_pins or ["vccd1"]
+        gnd_pins = gnd_pins or ["vssd1"]
+    pwr, gnd = pwr_pins[0], gnd_pins[0]
+    # voltage_map ties a rail NAME to a voltage; pg_pin's voltage_name points
+    # at it, and related_power_pin on each signal pin points at the pg_pin.
+    # All three links have to exist or a multi-voltage power tool cannot walk
+    # from a pin to its supply -- the library used to declare the rails and
+    # then never reference them.
+    rails = [(r.upper(), volt) for r in pwr_pins] + [(r.upper(), 0.0)
+                                                     for r in gnd_pins]
 
     addr_buses = [b for b, i in buses.items() if i["direction"] == "input"]
     data_buses = [b for b, i in buses.items() if i["direction"] == "output"]
@@ -268,6 +393,18 @@ def gen_lib(name, area, buses, scalars, corner, args):
     w(" *   dout0 becomes INVALID when clk0 falls. The consumer must either")
     w(" *   sample on clk0's falling edge, or drive the macro with an inverted")
     w(" *   clock (clk0 = ~clk) and capture on the system clock's rising edge.")
+    if invalid_rows:
+        w(" *   That invalidation IS in the data: bus(dout0) carries a second")
+        w(" *   timing() group with timing_type : falling_edge and a delay of")
+        w(" *   %.4f ns (clk0 falling -> dout0 leaving its valid level)." % t_invalid)
+        w(" *   It is the EARLIEST invalidation -- t_clk2pre + t_pre_50 +")
+        w(" *   t_bl2dout at the smallest load -- because what must be proven")
+        w(" *   is that the consumer captured BEFORE the data went away.")
+    else:
+        w(" *   WARNING: that invalidation is NOT in the Liberty data (no")
+        w(" *   --t-invalid given). STA will then assume dout0 holds until the")
+        w(" *   next capture edge and report a FALSE PASS. Pass --t-invalid,")
+        w(" *   i.e. run through regen_rom_libs.sh.")
     w(" *")
     w(" * SOURCE: access/t_pre come from ngspice measurements on %s"
       % (args.char_source if args.char_source else "an isolated column"))
@@ -295,6 +432,57 @@ def gen_lib(name, area, buses, scalars, corner, args):
         w(" * precharge/wordline and bitline -> dout0 (inverter + mux + output")
         w(" * buffer) are MISSING. Pass the measured values with --t-front /")
         w(" * --backend-ns (scripts/rom_char/gen_backend_delay_tb.py).")
+    if be and len(set(t_front_list)) > 1:
+        w(" *")
+        w(" * BOTH AXES OF THE TABLE ARE MEASURED.")
+        w(" *   index_2 (output load)  : the back-end term, %.4f .. %.4f ns"
+          % (min(be), max(be)))
+        w(" *   index_1 (clk0 slew)    : the front-end term, %.4f .. %.4f ns"
+          % (min(t_front_list), max(t_front_list)))
+        w(" *     at clk0 transitions %s ns"
+          % ", ".join("%g" % x for x in slew_index))
+        w(" * index_1 used to be three copies of one number, so the macro")
+        w(" * appeared not to care how fast its clock arrived. t_front is the")
+        w(" * only term that depends on it: the bitline measurement triggers")
+        w(" * off the internal precharge net and the back end is driven by the")
+        w(" * bitline, so neither can see clk0. That is also why the output")
+        w(" * transition table stays flat along index_1.")
+        w(" * max_transition on the inputs is %g ns, the top of that axis --"
+          % max_transition)
+        w(" * the library cannot declare a slew it was never measured at.")
+    elif be:
+        w(" *")
+        w(" * WARNING: index_1 (clk0 slew) carries ONE number repeated three")
+        w(" * times -- the slew axis was NOT measured. Run"
+          )
+        w(" * scripts/rom_char/run_slew_sweep.sh and pass --t-front a,b,c.")
+    if retain_rows:
+        w(" *")
+        w(" * EARLY PATH (retain_rise/retain_fall on dout0): dout0 keeps the")
+        w(" * PREVIOUS cycle's value for %.4f .. %.4f ns after clk0 rises."
+          % (min(retain_list), max(retain_list)))
+        w(" * Measured on the FASTEST ARRAY this geometry can hold, where")
+        w(" * everything else in this file uses the worst column. A stored 0")
+        w(" * is a metal strap and leaves the series path; a stored 1 is a")
+        w(" * transistor in it, so the discharge speed is set by the CONTENTS.")
+        w(" * The bound therefore comes from the limit case -- every data")
+        w(" * cell strapped out, with only the foot transistor left in series")
+        w(" * -- and stays valid if this geometry is reprogrammed. At that")
+        w(" * limit the bound is set by the fixed circuitry (foot transistor,")
+        w(" * precharge PMOS, bitline wire and inverter) rather than by the")
+        w(" * array, which is why it must be measured per macro but not")
+        w(" * per .bin. Without it the tool believes the old data is held")
+        w(" * right up to the access time and a race that eats it before the")
+        w(" * capture flop takes it passes silently: a hold check has nothing")
+        w(" * to fail on.")
+        w(" * retaining_rise/fall is the smallest-load output slew, not a")
+        w(" * separate measurement.")
+    else:
+        w(" *")
+        w(" * WARNING: no retain_rise/retain_fall -- this file carries LATE")
+        w(" * data only (worst column). Nothing bounds how SOON dout0 can")
+        w(" * move, so a hold check against the capture flop cannot fail.")
+        w(" * Run scripts/rom_char/run_early_path.sh and pass --retain-ns.")
     if sl:
         w(" * Output transition time MEASURED: %.4f .. %.4f ns" % (min(sl), max(sl)))
     else:
@@ -364,21 +552,21 @@ def gen_lib(name, area, buses, scalars, corner, args):
     w("    default_max_fanout       : 4.0;")
     w("    default_connection_class : universal;")
     w("")
-    w("    voltage_map ( VCCD1, %.2f );" % volt)
-    w("    voltage_map ( VSSD1, 0 );")
+    for rail, value in rails:
+        w("    voltage_map ( %s, %.2f );" % (rail, value))
     w("")
     w("    lu_table_template(CELL_TABLE) {")
     w("        variable_1 : input_net_transition;")
     w("        variable_2 : total_output_net_capacitance;")
-    w('        index_1("%s");' % ", ".join(str(x) for x in SLEW_INDEX))
+    w('        index_1("%s");' % ", ".join(str(x) for x in slew_index))
     w('        index_2("%s");' % ", ".join(str(x) for x in CAP_INDEX))
     w("    }")
     w("")
     w("    lu_table_template(CONSTRAINT_TABLE) {")
     w("        variable_1 : related_pin_transition;")
     w("        variable_2 : constrained_pin_transition;")
-    w('        index_1("%s");' % ", ".join(str(x) for x in SLEW_INDEX))
-    w('        index_2("%s");' % ", ".join(str(x) for x in SLEW_INDEX))
+    w('        index_1("%s");' % ", ".join(str(x) for x in slew_index))
+    w('        index_2("%s");' % ", ".join(str(x) for x in slew_index))
     w("    }")
     w("")
     w("    type (rom_data) {")
@@ -411,16 +599,23 @@ def gen_lib(name, area, buses, scalars, corner, args):
     w("    dont_touch : true;")
     w("    area : %.4f;" % area)
     w("")
-    w("    pg_pin(vccd1) {")
-    w("        voltage_name : VCCD1;")
-    w("        pg_type : primary_power;")
-    w("    }")
-    w("    pg_pin(vssd1) {")
-    w("        voltage_name : VSSD1;")
-    w("        pg_type : primary_ground;")
-    w("    }")
+    # The first POWER/GROUND pin in the LEF is the primary rail; anything
+    # beyond that is written as a backup rail rather than dropped silently.
+    for i, pin_name in enumerate(pwr_pins):
+        w("    pg_pin(%s) {" % pin_name)
+        w("        voltage_name : %s;" % pin_name.upper())
+        w("        pg_type : %s;" % ("primary_power" if i == 0
+                                     else "backup_power"))
+        w("    }")
+    for i, pin_name in enumerate(gnd_pins):
+        w("    pg_pin(%s) {" % pin_name)
+        w("        voltage_name : %s;" % pin_name.upper())
+        w("        pg_type : %s;" % ("primary_ground" if i == 0
+                                     else "backup_ground"))
+        w("    }")
     w("")
     w("    leakage_power () {")
+    w("        related_pg_pin : %s;" % pwr)
     w("        value : %.6f;" % leak)
     w("    }")
     w("    cell_leakage_power : %.6f;" % leak)
@@ -438,18 +633,46 @@ def gen_lib(name, area, buses, scalars, corner, args):
         w("            address : %s;" % (addr_buses[0] if addr_buses else "addr0"))
         w("        }")
         w("        pin(%s[%d:%d]) {" % (bname, bits[-1], bits[0]))
+        w("        related_power_pin  : %s;" % pwr)
+        w("        related_ground_pin : %s;" % gnd)
         w("        timing() {")
         w("            timing_sense : non_unate;")
         w('            related_pin : "clk0";')
         # On-sarjli dizi clk YUKSELEN kenarda degerlendirmeye baslar.
         w("            timing_type : rising_edge;")
-        for kind, rows in (("cell_rise", delay_rows), ("cell_fall", delay_rows),
-                           ("rise_transition", slew_rows),
-                           ("fall_transition", slew_rows)):
+        tables = [("cell_rise", delay_rows), ("cell_fall", delay_rows),
+                  ("rise_transition", slew_rows),
+                  ("fall_transition", slew_rows)]
+        if retain_rows:
+            # retain_* must be accompanied by retaining_* or most parsers
+            # ignore the pair.
+            tables += [("retain_rise", retain_rows),
+                       ("retain_fall", retain_rows),
+                       ("retaining_rise", retaining_rows),
+                       ("retaining_fall", retaining_rows)]
+        for kind, rows in tables:
             w("            %s(CELL_TABLE) {" % kind)
             w("            values(%s);" % table(rows, pad20))
             w("            }")
         w("        }")
+        if invalid_rows:
+            # clk0 FALLING -> dout0 invalid. Physically only the RISING
+            # direction happens (the bitline is pulled back to VDD, so a bit
+            # that read 0 goes to 1 and a bit that read 1 never moves), but
+            # cell_fall is written with the same value: a tool that picks the
+            # falling table must not silently get nothing.
+            w("        timing() {")
+            w("            timing_sense : non_unate;")
+            w('            related_pin : "clk0";')
+            w("            timing_type : falling_edge;")
+            for kind, rows in (("cell_rise", invalid_rows),
+                               ("cell_fall", invalid_rows),
+                               ("rise_transition", slew_rows),
+                               ("fall_transition", slew_rows)):
+                w("            %s(CELL_TABLE) {" % kind)
+                w("            values(%s);" % table(rows, pad20))
+                w("            }")
+            w("        }")
         w("        }")
         w("    }")
         w("")
@@ -460,8 +683,10 @@ def gen_lib(name, area, buses, scalars, corner, args):
         w("        bus_type : rom_addr;")
         w("        direction : input;")
         w("        capacitance : %s;" % PIN_CAP["_default"])
-        w("        max_transition : %s;" % MAX_TRANSITION)
+        w("        max_transition : %s;" % max_transition)
         w("        pin(%s[%d:%d]) {" % (bname, bits[-1], bits[0]))
+        w("        related_power_pin  : %s;" % pwr)
+        w("        related_ground_pin : %s;" % gnd)
         w(constraint_block(setup_rows, hold_rows, indent=8))
         w("        }")
         w("    }")
@@ -473,7 +698,9 @@ def gen_lib(name, area, buses, scalars, corner, args):
         w("    pin(%s) {" % pname)
         w("        direction : input;")
         w("        capacitance : %s;" % PIN_CAP.get(pname, PIN_CAP["_default"]))
-        w("        max_transition : %s;" % MAX_TRANSITION)
+        w("        max_transition : %s;" % max_transition)
+        w("        related_power_pin  : %s;" % pwr)
+        w("        related_ground_pin : %s;" % gnd)
         w(constraint_block(setup_rows, hold_rows, indent=8))
         w("    }")
         w("")
@@ -482,7 +709,9 @@ def gen_lib(name, area, buses, scalars, corner, args):
     w("        clock : true;")
     w("        direction : input;")
     w("        capacitance : %s;" % PIN_CAP["clk0"])
-    w("        max_transition : %s;" % MAX_TRANSITION)
+    w("        max_transition : %s;" % max_transition)
+    w("        related_power_pin  : %s;" % pwr)
+    w("        related_ground_pin : %s;" % gnd)
     w("        timing() {")
     w('            timing_type : "min_pulse_width";')
     w("            related_pin : clk0;")
@@ -535,12 +764,14 @@ def gen_lib(name, area, buses, scalars, corner, args):
         # method as the column slice).
         if args.energy_pj:
             w("        internal_power() {")
+            w("            related_pg_pin : %s;" % pwr)
             w('            when : "cs0";')
             w('            rise_power(scalar) { values("%.4f"); }' % args.energy_pj)
             w('            fall_power(scalar) { values("%.4f"); }' % args.energy_pj)
             w("        }")
         if args.energy_idle_pj:
             w("        internal_power() {")
+            w("            related_pg_pin : %s;" % pwr)
             w('            when : "!cs0";')
             w('            rise_power(scalar) { values("%.4f"); }'
               % args.energy_idle_pj)
@@ -583,11 +814,28 @@ def main():
                          "an internal_power block is written on clk0. No "
                          "frequency needed -- the power tool computes "
                          "P=E*f*activity itself.")
-    ap.add_argument("--t-front", type=float, default=None,
+    ap.add_argument("--t-front", default=None,
                     help="clk0 -> precharge/wordline delay (ns, measured). "
                          "Because the column measurement triggers off the "
                          "internal precharge net, this term was MISSING from "
                          "access.")
+    ap.add_argument("--slew-index", default=None,
+                    help="3 comma-separated ns values: the CELL_TABLE index_1 "
+                         "(clk0 input transition) axis. Must match what "
+                         "run_slew_sweep.sh drove; its top becomes "
+                         "max_transition on the input pins.")
+    ap.add_argument("--retain-ns", default=None,
+                    help="ns: how long dout0 keeps the PREVIOUS value after "
+                         "clk0 rises (retain_rise/retain_fall, the early "
+                         "bound). 1 or 3 values, one per index_1 point. "
+                         "regen_rom_libs.sh builds it from the BEST column: "
+                         "t_clk2pre + t_dis_50(best) + smallest-load "
+                         "t_bl2dout.")
+    ap.add_argument("--t-invalid", type=float, default=None,
+                    help="ns: clk0 FALLING edge -> dout0 leaves its valid "
+                         "level (falling_edge arc). Earliest = safest; "
+                         "regen_rom_libs.sh builds it from "
+                         "t_clk2pre + t_pre_50 + the smallest-load t_bl2dout.")
     ap.add_argument("--backend-ns", default=None,
                     help="bitline -> dout0 delay as a comma-separated list "
                          "(ns, measured) for the THREE CELL_TABLE index_2 load "
