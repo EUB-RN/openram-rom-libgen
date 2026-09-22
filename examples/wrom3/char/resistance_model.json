@@ -1,0 +1,36 @@
+{
+ "macro": "wrom3",
+ "unit_um": 0.005,
+ "cells": {
+  "wrom3_rom_base_one_cell": {
+   "series_ohm": 505.3714353126819,
+   "source": "magic",
+   "magic_ohm": 505.3714353126819,
+   "analytic_ohm": null,
+   "magic_note": "S->channel 252.7; D->channel 252.7",
+   "analytic_note": "no metal1 rectangle bridges the gap"
+  },
+  "wrom3_rom_base_zero_cell": {
+   "series_ohm": 0.24107142857142858,
+   "source": "analytic",
+   "magic_ohm": null,
+   "analytic_ohm": 0.24107142857142858,
+   "magic_note": "magic produced no netlist (it segfaults on degenerate nets)",
+   "analytic_note": "metal1, 1.93 squares x 0.125 ohm/sq"
+  },
+  "wrom3_precharge_cell": {
+   "series_ohm": 676.462,
+   "source": "magic",
+   "magic_ohm": 676.462,
+   "analytic_ohm": null,
+   "magic_note": "D->channel 676.5",
+   "analytic_note": "no S/D port labels"
+  }
+ },
+ "wordline": {
+  "pitch_units": 204,
+  "pitch_um": 1.02,
+  "poly_ohm_per_pitch": 327.76
+ },
+ "worst_chain_ohm": 38927.34159050508
+}

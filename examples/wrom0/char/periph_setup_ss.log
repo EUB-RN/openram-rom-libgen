@@ -2,7 +2,7 @@
 Note: No compatibility mode selected!
 
 
-Circuit: * wrom0 -- cevre birimi cevrim enerjisi -- aktif (cs0=1)
+Circuit: * wrom0 -- periphery energy per cycle -- active (cs0=1)
 
 Doing analysis at TEMP = 100.000000 and TNOM = 27.000000
 
@@ -10,7 +10,7 @@ Using SPARSE 1.3 as Direct Linear Solver
 Operating point simulation skipped by 'uic',
   now using transient initial conditions.
 
-No. of Data Rows : 2107
+No. of Data Rows : 2440
 
   Measurements for Transient Analysis
 
@@ -74,33 +74,33 @@ Error: measure  t_clk2wl7  trig(TARG) : out of interval
 Error: measure  t_wlfall7  trig(TARG) : out of interval
  .measure tran t_wlfall7 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.190000e-06 targ v(wrom0_rom_row_decode_0/wl_7) val=    8.000000000000000e-01     fall=1 td=1.200000e-06 failed!
 
-q_c2                =   -3.09136e-12 from=  1.00000e-06 to=  1.20000e-06
-q_c3                =   -3.10276e-12 from=  1.20000e-06 to=  1.40000e-06
-e_periph_pj         =  4.96441e+00
-t_clk2int           =  6.333832e-10 targ=  1.300883e-06 trig=  1.300250e-06
-t_clk2wl0           =  -9.877702e-08 targ=  1.201473e-06 trig=  1.300250e-06
-t_clk2pre           =  1.502446e-09 targ=  1.301752e-06 trig=  1.300250e-06
-t_addr2dec0         =  5.169444e-11 targ=  1.250102e-06 trig=  1.250050e-06
-t_addr2dec1         =  5.182995e-11 targ=  1.250102e-06 trig=  1.250050e-06
-t_addr2dec2         =  5.183871e-11 targ=  1.250102e-06 trig=  1.250050e-06
-t_addr2dec3         =  5.184680e-11 targ=  1.250102e-06 trig=  1.250050e-06
-t_addr2dec4         =  5.185774e-11 targ=  1.250102e-06 trig=  1.250050e-06
-t_addr2dec5         =  5.186505e-11 targ=  1.250102e-06 trig=  1.250050e-06
-t_addr2dec6         =  5.186715e-11 targ=  1.250102e-06 trig=  1.250050e-06
-t_addr2dec7         =  5.139541e-11 targ=  1.250101e-06 trig=  1.250050e-06
+q_c2                =   -3.11637e-12 from=  1.00000e-06 to=  1.20000e-06
+q_c3                =   -2.99992e-12 from=  1.20000e-06 to=  1.40000e-06
+e_periph_pj         =  4.79987e+00
+t_clk2int           =  5.914925e-10 targ=  1.300841e-06 trig=  1.300250e-06
+t_clk2wl0           =  -9.880286e-08 targ=  1.201447e-06 trig=  1.300250e-06
+t_clk2pre           =  1.416604e-09 targ=  1.301667e-06 trig=  1.300250e-06
+t_addr2dec0         =  4.781156e-11 targ=  1.250098e-06 trig=  1.250050e-06
+t_addr2dec1         =  4.799218e-11 targ=  1.250098e-06 trig=  1.250050e-06
+t_addr2dec2         =  4.800319e-11 targ=  1.250098e-06 trig=  1.250050e-06
+t_addr2dec3         =  4.801364e-11 targ=  1.250098e-06 trig=  1.250050e-06
+t_addr2dec4         =  4.802768e-11 targ=  1.250098e-06 trig=  1.250050e-06
+t_addr2dec5         =  4.803698e-11 targ=  1.250098e-06 trig=  1.250050e-06
+t_addr2dec6         =  4.803987e-11 targ=  1.250098e-06 trig=  1.250050e-06
+t_addr2dec7         =  4.742662e-11 targ=  1.250097e-06 trig=  1.250050e-06
 
 
-Total analysis time (seconds) = 270.983
+Total analysis time (seconds) = 204.772
 
-Total elapsed time (seconds) = 1038.441 
+Total elapsed time (seconds) = 691.483 
 
-Total DRAM available = 31789.582 MB.
-DRAM currently available = 9189.086 MB.
-Maximum ngspice program size = 2777.410 MB.
-Current ngspice program size = 2710.688 MB.
+Total DRAM available = 31789.578 MB.
+DRAM currently available = 5895.066 MB.
+Maximum ngspice program size = 2777.578 MB.
+Current ngspice program size = 2710.449 MB.
 
-Shared ngspice pages =   11.598 MB.
+Shared ngspice pages =   11.277 MB.
 Text (code) pages =    6.520 MB.
 Stack = 0 bytes.
-Library pages = 2755.246 MB.
+Library pages = 2755.414 MB.
 

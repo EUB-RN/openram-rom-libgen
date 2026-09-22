@@ -1,27 +1,28 @@
-* wrom2 -- ARKA UC gecikmesi: bitline -> dout0  (kolon 236, tt)
-* Yol: bl_0_236 -> bitline_inverter -> column_mux(sel) -> output_buffer -> dout0
-* Tutulan: rom_bitline_inverter + rom_column_mux_array + rom_output_buffer
-* Silinen: hucre dizisi / kod cozucu / kontrol mantigi (ucundaki dugumler
-*          ideal kaynakla surulur -- o kisim zaten t_dis_50'de sayili)
-* Ust seviye C: 5372 korundu, 965 atildi;
-*   negatif net kapasitans duzeltmesi 254 dugum / 38.1 fF
-* Surulen bitline kenari OLCULEN egimden: t_dis_50=15.6778 ns,
-*   t_dis_10=32.2161 ns -> VDD->0 tam gecis 41.346 ns
-* Olculen bit: dout0[29]   (sec: wrom2_rom_column_decode_0/wl_4)   cikis yuku: 6.89 fF
+* wrom2 -- BACK END delay: bitline -> dout0  (column 236, tt)
+* Path: bl_0_236 -> bitline_inverter -> column_mux(sel) -> output_buffer -> dout0
+* Kept: rom_bitline_inverter + rom_column_mux_array + rom_output_buffer
+* Deleted: cell array / decoders / control logic (the nodes they leave behind
+*          are driven by ideal sources -- that part is already in t_dis_50)
+* Top-level C: 5372 kept, 965 dropped;
+*   negative-net-capacitance fix on 254 nodes / 38.1 fF
+* The driven bitline edge comes from the MEASURED slope:
+*   t_dis_50=16.1908 ns, t_dis_10=36.9178 ns
+*   -> full VDD->0 transition 51.818 ns
+* Measured bit: dout0[29]   (select: wrom2_rom_column_decode_0/wl_4)   output load: 6.89 fF
 
 .lib /home/hpw/OpenLane/pdks/sky130A/libs.tech/ngspice/sky130.lib.spice tt
 .temp 25
 .param VDD=1.8
-.param TFALL=4.134582e-08
+.param TFALL=5.181753e-08
 .param TSTART=5.000000e-09
 
 Vvdd vccd1 0 DC {VDD}
 Vgnd vssd1 0 DC 0
 
-* olculen kolonun bitline'i: on-sarjli VDD'den olculen egimle iner
-Vsrc wrom2_rom_base_array_0/bl_0_236 0 PWL(0 {VDD} {TSTART} {VDD} '5.000000e-09+4.134582e-08' 0)
+* the measured column's bitline: falls from precharged VDD at the measured slope
+Vsrc wrom2_rom_base_array_0/bl_0_236 0 PWL(0 {VDD} {TSTART} {VDD} '5.000000e-09+5.181753e-08' 0)
 
-* diger bitline'lar on-sarjda kalir
+* the other bitlines stay precharged
 Vbl0 wrom2_rom_base_array_0/bl_0_0 0 DC {VDD}
 Vbl1 wrom2_rom_base_array_0/bl_0_1 0 DC {VDD}
 Vbl2 wrom2_rom_base_array_0/bl_0_10 0 DC {VDD}
@@ -278,7 +279,7 @@ Vbl252 wrom2_rom_base_array_0/bl_0_97 0 DC {VDD}
 Vbl253 wrom2_rom_base_array_0/bl_0_98 0 DC {VDD}
 Vbl254 wrom2_rom_base_array_0/bl_0_99 0 DC {VDD}
 
-* kolon secimi
+* column select
 Vsel0 wrom2_rom_column_decode_0/wl_0 0 DC 0
 Vsel1 wrom2_rom_column_decode_0/wl_1 0 DC 0
 Vsel2 wrom2_rom_column_decode_0/wl_2 0 DC 0
@@ -5667,324 +5668,19 @@ C_fx551 wrom2_rom_column_mux_array_0/bl_97 vssd1 0.16036f
 C_fx552 wrom2_rom_column_mux_array_0/bl_98 vssd1 0.16036f
 C_fx553 wrom2_rom_column_mux_array_0/bl_99 vssd1 0.16100f
 
-.subckt wrom2_rom_output_buffer in_23 in_14 in_7 in_0 in_12 in_5 in_30 in_21 in_3 out_29 out_18 in_28 out_27 out_16 in_19 out_25 out_14 in_26 in_17 out_23 in_10 out_12 out_11 in_24 in_15 out_20 out_9 in_8 out_21 out_30 in_1 out_7 in_22 in_13 out_5 out_28 in_6 gnd out_19 out_4 out_3 in_31 out_2 in_4 out_26 out_17 out_10 out_0 in_29 in_20 in_2 out_24 out_15 out_8 in_27 out_1 in_18 out_22 out_13 in_11 out_6 in_25 in_16 vdd out_31 in_9
-Xwrom2_pinv_dec_4_30 gnd vdd in_1 vdd out_1 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_20 gnd vdd in_11 vdd out_11 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_31 gnd vdd in_0 vdd out_0 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_10 gnd vdd in_21 vdd out_21 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_21 gnd vdd in_10 vdd out_10 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_11 gnd vdd in_20 vdd out_20 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_22 gnd vdd in_9 vdd out_9 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_12 gnd vdd in_19 vdd out_19 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_23 gnd vdd in_8 vdd out_8 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_13 gnd vdd in_18 vdd out_18 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_24 gnd vdd in_7 vdd out_7 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_14 gnd vdd in_17 vdd out_17 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_25 gnd vdd in_6 vdd out_6 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_0 gnd vdd in_31 vdd out_31 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_15 gnd vdd in_16 vdd out_16 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_16 gnd vdd in_15 vdd out_15 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_26 gnd vdd in_5 vdd out_5 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_27 gnd vdd in_4 vdd out_4 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_1 gnd vdd in_30 vdd out_30 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_17 gnd vdd in_14 vdd out_14 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_28 gnd vdd in_3 vdd out_3 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_2 gnd vdd in_29 vdd out_29 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_18 gnd vdd in_13 vdd out_13 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_29 gnd vdd in_2 vdd out_2 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_3 gnd vdd in_28 vdd out_28 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_19 gnd vdd in_12 vdd out_12 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_4 gnd vdd in_27 vdd out_27 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_5 gnd vdd in_26 vdd out_26 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_6 gnd vdd in_25 vdd out_25 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_7 gnd vdd in_24 vdd out_24 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_8 gnd vdd in_23 vdd out_23 wrom2_pinv_dec_4
-Xwrom2_pinv_dec_4_9 gnd vdd in_22 vdd out_22 wrom2_pinv_dec_4
-C0 in_28 out_27 0
-C1 vdd in_12 0.00703f
-C2 out_28 vdd 0.09264f
-C3 in_13 out_13 0.00871f
-C4 out_8 in_8 0.00871f
-C5 in_17 vdd 0.00703f
-C6 vdd out_25 0.09264f
-C7 out_3 in_2 0.0112f
-C8 in_20 out_20 0.00871f
-C9 vdd in_4 0.00703f
-C10 out_16 out_17 0.12164f
-C11 out_20 in_21 0
-C12 out_11 in_10 0.0112f
-C13 out_13 out_14 0.12164f
-C14 in_7 out_6 0
-C15 vdd in_23 0.00703f
-C16 in_9 out_8 0
-C17 vdd out_27 0.09264f
-C18 in_9 in_8 0.02634f
-C19 in_24 out_23 0
-C20 in_13 vdd 0.00703f
-C21 vdd in_1 0.00703f
-C22 in_6 out_6 0.00871f
-C23 in_16 out_16 0.00871f
-C24 out_12 in_11 0.0112f
-C25 out_8 out_9 0.12164f
-C26 in_28 in_27 0.02634f
-C27 vdd out_24 0.09264f
-C28 in_30 out_31 0.0112f
-C29 in_17 out_17 0.00871f
-C30 in_8 out_9 0.0112f
-C31 out_12 out_13 0.12164f
-C32 in_26 vdd 0.00703f
-C33 vdd out_14 0.09264f
-C34 in_22 in_23 0.02634f
-C35 out_2 in_1 0.0112f
-C36 vdd out_4 0.09264f
-C37 in_31 out_31 0.00871f
-C38 out_7 in_7 0.00871f
-C39 out_5 in_5 0.00871f
-C40 in_9 out_9 0.00871f
-C41 vdd in_18 0.00703f
-C42 in_3 in_4 0.02634f
-C43 in_16 in_17 0.02634f
-C44 in_29 in_28 0.02634f
-C45 in_25 vdd 0.00703f
-C46 in_6 out_7 0.0112f
-C47 out_12 vdd 0.09264f
-C48 out_30 in_29 0.0112f
-C49 vdd in_27 0.00703f
-C50 in_30 out_30 0.00871f
-C51 vdd out_21 0.09264f
-C52 out_7 out_8 0.12164f
-C53 vdd out_22 0.09264f
-C54 out_15 vdd 0.09264f
-C55 out_20 out_19 0.12164f
-C56 out_18 vdd 0.09264f
-C57 out_7 in_8 0
-C58 out_28 out_29 0.12164f
-C59 out_30 in_31 0
-C60 in_15 vdd 0.00703f
-C61 in_18 out_17 0
-C62 in_4 in_5 0.02634f
-C63 in_23 out_23 0.00871f
-C64 vdd in_19 0.00703f
-C65 in_22 out_21 0
-C66 in_22 out_22 0.00871f
-C67 in_29 vdd 0.00703f
-C68 in_30 vdd 0.00703f
-C69 in_3 out_4 0.0112f
-C70 out_26 out_25 0.12164f
-C71 out_7 out_6 0.12164f
-C72 vdd in_7 0.00703f
-C73 out_18 out_17 0.12164f
-C74 out_24 out_23 0.12164f
-C75 in_20 out_21 0.0112f
-C76 out_1 in_1 0.00871f
-C77 in_31 vdd 0.00543f
-C78 out_10 in_9 0.0112f
-C79 out_21 in_21 0.00871f
-C80 out_22 in_21 0.0112f
-C81 out_26 out_27 0.12164f
-C82 in_6 vdd 0.00703f
-C83 vdd out_8 0.09264f
-C84 vdd in_2 0.00703f
-C85 vdd out_3 0.09264f
-C86 out_10 out_9 0.12164f
-C87 vdd in_8 0.00703f
-C88 in_16 out_15 0
-C89 out_4 in_5 0
-C90 in_20 in_19 0.02634f
-C91 out_26 in_26 0.00871f
-C92 in_16 in_15 0.02634f
-C93 out_3 out_2 0.12164f
-C94 out_2 in_2 0.00871f
-C95 out_22 out_23 0.12164f
-C96 in_24 out_25 0.0112f
-C97 in_0 out_0 0.00871f
-C98 in_13 in_14 0.02634f
-C99 in_9 vdd 0.00703f
-C100 out_11 in_12 0
-C101 out_30 out_31 0.12164f
-C102 in_24 in_23 0.02634f
-C103 vdd out_9 0.09264f
-C104 vdd out_6 0.09264f
-C105 in_14 out_14 0.00871f
-C106 in_25 out_26 0.0112f
-C107 out_26 in_27 0
-C108 out_5 in_4 0.0112f
-C109 in_17 out_16 0
-C110 in_18 out_19 0.0112f
-C111 in_24 out_24 0.00871f
-C112 in_29 out_29 0.00871f
-C113 in_3 in_2 0.02634f
-C114 in_30 out_29 0
-C115 in_3 out_3 0.00871f
-C116 out_18 out_19 0.12164f
-C117 vdd out_31 0.08774f
-C118 out_10 in_11 0
-C119 out_15 in_14 0.0112f
-C120 in_9 in_10 0.02634f
-C121 vdd in_0 0.00179f
-C122 out_7 vdd 0.09264f
-C123 vdd out_0 0.0316f
-C124 in_15 in_14 0.02634f
-C125 in_10 out_9 0
-C126 in_6 in_5 0.02634f
-C127 in_19 out_19 0.00871f
-C128 in_25 in_24 0.02634f
-C129 out_4 out_5 0.12164f
-C130 out_28 out_27 0.12164f
-C131 out_1 in_2 0
-C132 in_13 in_12 0.02634f
-C133 in_11 vdd 0.00703f
-C134 in_28 vdd 0.00703f
-C135 out_30 vdd 0.09264f
-C136 out_10 vdd 0.09264f
-C137 vdd out_13 0.09264f
-C138 out_20 out_21 0.12164f
-C139 out_12 out_11 0.12164f
-C140 out_24 out_25 0.12164f
-C141 in_26 out_25 0
-C142 out_16 out_15 0.12164f
-C143 in_23 out_24 0.0112f
-C144 in_5 out_6 0.0112f
-C145 out_4 in_4 0.00871f
-C146 in_15 out_16 0.0112f
-C147 out_20 in_19 0.0112f
-C148 in_17 in_18 0.02634f
-C149 out_12 in_12 0.00871f
-C150 in_26 out_27 0.0112f
-C151 out_28 in_27 0.0112f
-C152 in_25 out_25 0.00871f
-C153 in_13 out_14 0.0112f
-C154 in_11 in_10 0.02634f
-C155 out_10 in_10 0.00871f
-C156 vdd out_2 0.09264f
-C157 in_17 out_18 0.0112f
-C158 out_22 in_23 0
-C159 in_22 vdd 0.00703f
-C160 out_27 in_27 0.00871f
-C161 in_6 out_5 0
-C162 out_1 in_0 0.0112f
-C163 vdd out_17 0.09264f
-C164 out_1 out_0 0.12164f
-C165 in_13 out_12 0
-C166 out_28 in_29 0
-C167 in_25 out_24 0
-C168 in_20 vdd 0.00703f
-C169 in_25 in_26 0.02634f
-C170 vdd in_10 0.00703f
-C171 out_29 in_28 0.0112f
-C172 in_26 in_27 0.02634f
-C173 vdd in_21 0.00703f
-C174 out_30 out_29 0.12164f
-C175 vdd in_3 0.00703f
-C176 out_15 out_14 0.12164f
-C177 in_16 vdd 0.00703f
-C178 in_15 out_14 0
-C179 out_5 out_6 0.12164f
-C180 in_3 out_2 0
-C181 out_18 in_18 0.00871f
-C182 out_3 in_4 0
-C183 vdd out_23 0.09264f
-C184 in_22 in_21 0.02634f
-C185 out_22 out_21 0.12164f
-C186 out_29 vdd 0.09264f
-C187 out_1 vdd 0.09264f
-C188 vdd in_5 0.00703f
-C189 in_20 in_21 0.02634f
-C190 in_14 out_13 0
-C191 in_16 out_17 0.0112f
-C192 in_18 in_19 0.02634f
-C193 in_15 out_15 0.00871f
-C194 in_1 in_2 0.02634f
-C195 out_26 vdd 0.09264f
-C196 out_1 out_2 0.12164f
-C197 in_22 out_23 0.0112f
-C198 vdd out_19 0.09264f
-C199 out_18 in_19 0
-C200 out_3 out_4 0.12164f
-C201 vdd in_14 0.00703f
-C202 out_11 in_11 0.00871f
-C203 out_10 out_11 0.12164f
-C204 in_30 in_29 0.02634f
-C205 in_24 vdd 0.00703f
-C206 in_20 out_19 0
-C207 in_11 in_12 0.02634f
-C208 out_20 vdd 0.09264f
-C209 out_28 in_28 0.00871f
-C210 in_30 in_31 0.02634f
-C211 in_12 out_13 0.0112f
-C212 out_11 vdd 0.09264f
-C213 vdd out_5 0.09264f
-C214 out_16 vdd 0.09264f
-C215 in_0 in_1 0.02634f
-C216 in_6 in_7 0.02634f
-C217 in_1 out_0 0
-C218 out_8 in_7 0.0112f
-C219 in_7 in_8 0.02634f
-C220 out_22 gnd -0.34885f
-C221 in_22 gnd -0.05985f
-C222 out_23 gnd -0.34885f
-C223 in_23 gnd -0.05985f
-C224 out_24 gnd -0.34885f
-C225 in_24 gnd -0.05985f
-C226 out_25 gnd -0.34885f
-C227 in_25 gnd -0.05985f
-C228 out_26 gnd -0.34885f
-C229 in_26 gnd -0.05985f
-C230 out_27 gnd -0.34885f
-C231 in_27 gnd -0.05985f
-C232 out_12 gnd -0.34885f
-C233 in_12 gnd -0.05985f
-C234 out_28 gnd -0.34885f
-C235 in_28 gnd -0.05985f
-C236 out_2 gnd -0.34885f
-C237 in_2 gnd -0.05985f
-C238 out_13 gnd -0.34885f
-C239 in_13 gnd -0.05985f
-C240 out_29 gnd -0.34885f
-C241 in_29 gnd -0.05985f
-C242 out_3 gnd -0.34885f
-C243 in_3 gnd -0.05985f
-C244 out_14 gnd -0.34885f
-C245 in_14 gnd -0.05985f
-C246 out_30 gnd -0.34885f
-C247 in_30 gnd -0.05985f
-C248 out_4 gnd -0.34885f
-C249 in_4 gnd -0.05985f
-C250 out_5 gnd -0.34885f
-C251 in_5 gnd -0.05985f
-C252 out_15 gnd -0.34885f
-C253 in_15 gnd -0.05985f
-C254 out_16 gnd -0.34885f
-C255 in_16 gnd -0.05985f
-C256 out_31 gnd -0.20501f
-C257 in_31 gnd -0.03149f
-C258 out_6 gnd -0.34885f
-C259 in_6 gnd -0.05985f
-C260 out_17 gnd -0.34885f
-C261 in_17 gnd -0.05985f
-C262 out_7 gnd -0.34885f
-C263 in_7 gnd -0.05985f
-C264 out_18 gnd -0.34885f
-C265 in_18 gnd -0.05985f
-C266 out_8 gnd -0.34885f
-C267 in_8 gnd -0.05985f
-C268 out_19 gnd -0.34885f
-C269 in_19 gnd -0.05985f
-C270 out_9 gnd -0.34885f
-C271 in_9 gnd -0.05985f
-C272 out_20 gnd -0.34885f
-C273 in_20 gnd -0.05985f
-C274 out_10 gnd -0.34885f
-C275 in_10 gnd -0.05985f
-C276 out_21 gnd -0.34885f
-C277 in_21 gnd -0.05985f
-C278 out_0 gnd -0.13906f
-C279 in_0 gnd -0.02808f
-C280 vdd gnd -5.58472f
-C281 out_11 gnd -0.34885f
-C282 in_11 gnd -0.05985f
-C283 out_1 gnd -0.34885f
-C284 in_1 gnd -0.05985f
+.subckt wrom2_pinv_dec_3 gnd vdd w_692_n79# A Z
+X0 vdd A Z w_692_n79# sky130_fd_pr__pfet_01v8 ad=1.5u pd=10.6 as=1.5u ps=10.6 w=5 l=0.15
+X1 gnd A Z gnd sky130_fd_pr__nfet_01v8 ad=0.504u pd=3.96 as=0.504u ps=3.96 w=1.68 l=0.15
+C0 w_692_n79# A 0.10891f
+C1 Z w_692_n79# 0.05333f
+C2 Z A 0.04991f
+C3 vdd w_692_n79# 0.02783f
+C4 vdd A 0.01892f
+C5 vdd Z 0.06954f
+C6 vdd gnd 0.06645f
+C7 Z gnd 0.35042f
+C8 A gnd 0.23452f
+C9 w_692_n79# gnd 1.35078f
 .ends
 .subckt wrom2_pinv_dec_4 gnd vdd A w_692_n45# Z
 X0 vdd A Z w_692_n45# sky130_fd_pr__pfet_01v8 ad=1.5u pd=10.6 as=1.5u ps=10.6 w=5 l=0.15
@@ -5999,6 +5695,2833 @@ C6 vdd gnd 0.06995f
 C7 Z gnd 0.50526f
 C8 A gnd 0.30138f
 C9 w_692_n45# gnd 1.1507f
+.ends
+.subckt wrom2_rom_bitline_inverter in_202 out_132 out_187 in_234 out_134 out_164 out_189 in_232 out_141 in_211 out_111 out_196 out_166 in_241 in_236 out_194 out_173 in_243 out_143 out_171 in_213 out_198 out_19 in_250 out_150 in_220 out_120 out_180 in_9 out_175 out_28 out_17 in_245 out_145 out_182 in_7 out_49 in_252 out_152 in_119 out_209 out_26 in_222 out_122 out_37 in_18 in_5 out_177 out_58 out_47 in_247 in_117 in_128 in_39 out_184 out_79 out_207 out_218 out_35 out_24 out_14 in_254 out_154 in_105 in_149 in_27 in_16 in_3 out_191 out_239 out_67 out_56 out_12 in_224 out_69 in_107 in_115 in_126 in_137 out_161 in_48 in_37 out_39 out_227 out_216 out_77 out_88 out_99 out_44 out_33 in_231 out_131 out_229 in_2 in_59 in_147 in_158 in_103 in_114 in_69 in_25 in_14 in_201 out_101 out_46 out_204 out_248 out_237 out_65 out_76 out_54 out_21 out_10 out_186 in_29 in_169 in_124 in_135 in_179 out_16 out_156 in_57 in_46 in_0 out_206 in_139 out_236 out_225 out_214 out_86 out_97 out_53 out_42 out_31 out_193 in_36 in_101 in_112 in_156 in_167 in_109 out_23 out_163 in_78 in_89 out_8 in_67 in_34 in_23 in_12 in_146 out_246 out_74 out_202 out_213 out_63 out_133 in_233 out_78 in_4 in_122 in_133 in_144 in_177 in_188 in_199 out_30 in_116 out_170 in_13 in_66 in_99 in_55 in_44 in_11 out_7 out_95 out_234 out_223 out_84 out_51 out_40 in_203 out_48 out_188 out_238 in_240 out_140 out_85 out_9 in_110 in_121 in_154 in_165 in_176 in_123 in_68 out_18 in_76 in_87 in_98 in_43 in_32 in_21 out_200 out_255 out_244 out_211 out_72 out_83 out_61 in_210 out_110 out_208 out_55 out_195 in_38 out_245 in_178 in_131 in_142 in_153 in_186 in_197 out_25 in_75 in_97 in_64 in_53 in_20 out_5 out_165 out_243 out_232 out_221 out_93 out_60 out_215 out_62 in_148 in_100 in_45 in_130 in_152 in_163 in_174 in_185 in_235 in_6 out_32 in_118 in_74 in_85 in_96 in_41 in_30 out_172 out_253 out_220 in_15 out_70 out_81 out_92 out_222 in_155 in_52 in_140 in_151 in_184 in_195 out_87 in_242 out_142 in_125 in_73 in_62 out_3 in_51 out_252 out_241 out_230 in_22 out_91 in_162 in_212 out_112 out_57 out_197 in_161 in_172 in_183 out_247 out_94 in_77 in_132 in_83 in_94 in_50 out_27 out_90 out_251 out_167 out_217 out_64 in_102 in_47 in_160 in_182 in_193 out_254 in_187 in_84 in_71 in_82 in_60 out_1 in_8 out_250 out_34 out_174 in_17 out_224 out_71 in_157 in_54 in_170 in_181 in_192 in_194 out_144 in_244 in_81 in_92 out_0 out_89 out_41 in_127 out_181 in_24 in_164 out_231 out_2 in_61 in_214 out_59 in_191 out_199 out_11 out_249 out_151 in_251 in_80 in_91 out_96 out_201 in_134 in_79 in_31 out_29 in_171 out_121 in_221 out_66 out_219 in_190 in_104 in_49 in_90 in_189 in_141 in_86 out_36 out_176 in_19 out_108 out_119 out_226 in_159 out_73 in_111 out_109 in_56 in_196 in_246 in_93 in_129 out_43 in_209 out_183 in_26 out_107 out_129 out_80 out_233 in_166 out_4 in_63 out_13 in_253 out_98 out_153 out_203 in_136 out_50 in_208 in_219 out_190 in_33 out_106 out_117 out_128 out_139 out_240 in_173 in_223 out_123 in_70 out_68 out_20 in_106 out_160 out_210 in_143 in_207 in_229 in_88 in_40 out_38 out_105 out_116 out_127 out_138 out_149 out_178 in_180 out_228 out_130 in_230 out_75 in_1 in_113 in_58 in_198 in_10 in_95 in_150 in_206 in_239 in_228 in_217 out_45 out_100 in_200 out_126 out_137 out_148 out_159 out_104 out_115 out_185 in_28 out_82 out_235 in_168 out_6 out_118 in_120 in_218 in_65 out_15 out_155 in_255 in_205 in_249 in_238 in_227 in_216 out_205 in_138 out_52 out_103 out_114 out_136 out_147 out_158 out_169 out_192 in_35 in_175 out_242 wrom2_pinv_dec_3_9/w_692_n79# in_72 in_225 out_125 out_22 in_108 out_162 in_204 in_248 in_237 in_226 in_215 out_212 in_145 out_102 out_113 out_124 out_135 out_146 out_157 out_168 out_179 gnd in_42 vdd
+Xwrom2_pinv_dec_3_50 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_50 out_50 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_61 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_61 out_61 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_72 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_72 out_72 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_83 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_83 out_83 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_94 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_94 out_94 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_254 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_254 out_254 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_243 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_243 out_243 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_232 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_232 out_232 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_221 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_221 out_221 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_210 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_210 out_210 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_40 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_40 out_40 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_51 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_51 out_51 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_62 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_62 out_62 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_73 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_73 out_73 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_84 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_84 out_84 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_95 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_95 out_95 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_255 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_255 out_255 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_244 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_244 out_244 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_233 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_233 out_233 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_222 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_222 out_222 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_211 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_211 out_211 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_200 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_200 out_200 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_30 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_30 out_30 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_41 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_41 out_41 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_52 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_52 out_52 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_63 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_63 out_63 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_74 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_74 out_74 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_85 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_85 out_85 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_96 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_96 out_96 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_245 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_245 out_245 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_234 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_234 out_234 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_223 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_223 out_223 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_212 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_212 out_212 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_201 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_201 out_201 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_20 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_20 out_20 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_31 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_31 out_31 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_42 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_42 out_42 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_53 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_53 out_53 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_64 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_64 out_64 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_75 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_75 out_75 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_86 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_86 out_86 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_97 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_97 out_97 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_246 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_246 out_246 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_235 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_235 out_235 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_224 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_224 out_224 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_213 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_213 out_213 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_202 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_202 out_202 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_10 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_10 out_10 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_21 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_21 out_21 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_32 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_32 out_32 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_43 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_43 out_43 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_54 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_54 out_54 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_65 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_65 out_65 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_76 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_76 out_76 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_87 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_87 out_87 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_98 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_98 out_98 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_247 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_247 out_247 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_236 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_236 out_236 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_225 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_225 out_225 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_214 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_214 out_214 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_203 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_203 out_203 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_11 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_11 out_11 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_22 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_22 out_22 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_33 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_33 out_33 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_44 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_44 out_44 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_55 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_55 out_55 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_66 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_66 out_66 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_77 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_77 out_77 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_88 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_88 out_88 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_99 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_99 out_99 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_248 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_248 out_248 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_237 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_237 out_237 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_226 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_226 out_226 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_215 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_215 out_215 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_204 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_204 out_204 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_0 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_0 out_0 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_12 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_12 out_12 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_23 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_23 out_23 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_34 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_34 out_34 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_45 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_45 out_45 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_56 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_56 out_56 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_67 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_67 out_67 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_78 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_78 out_78 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_89 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_89 out_89 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_249 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_249 out_249 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_238 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_238 out_238 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_227 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_227 out_227 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_216 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_216 out_216 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_205 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_205 out_205 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_1 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_1 out_1 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_13 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_13 out_13 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_24 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_24 out_24 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_35 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_35 out_35 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_46 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_46 out_46 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_57 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_57 out_57 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_68 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_68 out_68 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_79 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_79 out_79 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_239 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_239 out_239 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_228 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_228 out_228 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_217 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_217 out_217 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_206 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_206 out_206 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_2 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_2 out_2 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_14 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_14 out_14 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_25 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_25 out_25 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_36 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_36 out_36 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_47 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_47 out_47 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_58 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_58 out_58 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_69 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_69 out_69 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_229 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_229 out_229 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_218 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_218 out_218 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_207 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_207 out_207 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_3 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_3 out_3 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_15 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_15 out_15 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_26 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_26 out_26 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_37 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_37 out_37 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_48 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_48 out_48 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_59 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_59 out_59 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_219 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_219 out_219 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_208 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_208 out_208 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_4 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_4 out_4 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_16 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_16 out_16 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_27 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_27 out_27 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_38 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_38 out_38 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_49 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_49 out_49 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_209 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_209 out_209 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_5 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_5 out_5 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_17 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_17 out_17 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_28 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_28 out_28 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_39 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_39 out_39 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_6 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_6 out_6 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_190 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_190 out_190 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_18 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_18 out_18 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_29 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_29 out_29 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_191 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_191 out_191 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_180 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_180 out_180 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_7 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_7 out_7 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_19 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_19 out_19 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_8 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_8 out_8 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_192 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_192 out_192 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_181 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_181 out_181 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_170 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_170 out_170 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_193 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_193 out_193 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_182 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_182 out_182 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_171 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_171 out_171 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_160 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_160 out_160 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_9 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_9 out_9 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_150 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_150 out_150 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_194 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_194 out_194 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_183 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_183 out_183 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_172 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_172 out_172 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_161 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_161 out_161 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_140 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_140 out_140 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_151 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_151 out_151 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_195 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_195 out_195 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_184 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_184 out_184 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_173 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_173 out_173 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_162 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_162 out_162 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_130 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_130 out_130 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_141 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_141 out_141 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_152 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_152 out_152 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_196 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_196 out_196 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_185 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_185 out_185 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_174 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_174 out_174 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_163 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_163 out_163 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_120 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_120 out_120 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_131 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_131 out_131 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_142 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_142 out_142 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_153 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_153 out_153 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_197 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_197 out_197 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_186 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_186 out_186 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_175 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_175 out_175 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_164 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_164 out_164 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_110 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_110 out_110 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_121 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_121 out_121 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_132 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_132 out_132 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_143 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_143 out_143 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_154 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_154 out_154 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_198 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_198 out_198 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_187 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_187 out_187 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_176 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_176 out_176 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_165 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_165 out_165 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_100 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_100 out_100 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_111 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_111 out_111 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_122 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_122 out_122 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_133 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_133 out_133 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_144 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_144 out_144 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_155 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_155 out_155 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_199 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_199 out_199 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_188 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_188 out_188 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_177 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_177 out_177 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_166 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_166 out_166 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_101 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_101 out_101 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_112 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_112 out_112 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_123 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_123 out_123 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_134 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_134 out_134 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_145 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_145 out_145 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_156 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_156 out_156 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_189 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_189 out_189 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_178 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_178 out_178 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_167 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_167 out_167 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_102 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_102 out_102 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_113 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_113 out_113 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_124 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_124 out_124 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_135 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_135 out_135 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_146 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_146 out_146 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_157 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_157 out_157 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_179 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_179 out_179 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_168 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_168 out_168 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_103 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_103 out_103 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_114 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_114 out_114 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_125 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_125 out_125 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_136 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_136 out_136 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_147 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_147 out_147 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_158 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_158 out_158 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_169 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_169 out_169 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_104 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_104 out_104 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_115 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_115 out_115 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_126 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_126 out_126 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_137 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_137 out_137 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_148 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_148 out_148 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_159 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_159 out_159 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_105 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_105 out_105 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_116 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_116 out_116 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_127 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_127 out_127 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_138 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_138 out_138 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_149 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_149 out_149 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_106 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_106 out_106 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_117 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_117 out_117 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_128 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_128 out_128 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_139 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_139 out_139 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_107 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_107 out_107 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_118 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_118 out_118 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_129 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_129 out_129 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_108 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_108 out_108 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_119 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_119 out_119 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_109 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_109 out_109 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_90 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_90 out_90 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_250 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_250 out_250 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_80 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_80 out_80 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_91 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_91 out_91 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_251 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_251 out_251 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_240 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_240 out_240 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_70 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_70 out_70 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_81 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_81 out_81 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_92 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_92 out_92 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_252 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_252 out_252 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_241 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_241 out_241 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_230 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_230 out_230 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_60 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_60 out_60 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_71 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_71 out_71 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_82 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_82 out_82 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_93 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_93 out_93 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_253 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_253 out_253 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_242 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_242 out_242 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_231 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_231 out_231 wrom2_pinv_dec_3
+Xwrom2_pinv_dec_3_220 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_220 out_220 wrom2_pinv_dec_3
+C0 out_208 vdd 0.0396f
+C1 in_173 vdd 0
+C2 in_97 vdd 0
+C3 out_220 out_221 0.12741f
+C4 out_167 out_168 0.12741f
+C5 out_136 in_137 0.01793f
+C6 wrom2_pinv_dec_3_9/w_692_n79# out_83 -0.02056f
+C7 wrom2_pinv_dec_3_9/w_692_n79# in_225 -0.00122f
+C8 out_174 vdd 0.0396f
+C9 in_147 vdd 0
+C10 vdd out_181 0.0396f
+C11 in_173 in_174 0.0435f
+C12 in_234 in_235 0.0435f
+C13 out_206 in_206 0.01569f
+C14 out_123 out_122 0.12741f
+C15 in_76 in_75 0.0435f
+C16 vdd in_191 0
+C17 out_128 vdd 0.0396f
+C18 out_192 out_193 0.12741f
+C19 in_174 out_174 0.01569f
+C20 out_24 in_25 0.01793f
+C21 in_189 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C22 out_234 vdd 0.0396f
+C23 out_104 vdd 0.0396f
+C24 in_114 out_113 0.01793f
+C25 in_237 out_236 0.01793f
+C26 out_21 vdd 0.0396f
+C27 in_227 out_227 0.01569f
+C28 out_31 vdd 0.0396f
+C29 wrom2_pinv_dec_3_9/w_692_n79# in_154 -0.00122f
+C30 in_144 in_143 0.0435f
+C31 out_165 in_166 0.01793f
+C32 out_91 vdd 0.0396f
+C33 in_42 in_43 0.0435f
+C34 out_248 in_248 0.01569f
+C35 vdd out_44 0.0396f
+C36 in_23 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C37 wrom2_pinv_dec_3_9/w_692_n79# in_232 -0.00122f
+C38 in_132 in_133 0.0435f
+C39 wrom2_pinv_dec_3_9/w_692_n79# out_1 -0.02056f
+C40 in_103 vdd 0
+C41 in_8 in_9 0.0435f
+C42 in_117 in_118 0.0435f
+C43 out_251 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C44 in_236 vdd 0
+C45 out_52 in_53 0.01793f
+C46 wrom2_pinv_dec_3_9/w_692_n79# in_233 -0.00122f
+C47 in_255 vdd 0
+C48 out_171 out_170 0.12741f
+C49 in_146 in_147 0.0435f
+C50 wrom2_pinv_dec_3_9/w_692_n79# in_140 -0.00122f
+C51 in_40 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C52 out_112 vdd 0.0396f
+C53 wrom2_pinv_dec_3_9/w_692_n79# in_248 -0.00122f
+C54 in_219 in_220 0.0435f
+C55 out_104 in_104 0.01569f
+C56 out_84 out_85 0.12741f
+C57 in_82 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C58 in_175 out_175 0.01569f
+C59 in_61 vdd 0
+C60 in_108 out_107 0.01793f
+C61 in_89 vdd 0
+C62 in_153 vdd 0
+C63 out_136 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C64 out_182 vdd 0.0396f
+C65 out_32 in_33 0.01793f
+C66 in_156 vdd 0
+C67 wrom2_pinv_dec_3_9/w_692_n79# out_210 -0.02056f
+C68 out_165 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C69 in_31 out_30 0.01793f
+C70 out_78 out_77 0.12741f
+C71 in_55 in_56 0.0435f
+C72 in_4 out_4 0.01569f
+C73 in_103 in_104 0.0435f
+C74 out_65 out_64 0.12741f
+C75 in_3 vdd 0
+C76 in_52 vdd 0
+C77 in_227 in_226 0.0435f
+C78 in_209 out_209 0.01569f
+C79 out_202 vdd 0.0396f
+C80 in_141 in_140 0.0435f
+C81 out_82 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C82 wrom2_pinv_dec_3_9/w_692_n79# in_241 -0.00122f
+C83 out_209 vdd 0.0396f
+C84 out_178 in_178 0.01569f
+C85 in_162 in_163 0.0435f
+C86 in_209 vdd 0
+C87 in_185 in_184 0.0435f
+C88 wrom2_pinv_dec_3_9/w_692_n79# out_196 -0.02056f
+C89 in_193 out_193 0.01569f
+C90 out_178 out_179 0.12741f
+C91 in_61 in_62 0.0435f
+C92 out_239 in_239 0.01569f
+C93 out_218 in_219 0.01793f
+C94 vdd out_154 0.0396f
+C95 in_128 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C96 out_0 wrom2_pinv_dec_3_9/w_692_n79# -0.00705f
+C97 in_14 vdd 0
+C98 in_237 in_238 0.0435f
+C99 out_70 out_69 0.12741f
+C100 out_8 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C101 in_211 in_210 0.0435f
+C102 out_200 vdd 0.0396f
+C103 in_174 vdd 0
+C104 out_140 in_140 0.01569f
+C105 out_227 in_228 0.01793f
+C106 in_180 vdd 0
+C107 in_175 in_176 0.0435f
+C108 in_116 in_117 0.0435f
+C109 wrom2_pinv_dec_3_9/w_692_n79# out_189 -0.02056f
+C110 wrom2_pinv_dec_3_9/w_692_n79# out_148 -0.02056f
+C111 in_27 vdd 0
+C112 out_239 out_238 0.12741f
+C113 out_93 out_92 0.12741f
+C114 in_228 out_228 0.01569f
+C115 wrom2_pinv_dec_3_9/w_692_n79# out_203 -0.02056f
+C116 in_108 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C117 out_74 in_74 0.01569f
+C118 in_16 vdd 0
+C119 wrom2_pinv_dec_3_9/w_692_n79# in_227 -0.00122f
+C120 in_95 in_94 0.0435f
+C121 in_62 vdd 0
+C122 out_109 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C123 out_98 vdd 0.0396f
+C124 out_90 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C125 wrom2_pinv_dec_3_9/w_692_n79# in_208 -0.00122f
+C126 wrom2_pinv_dec_3_9/w_692_n79# in_117 -0.00122f
+C127 wrom2_pinv_dec_3_9/w_692_n79# in_69 -0.00122f
+C128 out_160 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C129 in_247 in_248 0.0435f
+C130 vdd in_104 0
+C131 in_67 out_66 0.01793f
+C132 in_42 vdd 0
+C133 in_136 in_135 0.0435f
+C134 out_23 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C135 wrom2_pinv_dec_3_9/w_692_n79# in_202 -0.00122f
+C136 wrom2_pinv_dec_3_9/w_692_n79# out_180 -0.02056f
+C137 vdd in_125 0
+C138 out_58 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C139 out_146 in_147 0.01793f
+C140 in_146 vdd 0
+C141 wrom2_pinv_dec_3_9/w_692_n79# out_64 -0.02056f
+C142 in_84 vdd 0
+C143 wrom2_pinv_dec_3_9/w_692_n79# in_197 -0.00122f
+C144 in_19 in_18 0.0435f
+C145 wrom2_pinv_dec_3_9/w_692_n79# out_201 -0.02056f
+C146 wrom2_pinv_dec_3_9/w_692_n79# in_151 -0.00122f
+C147 out_120 out_121 0.12741f
+C148 wrom2_pinv_dec_3_9/w_692_n79# out_113 -0.02056f
+C149 in_11 in_12 0.0435f
+C150 in_252 vdd 0
+C151 out_95 vdd 0.0396f
+C152 in_64 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C153 wrom2_pinv_dec_3_9/w_692_n79# in_133 -0.00122f
+C154 in_34 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C155 wrom2_pinv_dec_3_9/w_692_n79# in_2 -0.00122f
+C156 in_183 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C157 wrom2_pinv_dec_3_9/w_692_n79# out_124 -0.02056f
+C158 out_129 out_128 0.12741f
+C159 wrom2_pinv_dec_3_9/w_692_n79# out_55 -0.02056f
+C160 out_17 in_17 0.01569f
+C161 out_142 out_141 0.12741f
+C162 out_69 in_70 0.01793f
+C163 out_28 out_29 0.12741f
+C164 vdd out_131 0.0396f
+C165 in_156 in_157 0.0435f
+C166 wrom2_pinv_dec_3_9/w_692_n79# out_61 -0.02056f
+C167 out_219 vdd 0.0396f
+C168 in_77 in_76 0.0435f
+C169 wrom2_pinv_dec_3_9/w_692_n79# out_255 -0.01336f
+C170 in_169 in_170 0.0435f
+C171 out_53 vdd 0.0396f
+C172 out_176 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C173 out_158 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C174 out_161 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C175 out_50 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C176 out_211 vdd 0.0396f
+C177 out_79 vdd 0.0396f
+C178 out_204 vdd 0.0396f
+C179 out_192 vdd 0.0396f
+C180 in_108 in_109 0.0435f
+C181 out_37 vdd 0.0396f
+C182 out_236 out_237 0.12741f
+C183 out_109 in_109 0.01569f
+C184 in_82 out_81 0.01793f
+C185 in_225 out_224 0.01793f
+C186 vdd in_157 0
+C187 in_41 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C188 wrom2_pinv_dec_3_9/w_692_n79# out_232 -0.02056f
+C189 out_134 out_135 0.12741f
+C190 wrom2_pinv_dec_3_9/w_692_n79# out_45 -0.02056f
+C191 out_72 in_73 0.01793f
+C192 in_34 out_33 0.01793f
+C193 wrom2_pinv_dec_3_9/w_692_n79# out_151 -0.02056f
+C194 out_48 in_49 0.01793f
+C195 in_47 vdd 0
+C196 wrom2_pinv_dec_3_9/w_692_n79# in_228 -0.00122f
+C197 in_110 in_111 0.0435f
+C198 in_7 vdd 0
+C199 in_102 in_101 0.0435f
+C200 wrom2_pinv_dec_3_9/w_692_n79# in_94 -0.00122f
+C201 out_251 out_252 0.12741f
+C202 out_166 vdd 0.0396f
+C203 in_182 out_181 0.01793f
+C204 out_132 in_133 0.01793f
+C205 in_134 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C206 out_119 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C207 out_82 out_81 0.12741f
+C208 in_229 in_228 0.0435f
+C209 out_30 out_29 0.06767f
+C210 in_28 vdd 0
+C211 out_3 in_4 0.01793f
+C212 in_158 vdd 0
+C213 wrom2_pinv_dec_3_9/w_692_n79# out_122 -0.02056f
+C214 vdd out_215 0.0396f
+C215 in_75 vdd 0
+C216 in_6 out_5 0.01793f
+C217 out_254 out_253 0.12741f
+C218 out_206 out_207 0.12741f
+C219 in_200 out_199 0.01793f
+C220 out_49 vdd 0.0396f
+C221 in_8 vdd 0
+C222 in_25 vdd 0
+C223 in_181 out_181 0.01569f
+C224 in_101 out_100 0.01793f
+C225 in_60 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C226 in_241 out_241 0.01569f
+C227 in_28 in_27 0.0435f
+C228 out_21 out_20 0.12741f
+C229 in_113 out_113 0.01569f
+C230 in_31 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C231 in_201 in_202 0.0435f
+C232 out_4 vdd 0.0396f
+C233 wrom2_pinv_dec_3_9/w_692_n79# in_186 -0.00122f
+C234 wrom2_pinv_dec_3_9/w_692_n79# out_175 -0.02056f
+C235 out_146 vdd 0.0396f
+C236 out_25 out_24 0.12741f
+C237 in_34 in_35 0.0435f
+C238 in_1 in_0 0.0435f
+C239 in_210 out_210 0.01569f
+C240 wrom2_pinv_dec_3_9/w_692_n79# in_212 -0.00122f
+C241 out_65 out_66 0.12741f
+C242 out_70 in_71 0.01793f
+C243 out_3 out_2 0.12741f
+C244 in_214 out_213 0.01793f
+C245 vdd in_168 0
+C246 wrom2_pinv_dec_3_9/w_692_n79# in_101 -0.00122f
+C247 out_88 out_89 0.12741f
+C248 in_212 in_213 0.0435f
+C249 out_86 vdd 0.0396f
+C250 in_48 vdd 0
+C251 in_201 out_201 0.01569f
+C252 out_129 vdd 0.0396f
+C253 in_29 out_29 0.01569f
+C254 wrom2_pinv_dec_3_9/w_692_n79# out_84 -0.02056f
+C255 out_9 out_10 0.12741f
+C256 wrom2_pinv_dec_3_9/w_692_n79# in_219 -0.00122f
+C257 wrom2_pinv_dec_3_9/w_692_n79# out_157 -0.02056f
+C258 out_47 vdd 0.0396f
+C259 vdd in_50 0
+C260 in_214 out_214 0.01569f
+C261 out_39 out_38 0.12741f
+C262 in_12 vdd 0
+C263 out_237 in_238 0.01793f
+C264 in_193 vdd 0
+C265 out_231 in_232 0.01793f
+C266 in_10 out_9 0.01793f
+C267 out_229 in_230 0.01793f
+C268 out_182 in_182 0.01569f
+C269 in_149 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C270 in_122 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C271 out_41 vdd 0.0396f
+C272 out_229 out_228 0.12741f
+C273 out_205 in_206 0.01793f
+C274 vdd out_197 0.0396f
+C275 in_67 in_68 0.0435f
+C276 wrom2_pinv_dec_3_9/w_692_n79# in_176 -0.00122f
+C277 out_246 out_245 0.12741f
+C278 out_185 out_184 0.12741f
+C279 out_144 out_145 0.12741f
+C280 in_112 in_111 0.0435f
+C281 in_65 vdd 0
+C282 wrom2_pinv_dec_3_9/w_692_n79# in_206 -0.00122f
+C283 wrom2_pinv_dec_3_9/w_692_n79# in_185 -0.00122f
+C284 out_146 in_146 0.01569f
+C285 out_133 vdd 0.0396f
+C286 out_74 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C287 in_243 out_242 0.01793f
+C288 in_30 vdd 0
+C289 wrom2_pinv_dec_3_9/w_692_n79# out_145 -0.02056f
+C290 wrom2_pinv_dec_3_9/w_692_n79# in_204 -0.00122f
+C291 in_95 out_94 0.01793f
+C292 out_190 out_191 0.12741f
+C293 out_161 in_162 0.01793f
+C294 in_145 out_144 0.01793f
+C295 in_74 out_73 0.01793f
+C296 out_183 out_184 0.12741f
+C297 in_182 vdd 0
+C298 wrom2_pinv_dec_3_9/w_692_n79# out_186 -0.02056f
+C299 out_20 vdd 0.0396f
+C300 out_249 out_250 0.12741f
+C301 in_214 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C302 in_70 in_71 0.0435f
+C303 in_214 in_213 0.0435f
+C304 wrom2_pinv_dec_3_9/w_692_n79# in_145 -0.00122f
+C305 in_243 out_243 0.01569f
+C306 out_160 in_161 0.01793f
+C307 wrom2_pinv_dec_3_9/w_692_n79# out_66 -0.02056f
+C308 in_158 in_157 0.0435f
+C309 out_41 in_42 0.01793f
+C310 in_22 in_21 0.0435f
+C311 out_206 in_207 0.01793f
+C312 wrom2_pinv_dec_3_9/w_692_n79# in_22 -0.00122f
+C313 in_181 vdd 0
+C314 in_73 vdd 0
+C315 in_6 out_6 0.01569f
+C316 out_34 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C317 in_34 in_33 0.0435f
+C318 in_119 in_118 0.0435f
+C319 out_31 out_32 0.12741f
+C320 in_222 vdd 0
+C321 out_122 in_123 0.01793f
+C322 in_180 in_181 0.0435f
+C323 in_8 in_7 0.0435f
+C324 in_135 vdd 0
+C325 in_115 vdd 0
+C326 in_72 out_72 0.01569f
+C327 out_54 out_55 0.12741f
+C328 out_18 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C329 in_148 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C330 out_167 vdd 0.0396f
+C331 wrom2_pinv_dec_3_9/w_692_n79# out_97 -0.02056f
+C332 in_189 out_188 0.01793f
+C333 out_233 out_234 0.12741f
+C334 in_200 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C335 in_82 in_81 0.0435f
+C336 out_127 out_126 0.12741f
+C337 in_106 in_107 0.0435f
+C338 in_85 vdd 0
+C339 wrom2_pinv_dec_3_9/w_692_n79# out_36 -0.02056f
+C340 wrom2_pinv_dec_3_9/w_692_n79# in_203 -0.00122f
+C341 out_178 vdd 0.0396f
+C342 wrom2_pinv_dec_3_9/w_692_n79# out_152 -0.02056f
+C343 wrom2_pinv_dec_3_9/w_692_n79# out_5 -0.02056f
+C344 out_107 out_108 0.12741f
+C345 in_47 in_48 0.0435f
+C346 in_3 out_3 0.01569f
+C347 in_217 out_216 0.01793f
+C348 in_192 out_191 0.01793f
+C349 out_192 in_193 0.01793f
+C350 out_161 in_161 0.01569f
+C351 in_136 out_136 0.01569f
+C352 out_47 in_47 0.01569f
+C353 in_43 out_42 0.01793f
+C354 out_34 out_33 0.12741f
+C355 in_36 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C356 out_229 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C357 out_143 vdd 0.0396f
+C358 out_17 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C359 in_171 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C360 out_22 out_21 0.12741f
+C361 out_60 in_61 0.01793f
+C362 out_179 out_180 0.12741f
+C363 out_170 vdd 0.0396f
+C364 out_3 vdd 0.0396f
+C365 out_229 in_229 0.01569f
+C366 wrom2_pinv_dec_3_9/w_692_n79# out_29 -0.01336f
+C367 in_159 vdd 0
+C368 out_26 vdd 0.0396f
+C369 wrom2_pinv_dec_3_9/w_692_n79# out_94 -0.02056f
+C370 in_54 in_53 0.0435f
+C371 out_234 out_235 0.12741f
+C372 in_77 vdd 0
+C373 in_40 in_39 0.0435f
+C374 in_20 vdd 0
+C375 out_190 in_190 0.01569f
+C376 in_126 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C377 out_77 vdd 0.0396f
+C378 out_75 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C379 out_19 vdd 0.0396f
+C380 in_127 in_128 0.0435f
+C381 in_17 in_18 0.0435f
+C382 wrom2_pinv_dec_3_9/w_692_n79# out_250 -0.02056f
+C383 in_231 out_230 0.01793f
+C384 out_49 in_50 0.01793f
+C385 out_176 in_177 0.01793f
+C386 out_156 out_155 0.12741f
+C387 wrom2_pinv_dec_3_9/w_692_n79# in_150 -0.00122f
+C388 in_122 in_123 0.0435f
+C389 vdd in_250 0
+C390 out_109 in_110 0.01793f
+C391 out_32 vdd 0.0396f
+C392 out_26 in_27 0.01793f
+C393 in_234 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C394 wrom2_pinv_dec_3_9/w_692_n79# in_57 -0.00122f
+C395 in_187 in_186 0.0435f
+C396 out_194 in_194 0.01569f
+C397 out_153 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C398 out_136 out_137 0.12741f
+C399 out_1 out_2 0.12741f
+C400 out_60 vdd 0.0396f
+C401 wrom2_pinv_dec_3_9/w_692_n79# in_58 -0.00122f
+C402 in_117 out_117 0.01569f
+C403 out_92 in_92 0.01569f
+C404 in_93 vdd 0
+C405 in_84 in_85 0.0435f
+C406 in_236 out_235 0.01793f
+C407 out_155 in_155 0.01569f
+C408 wrom2_pinv_dec_3_9/w_692_n79# in_119 -0.00122f
+C409 wrom2_pinv_dec_3_9/w_692_n79# out_108 -0.02056f
+C410 in_245 vdd 0
+C411 out_230 in_230 0.01569f
+C412 out_183 out_182 0.12741f
+C413 out_34 in_35 0.01793f
+C414 out_8 in_9 0.01793f
+C415 out_236 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C416 out_90 in_90 0.01569f
+C417 out_47 in_48 0.01793f
+C418 out_125 out_124 0.12741f
+C419 out_116 in_117 0.01793f
+C420 out_106 vdd 0.0396f
+C421 out_23 out_24 0.12741f
+C422 out_185 vdd 0.0396f
+C423 in_164 vdd 0
+C424 wrom2_pinv_dec_3_9/w_692_n79# out_14 -0.02056f
+C425 out_233 vdd 0.0396f
+C426 in_111 vdd 0
+C427 in_211 vdd 0
+C428 wrom2_pinv_dec_3_9/w_692_n79# out_242 -0.02056f
+C429 out_231 out_232 0.12741f
+C430 out_195 out_196 0.12741f
+C431 out_183 vdd 0.0396f
+C432 out_223 in_224 0.01793f
+C433 out_188 out_189 0.12741f
+C434 out_111 out_110 0.12741f
+C435 in_249 out_249 0.01569f
+C436 out_150 in_151 0.01793f
+C437 out_225 out_226 0.12741f
+C438 in_95 in_96 0.0435f
+C439 out_22 vdd 0.0396f
+C440 in_200 in_201 0.0435f
+C441 in_24 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C442 in_5 out_5 0.01569f
+C443 vdd out_217 0.0396f
+C444 in_198 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C445 wrom2_pinv_dec_3_9/w_692_n79# out_46 -0.02056f
+C446 in_37 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C447 out_167 out_166 0.12741f
+C448 in_66 vdd 0
+C449 in_36 in_35 0.0435f
+C450 wrom2_pinv_dec_3_9/w_692_n79# out_243 -0.02056f
+C451 in_215 vdd 0
+C452 out_69 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C453 wrom2_pinv_dec_3_9/w_692_n79# in_0 0.00183f
+C454 out_130 in_131 0.01793f
+C455 out_246 in_246 0.01569f
+C456 out_235 vdd 0.0396f
+C457 in_163 vdd 0
+C458 out_25 vdd 0.0396f
+C459 wrom2_pinv_dec_3_9/w_692_n79# out_6 -0.02056f
+C460 in_132 in_131 0.0435f
+C461 in_72 vdd 0
+C462 wrom2_pinv_dec_3_9/w_692_n79# in_68 -0.00122f
+C463 wrom2_pinv_dec_3_9/w_692_n79# out_68 -0.02056f
+C464 out_55 out_56 0.12741f
+C465 in_243 in_242 0.02819f
+C466 in_187 out_186 0.01793f
+C467 out_115 out_114 0.12741f
+C468 out_67 vdd 0.0396f
+C469 in_26 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C470 out_221 vdd 0.0396f
+C471 out_198 vdd 0.0396f
+C472 in_170 vdd 0
+C473 out_7 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C474 wrom2_pinv_dec_3_9/w_692_n79# out_245 -0.02056f
+C475 out_239 vdd 0.0396f
+C476 wrom2_pinv_dec_3_9/w_692_n79# out_216 -0.02056f
+C477 wrom2_pinv_dec_3_9/w_692_n79# out_73 -0.02056f
+C478 out_42 vdd 0.0396f
+C479 out_243 in_244 0.01793f
+C480 out_163 out_162 0.12741f
+C481 wrom2_pinv_dec_3_9/w_692_n79# in_120 -0.00122f
+C482 out_71 in_71 0.01569f
+C483 out_11 out_10 0.12741f
+C484 in_109 out_108 0.01793f
+C485 in_83 vdd 0
+C486 out_223 out_222 0.12741f
+C487 out_96 out_97 0.12741f
+C488 wrom2_pinv_dec_3_9/w_692_n79# out_135 -0.02056f
+C489 out_83 vdd 0.0396f
+C490 out_167 in_168 0.01793f
+C491 out_150 out_151 0.12741f
+C492 out_50 out_51 0.12741f
+C493 wrom2_pinv_dec_3_9/w_692_n79# in_238 -0.00122f
+C494 in_225 vdd 0
+C495 in_153 in_154 0.0435f
+C496 out_142 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C497 in_249 out_248 0.01793f
+C498 in_177 in_176 0.0435f
+C499 in_240 out_240 0.01569f
+C500 wrom2_pinv_dec_3_9/w_692_n79# out_230 -0.02056f
+C501 in_158 in_159 0.0435f
+C502 in_59 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C503 out_38 in_38 0.01569f
+C504 out_207 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C505 out_80 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C506 in_189 vdd 0
+C507 in_128 out_128 0.01569f
+C508 in_122 in_121 0.0435f
+C509 in_99 in_98 0.0435f
+C510 in_114 out_114 0.01569f
+C511 in_42 out_42 0.01569f
+C512 in_211 out_211 0.01569f
+C513 in_79 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C514 in_15 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C515 out_3 out_4 0.12741f
+C516 out_80 in_80 0.01569f
+C517 in_208 out_208 0.01569f
+C518 wrom2_pinv_dec_3_9/w_692_n79# out_59 -0.02056f
+C519 in_249 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C520 out_186 out_187 0.12741f
+C521 in_129 in_130 0.0435f
+C522 out_39 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C523 in_2 out_2 0.01569f
+C524 in_154 vdd 0
+C525 in_154 out_154 0.01569f
+C526 in_79 in_80 0.0435f
+C527 in_130 in_131 0.0435f
+C528 in_23 vdd 0
+C529 wrom2_pinv_dec_3_9/w_692_n79# in_96 -0.00122f
+C530 in_232 vdd 0
+C531 in_181 in_182 0.0435f
+C532 out_88 out_87 0.12741f
+C533 in_84 in_83 0.0435f
+C534 in_55 in_54 0.0435f
+C535 out_1 vdd 0.0396f
+C536 in_100 out_99 0.01793f
+C537 out_251 vdd 0.0396f
+C538 wrom2_pinv_dec_3_9/w_692_n79# in_172 -0.00122f
+C539 in_233 vdd 0
+C540 out_171 in_171 0.01569f
+C541 wrom2_pinv_dec_3_9/w_692_n79# out_162 -0.02056f
+C542 in_84 out_83 0.01793f
+C543 in_217 in_216 0.0435f
+C544 out_181 out_180 0.12741f
+C545 vdd in_140 0
+C546 in_40 vdd 0
+C547 out_254 in_254 0.01569f
+C548 out_110 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C549 out_254 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C550 in_248 vdd 0
+C551 in_220 in_221 0.0435f
+C552 out_90 out_91 0.12741f
+C553 in_82 vdd 0
+C554 wrom2_pinv_dec_3_9/w_692_n79# in_56 -0.00122f
+C555 out_11 out_12 0.12741f
+C556 out_209 out_210 0.12741f
+C557 wrom2_pinv_dec_3_9/w_692_n79# in_143 -0.00122f
+C558 in_218 out_218 0.01569f
+C559 out_136 vdd 0.0396f
+C560 out_165 vdd 0.0396f
+C561 in_87 in_86 0.0435f
+C562 out_210 vdd 0.0396f
+C563 wrom2_pinv_dec_3_9/w_692_n79# out_10 -0.02056f
+C564 out_70 in_70 0.01569f
+C565 out_246 out_247 0.12741f
+C566 in_129 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C567 wrom2_pinv_dec_3_9/w_692_n79# out_40 -0.02056f
+C568 wrom2_pinv_dec_3_9/w_692_n79# in_131 -0.00122f
+C569 out_82 vdd 0.0396f
+C570 out_45 in_45 0.01569f
+C571 out_242 out_241 0.12741f
+C572 in_241 vdd 0
+C573 in_215 out_215 0.01569f
+C574 in_87 out_87 0.01569f
+C575 vdd out_196 0.0396f
+C576 out_107 in_107 0.01569f
+C577 in_196 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C578 wrom2_pinv_dec_3_9/w_692_n79# in_53 -0.00122f
+C579 out_43 in_44 0.01793f
+C580 wrom2_pinv_dec_3_9/w_692_n79# in_49 -0.00122f
+C581 out_25 in_25 0.01569f
+C582 in_13 out_12 0.01793f
+C583 in_10 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C584 out_0 vdd 0.0396f
+C585 in_128 vdd 0
+C586 out_118 in_118 0.01569f
+C587 in_98 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C588 in_78 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C589 out_20 out_19 0.12741f
+C590 out_20 in_20 0.01569f
+C591 wrom2_pinv_dec_3_9/w_692_n79# in_18 -0.00122f
+C592 out_8 vdd 0.0396f
+C593 out_251 in_252 0.01793f
+C594 out_202 out_203 0.12741f
+C595 wrom2_pinv_dec_3_9/w_692_n79# in_207 -0.00122f
+C596 wrom2_pinv_dec_3_9/w_692_n79# in_71 -0.00122f
+C597 in_237 out_237 0.01569f
+C598 wrom2_pinv_dec_3_9/w_692_n79# in_51 -0.00122f
+C599 in_251 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C600 in_199 out_199 0.01569f
+C601 vdd out_189 0.0396f
+C602 out_148 vdd 0.0396f
+C603 out_112 out_113 0.12741f
+C604 in_242 wrom2_pinv_dec_3_9/w_692_n79# -0.00262f
+C605 in_239 in_238 0.0435f
+C606 vdd out_203 0.0396f
+C607 in_108 vdd 0
+C608 in_102 out_101 0.01793f
+C609 in_227 vdd 0
+C610 in_217 in_218 0.0435f
+C611 in_209 in_208 0.0435f
+C612 out_109 vdd 0.0396f
+C613 out_90 vdd 0.0396f
+C614 in_208 vdd 0
+C615 in_202 out_202 0.01569f
+C616 in_117 vdd 0
+C617 in_69 vdd 0
+C618 in_255 out_255 0.01569f
+C619 out_160 vdd 0.0396f
+C620 out_76 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C621 out_45 out_44 0.12741f
+C622 in_183 out_182 0.01793f
+C623 out_57 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C624 out_238 in_238 0.01569f
+C625 in_202 vdd 0
+C626 out_80 out_81 0.12741f
+C627 out_23 vdd 0.0396f
+C628 in_3 in_2 0.0435f
+C629 out_201 out_202 0.12741f
+C630 out_58 vdd 0.0396f
+C631 in_61 out_61 0.01569f
+C632 vdd out_180 0.0396f
+C633 out_100 out_101 0.12741f
+C634 wrom2_pinv_dec_3_9/w_692_n79# in_107 -0.00122f
+C635 out_174 out_175 0.12741f
+C636 in_126 out_125 0.01793f
+C637 wrom2_pinv_dec_3_9/w_692_n79# out_114 -0.02056f
+C638 vdd out_64 0.0396f
+C639 in_197 vdd 0
+C640 in_151 vdd 0
+C641 vdd out_113 0.0396f
+C642 in_65 in_66 0.0435f
+C643 wrom2_pinv_dec_3_9/w_692_n79# in_246 -0.00122f
+C644 out_201 vdd 0.0396f
+C645 out_172 in_172 0.01569f
+C646 in_180 out_180 0.01569f
+C647 vdd in_133 0
+C648 out_139 in_139 0.01569f
+C649 out_120 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C650 in_64 vdd 0
+C651 in_196 in_195 0.0435f
+C652 out_184 in_185 0.01793f
+C653 in_183 vdd 0
+C654 in_34 vdd 0
+C655 in_2 vdd 0
+C656 out_227 out_226 0.12741f
+C657 out_210 out_211 0.12741f
+C658 out_41 out_42 0.12741f
+C659 out_14 out_13 0.12741f
+C660 wrom2_pinv_dec_3_9/w_692_n79# out_12 -0.02056f
+C661 wrom2_pinv_dec_3_9/w_692_n79# in_216 -0.00122f
+C662 out_124 vdd 0.0396f
+C663 wrom2_pinv_dec_3_9/w_692_n79# out_101 -0.02056f
+C664 out_244 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C665 out_200 out_201 0.12741f
+C666 out_55 vdd 0.0396f
+C667 out_198 out_197 0.12741f
+C668 out_93 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C669 in_162 out_162 0.01569f
+C670 in_31 out_31 0.01569f
+C671 vdd out_61 0.0396f
+C672 out_96 in_96 0.01569f
+C673 out_255 vdd 0
+C674 in_88 out_88 0.01569f
+C675 in_76 out_75 0.01793f
+C676 out_176 vdd 0.0396f
+C677 out_158 vdd 0.0396f
+C678 out_92 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C679 out_161 vdd 0.0396f
+C680 in_126 in_127 0.0435f
+C681 in_77 out_77 0.01569f
+C682 out_50 vdd 0.0396f
+C683 out_19 in_20 0.01793f
+C684 out_244 in_244 0.01569f
+C685 in_144 out_144 0.01569f
+C686 out_88 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C687 out_52 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C688 out_17 out_16 0.12741f
+C689 wrom2_pinv_dec_3_9/w_692_n79# out_118 -0.02056f
+C690 out_15 out_14 0.12741f
+C691 out_165 out_166 0.12741f
+C692 out_150 in_150 0.01569f
+C693 out_194 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C694 in_144 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C695 in_63 out_62 0.01793f
+C696 in_41 vdd 0
+C697 vdd out_232 0.0396f
+C698 out_45 vdd 0.0396f
+C699 in_72 in_73 0.0435f
+C700 in_62 out_61 0.01793f
+C701 out_151 vdd 0.0396f
+C702 in_60 in_61 0.0435f
+C703 wrom2_pinv_dec_3_9/w_692_n79# in_224 -0.00122f
+C704 in_228 vdd 0
+C705 vdd in_94 0
+C706 out_78 in_79 0.01793f
+C707 out_56 in_57 0.01793f
+C708 out_204 out_203 0.12741f
+C709 out_124 in_125 0.01793f
+C710 in_222 out_221 0.01793f
+C711 in_120 in_121 0.0435f
+C712 out_171 in_172 0.01793f
+C713 in_134 vdd 0
+C714 out_119 vdd 0.0396f
+C715 wrom2_pinv_dec_3_9/w_692_n79# in_188 -0.00122f
+C716 out_122 vdd 0.0396f
+C717 in_226 out_226 0.01569f
+C718 wrom2_pinv_dec_3_9/w_692_n79# out_155 -0.02056f
+C719 in_100 in_99 0.0435f
+C720 wrom2_pinv_dec_3_9/w_692_n79# out_121 -0.02056f
+C721 in_88 in_87 0.0435f
+C722 in_247 in_246 0.0435f
+C723 in_24 out_24 0.01569f
+C724 in_87 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C725 in_60 vdd 0
+C726 in_41 in_42 0.0435f
+C727 wrom2_pinv_dec_3_9/w_692_n79# in_218 -0.00122f
+C728 out_8 in_8 0.01569f
+C729 in_199 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C730 in_31 vdd 0
+C731 out_212 out_213 0.12741f
+C732 in_186 vdd 0
+C733 out_191 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C734 vdd out_175 0.0396f
+C735 in_97 out_97 0.01569f
+C736 in_55 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C737 out_248 out_247 0.12741f
+C738 in_148 in_147 0.0435f
+C739 wrom2_pinv_dec_3_9/w_692_n79# out_222 -0.02056f
+C740 in_212 vdd 0
+C741 wrom2_pinv_dec_3_9/w_692_n79# out_43 -0.02056f
+C742 out_231 out_230 0.12741f
+C743 in_101 vdd 0
+C744 out_70 out_71 0.12741f
+C745 out_26 out_25 0.12741f
+C746 out_21 in_22 0.01793f
+C747 out_194 in_195 0.01793f
+C748 wrom2_pinv_dec_3_9/w_692_n79# in_46 -0.00122f
+C749 out_170 in_170 0.01569f
+C750 out_84 vdd 0.0396f
+C751 wrom2_pinv_dec_3_9/w_692_n79# out_226 -0.02056f
+C752 in_219 vdd 0
+C753 out_63 out_62 0.12741f
+C754 in_242 out_241 0.01793f
+C755 out_157 vdd 0.0396f
+C756 wrom2_pinv_dec_3_9/w_692_n79# in_32 -0.00122f
+C757 in_38 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C758 wrom2_pinv_dec_3_9/w_692_n79# in_221 -0.00122f
+C759 wrom2_pinv_dec_3_9/w_692_n79# out_247 -0.02056f
+C760 wrom2_pinv_dec_3_9/w_692_n79# out_35 -0.02056f
+C761 in_149 vdd 0
+C762 out_123 in_124 0.01793f
+C763 in_122 vdd 0
+C764 in_19 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C765 in_15 out_15 0.01569f
+C766 in_240 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C767 out_197 out_196 0.12741f
+C768 out_126 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C769 in_91 in_92 0.0435f
+C770 out_220 in_221 0.01793f
+C771 vdd in_176 0
+C772 in_163 in_164 0.0435f
+C773 in_136 out_135 0.01793f
+C774 in_78 out_78 0.01569f
+C775 in_223 in_224 0.0435f
+C776 in_206 vdd 0
+C777 in_185 vdd 0
+C778 in_100 out_100 0.01569f
+C779 out_63 in_63 0.01569f
+C780 out_190 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C781 out_74 vdd 0.0396f
+C782 out_89 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C783 wrom2_pinv_dec_3_9/w_692_n79# out_212 -0.02056f
+C784 out_149 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C785 vdd out_145 0.0396f
+C786 out_80 in_81 0.01793f
+C787 vdd in_204 0
+C788 in_158 out_158 0.01569f
+C789 out_127 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C790 out_212 in_213 0.01793f
+C791 out_186 vdd 0.0396f
+C792 out_159 in_160 0.01793f
+C793 in_214 vdd 0
+C794 wrom2_pinv_dec_3_9/w_692_n79# out_139 -0.02056f
+C795 in_100 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C796 out_50 out_49 0.12726f
+C797 in_84 out_84 0.01569f
+C798 in_145 vdd 0
+C799 out_177 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C800 out_66 vdd 0.0396f
+C801 out_234 in_234 0.01569f
+C802 out_105 in_106 0.01793f
+C803 vdd in_22 0
+C804 wrom2_pinv_dec_3_9/w_692_n79# in_190 -0.00122f
+C805 out_34 vdd 0.0396f
+C806 in_166 in_167 0.0435f
+C807 in_153 out_152 0.01793f
+C808 in_110 out_110 0.01569f
+C809 in_237 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C810 wrom2_pinv_dec_3_9/w_692_n79# in_235 -0.00122f
+C811 in_223 out_222 0.01793f
+C812 in_212 out_211 0.01793f
+C813 out_164 in_165 0.01793f
+C814 out_48 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C815 in_152 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C816 out_18 vdd 0.0396f
+C817 in_219 out_219 0.01569f
+C818 in_197 out_197 0.01569f
+C819 in_148 vdd 0
+C820 in_65 out_64 0.01793f
+C821 out_202 in_203 0.01793f
+C822 vdd out_97 0.0396f
+C823 in_247 out_247 0.01569f
+C824 out_205 in_205 0.01569f
+C825 in_142 out_142 0.01569f
+C826 out_72 out_73 0.12741f
+C827 out_50 in_50 0.01569f
+C828 in_65 in_64 0.0435f
+C829 in_200 vdd 0
+C830 in_146 out_145 0.01793f
+C831 in_192 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C832 out_133 in_133 0.01569f
+C833 wrom2_pinv_dec_3_9/w_692_n79# in_205 -0.00122f
+C834 in_203 vdd 0
+C835 out_36 vdd 0.0396f
+C836 out_152 vdd 0.0396f
+C837 out_5 vdd 0.0396f
+C838 in_35 out_35 0.01569f
+C839 out_200 in_200 0.01569f
+C840 out_157 in_157 0.01569f
+C841 out_39 in_39 0.01569f
+C842 out_139 out_140 0.12741f
+C843 wrom2_pinv_dec_3_9/w_692_n79# out_147 -0.02056f
+C844 in_146 in_145 0.0435f
+C845 out_236 in_236 0.01569f
+C846 in_183 in_182 0.0435f
+C847 in_56 out_56 0.01569f
+C848 out_229 vdd 0.0396f
+C849 out_85 in_86 0.01793f
+C850 in_36 vdd 0
+C851 in_181 out_180 0.01793f
+C852 in_171 vdd 0
+C853 in_99 out_99 0.01569f
+C854 out_98 out_97 0.12741f
+C855 out_70 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C856 out_17 vdd 0.0396f
+C857 wrom2_pinv_dec_3_9/w_692_n79# in_167 -0.00122f
+C858 out_233 in_233 0.01569f
+C859 out_225 in_226 0.01793f
+C860 out_153 in_153 0.01569f
+C861 in_41 out_41 0.01569f
+C862 in_188 in_187 0.0435f
+C863 in_83 out_83 0.01569f
+C864 vdd out_29 0.01143f
+C865 out_253 in_253 0.01569f
+C866 in_158 out_157 0.01793f
+C867 out_120 in_121 0.01793f
+C868 out_94 vdd 0.0396f
+C869 in_23 out_22 0.01793f
+C870 in_126 vdd 0
+C871 out_75 vdd 0.0396f
+C872 out_28 in_29 0.01793f
+C873 out_250 vdd 0.0396f
+C874 out_204 in_204 0.01569f
+C875 wrom2_pinv_dec_3_9/w_692_n79# out_141 -0.02056f
+C876 in_224 out_224 0.01569f
+C877 in_150 vdd 0
+C878 out_13 out_12 0.12741f
+C879 out_253 in_254 0.01793f
+C880 in_165 in_166 0.0435f
+C881 out_253 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C882 in_240 in_239 0.0435f
+C883 in_234 vdd 0
+C884 in_57 vdd 0
+C885 wrom2_pinv_dec_3_9/w_692_n79# out_156 -0.02056f
+C886 out_153 vdd 0.0396f
+C887 out_153 out_154 0.12741f
+C888 out_207 out_208 0.12741f
+C889 in_58 vdd 0
+C890 in_10 in_9 0.0435f
+C891 in_211 out_210 0.01793f
+C892 in_142 in_143 0.0435f
+C893 wrom2_pinv_dec_3_9/w_692_n79# out_9 -0.02056f
+C894 in_134 out_133 0.01793f
+C895 in_119 vdd 0
+C896 vdd out_108 0.0396f
+C897 out_74 in_75 0.01793f
+C898 in_55 out_54 0.01793f
+C899 out_236 vdd 0.0396f
+C900 out_225 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C901 in_76 out_76 0.01569f
+C902 wrom2_pinv_dec_3_9/w_692_n79# out_103 -0.02056f
+C903 wrom2_pinv_dec_3_9/w_692_n79# in_155 -0.00122f
+C904 in_141 out_141 0.01569f
+C905 out_51 in_51 0.01569f
+C906 out_14 vdd 0.0396f
+C907 out_102 out_101 0.12741f
+C908 in_97 in_96 0.0435f
+C909 in_14 out_14 0.01569f
+C910 in_33 in_32 0.0435f
+C911 in_188 out_187 0.01793f
+C912 in_126 in_125 0.0435f
+C913 vdd out_242 0.0396f
+C914 out_206 out_205 0.12741f
+C915 out_173 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C916 wrom2_pinv_dec_3_9/w_692_n79# in_70 -0.00122f
+C917 out_134 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C918 in_30 in_31 0.0435f
+C919 in_196 out_195 0.01793f
+C920 in_173 in_172 0.0435f
+C921 wrom2_pinv_dec_3_9/w_692_n79# in_165 -0.00122f
+C922 wrom2_pinv_dec_3_9/w_692_n79# in_106 -0.00122f
+C923 out_57 out_56 0.12741f
+C924 out_99 out_100 0.12741f
+C925 out_206 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C926 wrom2_pinv_dec_3_9/w_692_n79# in_194 -0.00122f
+C927 out_146 out_145 0.12741f
+C928 out_95 out_94 0.12741f
+C929 out_140 out_141 0.12741f
+C930 wrom2_pinv_dec_3_9/w_692_n79# out_62 -0.02056f
+C931 in_82 in_83 0.0435f
+C932 out_37 out_36 0.12741f
+C933 in_24 vdd 0
+C934 in_198 vdd 0
+C935 out_240 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C936 out_27 out_28 0.12741f
+C937 in_134 in_135 0.0435f
+C938 vdd out_46 0.0396f
+C939 in_37 vdd 0
+C940 out_121 in_121 0.01569f
+C941 in_11 out_10 0.01793f
+C942 out_243 vdd 0.0396f
+C943 out_99 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C944 wrom2_pinv_dec_3_9/w_692_n79# in_92 -0.00122f
+C945 out_69 vdd 0.0396f
+C946 vdd in_0 0
+C947 out_6 vdd 0.0396f
+C948 out_223 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C949 out_158 in_159 0.01793f
+C950 out_118 out_117 0.12741f
+C951 out_68 vdd 0.0396f
+C952 in_68 vdd 0
+C953 out_38 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C954 out_82 in_83 0.01793f
+C955 in_26 vdd 0
+C956 out_7 vdd 0.0396f
+C957 out_245 vdd 0.0396f
+C958 out_216 vdd 0.0396f
+C959 out_73 vdd 0.0396f
+C960 wrom2_pinv_dec_3_9/w_692_n79# in_63 -0.00122f
+C961 in_10 in_11 0.0435f
+C962 in_120 vdd 0
+C963 out_82 out_83 0.12741f
+C964 out_60 out_61 0.12741f
+C965 in_233 in_232 0.0435f
+C966 out_135 vdd 0.0396f
+C967 in_26 in_27 0.0435f
+C968 out_23 out_22 0.12741f
+C969 in_129 out_128 0.01793f
+C970 wrom2_pinv_dec_3_9/w_692_n79# in_124 -0.00122f
+C971 vdd in_238 0
+C972 in_97 in_98 0.0435f
+C973 out_52 out_51 0.12741f
+C974 in_183 out_183 0.01569f
+C975 out_142 vdd 0.0396f
+C976 out_5 out_4 0.12741f
+C977 wrom2_pinv_dec_3_9/w_692_n79# out_237 -0.02056f
+C978 out_230 vdd 0.0396f
+C979 in_59 vdd 0
+C980 out_254 in_255 0.01793f
+C981 out_207 vdd 0.0396f
+C982 in_194 in_195 0.0435f
+C983 out_80 vdd 0.0396f
+C984 out_194 out_193 0.12741f
+C985 in_75 out_75 0.01569f
+C986 wrom2_pinv_dec_3_9/w_692_n79# in_160 -0.00122f
+C987 out_28 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C988 in_1 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C989 out_123 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C990 out_84 in_85 0.01793f
+C991 in_79 vdd 0
+C992 in_93 in_94 0.0435f
+C993 wrom2_pinv_dec_3_9/w_692_n79# in_17 -0.00122f
+C994 in_15 vdd 0
+C995 in_54 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C996 in_231 in_230 0.0435f
+C997 in_189 out_189 0.01569f
+C998 out_159 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C999 vdd out_59 0.0396f
+C1000 in_249 vdd 0
+C1001 wrom2_pinv_dec_3_9/w_692_n79# in_220 -0.00122f
+C1002 out_39 vdd 0.0396f
+C1003 in_15 in_14 0.0435f
+C1004 out_233 out_232 0.12741f
+C1005 wrom2_pinv_dec_3_9/w_692_n79# in_184 -0.00122f
+C1006 out_138 out_139 0.12741f
+C1007 out_177 in_177 0.01569f
+C1008 out_115 in_116 0.01793f
+C1009 vdd in_96 0
+C1010 wrom2_pinv_dec_3_9/w_692_n79# out_85 -0.02056f
+C1011 out_194 out_195 0.12741f
+C1012 out_0 out_1 0.12741f
+C1013 out_246 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1014 out_227 out_228 0.12741f
+C1015 out_126 out_125 0.12741f
+C1016 vdd in_172 0
+C1017 vdd out_162 0.0396f
+C1018 wrom2_pinv_dec_3_9/w_692_n79# out_63 -0.02056f
+C1019 out_60 in_60 0.01569f
+C1020 out_177 in_178 0.01793f
+C1021 out_173 out_172 0.12741f
+C1022 in_15 in_16 0.0435f
+C1023 out_220 in_220 0.01569f
+C1024 in_188 out_188 0.01569f
+C1025 wrom2_pinv_dec_3_9/w_692_n79# in_175 -0.00122f
+C1026 in_67 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1027 out_37 in_37 0.01569f
+C1028 out_130 in_130 0.01569f
+C1029 out_115 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1030 in_82 out_82 0.01569f
+C1031 in_223 out_223 0.01569f
+C1032 out_110 vdd 0.0396f
+C1033 out_254 vdd 0.0396f
+C1034 in_91 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1035 wrom2_pinv_dec_3_9/w_692_n79# in_74 -0.00122f
+C1036 out_164 out_163 0.12741f
+C1037 out_253 out_252 0.12741f
+C1038 wrom2_pinv_dec_3_9/w_692_n79# out_218 -0.02056f
+C1039 in_143 vdd 0
+C1040 in_56 vdd 0
+C1041 in_47 out_46 0.01793f
+C1042 out_185 in_186 0.01793f
+C1043 out_30 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1044 wrom2_pinv_dec_3_9/w_692_n79# in_86 -0.00122f
+C1045 in_7 out_6 0.01793f
+C1046 in_127 out_126 0.01793f
+C1047 in_23 out_23 0.01569f
+C1048 wrom2_pinv_dec_3_9/w_692_n79# in_139 -0.00122f
+C1049 in_52 in_53 0.0435f
+C1050 out_10 vdd 0.0396f
+C1051 in_88 out_87 0.01793f
+C1052 wrom2_pinv_dec_3_9/w_692_n79# in_44 -0.00122f
+C1053 in_129 vdd 0
+C1054 in_106 in_105 0.0435f
+C1055 vdd out_40 0.0396f
+C1056 in_30 out_29 0.00235f
+C1057 in_211 in_212 0.0435f
+C1058 wrom2_pinv_dec_3_9/w_692_n79# in_179 -0.00122f
+C1059 in_24 in_25 0.0435f
+C1060 in_131 vdd 0
+C1061 wrom2_pinv_dec_3_9/w_692_n79# out_87 -0.02056f
+C1062 out_7 in_7 0.01569f
+C1063 in_243 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1064 out_89 in_90 0.01793f
+C1065 in_53 vdd 0
+C1066 in_6 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1067 in_196 vdd 0
+C1068 out_149 out_150 0.12741f
+C1069 in_127 out_127 0.01569f
+C1070 out_95 in_96 0.01793f
+C1071 in_52 in_51 0.0435f
+C1072 in_114 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1073 in_49 vdd 0
+C1074 in_10 vdd 0
+C1075 in_2 out_1 0.01793f
+C1076 in_98 vdd 0
+C1077 out_80 out_79 0.12741f
+C1078 in_78 vdd 0
+C1079 in_38 in_39 0.0435f
+C1080 vdd in_18 0
+C1081 out_240 out_241 0.12741f
+C1082 out_216 out_215 0.12741f
+C1083 out_199 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1084 wrom2_pinv_dec_3_9/w_692_n79# in_29 -0.00122f
+C1085 in_243 in_244 0.0435f
+C1086 in_207 vdd 0
+C1087 out_71 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1088 vdd in_71 0
+C1089 in_26 in_25 0.0435f
+C1090 in_8 out_7 0.01793f
+C1091 out_130 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1092 in_79 out_79 0.01569f
+C1093 vdd in_51 0
+C1094 in_251 vdd 0
+C1095 out_225 out_224 0.12741f
+C1096 wrom2_pinv_dec_3_9/w_692_n79# in_132 -0.00122f
+C1097 in_123 in_124 0.0435f
+C1098 in_242 vdd 0
+C1099 out_105 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1100 out_92 out_91 0.12741f
+C1101 in_231 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1102 out_111 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1103 in_217 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1104 out_185 in_185 0.01569f
+C1105 wrom2_pinv_dec_3_9/w_692_n79# out_169 -0.02056f
+C1106 out_246 in_247 0.01793f
+C1107 out_213 out_214 0.12741f
+C1108 out_47 out_46 0.12741f
+C1109 out_249 out_248 0.12741f
+C1110 out_164 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1111 in_98 out_98 0.01569f
+C1112 wrom2_pinv_dec_3_9/w_692_n79# out_227 -0.02056f
+C1113 out_123 in_123 0.01569f
+C1114 out_18 out_19 0.12741f
+C1115 out_76 vdd 0.0396f
+C1116 in_232 out_232 0.01569f
+C1117 out_185 out_186 0.12741f
+C1118 wrom2_pinv_dec_3_9/w_692_n79# out_11 -0.02056f
+C1119 out_57 vdd 0.0396f
+C1120 wrom2_pinv_dec_3_9/w_692_n79# in_230 -0.00122f
+C1121 wrom2_pinv_dec_3_9/w_692_n79# out_228 -0.02056f
+C1122 in_43 out_43 0.01569f
+C1123 out_237 out_238 0.12741f
+C1124 in_198 out_197 0.01793f
+C1125 in_99 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1126 wrom2_pinv_dec_3_9/w_692_n79# in_118 -0.00122f
+C1127 in_107 vdd 0
+C1128 in_95 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1129 in_45 in_46 0.0435f
+C1130 out_249 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1131 in_233 out_232 0.01793f
+C1132 in_229 in_230 0.0435f
+C1133 in_197 out_196 0.01793f
+C1134 vdd out_114 0.0396f
+C1135 in_229 out_228 0.01793f
+C1136 in_41 in_40 0.0435f
+C1137 vdd in_246 0
+C1138 out_191 in_191 0.01569f
+C1139 out_88 in_89 0.01793f
+C1140 in_171 out_170 0.01793f
+C1141 wrom2_pinv_dec_3_9/w_692_n79# in_137 -0.00122f
+C1142 out_120 vdd 0.0396f
+C1143 out_84 out_83 0.12741f
+C1144 out_223 out_224 0.12741f
+C1145 in_131 out_131 0.01569f
+C1146 vdd in_216 0
+C1147 out_65 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1148 out_12 vdd 0.0396f
+C1149 out_244 vdd 0.0396f
+C1150 vdd out_101 0.0396f
+C1151 out_163 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1152 out_132 in_132 0.01569f
+C1153 out_93 vdd 0.0396f
+C1154 out_52 in_52 0.01569f
+C1155 out_27 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1156 wrom2_pinv_dec_3_9/w_692_n79# in_13 -0.00122f
+C1157 in_251 in_252 0.0435f
+C1158 wrom2_pinv_dec_3_9/w_692_n79# out_213 -0.02056f
+C1159 in_53 out_53 0.01569f
+C1160 in_213 out_213 0.01569f
+C1161 in_214 in_215 0.0435f
+C1162 in_130 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1163 out_22 in_22 0.01569f
+C1164 out_107 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1165 out_92 vdd 0.0396f
+C1166 in_66 out_66 0.01569f
+C1167 in_113 in_114 0.0435f
+C1168 wrom2_pinv_dec_3_9/w_692_n79# out_214 -0.02056f
+C1169 out_118 vdd 0.0396f
+C1170 out_88 vdd 0.0396f
+C1171 out_52 vdd 0.0396f
+C1172 out_43 out_44 0.12741f
+C1173 in_6 in_5 0.0435f
+C1174 wrom2_pinv_dec_3_9/w_692_n79# in_166 -0.00122f
+C1175 out_102 out_103 0.12741f
+C1176 in_102 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1177 wrom2_pinv_dec_3_9/w_692_n79# in_226 -0.00122f
+C1178 out_194 vdd 0.0396f
+C1179 in_144 vdd 0
+C1180 out_66 out_67 0.12741f
+C1181 out_31 in_32 0.01793f
+C1182 out_250 in_250 0.01569f
+C1183 out_201 in_202 0.01793f
+C1184 in_156 out_155 0.01793f
+C1185 in_54 out_54 0.01569f
+C1186 in_160 in_161 0.0435f
+C1187 in_224 vdd 0
+C1188 out_190 in_191 0.01793f
+C1189 wrom2_pinv_dec_3_9/w_692_n79# out_248 -0.02056f
+C1190 in_73 out_73 0.01569f
+C1191 in_64 out_64 0.01569f
+C1192 in_116 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1193 wrom2_pinv_dec_3_9/w_692_n79# in_253 -0.00122f
+C1194 in_254 in_253 0.0435f
+C1195 wrom2_pinv_dec_3_9/w_692_n79# out_100 -0.02056f
+C1196 out_127 out_128 0.12741f
+C1197 in_188 vdd 0
+C1198 out_161 out_160 0.12741f
+C1199 out_155 out_154 0.12741f
+C1200 out_155 vdd 0.0396f
+C1201 wrom2_pinv_dec_3_9/w_692_n79# out_144 -0.02056f
+C1202 out_205 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1203 in_88 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1204 out_9 in_9 0.01569f
+C1205 out_121 vdd 0.0396f
+C1206 out_49 in_49 0.01569f
+C1207 in_254 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1208 wrom2_pinv_dec_3_9/w_692_n79# in_21 -0.00122f
+C1209 in_135 out_135 0.01569f
+C1210 out_233 in_234 0.01793f
+C1211 in_227 in_228 0.0435f
+C1212 in_218 vdd 0
+C1213 in_87 vdd 0
+C1214 wrom2_pinv_dec_3_9/w_692_n79# in_213 -0.00122f
+C1215 in_199 vdd 0
+C1216 in_190 in_191 0.0435f
+C1217 out_129 in_129 0.01569f
+C1218 wrom2_pinv_dec_3_9/w_692_n79# in_229 -0.00122f
+C1219 in_142 out_141 0.01793f
+C1220 out_191 vdd 0.0396f
+C1221 wrom2_pinv_dec_3_9/w_692_n79# in_80 -0.00122f
+C1222 in_55 vdd 0
+C1223 out_222 vdd 0.0396f
+C1224 out_43 vdd 0.0396f
+C1225 wrom2_pinv_dec_3_9/w_692_n79# in_244 -0.00122f
+C1226 out_220 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1227 out_105 in_105 0.01569f
+C1228 in_171 in_170 0.0435f
+C1229 in_49 in_48 0.0435f
+C1230 vdd in_46 0
+C1231 out_234 in_235 0.01793f
+C1232 in_151 out_151 0.01569f
+C1233 in_23 in_22 0.0435f
+C1234 vdd out_226 0.0396f
+C1235 wrom2_pinv_dec_3_9/w_692_n79# in_141 -0.00122f
+C1236 out_26 in_26 0.01569f
+C1237 vdd in_32 0
+C1238 out_52 out_53 0.12741f
+C1239 in_49 in_50 0.0435f
+C1240 in_38 vdd 0
+C1241 vdd in_221 0
+C1242 in_194 out_193 0.01793f
+C1243 in_192 in_191 0.0435f
+C1244 out_41 out_40 0.12741f
+C1245 out_247 vdd 0.0396f
+C1246 in_89 out_89 0.01569f
+C1247 out_169 out_168 0.12741f
+C1248 wrom2_pinv_dec_3_9/w_692_n79# out_33 -0.02056f
+C1249 in_147 out_147 0.01569f
+C1250 in_134 in_133 0.0435f
+C1251 in_50 in_51 0.0435f
+C1252 vdd out_35 0.0396f
+C1253 out_142 out_143 0.12741f
+C1254 in_19 vdd 0
+C1255 in_240 vdd 0
+C1256 out_126 vdd 0.0396f
+C1257 in_237 in_236 0.0435f
+C1258 in_236 in_235 0.0435f
+C1259 wrom2_pinv_dec_3_9/w_692_n79# out_140 -0.02056f
+C1260 out_236 out_235 0.12741f
+C1261 in_216 out_215 0.01793f
+C1262 out_132 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1263 wrom2_pinv_dec_3_9/w_692_n79# in_195 -0.00122f
+C1264 out_190 vdd 0.0396f
+C1265 in_245 out_245 0.01569f
+C1266 in_149 out_148 0.01793f
+C1267 out_89 vdd 0.0396f
+C1268 in_109 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1269 out_212 vdd 0.0396f
+C1270 out_149 vdd 0.0396f
+C1271 out_138 in_139 0.01793f
+C1272 out_127 vdd 0.0396f
+C1273 out_38 in_39 0.01793f
+C1274 in_247 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1275 out_139 vdd 0.0396f
+C1276 in_153 in_152 0.0435f
+C1277 in_100 vdd 0
+C1278 in_178 in_179 0.0435f
+C1279 in_141 out_140 0.01793f
+C1280 in_113 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1281 in_223 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1282 out_177 vdd 0.0396f
+C1283 wrom2_pinv_dec_3_9/w_692_n79# in_35 -0.00122f
+C1284 out_179 in_179 0.01569f
+C1285 in_169 out_169 0.01569f
+C1286 in_204 out_203 0.01793f
+C1287 in_190 vdd 0
+C1288 in_5 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1289 out_176 out_175 0.12741f
+C1290 in_249 in_250 0.0435f
+C1291 in_201 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1292 in_17 out_16 0.01793f
+C1293 in_237 vdd 0
+C1294 out_216 out_217 0.12741f
+C1295 in_198 out_198 0.01569f
+C1296 out_192 out_191 0.12741f
+C1297 in_173 out_173 0.01569f
+C1298 in_235 vdd 0
+C1299 out_60 out_59 0.12741f
+C1300 out_48 vdd 0.0396f
+C1301 in_12 out_12 0.01569f
+C1302 in_152 vdd 0
+C1303 out_172 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1304 out_153 in_154 0.01793f
+C1305 out_251 out_250 0.12741f
+C1306 out_173 out_174 0.12741f
+C1307 in_26 out_25 0.01793f
+C1308 out_143 in_143 0.01569f
+C1309 wrom2_pinv_dec_3_9/w_692_n79# in_123 -0.00122f
+C1310 out_116 out_115 0.12741f
+C1311 in_68 out_67 0.01793f
+C1312 out_158 out_157 0.12741f
+C1313 out_104 out_103 0.12741f
+C1314 out_68 out_67 0.12741f
+C1315 in_239 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1316 in_91 in_90 0.0435f
+C1317 in_234 in_233 0.0435f
+C1318 in_192 vdd 0
+C1319 in_205 vdd 0
+C1320 wrom2_pinv_dec_3_9/w_692_n79# in_162 -0.00122f
+C1321 in_148 out_148 0.01569f
+C1322 out_81 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1323 in_38 out_37 0.01793f
+C1324 in_231 out_231 0.01569f
+C1325 in_47 in_46 0.0435f
+C1326 vdd out_147 0.0396f
+C1327 in_103 out_103 0.01569f
+C1328 wrom2_pinv_dec_3_9/w_692_n79# out_238 -0.02056f
+C1329 out_176 in_176 0.01569f
+C1330 wrom2_pinv_dec_3_9/w_692_n79# in_105 -0.00122f
+C1331 in_167 vdd 0
+C1332 out_96 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1333 out_70 vdd 0.0396f
+C1334 out_252 in_253 0.01793f
+C1335 wrom2_pinv_dec_3_9/w_692_n79# out_241 -0.02056f
+C1336 in_203 out_203 0.01569f
+C1337 in_156 out_156 0.01569f
+C1338 wrom2_pinv_dec_3_9/w_692_n79# out_168 -0.02056f
+C1339 out_211 out_212 0.12741f
+C1340 in_23 in_24 0.0435f
+C1341 out_110 in_111 0.01793f
+C1342 out_86 in_87 0.01793f
+C1343 in_138 in_139 0.0435f
+C1344 in_115 out_114 0.01793f
+C1345 in_78 in_77 0.0435f
+C1346 out_34 in_34 0.01569f
+C1347 wrom2_pinv_dec_3_9/w_692_n79# in_187 -0.00122f
+C1348 vdd out_141 0.0396f
+C1349 in_78 out_77 0.01793f
+C1350 wrom2_pinv_dec_3_9/w_692_n79# out_252 -0.02056f
+C1351 out_184 in_184 0.01569f
+C1352 out_91 in_92 0.01793f
+C1353 out_253 vdd 0.0396f
+C1354 wrom2_pinv_dec_3_9/w_692_n79# in_33 -0.00122f
+C1355 in_210 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1356 in_202 in_203 0.0435f
+C1357 out_171 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1358 in_156 in_155 0.0435f
+C1359 in_13 out_13 0.01569f
+C1360 out_156 vdd 0.0396f
+C1361 in_122 out_122 0.01569f
+C1362 out_54 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1363 out_9 vdd 0.0396f
+C1364 in_251 in_250 0.0435f
+C1365 in_163 out_162 0.01793f
+C1366 wrom2_pinv_dec_3_9/w_692_n79# in_161 -0.00122f
+C1367 out_225 vdd 0.0396f
+C1368 out_78 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1369 wrom2_pinv_dec_3_9/w_692_n79# out_224 -0.02056f
+C1370 vdd out_103 0.0396f
+C1371 out_154 in_155 0.01793f
+C1372 vdd in_155 0
+C1373 in_77 out_76 0.01793f
+C1374 out_76 out_77 0.12741f
+C1375 out_117 in_118 0.01793f
+C1376 in_169 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1377 in_186 in_185 0.0435f
+C1378 out_175 in_176 0.01793f
+C1379 out_173 vdd 0.0396f
+C1380 in_70 vdd 0
+C1381 in_108 out_108 0.01569f
+C1382 in_165 vdd 0
+C1383 out_134 vdd 0.0396f
+C1384 in_106 vdd 0
+C1385 out_109 out_108 0.12741f
+C1386 out_33 in_33 0.01569f
+C1387 out_206 vdd 0.0396f
+C1388 out_204 in_205 0.01793f
+C1389 in_194 vdd 0
+C1390 in_192 out_192 0.01569f
+C1391 in_174 out_173 0.01793f
+C1392 wrom2_pinv_dec_3_9/w_692_n79# out_187 -0.02056f
+C1393 wrom2_pinv_dec_3_9/w_692_n79# in_177 -0.00122f
+C1394 out_62 vdd 0.0396f
+C1395 out_240 vdd 0.0396f
+C1396 out_186 in_186 0.01569f
+C1397 in_150 in_151 0.0435f
+C1398 out_138 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1399 in_102 out_102 0.01569f
+C1400 out_58 in_58 0.01569f
+C1401 in_175 out_174 0.01793f
+C1402 in_136 in_137 0.0435f
+C1403 in_178 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1404 out_136 out_135 0.12741f
+C1405 wrom2_pinv_dec_3_9/w_692_n79# in_121 -0.00122f
+C1406 out_99 vdd 0.0396f
+C1407 in_92 vdd 0
+C1408 in_104 out_103 0.01793f
+C1409 out_0 in_0 0.01569f
+C1410 out_152 out_151 0.12741f
+C1411 out_48 out_49 0.12741f
+C1412 wrom2_pinv_dec_3_9/w_692_n79# out_13 -0.02056f
+C1413 out_223 vdd 0.0396f
+C1414 out_179 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1415 in_45 in_44 0.0435f
+C1416 in_144 out_143 0.01793f
+C1417 in_137 in_138 0.0435f
+C1418 out_106 in_107 0.01793f
+C1419 out_38 vdd 0.0396f
+C1420 in_245 in_246 0.0435f
+C1421 wrom2_pinv_dec_3_9/w_692_n79# out_231 -0.02056f
+C1422 in_43 in_44 0.0435f
+C1423 in_62 out_62 0.01569f
+C1424 in_112 out_111 0.01793f
+C1425 in_72 in_71 0.0435f
+C1426 in_63 vdd 0
+C1427 out_71 out_72 0.12741f
+C1428 out_93 in_93 0.01569f
+C1429 out_39 in_40 0.01793f
+C1430 in_245 out_244 0.01793f
+C1431 out_8 out_7 0.12741f
+C1432 in_249 in_248 0.0435f
+C1433 in_222 out_222 0.01569f
+C1434 in_239 out_238 0.01793f
+C1435 out_166 in_167 0.01793f
+C1436 wrom2_pinv_dec_3_9/w_692_n79# out_125 -0.02056f
+C1437 out_99 out_98 0.12741f
+C1438 out_69 in_69 0.01569f
+C1439 out_15 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1440 out_92 in_93 0.01793f
+C1441 in_91 out_91 0.01569f
+C1442 out_48 in_48 0.01569f
+C1443 wrom2_pinv_dec_3_9/w_692_n79# out_102 -0.02056f
+C1444 out_23 in_24 0.01793f
+C1445 in_137 out_137 0.01569f
+C1446 vdd in_124 0
+C1447 out_31 out_30 0.12741f
+C1448 out_94 in_94 0.01569f
+C1449 out_68 in_69 0.01793f
+C1450 in_68 in_69 0.0435f
+C1451 out_237 vdd 0.0396f
+C1452 out_116 in_116 0.01569f
+C1453 out_47 out_48 0.12741f
+C1454 in_222 in_221 0.0435f
+C1455 out_156 in_157 0.01793f
+C1456 in_63 in_62 0.0435f
+C1457 in_110 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1458 in_198 in_197 0.0435f
+C1459 out_24 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1460 out_172 out_171 0.12741f
+C1461 wrom2_pinv_dec_3_9/w_692_n79# out_117 -0.02056f
+C1462 in_160 vdd 0
+C1463 out_146 out_147 0.12741f
+C1464 in_44 out_44 0.01569f
+C1465 out_28 vdd 0.0396f
+C1466 in_1 vdd 0
+C1467 out_123 vdd 0.0396f
+C1468 in_76 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1469 in_11 out_11 0.01569f
+C1470 in_145 out_145 0.01569f
+C1471 wrom2_pinv_dec_3_9/w_692_n79# in_81 -0.00122f
+C1472 in_127 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1473 in_17 vdd 0
+C1474 out_159 vdd 0.0396f
+C1475 wrom2_pinv_dec_3_9/w_692_n79# out_150 -0.02056f
+C1476 out_116 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1477 wrom2_pinv_dec_3_9/w_692_n79# in_90 -0.00122f
+C1478 in_54 vdd 0
+C1479 in_148 in_149 0.0435f
+C1480 vdd in_220 0
+C1481 in_215 in_216 0.0435f
+C1482 in_167 in_168 0.0435f
+C1483 in_192 in_193 0.0435f
+C1484 in_184 vdd 0
+C1485 in_136 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1486 in_81 in_80 0.0435f
+C1487 out_119 in_119 0.01569f
+C1488 vdd out_85 0.0396f
+C1489 out_105 out_104 0.12741f
+C1490 wrom2_pinv_dec_3_9/w_692_n79# out_56 -0.02056f
+C1491 in_40 out_40 0.01569f
+C1492 in_162 in_161 0.0435f
+C1493 wrom2_pinv_dec_3_9/w_692_n79# out_16 -0.02056f
+C1494 out_246 vdd 0.0396f
+C1495 out_207 in_208 0.01793f
+C1496 in_124 in_125 0.0435f
+C1497 wrom2_pinv_dec_3_9/w_692_n79# in_9 -0.00122f
+C1498 wrom2_pinv_dec_3_9/w_692_n79# in_138 -0.00122f
+C1499 out_63 vdd 0.03808f
+C1500 wrom2_pinv_dec_3_9/w_692_n79# out_51 -0.02056f
+C1501 in_16 in_17 0.0435f
+C1502 in_67 vdd 0
+C1503 wrom2_pinv_dec_3_9/w_692_n79# out_193 -0.02056f
+C1504 in_175 vdd 0
+C1505 out_115 vdd 0.0396f
+C1506 in_59 out_58 0.01793f
+C1507 in_91 vdd 0
+C1508 in_74 vdd 0
+C1509 out_45 out_46 0.12741f
+C1510 out_251 in_251 0.01569f
+C1511 in_174 in_175 0.0435f
+C1512 in_203 in_204 0.0435f
+C1513 wrom2_pinv_dec_3_9/w_692_n79# out_188 -0.02056f
+C1514 out_218 vdd 0.0396f
+C1515 out_38 out_37 0.12741f
+C1516 wrom2_pinv_dec_3_9/w_692_n79# in_39 -0.00122f
+C1517 out_30 vdd 0.0396f
+C1518 out_32 in_32 0.01569f
+C1519 in_4 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1520 wrom2_pinv_dec_3_9/w_692_n79# out_137 -0.02056f
+C1521 vdd in_86 0
+C1522 out_58 out_59 0.12741f
+C1523 in_109 in_110 0.0435f
+C1524 in_19 in_20 0.0435f
+C1525 in_142 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1526 in_19 out_19 0.01569f
+C1527 wrom2_pinv_dec_3_9/w_692_n79# out_195 -0.02056f
+C1528 vdd in_139 0
+C1529 out_112 out_111 0.12741f
+C1530 out_177 out_178 0.12741f
+C1531 in_149 in_150 0.0435f
+C1532 in_44 vdd 0
+C1533 in_179 vdd 0
+C1534 out_109 out_110 0.12741f
+C1535 in_169 out_168 0.01793f
+C1536 in_243 vdd 0
+C1537 in_129 in_128 0.0435f
+C1538 out_87 vdd 0.0396f
+C1539 out_74 out_75 0.12741f
+C1540 in_196 out_196 0.01569f
+C1541 in_112 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1542 in_218 out_217 0.01793f
+C1543 in_6 vdd 0
+C1544 out_184 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1545 in_180 in_179 0.0435f
+C1546 in_114 vdd 0
+C1547 out_119 in_120 0.01793f
+C1548 wrom2_pinv_dec_3_9/w_692_n79# out_2 -0.02056f
+C1549 wrom2_pinv_dec_3_9/w_692_n79# out_72 -0.02056f
+C1550 in_242 in_241 0.0435f
+C1551 out_199 vdd 0.0396f
+C1552 in_54 out_53 0.01793f
+C1553 in_29 vdd 0
+C1554 out_219 in_220 0.01793f
+C1555 in_142 in_141 0.0435f
+C1556 out_130 vdd 0.0396f
+C1557 out_71 vdd 0.0396f
+C1558 in_225 in_224 0.0435f
+C1559 in_132 vdd 0
+C1560 in_187 out_187 0.01569f
+C1561 out_105 vdd 0.0396f
+C1562 wrom2_pinv_dec_3_9/w_692_n79# in_11 -0.00122f
+C1563 out_200 out_199 0.12741f
+C1564 out_17 out_18 0.12741f
+C1565 in_231 vdd 0
+C1566 in_217 vdd 0
+C1567 in_199 out_198 0.01793f
+C1568 out_111 vdd 0.0396f
+C1569 out_169 vdd 0.0396f
+C1570 wrom2_pinv_dec_3_9/w_692_n79# in_45 -0.00122f
+C1571 in_193 in_194 0.0435f
+C1572 out_167 in_167 0.01569f
+C1573 out_221 out_222 0.12741f
+C1574 out_164 vdd 0.0396f
+C1575 wrom2_pinv_dec_3_9/w_692_n79# in_43 -0.00122f
+C1576 wrom2_pinv_dec_3_9/w_692_n79# out_208 -0.02056f
+C1577 in_173 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1578 out_227 vdd 0.0396f
+C1579 out_161 out_162 0.12741f
+C1580 in_97 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1581 out_43 out_42 0.12741f
+C1582 in_36 out_36 0.01569f
+C1583 in_189 in_188 0.0435f
+C1584 in_102 in_103 0.0435f
+C1585 out_55 in_56 0.01793f
+C1586 out_11 vdd 0.0396f
+C1587 wrom2_pinv_dec_3_9/w_692_n79# out_174 -0.02056f
+C1588 wrom2_pinv_dec_3_9/w_692_n79# in_147 -0.00122f
+C1589 out_134 out_133 0.12741f
+C1590 in_28 out_28 0.01569f
+C1591 out_254 out_255 0.12741f
+C1592 in_207 in_208 0.0435f
+C1593 wrom2_pinv_dec_3_9/w_692_n79# out_181 -0.02056f
+C1594 vdd in_230 0
+C1595 out_228 vdd 0.0396f
+C1596 in_195 out_195 0.01569f
+C1597 wrom2_pinv_dec_3_9/w_692_n79# in_191 -0.00122f
+C1598 out_128 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1599 in_99 vdd 0
+C1600 in_60 in_59 0.0435f
+C1601 out_218 out_219 0.12741f
+C1602 out_221 in_221 0.01569f
+C1603 vdd in_118 0
+C1604 in_95 vdd 0
+C1605 out_249 vdd 0.0396f
+C1606 out_81 in_81 0.01569f
+C1607 in_196 in_197 0.0435f
+C1608 out_234 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1609 out_104 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1610 in_137 vdd 0
+C1611 out_21 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1612 out_21 in_21 0.01569f
+C1613 out_65 vdd 0.0396f
+C1614 in_60 out_59 0.01793f
+C1615 out_31 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1616 in_4 in_5 0.0435f
+C1617 in_240 out_239 0.01793f
+C1618 out_163 vdd 0.0396f
+C1619 wrom2_pinv_dec_3_9/w_692_n79# out_91 -0.02056f
+C1620 wrom2_pinv_dec_3_9/w_692_n79# out_44 -0.02056f
+C1621 in_13 vdd 0
+C1622 out_153 out_152 0.12741f
+C1623 in_108 in_107 0.0435f
+C1624 out_27 vdd 0.0396f
+C1625 out_213 vdd 0.0396f
+C1626 in_99 out_98 0.01793f
+C1627 in_113 in_112 0.0435f
+C1628 wrom2_pinv_dec_3_9/w_692_n79# in_103 -0.00122f
+C1629 out_74 out_73 0.12741f
+C1630 in_14 in_13 0.0435f
+C1631 in_130 vdd 0
+C1632 out_107 vdd 0.0396f
+C1633 in_178 in_177 0.0435f
+C1634 out_130 out_131 0.12741f
+C1635 in_236 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1636 out_134 in_135 0.01793f
+C1637 in_75 in_74 0.0435f
+C1638 in_41 out_40 0.01793f
+C1639 in_254 in_255 0.0435f
+C1640 vdd out_214 0.0396f
+C1641 in_132 out_131 0.01793f
+C1642 wrom2_pinv_dec_3_9/w_692_n79# in_255 -0.00305f
+C1643 out_57 out_58 0.12741f
+C1644 out_27 in_27 0.01569f
+C1645 in_166 vdd 0
+C1646 out_86 out_85 0.12741f
+C1647 vdd in_226 0
+C1648 out_112 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1649 in_102 vdd 0
+C1650 in_88 in_89 0.0435f
+C1651 out_50 in_51 0.01793f
+C1652 wrom2_pinv_dec_3_9/w_692_n79# in_61 -0.00122f
+C1653 in_153 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1654 in_89 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1655 in_6 in_7 0.0435f
+C1656 in_235 out_235 0.01569f
+C1657 out_114 out_113 0.12741f
+C1658 wrom2_pinv_dec_3_9/w_692_n79# out_182 -0.02056f
+C1659 wrom2_pinv_dec_3_9/w_692_n79# in_156 -0.00122f
+C1660 in_95 out_95 0.01569f
+C1661 out_248 vdd 0.0396f
+C1662 in_116 vdd 0
+C1663 in_253 vdd 0
+C1664 out_100 vdd 0.0396f
+C1665 in_58 in_57 0.0435f
+C1666 in_3 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1667 in_52 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1668 in_37 out_36 0.01793f
+C1669 wrom2_pinv_dec_3_9/w_692_n79# out_202 -0.02056f
+C1670 vdd out_144 0.0396f
+C1671 out_209 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1672 out_205 vdd 0.0396f
+C1673 in_88 vdd 0
+C1674 out_86 in_86 0.01569f
+C1675 in_209 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1676 in_28 in_29 0.0435f
+C1677 out_247 in_248 0.01793f
+C1678 out_5 out_6 0.12741f
+C1679 in_254 vdd 0
+C1680 wrom2_pinv_dec_3_9/w_692_n79# out_154 -0.02056f
+C1681 in_37 in_36 0.0435f
+C1682 vdd in_21 0
+C1683 wrom2_pinv_dec_3_9/w_692_n79# vdd -1.29137f
+C1684 in_213 vdd 0
+C1685 in_14 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1686 in_173 out_172 0.01793f
+C1687 in_229 vdd 0
+C1688 out_200 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1689 in_174 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1690 out_86 out_87 0.12741f
+C1691 in_80 vdd 0
+C1692 in_189 in_190 0.0435f
+C1693 in_180 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1694 wrom2_pinv_dec_3_9/w_692_n79# in_27 -0.00122f
+C1695 vdd in_244 0
+C1696 out_220 vdd 0.0396f
+C1697 in_16 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1698 wrom2_pinv_dec_3_9/w_692_n79# out_98 -0.02056f
+C1699 wrom2_pinv_dec_3_9/w_692_n79# in_62 -0.00122f
+C1700 in_141 vdd 0
+C1701 out_139 in_140 0.01793f
+C1702 out_129 out_130 0.12741f
+C1703 out_106 in_106 0.01569f
+C1704 in_165 in_164 0.0435f
+C1705 out_138 in_138 0.01569f
+C1706 in_30 out_30 0.01569f
+C1707 wrom2_pinv_dec_3_9/w_692_n79# in_104 -0.00122f
+C1708 in_42 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1709 out_96 in_97 0.01793f
+C1710 out_33 vdd 0.0396f
+C1711 in_240 in_241 0.0435f
+C1712 out_119 out_120 0.12741f
+C1713 in_113 out_112 0.01793f
+C1714 in_93 in_92 0.0435f
+C1715 in_252 in_253 0.0435f
+C1716 wrom2_pinv_dec_3_9/w_692_n79# in_125 -0.00122f
+C1717 out_93 in_94 0.01793f
+C1718 out_229 out_230 0.12741f
+C1719 out_188 out_187 0.12741f
+C1720 in_146 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1721 out_140 vdd 0.0396f
+C1722 in_84 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1723 in_227 out_226 0.01793f
+C1724 out_132 vdd 0.0396f
+C1725 in_74 in_73 0.0435f
+C1726 out_138 out_137 0.12741f
+C1727 wrom2_pinv_dec_3_9/w_692_n79# out_95 -0.02056f
+C1728 out_27 in_28 0.01793f
+C1729 wrom2_pinv_dec_3_9/w_692_n79# in_252 -0.00122f
+C1730 in_85 out_85 0.01569f
+C1731 in_195 vdd 0
+C1732 out_104 in_105 0.01793f
+C1733 out_115 in_115 0.01569f
+C1734 in_109 vdd 0
+C1735 in_206 in_207 0.0435f
+C1736 in_120 in_119 0.0435f
+C1737 out_15 out_16 0.12741f
+C1738 out_243 out_242 0.12741f
+C1739 out_166 in_166 0.01569f
+C1740 in_160 in_159 0.0435f
+C1741 wrom2_pinv_dec_3_9/w_692_n79# out_131 -0.02056f
+C1742 out_119 out_118 0.12741f
+C1743 out_116 out_117 0.12741f
+C1744 in_30 in_29 0.0435f
+C1745 out_190 out_189 0.12741f
+C1746 out_127 in_128 0.01793f
+C1747 in_247 vdd 0
+C1748 out_214 out_215 0.12741f
+C1749 wrom2_pinv_dec_3_9/w_692_n79# out_219 -0.02056f
+C1750 out_159 in_159 0.01569f
+C1751 wrom2_pinv_dec_3_9/w_692_n79# out_53 -0.02056f
+C1752 in_55 out_55 0.01569f
+C1753 out_11 in_12 0.01793f
+C1754 out_204 out_205 0.12741f
+C1755 in_113 vdd 0
+C1756 out_149 out_148 0.12741f
+C1757 in_101 out_101 0.01569f
+C1758 in_223 vdd 0
+C1759 wrom2_pinv_dec_3_9/w_692_n79# out_211 -0.02056f
+C1760 in_59 in_58 0.0435f
+C1761 vdd in_35 0
+C1762 out_79 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1763 out_204 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1764 in_171 in_172 0.0435f
+C1765 out_225 in_225 0.01569f
+C1766 out_192 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1767 in_5 vdd 0
+C1768 out_90 out_89 0.12741f
+C1769 out_37 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1770 in_85 in_86 0.0435f
+C1771 out_220 out_219 0.12741f
+C1772 in_201 vdd 0
+C1773 out_79 in_80 0.01793f
+C1774 wrom2_pinv_dec_3_9/w_692_n79# in_157 -0.00122f
+C1775 out_69 out_68 0.12741f
+C1776 out_240 out_239 0.12741f
+C1777 out_129 in_130 0.01793f
+C1778 in_47 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1779 out_200 in_201 0.01793f
+C1780 in_190 out_189 0.01793f
+C1781 out_172 vdd 0.0396f
+C1782 in_68 out_68 0.01569f
+C1783 wrom2_pinv_dec_3_9/w_692_n79# in_7 -0.00122f
+C1784 in_115 in_114 0.0435f
+C1785 out_7 out_6 0.12741f
+C1786 out_178 in_179 0.01793f
+C1787 wrom2_pinv_dec_3_9/w_692_n79# out_166 -0.02056f
+C1788 in_123 vdd 0
+C1789 out_18 in_18 0.01569f
+C1790 in_13 in_12 0.0435f
+C1791 in_239 vdd 0
+C1792 in_98 out_97 0.01793f
+C1793 out_122 out_121 0.12741f
+C1794 in_15 out_14 0.01793f
+C1795 in_162 vdd 0
+C1796 in_28 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1797 in_158 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1798 in_75 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1799 out_65 in_65 0.01569f
+C1800 wrom2_pinv_dec_3_9/w_692_n79# out_215 -0.02056f
+C1801 out_45 in_46 0.01793f
+C1802 in_154 in_155 0.0435f
+C1803 out_132 out_131 0.12741f
+C1804 out_81 vdd 0.0396f
+C1805 wrom2_pinv_dec_3_9/w_692_n79# out_49 -0.02056f
+C1806 in_8 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1807 wrom2_pinv_dec_3_9/w_692_n79# in_25 -0.00122f
+C1808 vdd out_238 0.0396f
+C1809 in_105 vdd 0
+C1810 in_56 in_57 0.0435f
+C1811 out_96 vdd 0.0396f
+C1812 wrom2_pinv_dec_3_9/w_692_n79# out_4 -0.02056f
+C1813 out_183 in_184 0.01793f
+C1814 out_146 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1815 out_17 in_18 0.01793f
+C1816 vdd out_241 0.0396f
+C1817 out_148 out_147 0.12741f
+C1818 out_168 vdd 0.0396f
+C1819 wrom2_pinv_dec_3_9/w_692_n79# in_168 -0.00122f
+C1820 out_137 in_138 0.01793f
+C1821 out_86 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1822 out_129 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1823 wrom2_pinv_dec_3_9/w_692_n79# in_48 -0.00122f
+C1824 out_252 vdd 0.0396f
+C1825 in_187 vdd 0
+C1826 in_152 in_151 0.0435f
+C1827 in_210 out_209 0.01793f
+C1828 out_47 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1829 in_218 in_219 0.0435f
+C1830 in_210 in_209 0.0435f
+C1831 wrom2_pinv_dec_3_9/w_692_n79# in_50 -0.00122f
+C1832 out_177 out_176 0.12741f
+C1833 vdd in_33 0
+C1834 in_210 vdd 0
+C1835 out_171 vdd 0.0396f
+C1836 out_169 out_170 0.12741f
+C1837 out_54 vdd 0.0396f
+C1838 in_31 in_32 0.0435f
+C1839 in_251 out_250 0.01793f
+C1840 in_193 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1841 wrom2_pinv_dec_3_9/w_692_n79# in_12 -0.00122f
+C1842 in_105 in_104 0.0435f
+C1843 in_67 in_66 0.0435f
+C1844 in_144 in_145 0.0435f
+C1845 in_122 out_121 0.01793f
+C1846 vdd in_161 0
+C1847 out_41 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1848 out_165 in_165 0.01569f
+C1849 out_78 vdd 0.0396f
+C1850 out_8 out_9 0.12741f
+C1851 vdd out_224 0.0396f
+C1852 wrom2_pinv_dec_3_9/w_692_n79# out_197 -0.02056f
+C1853 out_218 out_217 0.12741f
+C1854 in_65 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1855 in_67 out_67 0.01569f
+C1856 wrom2_pinv_dec_3_9/w_692_n79# out_133 -0.02056f
+C1857 out_76 out_75 0.12741f
+C1858 in_169 vdd 0
+C1859 in_30 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1860 out_96 out_95 0.12741f
+C1861 in_59 out_59 0.01569f
+C1862 out_105 out_106 0.12741f
+C1863 in_103 out_102 0.01793f
+C1864 wrom2_pinv_dec_3_9/w_692_n79# in_182 -0.00122f
+C1865 out_20 in_21 0.01793f
+C1866 wrom2_pinv_dec_3_9/w_692_n79# out_20 -0.02056f
+C1867 out_240 in_241 0.01793f
+C1868 in_152 out_151 0.01793f
+C1869 out_57 in_57 0.01569f
+C1870 in_177 vdd 0
+C1871 vdd out_187 0.0396f
+C1872 out_249 in_250 0.01793f
+C1873 in_212 out_212 0.01569f
+C1874 out_111 in_111 0.01569f
+C1875 out_57 in_58 0.01793f
+C1876 out_164 in_164 0.01569f
+C1877 out_138 vdd 0.0396f
+C1878 in_115 in_116 0.0435f
+C1879 out_26 out_27 0.12741f
+C1880 out_252 in_252 0.01569f
+C1881 in_242 out_242 0.01569f
+C1882 out_93 out_94 0.12741f
+C1883 in_1 out_1 0.01569f
+C1884 wrom2_pinv_dec_3_9/w_692_n79# in_181 -0.00122f
+C1885 in_178 vdd 0
+C1886 vdd in_121 0
+C1887 in_100 in_101 0.0435f
+C1888 wrom2_pinv_dec_3_9/w_692_n79# in_73 -0.00122f
+C1889 out_179 vdd 0.0396f
+C1890 out_13 vdd 0.0396f
+C1891 wrom2_pinv_dec_3_9/w_692_n79# in_222 -0.00122f
+C1892 in_69 in_70 0.0435f
+C1893 in_5 out_4 0.01793f
+C1894 out_142 in_143 0.01793f
+C1895 in_14 out_13 0.01793f
+C1896 out_231 vdd 0.0396f
+C1897 wrom2_pinv_dec_3_9/w_692_n79# in_135 -0.00122f
+C1898 in_115 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1899 in_217 out_217 0.01569f
+C1900 in_180 out_179 0.01793f
+C1901 out_167 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1902 in_72 out_71 0.01793f
+C1903 out_199 out_198 0.12741f
+C1904 out_149 in_149 0.01569f
+C1905 out_132 out_133 0.12741f
+C1906 out_54 out_53 0.12741f
+C1907 out_125 vdd 0.0396f
+C1908 wrom2_pinv_dec_3_9/w_692_n79# in_85 -0.00122f
+C1909 out_15 vdd 0.0396f
+C1910 in_200 in_199 0.0435f
+C1911 out_178 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1912 out_163 in_164 0.01793f
+C1913 out_102 vdd 0.0396f
+C1914 in_89 in_90 0.0435f
+C1915 out_169 in_170 0.01793f
+C1916 out_143 out_144 0.12741f
+C1917 in_119 out_118 0.01793f
+C1918 out_106 out_107 0.12741f
+C1919 in_110 vdd 0
+C1920 out_78 out_79 0.12741f
+C1921 out_34 out_35 0.12741f
+C1922 wrom2_pinv_dec_3_9/w_692_n79# out_143 -0.02056f
+C1923 out_24 vdd 0.0396f
+C1924 wrom2_pinv_dec_3_9/w_692_n79# out_170 -0.02056f
+C1925 vdd out_117 0.0396f
+C1926 out_39 out_40 0.12741f
+C1927 out_3 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1928 out_15 in_16 0.01793f
+C1929 wrom2_pinv_dec_3_9/w_692_n79# in_159 -0.00122f
+C1930 in_76 vdd 0
+C1931 out_26 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1932 out_0 in_1 0.01793f
+C1933 in_81 vdd 0
+C1934 out_207 in_207 0.01569f
+C1935 in_127 vdd 0
+C1936 out_116 vdd 0.0396f
+C1937 wrom2_pinv_dec_3_9/w_692_n79# in_20 -0.00122f
+C1938 in_20 in_21 0.0435f
+C1939 out_150 vdd 0.0396f
+C1940 in_90 vdd 0
+C1941 in_78 in_79 0.0435f
+C1942 out_77 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1943 in_77 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1944 out_65 in_66 0.01793f
+C1945 out_62 out_61 0.12741f
+C1946 wrom2_pinv_dec_3_9/w_692_n79# out_19 -0.02056f
+C1947 out_18 in_19 0.01793f
+C1948 out_244 out_243 0.12741f
+C1949 in_136 vdd 0
+C1950 wrom2_pinv_dec_3_9/w_692_n79# in_250 -0.00122f
+C1951 in_140 in_139 0.0435f
+C1952 in_52 out_51 0.01793f
+C1953 out_245 in_246 0.01793f
+C1954 out_163 in_163 0.01569f
+C1955 out_56 vdd 0.0396f
+C1956 wrom2_pinv_dec_3_9/w_692_n79# out_32 -0.02056f
+C1957 out_36 out_35 0.12741f
+C1958 out_125 in_125 0.01569f
+C1959 out_168 in_168 0.01569f
+C1960 in_64 in_63 0.0435f
+C1961 vdd out_16 0.0396f
+C1962 out_216 in_216 0.01569f
+C1963 out_120 in_120 0.01569f
+C1964 out_60 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1965 in_9 vdd 0
+C1966 out_244 out_245 0.12741f
+C1967 in_138 vdd 0
+C1968 in_93 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1969 out_51 vdd 0.0396f
+C1970 in_215 out_214 0.01793f
+C1971 in_112 out_112 0.01569f
+C1972 in_36 out_35 0.01793f
+C1973 in_245 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1974 in_206 in_205 0.0435f
+C1975 vdd out_193 0.0396f
+C1976 out_160 in_160 0.01569f
+C1977 in_3 in_4 0.0435f
+C1978 in_223 in_222 0.0435f
+C1979 out_106 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1980 in_231 in_232 0.0435f
+C1981 out_185 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1982 wrom2_pinv_dec_3_9/w_692_n79# in_164 -0.00122f
+C1983 out_134 in_134 0.01569f
+C1984 in_45 out_44 0.01793f
+C1985 out_159 out_160 0.12741f
+C1986 in_205 in_204 0.0435f
+C1987 out_124 in_124 0.01569f
+C1988 out_233 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1989 out_188 vdd 0.0396f
+C1990 wrom2_pinv_dec_3_9/w_692_n79# in_111 -0.00122f
+C1991 in_39 vdd 0
+C1992 in_16 out_16 0.01569f
+C1993 in_211 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C1994 in_4 vdd 0
+C1995 in_245 in_244 0.0435f
+C1996 out_157 out_156 0.12741f
+C1997 out_137 vdd 0.0396f
+C1998 out_183 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C1999 in_142 vdd 0
+C2000 in_126 out_126 0.01569f
+C2001 out_33 out_32 0.12741f
+C2002 vdd out_195 0.0396f
+C2003 in_10 out_10 0.01569f
+C2004 in_1 in_2 0.0435f
+C2005 out_123 out_124 0.12741f
+C2006 in_3 out_2 0.01793f
+C2007 in_169 in_168 0.0435f
+C2008 out_22 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C2009 out_90 in_91 0.01793f
+C2010 wrom2_pinv_dec_3_9/w_692_n79# out_217 -0.02056f
+C2011 in_112 vdd 0
+C2012 in_198 in_199 0.0435f
+C2013 in_183 in_184 0.0435f
+C2014 wrom2_pinv_dec_3_9/w_692_n79# in_66 -0.00122f
+C2015 in_225 in_226 0.0435f
+C2016 in_215 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C2017 out_184 vdd 0.0396f
+C2018 out_63 out_64 0.12741f
+C2019 wrom2_pinv_dec_3_9/w_692_n79# out_235 -0.02056f
+C2020 wrom2_pinv_dec_3_9/w_692_n79# in_163 -0.00122f
+C2021 out_25 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C2022 vdd out_2 0.0396f
+C2023 out_149 in_150 0.01793f
+C2024 in_152 out_152 0.01569f
+C2025 in_72 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
+C2026 out_165 out_164 0.12741f
+C2027 out_72 vdd 0.0396f
+C2028 in_64 out_63 0.01793f
+C2029 out_158 out_159 0.12741f
+C2030 wrom2_pinv_dec_3_9/w_692_n79# out_221 -0.02056f
+C2031 wrom2_pinv_dec_3_9/w_692_n79# out_67 -0.02056f
+C2032 out_239 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
+C2033 wrom2_pinv_dec_3_9/w_692_n79# out_198 -0.02056f
+C2034 wrom2_pinv_dec_3_9/w_692_n79# in_170 -0.00122f
+C2035 wrom2_pinv_dec_3_9/w_692_n79# out_42 -0.02056f
+C2036 in_11 vdd 0
+C2037 out_182 out_181 0.12741f
+C2038 in_148 out_147 0.01793f
+C2039 wrom2_pinv_dec_3_9/w_692_n79# in_83 -0.00122f
+C2040 in_46 out_46 0.01569f
+C2041 out_209 out_208 0.12741f
+C2042 in_45 vdd 0
+C2043 in_209 out_208 0.01793f
+C2044 in_43 vdd 0
+C2045 in_38 in_37 0.0435f
+C2046 out_220 gnd -0.20323f
+C2047 in_220 gnd -0.08178f
+C2048 out_231 gnd -0.20323f
+C2049 in_231 gnd -0.08178f
+C2050 out_242 gnd -0.20323f
+C2051 in_242 gnd -0.0513f
+C2052 out_253 gnd -0.20323f
+C2053 in_253 gnd -0.08178f
+C2054 out_93 gnd -0.20323f
+C2055 in_93 gnd -0.08178f
+C2056 out_82 gnd -0.20323f
+C2057 in_82 gnd -0.08178f
+C2058 out_71 gnd -0.20323f
+C2059 in_71 gnd -0.08178f
+C2060 out_60 gnd -0.20323f
+C2061 in_60 gnd -0.08178f
+C2062 out_230 gnd -0.20323f
+C2063 in_230 gnd -0.08178f
+C2064 out_241 gnd -0.20323f
+C2065 in_241 gnd -0.08178f
+C2066 out_252 gnd -0.20323f
+C2067 in_252 gnd -0.08178f
+C2068 out_92 gnd -0.20323f
+C2069 in_92 gnd -0.08178f
+C2070 out_81 gnd -0.20323f
+C2071 in_81 gnd -0.08178f
+C2072 out_70 gnd -0.20323f
+C2073 in_70 gnd -0.08178f
+C2074 out_240 gnd -0.20323f
+C2075 in_240 gnd -0.08178f
+C2076 out_251 gnd -0.20323f
+C2077 in_251 gnd -0.08178f
+C2078 out_91 gnd -0.20323f
+C2079 in_91 gnd -0.08178f
+C2080 out_80 gnd -0.20323f
+C2081 in_80 gnd -0.08178f
+C2082 out_250 gnd -0.20323f
+C2083 in_250 gnd -0.08178f
+C2084 out_90 gnd -0.20323f
+C2085 in_90 gnd -0.08178f
+C2086 out_109 gnd -0.20323f
+C2087 in_109 gnd -0.08178f
+C2088 out_119 gnd -0.20323f
+C2089 in_119 gnd -0.08178f
+C2090 out_108 gnd -0.20323f
+C2091 in_108 gnd -0.08178f
+C2092 out_129 gnd -0.20323f
+C2093 in_129 gnd -0.08178f
+C2094 out_118 gnd -0.20323f
+C2095 in_118 gnd -0.08178f
+C2096 out_107 gnd -0.20323f
+C2097 in_107 gnd -0.08178f
+C2098 out_139 gnd -0.20323f
+C2099 in_139 gnd -0.08178f
+C2100 out_128 gnd -0.20323f
+C2101 in_128 gnd -0.08178f
+C2102 out_117 gnd -0.20323f
+C2103 in_117 gnd -0.08178f
+C2104 out_106 gnd -0.20323f
+C2105 in_106 gnd -0.08178f
+C2106 out_149 gnd -0.20323f
+C2107 in_149 gnd -0.08178f
+C2108 out_138 gnd -0.20323f
+C2109 in_138 gnd -0.08178f
+C2110 out_127 gnd -0.20323f
+C2111 in_127 gnd -0.08178f
+C2112 out_116 gnd -0.20323f
+C2113 in_116 gnd -0.08178f
+C2114 out_105 gnd -0.20323f
+C2115 in_105 gnd -0.08178f
+C2116 out_159 gnd -0.20323f
+C2117 in_159 gnd -0.08178f
+C2118 out_148 gnd -0.20323f
+C2119 in_148 gnd -0.08178f
+C2120 out_137 gnd -0.20323f
+C2121 in_137 gnd -0.08178f
+C2122 out_126 gnd -0.20323f
+C2123 in_126 gnd -0.08178f
+C2124 out_115 gnd -0.20323f
+C2125 in_115 gnd -0.08178f
+C2126 out_104 gnd -0.20323f
+C2127 in_104 gnd -0.08178f
+C2128 out_169 gnd -0.20323f
+C2129 in_169 gnd -0.08178f
+C2130 out_158 gnd -0.20323f
+C2131 in_158 gnd -0.08178f
+C2132 out_147 gnd -0.20323f
+C2133 in_147 gnd -0.08178f
+C2134 out_136 gnd -0.20323f
+C2135 in_136 gnd -0.08178f
+C2136 out_125 gnd -0.20323f
+C2137 in_125 gnd -0.08178f
+C2138 out_114 gnd -0.20323f
+C2139 in_114 gnd -0.08178f
+C2140 out_103 gnd -0.20323f
+C2141 in_103 gnd -0.08178f
+C2142 out_168 gnd -0.20323f
+C2143 in_168 gnd -0.08178f
+C2144 out_179 gnd -0.20323f
+C2145 in_179 gnd -0.08178f
+C2146 out_157 gnd -0.20323f
+C2147 in_157 gnd -0.08178f
+C2148 out_146 gnd -0.20323f
+C2149 in_146 gnd -0.08178f
+C2150 out_135 gnd -0.20323f
+C2151 in_135 gnd -0.08178f
+C2152 out_124 gnd -0.20323f
+C2153 in_124 gnd -0.08178f
+C2154 out_113 gnd -0.20323f
+C2155 in_113 gnd -0.08178f
+C2156 out_102 gnd -0.20323f
+C2157 in_102 gnd -0.08178f
+C2158 out_167 gnd -0.20323f
+C2159 in_167 gnd -0.08178f
+C2160 out_178 gnd -0.20323f
+C2161 in_178 gnd -0.08178f
+C2162 out_189 gnd -0.20323f
+C2163 in_189 gnd -0.08178f
+C2164 out_156 gnd -0.20323f
+C2165 in_156 gnd -0.08178f
+C2166 out_145 gnd -0.20323f
+C2167 in_145 gnd -0.08178f
+C2168 out_134 gnd -0.20323f
+C2169 in_134 gnd -0.08178f
+C2170 out_123 gnd -0.20323f
+C2171 in_123 gnd -0.08178f
+C2172 out_112 gnd -0.20323f
+C2173 in_112 gnd -0.08178f
+C2174 out_101 gnd -0.20323f
+C2175 in_101 gnd -0.08178f
+C2176 out_166 gnd -0.20323f
+C2177 in_166 gnd -0.08178f
+C2178 out_177 gnd -0.20323f
+C2179 in_177 gnd -0.08178f
+C2180 out_188 gnd -0.20323f
+C2181 in_188 gnd -0.08178f
+C2182 out_199 gnd -0.20323f
+C2183 in_199 gnd -0.08178f
+C2184 out_155 gnd -0.20323f
+C2185 in_155 gnd -0.08178f
+C2186 out_144 gnd -0.20323f
+C2187 in_144 gnd -0.08178f
+C2188 out_133 gnd -0.20323f
+C2189 in_133 gnd -0.08178f
+C2190 out_122 gnd -0.20323f
+C2191 in_122 gnd -0.08178f
+C2192 out_111 gnd -0.20323f
+C2193 in_111 gnd -0.08178f
+C2194 out_100 gnd -0.20323f
+C2195 in_100 gnd -0.08178f
+C2196 out_165 gnd -0.20323f
+C2197 in_165 gnd -0.08178f
+C2198 out_176 gnd -0.20323f
+C2199 in_176 gnd -0.08178f
+C2200 out_187 gnd -0.20323f
+C2201 in_187 gnd -0.08178f
+C2202 out_198 gnd -0.20323f
+C2203 in_198 gnd -0.08178f
+C2204 out_154 gnd -0.20323f
+C2205 in_154 gnd -0.08178f
+C2206 out_143 gnd -0.20323f
+C2207 in_143 gnd -0.08178f
+C2208 out_132 gnd -0.20323f
+C2209 in_132 gnd -0.08178f
+C2210 out_121 gnd -0.20323f
+C2211 in_121 gnd -0.08178f
+C2212 out_110 gnd -0.20323f
+C2213 in_110 gnd -0.08178f
+C2214 out_164 gnd -0.20323f
+C2215 in_164 gnd -0.08178f
+C2216 out_175 gnd -0.20323f
+C2217 in_175 gnd -0.08178f
+C2218 out_186 gnd -0.20323f
+C2219 in_186 gnd -0.08178f
+C2220 out_197 gnd -0.20323f
+C2221 in_197 gnd -0.08178f
+C2222 out_153 gnd -0.20323f
+C2223 in_153 gnd -0.08178f
+C2224 out_142 gnd -0.20323f
+C2225 in_142 gnd -0.08178f
+C2226 out_131 gnd -0.20323f
+C2227 in_131 gnd -0.08178f
+C2228 out_120 gnd -0.20323f
+C2229 in_120 gnd -0.08178f
+C2230 out_163 gnd -0.20323f
+C2231 in_163 gnd -0.08178f
+C2232 out_174 gnd -0.20323f
+C2233 in_174 gnd -0.08178f
+C2234 out_185 gnd -0.20323f
+C2235 in_185 gnd -0.08178f
+C2236 out_196 gnd -0.20323f
+C2237 in_196 gnd -0.08178f
+C2238 out_152 gnd -0.20323f
+C2239 in_152 gnd -0.08178f
+C2240 out_141 gnd -0.20323f
+C2241 in_141 gnd -0.08178f
+C2242 out_130 gnd -0.20323f
+C2243 in_130 gnd -0.08178f
+C2244 out_162 gnd -0.20323f
+C2245 in_162 gnd -0.08178f
+C2246 out_173 gnd -0.20323f
+C2247 in_173 gnd -0.08178f
+C2248 out_184 gnd -0.20323f
+C2249 in_184 gnd -0.08178f
+C2250 out_195 gnd -0.20323f
+C2251 in_195 gnd -0.08178f
+C2252 out_151 gnd -0.20323f
+C2253 in_151 gnd -0.08178f
+C2254 out_140 gnd -0.20323f
+C2255 in_140 gnd -0.08178f
+C2256 out_161 gnd -0.20323f
+C2257 in_161 gnd -0.08178f
+C2258 out_172 gnd -0.20323f
+C2259 in_172 gnd -0.08178f
+C2260 out_183 gnd -0.20323f
+C2261 in_183 gnd -0.08178f
+C2262 out_194 gnd -0.20323f
+C2263 in_194 gnd -0.08178f
+C2264 out_150 gnd -0.20323f
+C2265 in_150 gnd -0.08178f
+C2266 out_9 gnd -0.20323f
+C2267 in_9 gnd -0.08178f
+C2268 out_160 gnd -0.20323f
+C2269 in_160 gnd -0.08178f
+C2270 out_171 gnd -0.20323f
+C2271 in_171 gnd -0.08178f
+C2272 out_182 gnd -0.20323f
+C2273 in_182 gnd -0.08178f
+C2274 out_193 gnd -0.20323f
+C2275 in_193 gnd -0.08178f
+C2276 out_170 gnd -0.20323f
+C2277 in_170 gnd -0.08178f
+C2278 out_181 gnd -0.20323f
+C2279 in_181 gnd -0.08178f
+C2280 out_192 gnd -0.20323f
+C2281 in_192 gnd -0.08178f
+C2282 out_8 gnd -0.20323f
+C2283 in_8 gnd -0.08178f
+C2284 out_19 gnd -0.20323f
+C2285 in_19 gnd -0.08178f
+C2286 out_7 gnd -0.20323f
+C2287 in_7 gnd -0.08178f
+C2288 out_180 gnd -0.20323f
+C2289 in_180 gnd -0.08178f
+C2290 out_191 gnd -0.20323f
+C2291 in_191 gnd -0.08178f
+C2292 out_29 gnd -0.06271f
+C2293 in_29 gnd -0.08178f
+C2294 out_18 gnd -0.20323f
+C2295 in_18 gnd -0.08178f
+C2296 out_190 gnd -0.20323f
+C2297 in_190 gnd -0.08178f
+C2298 out_6 gnd -0.20323f
+C2299 in_6 gnd -0.08178f
+C2300 out_39 gnd -0.20323f
+C2301 in_39 gnd -0.08178f
+C2302 out_28 gnd -0.20323f
+C2303 in_28 gnd -0.08178f
+C2304 out_17 gnd -0.20323f
+C2305 in_17 gnd -0.08178f
+C2306 out_5 gnd -0.20323f
+C2307 in_5 gnd -0.08178f
+C2308 out_209 gnd -0.20323f
+C2309 in_209 gnd -0.08178f
+C2310 out_49 gnd -0.20323f
+C2311 in_49 gnd -0.08178f
+C2312 out_38 gnd -0.20323f
+C2313 in_38 gnd -0.08178f
+C2314 out_27 gnd -0.20323f
+C2315 in_27 gnd -0.08178f
+C2316 out_16 gnd -0.20323f
+C2317 in_16 gnd -0.08178f
+C2318 out_4 gnd -0.20323f
+C2319 in_4 gnd -0.08178f
+C2320 out_208 gnd -0.20323f
+C2321 in_208 gnd -0.08178f
+C2322 out_219 gnd -0.20323f
+C2323 in_219 gnd -0.08178f
+C2324 out_59 gnd -0.20323f
+C2325 in_59 gnd -0.08178f
+C2326 out_48 gnd -0.20323f
+C2327 in_48 gnd -0.08178f
+C2328 out_37 gnd -0.20323f
+C2329 in_37 gnd -0.08178f
+C2330 out_26 gnd -0.20323f
+C2331 in_26 gnd -0.08178f
+C2332 out_15 gnd -0.20323f
+C2333 in_15 gnd -0.08178f
+C2334 out_3 gnd -0.20323f
+C2335 in_3 gnd -0.08178f
+C2336 out_207 gnd -0.20323f
+C2337 in_207 gnd -0.08178f
+C2338 out_218 gnd -0.20323f
+C2339 in_218 gnd -0.08178f
+C2340 out_229 gnd -0.20323f
+C2341 in_229 gnd -0.08178f
+C2342 out_69 gnd -0.20323f
+C2343 in_69 gnd -0.08178f
+C2344 out_58 gnd -0.20323f
+C2345 in_58 gnd -0.08178f
+C2346 out_47 gnd -0.20323f
+C2347 in_47 gnd -0.08178f
+C2348 out_36 gnd -0.20323f
+C2349 in_36 gnd -0.08178f
+C2350 out_25 gnd -0.20323f
+C2351 in_25 gnd -0.08178f
+C2352 out_14 gnd -0.20323f
+C2353 in_14 gnd -0.08178f
+C2354 out_2 gnd -0.20323f
+C2355 in_2 gnd -0.08178f
+C2356 out_206 gnd -0.20323f
+C2357 in_206 gnd -0.08178f
+C2358 out_217 gnd -0.20323f
+C2359 in_217 gnd -0.08178f
+C2360 out_228 gnd -0.20323f
+C2361 in_228 gnd -0.08178f
+C2362 out_239 gnd -0.20323f
+C2363 in_239 gnd -0.08178f
+C2364 out_79 gnd -0.20323f
+C2365 in_79 gnd -0.08178f
+C2366 out_68 gnd -0.20323f
+C2367 in_68 gnd -0.08178f
+C2368 out_57 gnd -0.20323f
+C2369 in_57 gnd -0.08178f
+C2370 out_46 gnd -0.20323f
+C2371 in_46 gnd -0.08178f
+C2372 out_35 gnd -0.20323f
+C2373 in_35 gnd -0.08178f
+C2374 out_24 gnd -0.20323f
+C2375 in_24 gnd -0.08178f
+C2376 out_13 gnd -0.20323f
+C2377 in_13 gnd -0.08178f
+C2378 out_1 gnd -0.20323f
+C2379 in_1 gnd -0.08178f
+C2380 out_205 gnd -0.20323f
+C2381 in_205 gnd -0.08178f
+C2382 out_216 gnd -0.20323f
+C2383 in_216 gnd -0.08178f
+C2384 out_227 gnd -0.20323f
+C2385 in_227 gnd -0.08178f
+C2386 out_238 gnd -0.20323f
+C2387 in_238 gnd -0.08178f
+C2388 out_249 gnd -0.20323f
+C2389 in_249 gnd -0.08178f
+C2390 out_89 gnd -0.20323f
+C2391 in_89 gnd -0.08178f
+C2392 out_78 gnd -0.20323f
+C2393 in_78 gnd -0.08178f
+C2394 out_67 gnd -0.20323f
+C2395 in_67 gnd -0.08178f
+C2396 out_56 gnd -0.20323f
+C2397 in_56 gnd -0.08178f
+C2398 out_45 gnd -0.20323f
+C2399 in_45 gnd -0.08178f
+C2400 out_34 gnd -0.20323f
+C2401 in_34 gnd -0.08178f
+C2402 out_23 gnd -0.20323f
+C2403 in_23 gnd -0.08178f
+C2404 out_12 gnd -0.20323f
+C2405 in_12 gnd -0.08178f
+C2406 out_0 gnd -0.09378f
+C2407 in_0 gnd -0.04396f
+C2408 out_204 gnd -0.20323f
+C2409 in_204 gnd -0.08178f
+C2410 out_215 gnd -0.20323f
+C2411 in_215 gnd -0.08178f
+C2412 out_226 gnd -0.20323f
+C2413 in_226 gnd -0.08178f
+C2414 out_237 gnd -0.20323f
+C2415 in_237 gnd -0.08178f
+C2416 out_248 gnd -0.20323f
+C2417 in_248 gnd -0.08178f
+C2418 out_99 gnd -0.20323f
+C2419 in_99 gnd -0.08178f
+C2420 out_88 gnd -0.20323f
+C2421 in_88 gnd -0.08178f
+C2422 out_77 gnd -0.20323f
+C2423 in_77 gnd -0.08178f
+C2424 out_66 gnd -0.20323f
+C2425 in_66 gnd -0.08178f
+C2426 out_55 gnd -0.20323f
+C2427 in_55 gnd -0.08178f
+C2428 out_44 gnd -0.20323f
+C2429 in_44 gnd -0.08178f
+C2430 out_33 gnd -0.20323f
+C2431 in_33 gnd -0.08178f
+C2432 out_22 gnd -0.20323f
+C2433 in_22 gnd -0.08178f
+C2434 out_11 gnd -0.20323f
+C2435 in_11 gnd -0.08178f
+C2436 out_203 gnd -0.20323f
+C2437 in_203 gnd -0.08178f
+C2438 out_214 gnd -0.20323f
+C2439 in_214 gnd -0.08178f
+C2440 out_225 gnd -0.20323f
+C2441 in_225 gnd -0.08178f
+C2442 out_236 gnd -0.20323f
+C2443 in_236 gnd -0.08178f
+C2444 out_247 gnd -0.20323f
+C2445 in_247 gnd -0.08178f
+C2446 out_98 gnd -0.20323f
+C2447 in_98 gnd -0.08178f
+C2448 out_87 gnd -0.20323f
+C2449 in_87 gnd -0.08178f
+C2450 out_76 gnd -0.20323f
+C2451 in_76 gnd -0.08178f
+C2452 out_65 gnd -0.20323f
+C2453 in_65 gnd -0.08178f
+C2454 out_54 gnd -0.20323f
+C2455 in_54 gnd -0.08178f
+C2456 out_43 gnd -0.20323f
+C2457 in_43 gnd -0.08178f
+C2458 out_32 gnd -0.20323f
+C2459 in_32 gnd -0.08178f
+C2460 out_21 gnd -0.20323f
+C2461 in_21 gnd -0.08178f
+C2462 out_10 gnd -0.20323f
+C2463 in_10 gnd -0.08178f
+C2464 out_202 gnd -0.20323f
+C2465 in_202 gnd -0.08178f
+C2466 out_213 gnd -0.20323f
+C2467 in_213 gnd -0.08178f
+C2468 out_224 gnd -0.20323f
+C2469 in_224 gnd -0.08178f
+C2470 out_235 gnd -0.20323f
+C2471 in_235 gnd -0.08178f
+C2472 out_246 gnd -0.20323f
+C2473 in_246 gnd -0.08178f
+C2474 out_97 gnd -0.20323f
+C2475 in_97 gnd -0.08178f
+C2476 out_86 gnd -0.20323f
+C2477 in_86 gnd -0.08178f
+C2478 out_75 gnd -0.20323f
+C2479 in_75 gnd -0.08178f
+C2480 out_64 gnd -0.20323f
+C2481 in_64 gnd -0.08178f
+C2482 out_53 gnd -0.20323f
+C2483 in_53 gnd -0.08178f
+C2484 out_42 gnd -0.20323f
+C2485 in_42 gnd -0.08178f
+C2486 out_31 gnd -0.20323f
+C2487 in_31 gnd -0.08178f
+C2488 out_20 gnd -0.20323f
+C2489 in_20 gnd -0.08178f
+C2490 out_201 gnd -0.20323f
+C2491 in_201 gnd -0.08178f
+C2492 out_212 gnd -0.20323f
+C2493 in_212 gnd -0.08178f
+C2494 out_223 gnd -0.20323f
+C2495 in_223 gnd -0.08178f
+C2496 out_234 gnd -0.20323f
+C2497 in_234 gnd -0.08178f
+C2498 out_245 gnd -0.20323f
+C2499 in_245 gnd -0.08178f
+C2500 out_96 gnd -0.20323f
+C2501 in_96 gnd -0.08178f
+C2502 out_85 gnd -0.20323f
+C2503 in_85 gnd -0.08178f
+C2504 out_74 gnd -0.20323f
+C2505 in_74 gnd -0.08178f
+C2506 out_63 gnd -0.20476f
+C2507 in_63 gnd -0.08223f
+C2508 out_52 gnd -0.20323f
+C2509 in_52 gnd -0.08178f
+C2510 out_41 gnd -0.20323f
+C2511 in_41 gnd -0.08178f
+C2512 out_30 gnd -0.20323f
+C2513 in_30 gnd -0.08178f
+C2514 out_200 gnd -0.20323f
+C2515 in_200 gnd -0.08178f
+C2516 out_211 gnd -0.20323f
+C2517 in_211 gnd -0.08178f
+C2518 out_222 gnd -0.20323f
+C2519 in_222 gnd -0.08178f
+C2520 out_233 gnd -0.20323f
+C2521 in_233 gnd -0.08178f
+C2522 out_244 gnd -0.20323f
+C2523 in_244 gnd -0.08178f
+C2524 vdd gnd -7.17839f
+C2525 out_255 gnd -0.06395f
+C2526 in_255 gnd -0.03952f
+C2527 wrom2_pinv_dec_3_9/w_692_n79# gnd -0.158p
+C2528 out_95 gnd -0.20323f
+C2529 in_95 gnd -0.08178f
+C2530 out_84 gnd -0.20323f
+C2531 in_84 gnd -0.08178f
+C2532 out_73 gnd -0.20323f
+C2533 in_73 gnd -0.08178f
+C2534 out_62 gnd -0.20323f
+C2535 in_62 gnd -0.08178f
+C2536 out_51 gnd -0.20323f
+C2537 in_51 gnd -0.08178f
+C2538 out_40 gnd -0.20323f
+C2539 in_40 gnd -0.08178f
+C2540 out_210 gnd -0.20323f
+C2541 in_210 gnd -0.08178f
+C2542 out_221 gnd -0.20323f
+C2543 in_221 gnd -0.08178f
+C2544 out_232 gnd -0.20323f
+C2545 in_232 gnd -0.08178f
+C2546 out_243 gnd -0.20323f
+C2547 in_243 gnd -0.08178f
+C2548 out_254 gnd -0.20323f
+C2549 in_254 gnd -0.08178f
+C2550 out_94 gnd -0.20323f
+C2551 in_94 gnd -0.08178f
+C2552 out_83 gnd -0.20323f
+C2553 in_83 gnd -0.08178f
+C2554 out_72 gnd -0.20323f
+C2555 in_72 gnd -0.08178f
+C2556 out_61 gnd -0.20323f
+C2557 in_61 gnd -0.08178f
+C2558 out_50 gnd -0.20368f
+C2559 in_50 gnd -0.08178f
+.ends
+.subckt wrom2_rom_column_mux bl bl_out gnd sel
+X0 bl_out sel bl gnd sky130_fd_pr__nfet_01v8 ad=0.864u pd=6.36 as=0.864u ps=6.36 w=2.88 l=0.15
+C0 bl_out sel 0.0159f
+C1 sel bl 0.0146f
+C2 bl_out bl 0.06226f
+C3 bl_out gnd 0.17637f
+C4 bl gnd 0.17146f
+C5 sel gnd 0.05073f
 .ends
 .subckt wrom2_rom_column_mux_array sel_3 bl_0 bl_1 bl_3 bl_4 bl_6 bl_8 bl_15 bl_16 bl_17 bl_19 bl_24 bl_27 bl_28 bl_29 bl_32 bl_37 bl_38 bl_39 bl_40 bl_43 bl_48 bl_49 bl_51 bl_54 bl_59 bl_60 bl_71 bl_82 bl_90 bl_101 bl_102 bl_104 bl_106 bl_109 bl_110 bl_112 bl_113 bl_114 bl_115 bl_117 bl_119 bl_120 bl_121 bl_122 bl_123 bl_124 bl_125 bl_127 bl_128 bl_130 bl_131 bl_132 bl_133 bl_134 bl_136 bl_138 bl_139 bl_140 bl_141 bl_142 bl_143 bl_144 bl_145 bl_146 bl_147 bl_149 bl_150 bl_151 bl_152 bl_153 bl_154 bl_155 bl_157 bl_158 bl_159 bl_160 bl_161 bl_162 bl_163 bl_164 bl_165 bl_166 bl_167 bl_168 bl_170 bl_171 bl_172 bl_173 bl_174 bl_175 bl_176 bl_177 bl_178 bl_179 bl_181 bl_182 bl_183 bl_184 bl_185 bl_186 bl_187 bl_188 bl_189 bl_192 bl_193 bl_194 bl_195 bl_196 bl_197 bl_198 bl_199 bl_200 bl_203 bl_211 bl_214 bl_216 bl_222 bl_225 bl_227 bl_230 bl_233 bl_241 bl_244 bl_247 bl_250 bl_253 bl_35 bl_208 bl_219 bl_57 bl_68 bl_63 bl_238 bl_76 bl_79 bl_74 bl_87 bl_85 bl_98 bl_93 bl_11 bl_14 bl_22 bl_30 bl_25 bl_33 bl_46 bl_41 bl_44 bl_52 bl_190 bl_55 bl_206 bl_201 bl_209 bl_204 bl_217 bl_212 bl_248 bl_220 bl_58 bl_215 bl_251 bl_228 bl_66 bl_223 bl_61 bl_254 bl_236 bl_231 bl_69 bl_64 bl_239 bl_77 bl_234 bl_72 bl_242 bl_80 bl_75 bl_88 bl_245 bl_83 bl_96 bl_91 bl_99 bl_9 bl_94 bl_107 bl_12 bl_20 bl_105 bl_118 bl_23 bl_126 bl_36 bl_31 bl_129 bl_169 bl_34 bl_137 bl_47 bl_42 bl_180 bl_50 bl_45 bl_135 bl_148 bl_53 bl_191 bl_207 bl_202 bl_210 bl_246 bl_205 bl_218 bl_56 bl_213 bl_out_30 bl_out_22 bl_249 bl_out_16 bl_226 bl_out_14 bl_221 bl_252 bl_out_25 bl_out_2 bl_229 bl_out_11 bl_67 bl_224 bl_62 bl_out_17 bl_out_9 bl_255 bl_237 bl_232 bl_70 bl_out_20 bl_out_5 bl_65 bl_out_3 bl_out_12 bl_240 bl_78 bl_235 bl_73 bl_out_0 bl_86 bl_243 bl_out_28 bl_81 bl_out_15 bl_out_7 bl_89 bl_84 bl_out_31 bl_out_1 sel_5 bl_out_23 bl_out_10 bl_97 bl_7 bl_out_29 bl_92 bl_2 sel_4 sel_2 sel_1 bl_out_26 bl_100 bl_10 sel_6 bl_95 bl_5 bl_out_24 bl_out_18 bl_108 bl_18 bl_103 bl_13 bl_out_6 bl_out_21 gnd bl_out_8 bl_156 bl_116 bl_out_4 bl_26 sel_0 bl_out_27 bl_out_19 bl_111 sel_7 bl_out_13 bl_21
 Xwrom2_rom_column_mux_190 bl_65 bl_out_8 gnd sel_1 wrom2_rom_column_mux
@@ -9043,2846 +11566,324 @@ C2782 bl_64 gnd -0.0375f
 C2783 bl_out_8 gnd 1.23466f
 C2784 bl_65 gnd -0.03574f
 .ends
-.subckt wrom2_pinv_dec_3 gnd vdd w_692_n79# A Z
-X0 vdd A Z w_692_n79# sky130_fd_pr__pfet_01v8 ad=1.5u pd=10.6 as=1.5u ps=10.6 w=5 l=0.15
-X1 gnd A Z gnd sky130_fd_pr__nfet_01v8 ad=0.504u pd=3.96 as=0.504u ps=3.96 w=1.68 l=0.15
-C0 w_692_n79# A 0.10891f
-C1 Z w_692_n79# 0.05333f
-C2 Z A 0.04991f
-C3 vdd w_692_n79# 0.02783f
-C4 vdd A 0.01892f
-C5 vdd Z 0.06954f
-C6 vdd gnd 0.06645f
-C7 Z gnd 0.35042f
-C8 A gnd 0.23452f
-C9 w_692_n79# gnd 1.35078f
-.ends
-.subckt wrom2_rom_column_mux bl bl_out gnd sel
-X0 bl_out sel bl gnd sky130_fd_pr__nfet_01v8 ad=0.864u pd=6.36 as=0.864u ps=6.36 w=2.88 l=0.15
-C0 bl_out sel 0.0159f
-C1 sel bl 0.0146f
-C2 bl_out bl 0.06226f
-C3 bl_out gnd 0.17637f
-C4 bl gnd 0.17146f
-C5 sel gnd 0.05073f
-.ends
-.subckt wrom2_rom_bitline_inverter in_202 out_132 out_187 in_234 out_134 out_164 out_189 in_232 out_141 in_211 out_111 out_196 out_166 in_241 in_236 out_194 out_173 in_243 out_143 out_171 in_213 out_198 out_19 in_250 out_150 in_220 out_120 out_180 in_9 out_175 out_28 out_17 in_245 out_145 out_182 in_7 out_49 in_252 out_152 in_119 out_209 out_26 in_222 out_122 out_37 in_18 in_5 out_177 out_58 out_47 in_247 in_117 in_128 in_39 out_184 out_79 out_207 out_218 out_35 out_24 out_14 in_254 out_154 in_105 in_149 in_27 in_16 in_3 out_191 out_239 out_67 out_56 out_12 in_224 out_69 in_107 in_115 in_126 in_137 out_161 in_48 in_37 out_39 out_227 out_216 out_77 out_88 out_99 out_44 out_33 in_231 out_131 out_229 in_2 in_59 in_147 in_158 in_103 in_114 in_69 in_25 in_14 in_201 out_101 out_46 out_204 out_248 out_237 out_65 out_76 out_54 out_21 out_10 out_186 in_29 in_169 in_124 in_135 in_179 out_16 out_156 in_57 in_46 in_0 out_206 in_139 out_236 out_225 out_214 out_86 out_97 out_53 out_42 out_31 out_193 in_36 in_101 in_112 in_156 in_167 in_109 out_23 out_163 in_78 in_89 out_8 in_67 in_34 in_23 in_12 in_146 out_246 out_74 out_202 out_213 out_63 out_133 in_233 out_78 in_4 in_122 in_133 in_144 in_177 in_188 in_199 out_30 in_116 out_170 in_13 in_66 in_99 in_55 in_44 in_11 out_7 out_95 out_234 out_223 out_84 out_51 out_40 in_203 out_48 out_188 out_238 in_240 out_140 out_85 out_9 in_110 in_121 in_154 in_165 in_176 in_123 in_68 out_18 in_76 in_87 in_98 in_43 in_32 in_21 out_200 out_255 out_244 out_211 out_72 out_83 out_61 in_210 out_110 out_208 out_55 out_195 in_38 out_245 in_178 in_131 in_142 in_153 in_186 in_197 out_25 in_75 in_97 in_64 in_53 in_20 out_5 out_165 out_243 out_232 out_221 out_93 out_60 out_215 out_62 in_148 in_100 in_45 in_130 in_152 in_163 in_174 in_185 in_235 in_6 out_32 in_118 in_74 in_85 in_96 in_41 in_30 out_172 out_253 out_220 in_15 out_70 out_81 out_92 out_222 in_155 in_52 in_140 in_151 in_184 in_195 out_87 in_242 out_142 in_125 in_73 in_62 out_3 in_51 out_252 out_241 out_230 in_22 out_91 in_162 in_212 out_112 out_57 out_197 in_161 in_172 in_183 out_247 out_94 in_77 in_132 in_83 in_94 in_50 out_27 out_90 out_251 out_167 out_217 out_64 in_102 in_47 in_160 in_182 in_193 out_254 in_187 in_84 in_71 in_82 in_60 out_1 in_8 out_250 out_34 out_174 in_17 out_224 out_71 in_157 in_54 in_170 in_181 in_192 in_194 out_144 in_244 in_81 in_92 out_0 out_89 out_41 in_127 out_181 in_24 in_164 out_231 out_2 in_61 in_214 out_59 in_191 out_199 out_11 out_249 out_151 in_251 in_80 in_91 out_96 out_201 in_134 in_79 in_31 out_29 in_171 out_121 in_221 out_66 out_219 in_190 in_104 in_49 in_90 in_189 in_141 in_86 out_36 out_176 in_19 out_108 out_119 out_226 in_159 out_73 in_111 out_109 in_56 in_196 in_246 in_93 in_129 out_43 in_209 out_183 in_26 out_107 out_129 out_80 out_233 in_166 out_4 in_63 out_13 in_253 out_98 out_153 out_203 in_136 out_50 in_208 in_219 out_190 in_33 out_106 out_117 out_128 out_139 out_240 in_173 in_223 out_123 in_70 out_68 out_20 in_106 out_160 out_210 in_143 in_207 in_229 in_88 in_40 out_38 out_105 out_116 out_127 out_138 out_149 out_178 in_180 out_228 out_130 in_230 out_75 in_1 in_113 in_58 in_198 in_10 in_95 in_150 in_206 in_239 in_228 in_217 out_45 out_100 in_200 out_126 out_137 out_148 out_159 out_104 out_115 out_185 in_28 out_82 out_235 in_168 out_6 out_118 in_120 in_218 in_65 out_15 out_155 in_255 in_205 in_249 in_238 in_227 in_216 out_205 in_138 out_52 out_103 out_114 out_136 out_147 out_158 out_169 out_192 in_35 in_175 out_242 wrom2_pinv_dec_3_9/w_692_n79# in_72 in_225 out_125 out_22 in_108 out_162 in_204 in_248 in_237 in_226 in_215 out_212 in_145 out_102 out_113 out_124 out_135 out_146 out_157 out_168 out_179 gnd in_42 vdd
-Xwrom2_pinv_dec_3_50 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_50 out_50 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_61 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_61 out_61 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_72 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_72 out_72 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_83 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_83 out_83 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_94 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_94 out_94 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_254 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_254 out_254 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_243 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_243 out_243 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_232 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_232 out_232 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_221 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_221 out_221 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_210 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_210 out_210 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_40 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_40 out_40 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_51 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_51 out_51 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_62 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_62 out_62 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_73 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_73 out_73 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_84 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_84 out_84 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_95 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_95 out_95 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_255 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_255 out_255 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_244 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_244 out_244 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_233 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_233 out_233 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_222 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_222 out_222 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_211 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_211 out_211 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_200 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_200 out_200 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_30 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_30 out_30 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_41 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_41 out_41 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_52 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_52 out_52 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_63 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_63 out_63 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_74 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_74 out_74 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_85 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_85 out_85 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_96 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_96 out_96 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_245 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_245 out_245 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_234 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_234 out_234 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_223 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_223 out_223 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_212 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_212 out_212 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_201 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_201 out_201 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_20 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_20 out_20 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_31 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_31 out_31 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_42 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_42 out_42 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_53 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_53 out_53 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_64 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_64 out_64 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_75 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_75 out_75 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_86 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_86 out_86 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_97 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_97 out_97 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_246 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_246 out_246 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_235 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_235 out_235 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_224 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_224 out_224 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_213 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_213 out_213 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_202 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_202 out_202 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_10 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_10 out_10 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_21 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_21 out_21 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_32 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_32 out_32 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_43 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_43 out_43 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_54 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_54 out_54 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_65 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_65 out_65 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_76 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_76 out_76 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_87 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_87 out_87 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_98 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_98 out_98 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_247 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_247 out_247 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_236 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_236 out_236 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_225 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_225 out_225 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_214 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_214 out_214 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_203 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_203 out_203 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_11 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_11 out_11 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_22 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_22 out_22 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_33 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_33 out_33 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_44 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_44 out_44 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_55 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_55 out_55 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_66 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_66 out_66 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_77 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_77 out_77 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_88 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_88 out_88 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_99 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_99 out_99 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_248 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_248 out_248 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_237 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_237 out_237 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_226 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_226 out_226 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_215 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_215 out_215 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_204 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_204 out_204 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_0 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_0 out_0 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_12 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_12 out_12 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_23 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_23 out_23 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_34 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_34 out_34 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_45 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_45 out_45 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_56 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_56 out_56 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_67 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_67 out_67 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_78 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_78 out_78 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_89 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_89 out_89 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_249 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_249 out_249 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_238 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_238 out_238 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_227 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_227 out_227 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_216 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_216 out_216 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_205 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_205 out_205 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_1 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_1 out_1 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_13 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_13 out_13 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_24 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_24 out_24 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_35 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_35 out_35 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_46 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_46 out_46 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_57 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_57 out_57 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_68 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_68 out_68 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_79 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_79 out_79 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_239 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_239 out_239 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_228 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_228 out_228 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_217 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_217 out_217 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_206 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_206 out_206 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_2 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_2 out_2 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_14 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_14 out_14 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_25 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_25 out_25 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_36 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_36 out_36 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_47 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_47 out_47 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_58 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_58 out_58 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_69 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_69 out_69 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_229 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_229 out_229 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_218 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_218 out_218 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_207 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_207 out_207 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_3 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_3 out_3 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_15 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_15 out_15 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_26 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_26 out_26 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_37 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_37 out_37 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_48 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_48 out_48 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_59 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_59 out_59 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_219 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_219 out_219 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_208 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_208 out_208 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_4 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_4 out_4 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_16 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_16 out_16 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_27 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_27 out_27 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_38 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_38 out_38 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_49 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_49 out_49 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_209 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_209 out_209 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_5 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_5 out_5 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_17 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_17 out_17 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_28 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_28 out_28 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_39 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_39 out_39 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_6 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_6 out_6 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_190 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_190 out_190 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_18 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_18 out_18 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_29 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_29 out_29 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_191 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_191 out_191 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_180 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_180 out_180 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_7 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_7 out_7 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_19 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_19 out_19 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_8 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_8 out_8 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_192 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_192 out_192 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_181 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_181 out_181 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_170 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_170 out_170 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_193 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_193 out_193 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_182 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_182 out_182 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_171 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_171 out_171 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_160 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_160 out_160 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_9 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_9 out_9 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_150 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_150 out_150 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_194 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_194 out_194 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_183 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_183 out_183 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_172 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_172 out_172 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_161 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_161 out_161 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_140 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_140 out_140 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_151 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_151 out_151 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_195 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_195 out_195 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_184 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_184 out_184 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_173 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_173 out_173 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_162 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_162 out_162 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_130 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_130 out_130 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_141 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_141 out_141 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_152 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_152 out_152 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_196 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_196 out_196 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_185 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_185 out_185 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_174 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_174 out_174 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_163 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_163 out_163 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_120 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_120 out_120 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_131 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_131 out_131 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_142 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_142 out_142 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_153 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_153 out_153 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_197 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_197 out_197 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_186 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_186 out_186 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_175 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_175 out_175 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_164 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_164 out_164 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_110 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_110 out_110 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_121 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_121 out_121 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_132 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_132 out_132 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_143 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_143 out_143 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_154 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_154 out_154 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_198 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_198 out_198 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_187 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_187 out_187 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_176 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_176 out_176 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_165 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_165 out_165 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_100 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_100 out_100 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_111 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_111 out_111 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_122 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_122 out_122 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_133 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_133 out_133 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_144 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_144 out_144 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_155 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_155 out_155 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_199 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_199 out_199 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_188 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_188 out_188 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_177 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_177 out_177 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_166 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_166 out_166 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_101 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_101 out_101 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_112 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_112 out_112 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_123 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_123 out_123 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_134 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_134 out_134 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_145 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_145 out_145 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_156 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_156 out_156 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_189 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_189 out_189 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_178 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_178 out_178 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_167 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_167 out_167 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_102 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_102 out_102 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_113 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_113 out_113 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_124 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_124 out_124 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_135 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_135 out_135 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_146 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_146 out_146 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_157 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_157 out_157 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_179 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_179 out_179 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_168 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_168 out_168 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_103 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_103 out_103 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_114 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_114 out_114 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_125 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_125 out_125 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_136 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_136 out_136 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_147 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_147 out_147 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_158 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_158 out_158 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_169 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_169 out_169 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_104 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_104 out_104 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_115 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_115 out_115 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_126 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_126 out_126 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_137 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_137 out_137 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_148 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_148 out_148 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_159 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_159 out_159 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_105 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_105 out_105 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_116 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_116 out_116 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_127 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_127 out_127 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_138 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_138 out_138 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_149 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_149 out_149 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_106 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_106 out_106 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_117 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_117 out_117 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_128 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_128 out_128 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_139 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_139 out_139 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_107 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_107 out_107 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_118 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_118 out_118 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_129 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_129 out_129 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_108 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_108 out_108 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_119 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_119 out_119 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_109 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_109 out_109 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_90 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_90 out_90 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_250 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_250 out_250 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_80 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_80 out_80 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_91 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_91 out_91 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_251 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_251 out_251 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_240 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_240 out_240 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_70 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_70 out_70 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_81 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_81 out_81 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_92 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_92 out_92 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_252 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_252 out_252 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_241 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_241 out_241 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_230 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_230 out_230 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_60 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_60 out_60 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_71 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_71 out_71 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_82 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_82 out_82 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_93 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_93 out_93 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_253 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_253 out_253 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_242 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_242 out_242 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_231 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_231 out_231 wrom2_pinv_dec_3
-Xwrom2_pinv_dec_3_220 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_220 out_220 wrom2_pinv_dec_3
-C0 out_208 vdd 0.0396f
-C1 in_173 vdd 0
-C2 in_97 vdd 0
-C3 out_220 out_221 0.12741f
-C4 out_167 out_168 0.12741f
-C5 out_136 in_137 0.01793f
-C6 wrom2_pinv_dec_3_9/w_692_n79# out_83 -0.02056f
-C7 wrom2_pinv_dec_3_9/w_692_n79# in_225 -0.00122f
-C8 out_174 vdd 0.0396f
-C9 in_147 vdd 0
-C10 vdd out_181 0.0396f
-C11 in_173 in_174 0.0435f
-C12 in_234 in_235 0.0435f
-C13 out_206 in_206 0.01569f
-C14 out_123 out_122 0.12741f
-C15 in_76 in_75 0.0435f
-C16 vdd in_191 0
-C17 out_128 vdd 0.0396f
-C18 out_192 out_193 0.12741f
-C19 in_174 out_174 0.01569f
-C20 out_24 in_25 0.01793f
-C21 in_189 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C22 out_234 vdd 0.0396f
-C23 out_104 vdd 0.0396f
-C24 in_114 out_113 0.01793f
-C25 in_237 out_236 0.01793f
-C26 out_21 vdd 0.0396f
-C27 in_227 out_227 0.01569f
-C28 out_31 vdd 0.0396f
-C29 wrom2_pinv_dec_3_9/w_692_n79# in_154 -0.00122f
-C30 in_144 in_143 0.0435f
-C31 out_165 in_166 0.01793f
-C32 out_91 vdd 0.0396f
-C33 in_42 in_43 0.0435f
-C34 out_248 in_248 0.01569f
-C35 vdd out_44 0.0396f
-C36 in_23 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C37 wrom2_pinv_dec_3_9/w_692_n79# in_232 -0.00122f
-C38 in_132 in_133 0.0435f
-C39 wrom2_pinv_dec_3_9/w_692_n79# out_1 -0.02056f
-C40 in_103 vdd 0
-C41 in_8 in_9 0.0435f
-C42 in_117 in_118 0.0435f
-C43 out_251 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C44 in_236 vdd 0
-C45 out_52 in_53 0.01793f
-C46 wrom2_pinv_dec_3_9/w_692_n79# in_233 -0.00122f
-C47 in_255 vdd 0
-C48 out_171 out_170 0.12741f
-C49 in_146 in_147 0.0435f
-C50 wrom2_pinv_dec_3_9/w_692_n79# in_140 -0.00122f
-C51 in_40 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C52 out_112 vdd 0.0396f
-C53 wrom2_pinv_dec_3_9/w_692_n79# in_248 -0.00122f
-C54 in_219 in_220 0.0435f
-C55 out_104 in_104 0.01569f
-C56 out_84 out_85 0.12741f
-C57 in_82 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C58 in_175 out_175 0.01569f
-C59 in_61 vdd 0
-C60 in_108 out_107 0.01793f
-C61 in_89 vdd 0
-C62 in_153 vdd 0
-C63 out_136 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C64 out_182 vdd 0.0396f
-C65 out_32 in_33 0.01793f
-C66 in_156 vdd 0
-C67 wrom2_pinv_dec_3_9/w_692_n79# out_210 -0.02056f
-C68 out_165 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C69 in_31 out_30 0.01793f
-C70 out_78 out_77 0.12741f
-C71 in_55 in_56 0.0435f
-C72 in_4 out_4 0.01569f
-C73 in_103 in_104 0.0435f
-C74 out_65 out_64 0.12741f
-C75 in_3 vdd 0
-C76 in_52 vdd 0
-C77 in_227 in_226 0.0435f
-C78 in_209 out_209 0.01569f
-C79 out_202 vdd 0.0396f
-C80 in_141 in_140 0.0435f
-C81 out_82 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C82 wrom2_pinv_dec_3_9/w_692_n79# in_241 -0.00122f
-C83 out_209 vdd 0.0396f
-C84 out_178 in_178 0.01569f
-C85 in_162 in_163 0.0435f
-C86 in_209 vdd 0
-C87 in_185 in_184 0.0435f
-C88 wrom2_pinv_dec_3_9/w_692_n79# out_196 -0.02056f
-C89 in_193 out_193 0.01569f
-C90 out_178 out_179 0.12741f
-C91 in_61 in_62 0.0435f
-C92 out_239 in_239 0.01569f
-C93 out_218 in_219 0.01793f
-C94 vdd out_154 0.0396f
-C95 in_128 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C96 out_0 wrom2_pinv_dec_3_9/w_692_n79# -0.00705f
-C97 in_14 vdd 0
-C98 in_237 in_238 0.0435f
-C99 out_70 out_69 0.12741f
-C100 out_8 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C101 in_211 in_210 0.0435f
-C102 out_200 vdd 0.0396f
-C103 in_174 vdd 0
-C104 out_140 in_140 0.01569f
-C105 out_227 in_228 0.01793f
-C106 in_180 vdd 0
-C107 in_175 in_176 0.0435f
-C108 in_116 in_117 0.0435f
-C109 wrom2_pinv_dec_3_9/w_692_n79# out_189 -0.02056f
-C110 wrom2_pinv_dec_3_9/w_692_n79# out_148 -0.02056f
-C111 in_27 vdd 0
-C112 out_239 out_238 0.12741f
-C113 out_93 out_92 0.12741f
-C114 in_228 out_228 0.01569f
-C115 wrom2_pinv_dec_3_9/w_692_n79# out_203 -0.02056f
-C116 in_108 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C117 out_74 in_74 0.01569f
-C118 in_16 vdd 0
-C119 wrom2_pinv_dec_3_9/w_692_n79# in_227 -0.00122f
-C120 in_95 in_94 0.0435f
-C121 in_62 vdd 0
-C122 out_109 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C123 out_98 vdd 0.0396f
-C124 out_90 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C125 wrom2_pinv_dec_3_9/w_692_n79# in_208 -0.00122f
-C126 wrom2_pinv_dec_3_9/w_692_n79# in_117 -0.00122f
-C127 wrom2_pinv_dec_3_9/w_692_n79# in_69 -0.00122f
-C128 out_160 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C129 in_247 in_248 0.0435f
-C130 vdd in_104 0
-C131 in_67 out_66 0.01793f
-C132 in_42 vdd 0
-C133 in_136 in_135 0.0435f
-C134 out_23 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C135 wrom2_pinv_dec_3_9/w_692_n79# in_202 -0.00122f
-C136 wrom2_pinv_dec_3_9/w_692_n79# out_180 -0.02056f
-C137 vdd in_125 0
-C138 out_58 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C139 out_146 in_147 0.01793f
-C140 in_146 vdd 0
-C141 wrom2_pinv_dec_3_9/w_692_n79# out_64 -0.02056f
-C142 in_84 vdd 0
-C143 wrom2_pinv_dec_3_9/w_692_n79# in_197 -0.00122f
-C144 in_19 in_18 0.0435f
-C145 wrom2_pinv_dec_3_9/w_692_n79# out_201 -0.02056f
-C146 wrom2_pinv_dec_3_9/w_692_n79# in_151 -0.00122f
-C147 out_120 out_121 0.12741f
-C148 wrom2_pinv_dec_3_9/w_692_n79# out_113 -0.02056f
-C149 in_11 in_12 0.0435f
-C150 in_252 vdd 0
-C151 out_95 vdd 0.0396f
-C152 in_64 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C153 wrom2_pinv_dec_3_9/w_692_n79# in_133 -0.00122f
-C154 in_34 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C155 wrom2_pinv_dec_3_9/w_692_n79# in_2 -0.00122f
-C156 in_183 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C157 wrom2_pinv_dec_3_9/w_692_n79# out_124 -0.02056f
-C158 out_129 out_128 0.12741f
-C159 wrom2_pinv_dec_3_9/w_692_n79# out_55 -0.02056f
-C160 out_17 in_17 0.01569f
-C161 out_142 out_141 0.12741f
-C162 out_69 in_70 0.01793f
-C163 out_28 out_29 0.12741f
-C164 vdd out_131 0.0396f
-C165 in_156 in_157 0.0435f
-C166 wrom2_pinv_dec_3_9/w_692_n79# out_61 -0.02056f
-C167 out_219 vdd 0.0396f
-C168 in_77 in_76 0.0435f
-C169 wrom2_pinv_dec_3_9/w_692_n79# out_255 -0.01336f
-C170 in_169 in_170 0.0435f
-C171 out_53 vdd 0.0396f
-C172 out_176 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C173 out_158 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C174 out_161 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C175 out_50 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C176 out_211 vdd 0.0396f
-C177 out_79 vdd 0.0396f
-C178 out_204 vdd 0.0396f
-C179 out_192 vdd 0.0396f
-C180 in_108 in_109 0.0435f
-C181 out_37 vdd 0.0396f
-C182 out_236 out_237 0.12741f
-C183 out_109 in_109 0.01569f
-C184 in_82 out_81 0.01793f
-C185 in_225 out_224 0.01793f
-C186 vdd in_157 0
-C187 in_41 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C188 wrom2_pinv_dec_3_9/w_692_n79# out_232 -0.02056f
-C189 out_134 out_135 0.12741f
-C190 wrom2_pinv_dec_3_9/w_692_n79# out_45 -0.02056f
-C191 out_72 in_73 0.01793f
-C192 in_34 out_33 0.01793f
-C193 wrom2_pinv_dec_3_9/w_692_n79# out_151 -0.02056f
-C194 out_48 in_49 0.01793f
-C195 in_47 vdd 0
-C196 wrom2_pinv_dec_3_9/w_692_n79# in_228 -0.00122f
-C197 in_110 in_111 0.0435f
-C198 in_7 vdd 0
-C199 in_102 in_101 0.0435f
-C200 wrom2_pinv_dec_3_9/w_692_n79# in_94 -0.00122f
-C201 out_251 out_252 0.12741f
-C202 out_166 vdd 0.0396f
-C203 in_182 out_181 0.01793f
-C204 out_132 in_133 0.01793f
-C205 in_134 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C206 out_119 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C207 out_82 out_81 0.12741f
-C208 in_229 in_228 0.0435f
-C209 out_30 out_29 0.06767f
-C210 in_28 vdd 0
-C211 out_3 in_4 0.01793f
-C212 in_158 vdd 0
-C213 wrom2_pinv_dec_3_9/w_692_n79# out_122 -0.02056f
-C214 vdd out_215 0.0396f
-C215 in_75 vdd 0
-C216 in_6 out_5 0.01793f
-C217 out_254 out_253 0.12741f
-C218 out_206 out_207 0.12741f
-C219 in_200 out_199 0.01793f
-C220 out_49 vdd 0.0396f
-C221 in_8 vdd 0
-C222 in_25 vdd 0
-C223 in_181 out_181 0.01569f
-C224 in_101 out_100 0.01793f
-C225 in_60 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C226 in_241 out_241 0.01569f
-C227 in_28 in_27 0.0435f
-C228 out_21 out_20 0.12741f
-C229 in_113 out_113 0.01569f
-C230 in_31 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C231 in_201 in_202 0.0435f
-C232 out_4 vdd 0.0396f
-C233 wrom2_pinv_dec_3_9/w_692_n79# in_186 -0.00122f
-C234 wrom2_pinv_dec_3_9/w_692_n79# out_175 -0.02056f
-C235 out_146 vdd 0.0396f
-C236 out_25 out_24 0.12741f
-C237 in_34 in_35 0.0435f
-C238 in_1 in_0 0.0435f
-C239 in_210 out_210 0.01569f
-C240 wrom2_pinv_dec_3_9/w_692_n79# in_212 -0.00122f
-C241 out_65 out_66 0.12741f
-C242 out_70 in_71 0.01793f
-C243 out_3 out_2 0.12741f
-C244 in_214 out_213 0.01793f
-C245 vdd in_168 0
-C246 wrom2_pinv_dec_3_9/w_692_n79# in_101 -0.00122f
-C247 out_88 out_89 0.12741f
-C248 in_212 in_213 0.0435f
-C249 out_86 vdd 0.0396f
-C250 in_48 vdd 0
-C251 in_201 out_201 0.01569f
-C252 out_129 vdd 0.0396f
-C253 in_29 out_29 0.01569f
-C254 wrom2_pinv_dec_3_9/w_692_n79# out_84 -0.02056f
-C255 out_9 out_10 0.12741f
-C256 wrom2_pinv_dec_3_9/w_692_n79# in_219 -0.00122f
-C257 wrom2_pinv_dec_3_9/w_692_n79# out_157 -0.02056f
-C258 out_47 vdd 0.0396f
-C259 vdd in_50 0
-C260 in_214 out_214 0.01569f
-C261 out_39 out_38 0.12741f
-C262 in_12 vdd 0
-C263 out_237 in_238 0.01793f
-C264 in_193 vdd 0
-C265 out_231 in_232 0.01793f
-C266 in_10 out_9 0.01793f
-C267 out_229 in_230 0.01793f
-C268 out_182 in_182 0.01569f
-C269 in_149 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C270 in_122 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C271 out_41 vdd 0.0396f
-C272 out_229 out_228 0.12741f
-C273 out_205 in_206 0.01793f
-C274 vdd out_197 0.0396f
-C275 in_67 in_68 0.0435f
-C276 wrom2_pinv_dec_3_9/w_692_n79# in_176 -0.00122f
-C277 out_246 out_245 0.12741f
-C278 out_185 out_184 0.12741f
-C279 out_144 out_145 0.12741f
-C280 in_112 in_111 0.0435f
-C281 in_65 vdd 0
-C282 wrom2_pinv_dec_3_9/w_692_n79# in_206 -0.00122f
-C283 wrom2_pinv_dec_3_9/w_692_n79# in_185 -0.00122f
-C284 out_146 in_146 0.01569f
-C285 out_133 vdd 0.0396f
-C286 out_74 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C287 in_243 out_242 0.01793f
-C288 in_30 vdd 0
-C289 wrom2_pinv_dec_3_9/w_692_n79# out_145 -0.02056f
-C290 wrom2_pinv_dec_3_9/w_692_n79# in_204 -0.00122f
-C291 in_95 out_94 0.01793f
-C292 out_190 out_191 0.12741f
-C293 out_161 in_162 0.01793f
-C294 in_145 out_144 0.01793f
-C295 in_74 out_73 0.01793f
-C296 out_183 out_184 0.12741f
-C297 in_182 vdd 0
-C298 wrom2_pinv_dec_3_9/w_692_n79# out_186 -0.02056f
-C299 out_20 vdd 0.0396f
-C300 out_249 out_250 0.12741f
-C301 in_214 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C302 in_70 in_71 0.0435f
-C303 in_214 in_213 0.0435f
-C304 wrom2_pinv_dec_3_9/w_692_n79# in_145 -0.00122f
-C305 in_243 out_243 0.01569f
-C306 out_160 in_161 0.01793f
-C307 wrom2_pinv_dec_3_9/w_692_n79# out_66 -0.02056f
-C308 in_158 in_157 0.0435f
-C309 out_41 in_42 0.01793f
-C310 in_22 in_21 0.0435f
-C311 out_206 in_207 0.01793f
-C312 wrom2_pinv_dec_3_9/w_692_n79# in_22 -0.00122f
-C313 in_181 vdd 0
-C314 in_73 vdd 0
-C315 in_6 out_6 0.01569f
-C316 out_34 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C317 in_34 in_33 0.0435f
-C318 in_119 in_118 0.0435f
-C319 out_31 out_32 0.12741f
-C320 in_222 vdd 0
-C321 out_122 in_123 0.01793f
-C322 in_180 in_181 0.0435f
-C323 in_8 in_7 0.0435f
-C324 in_135 vdd 0
-C325 in_115 vdd 0
-C326 in_72 out_72 0.01569f
-C327 out_54 out_55 0.12741f
-C328 out_18 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C329 in_148 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C330 out_167 vdd 0.0396f
-C331 wrom2_pinv_dec_3_9/w_692_n79# out_97 -0.02056f
-C332 in_189 out_188 0.01793f
-C333 out_233 out_234 0.12741f
-C334 in_200 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C335 in_82 in_81 0.0435f
-C336 out_127 out_126 0.12741f
-C337 in_106 in_107 0.0435f
-C338 in_85 vdd 0
-C339 wrom2_pinv_dec_3_9/w_692_n79# out_36 -0.02056f
-C340 wrom2_pinv_dec_3_9/w_692_n79# in_203 -0.00122f
-C341 out_178 vdd 0.0396f
-C342 wrom2_pinv_dec_3_9/w_692_n79# out_152 -0.02056f
-C343 wrom2_pinv_dec_3_9/w_692_n79# out_5 -0.02056f
-C344 out_107 out_108 0.12741f
-C345 in_47 in_48 0.0435f
-C346 in_3 out_3 0.01569f
-C347 in_217 out_216 0.01793f
-C348 in_192 out_191 0.01793f
-C349 out_192 in_193 0.01793f
-C350 out_161 in_161 0.01569f
-C351 in_136 out_136 0.01569f
-C352 out_47 in_47 0.01569f
-C353 in_43 out_42 0.01793f
-C354 out_34 out_33 0.12741f
-C355 in_36 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C356 out_229 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C357 out_143 vdd 0.0396f
-C358 out_17 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C359 in_171 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C360 out_22 out_21 0.12741f
-C361 out_60 in_61 0.01793f
-C362 out_179 out_180 0.12741f
-C363 out_170 vdd 0.0396f
-C364 out_3 vdd 0.0396f
-C365 out_229 in_229 0.01569f
-C366 wrom2_pinv_dec_3_9/w_692_n79# out_29 -0.01336f
-C367 in_159 vdd 0
-C368 out_26 vdd 0.0396f
-C369 wrom2_pinv_dec_3_9/w_692_n79# out_94 -0.02056f
-C370 in_54 in_53 0.0435f
-C371 out_234 out_235 0.12741f
-C372 in_77 vdd 0
-C373 in_40 in_39 0.0435f
-C374 in_20 vdd 0
-C375 out_190 in_190 0.01569f
-C376 in_126 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C377 out_77 vdd 0.0396f
-C378 out_75 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C379 out_19 vdd 0.0396f
-C380 in_127 in_128 0.0435f
-C381 in_17 in_18 0.0435f
-C382 wrom2_pinv_dec_3_9/w_692_n79# out_250 -0.02056f
-C383 in_231 out_230 0.01793f
-C384 out_49 in_50 0.01793f
-C385 out_176 in_177 0.01793f
-C386 out_156 out_155 0.12741f
-C387 wrom2_pinv_dec_3_9/w_692_n79# in_150 -0.00122f
-C388 in_122 in_123 0.0435f
-C389 vdd in_250 0
-C390 out_109 in_110 0.01793f
-C391 out_32 vdd 0.0396f
-C392 out_26 in_27 0.01793f
-C393 in_234 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C394 wrom2_pinv_dec_3_9/w_692_n79# in_57 -0.00122f
-C395 in_187 in_186 0.0435f
-C396 out_194 in_194 0.01569f
-C397 out_153 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C398 out_136 out_137 0.12741f
-C399 out_1 out_2 0.12741f
-C400 out_60 vdd 0.0396f
-C401 wrom2_pinv_dec_3_9/w_692_n79# in_58 -0.00122f
-C402 in_117 out_117 0.01569f
-C403 out_92 in_92 0.01569f
-C404 in_93 vdd 0
-C405 in_84 in_85 0.0435f
-C406 in_236 out_235 0.01793f
-C407 out_155 in_155 0.01569f
-C408 wrom2_pinv_dec_3_9/w_692_n79# in_119 -0.00122f
-C409 wrom2_pinv_dec_3_9/w_692_n79# out_108 -0.02056f
-C410 in_245 vdd 0
-C411 out_230 in_230 0.01569f
-C412 out_183 out_182 0.12741f
-C413 out_34 in_35 0.01793f
-C414 out_8 in_9 0.01793f
-C415 out_236 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C416 out_90 in_90 0.01569f
-C417 out_47 in_48 0.01793f
-C418 out_125 out_124 0.12741f
-C419 out_116 in_117 0.01793f
-C420 out_106 vdd 0.0396f
-C421 out_23 out_24 0.12741f
-C422 out_185 vdd 0.0396f
-C423 in_164 vdd 0
-C424 wrom2_pinv_dec_3_9/w_692_n79# out_14 -0.02056f
-C425 out_233 vdd 0.0396f
-C426 in_111 vdd 0
-C427 in_211 vdd 0
-C428 wrom2_pinv_dec_3_9/w_692_n79# out_242 -0.02056f
-C429 out_231 out_232 0.12741f
-C430 out_195 out_196 0.12741f
-C431 out_183 vdd 0.0396f
-C432 out_223 in_224 0.01793f
-C433 out_188 out_189 0.12741f
-C434 out_111 out_110 0.12741f
-C435 in_249 out_249 0.01569f
-C436 out_150 in_151 0.01793f
-C437 out_225 out_226 0.12741f
-C438 in_95 in_96 0.0435f
-C439 out_22 vdd 0.0396f
-C440 in_200 in_201 0.0435f
-C441 in_24 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C442 in_5 out_5 0.01569f
-C443 vdd out_217 0.0396f
-C444 in_198 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C445 wrom2_pinv_dec_3_9/w_692_n79# out_46 -0.02056f
-C446 in_37 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C447 out_167 out_166 0.12741f
-C448 in_66 vdd 0
-C449 in_36 in_35 0.0435f
-C450 wrom2_pinv_dec_3_9/w_692_n79# out_243 -0.02056f
-C451 in_215 vdd 0
-C452 out_69 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C453 wrom2_pinv_dec_3_9/w_692_n79# in_0 0.00183f
-C454 out_130 in_131 0.01793f
-C455 out_246 in_246 0.01569f
-C456 out_235 vdd 0.0396f
-C457 in_163 vdd 0
-C458 out_25 vdd 0.0396f
-C459 wrom2_pinv_dec_3_9/w_692_n79# out_6 -0.02056f
-C460 in_132 in_131 0.0435f
-C461 in_72 vdd 0
-C462 wrom2_pinv_dec_3_9/w_692_n79# in_68 -0.00122f
-C463 wrom2_pinv_dec_3_9/w_692_n79# out_68 -0.02056f
-C464 out_55 out_56 0.12741f
-C465 in_243 in_242 0.02819f
-C466 in_187 out_186 0.01793f
-C467 out_115 out_114 0.12741f
-C468 out_67 vdd 0.0396f
-C469 in_26 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C470 out_221 vdd 0.0396f
-C471 out_198 vdd 0.0396f
-C472 in_170 vdd 0
-C473 out_7 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C474 wrom2_pinv_dec_3_9/w_692_n79# out_245 -0.02056f
-C475 out_239 vdd 0.0396f
-C476 wrom2_pinv_dec_3_9/w_692_n79# out_216 -0.02056f
-C477 wrom2_pinv_dec_3_9/w_692_n79# out_73 -0.02056f
-C478 out_42 vdd 0.0396f
-C479 out_243 in_244 0.01793f
-C480 out_163 out_162 0.12741f
-C481 wrom2_pinv_dec_3_9/w_692_n79# in_120 -0.00122f
-C482 out_71 in_71 0.01569f
-C483 out_11 out_10 0.12741f
-C484 in_109 out_108 0.01793f
-C485 in_83 vdd 0
-C486 out_223 out_222 0.12741f
-C487 out_96 out_97 0.12741f
-C488 wrom2_pinv_dec_3_9/w_692_n79# out_135 -0.02056f
-C489 out_83 vdd 0.0396f
-C490 out_167 in_168 0.01793f
-C491 out_150 out_151 0.12741f
-C492 out_50 out_51 0.12741f
-C493 wrom2_pinv_dec_3_9/w_692_n79# in_238 -0.00122f
-C494 in_225 vdd 0
-C495 in_153 in_154 0.0435f
-C496 out_142 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C497 in_249 out_248 0.01793f
-C498 in_177 in_176 0.0435f
-C499 in_240 out_240 0.01569f
-C500 wrom2_pinv_dec_3_9/w_692_n79# out_230 -0.02056f
-C501 in_158 in_159 0.0435f
-C502 in_59 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C503 out_38 in_38 0.01569f
-C504 out_207 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C505 out_80 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C506 in_189 vdd 0
-C507 in_128 out_128 0.01569f
-C508 in_122 in_121 0.0435f
-C509 in_99 in_98 0.0435f
-C510 in_114 out_114 0.01569f
-C511 in_42 out_42 0.01569f
-C512 in_211 out_211 0.01569f
-C513 in_79 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C514 in_15 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C515 out_3 out_4 0.12741f
-C516 out_80 in_80 0.01569f
-C517 in_208 out_208 0.01569f
-C518 wrom2_pinv_dec_3_9/w_692_n79# out_59 -0.02056f
-C519 in_249 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C520 out_186 out_187 0.12741f
-C521 in_129 in_130 0.0435f
-C522 out_39 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C523 in_2 out_2 0.01569f
-C524 in_154 vdd 0
-C525 in_154 out_154 0.01569f
-C526 in_79 in_80 0.0435f
-C527 in_130 in_131 0.0435f
-C528 in_23 vdd 0
-C529 wrom2_pinv_dec_3_9/w_692_n79# in_96 -0.00122f
-C530 in_232 vdd 0
-C531 in_181 in_182 0.0435f
-C532 out_88 out_87 0.12741f
-C533 in_84 in_83 0.0435f
-C534 in_55 in_54 0.0435f
-C535 out_1 vdd 0.0396f
-C536 in_100 out_99 0.01793f
-C537 out_251 vdd 0.0396f
-C538 wrom2_pinv_dec_3_9/w_692_n79# in_172 -0.00122f
-C539 in_233 vdd 0
-C540 out_171 in_171 0.01569f
-C541 wrom2_pinv_dec_3_9/w_692_n79# out_162 -0.02056f
-C542 in_84 out_83 0.01793f
-C543 in_217 in_216 0.0435f
-C544 out_181 out_180 0.12741f
-C545 vdd in_140 0
-C546 in_40 vdd 0
-C547 out_254 in_254 0.01569f
-C548 out_110 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C549 out_254 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C550 in_248 vdd 0
-C551 in_220 in_221 0.0435f
-C552 out_90 out_91 0.12741f
-C553 in_82 vdd 0
-C554 wrom2_pinv_dec_3_9/w_692_n79# in_56 -0.00122f
-C555 out_11 out_12 0.12741f
-C556 out_209 out_210 0.12741f
-C557 wrom2_pinv_dec_3_9/w_692_n79# in_143 -0.00122f
-C558 in_218 out_218 0.01569f
-C559 out_136 vdd 0.0396f
-C560 out_165 vdd 0.0396f
-C561 in_87 in_86 0.0435f
-C562 out_210 vdd 0.0396f
-C563 wrom2_pinv_dec_3_9/w_692_n79# out_10 -0.02056f
-C564 out_70 in_70 0.01569f
-C565 out_246 out_247 0.12741f
-C566 in_129 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C567 wrom2_pinv_dec_3_9/w_692_n79# out_40 -0.02056f
-C568 wrom2_pinv_dec_3_9/w_692_n79# in_131 -0.00122f
-C569 out_82 vdd 0.0396f
-C570 out_45 in_45 0.01569f
-C571 out_242 out_241 0.12741f
-C572 in_241 vdd 0
-C573 in_215 out_215 0.01569f
-C574 in_87 out_87 0.01569f
-C575 vdd out_196 0.0396f
-C576 out_107 in_107 0.01569f
-C577 in_196 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C578 wrom2_pinv_dec_3_9/w_692_n79# in_53 -0.00122f
-C579 out_43 in_44 0.01793f
-C580 wrom2_pinv_dec_3_9/w_692_n79# in_49 -0.00122f
-C581 out_25 in_25 0.01569f
-C582 in_13 out_12 0.01793f
-C583 in_10 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C584 out_0 vdd 0.0396f
-C585 in_128 vdd 0
-C586 out_118 in_118 0.01569f
-C587 in_98 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C588 in_78 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C589 out_20 out_19 0.12741f
-C590 out_20 in_20 0.01569f
-C591 wrom2_pinv_dec_3_9/w_692_n79# in_18 -0.00122f
-C592 out_8 vdd 0.0396f
-C593 out_251 in_252 0.01793f
-C594 out_202 out_203 0.12741f
-C595 wrom2_pinv_dec_3_9/w_692_n79# in_207 -0.00122f
-C596 wrom2_pinv_dec_3_9/w_692_n79# in_71 -0.00122f
-C597 in_237 out_237 0.01569f
-C598 wrom2_pinv_dec_3_9/w_692_n79# in_51 -0.00122f
-C599 in_251 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C600 in_199 out_199 0.01569f
-C601 vdd out_189 0.0396f
-C602 out_148 vdd 0.0396f
-C603 out_112 out_113 0.12741f
-C604 in_242 wrom2_pinv_dec_3_9/w_692_n79# -0.00262f
-C605 in_239 in_238 0.0435f
-C606 vdd out_203 0.0396f
-C607 in_108 vdd 0
-C608 in_102 out_101 0.01793f
-C609 in_227 vdd 0
-C610 in_217 in_218 0.0435f
-C611 in_209 in_208 0.0435f
-C612 out_109 vdd 0.0396f
-C613 out_90 vdd 0.0396f
-C614 in_208 vdd 0
-C615 in_202 out_202 0.01569f
-C616 in_117 vdd 0
-C617 in_69 vdd 0
-C618 in_255 out_255 0.01569f
-C619 out_160 vdd 0.0396f
-C620 out_76 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C621 out_45 out_44 0.12741f
-C622 in_183 out_182 0.01793f
-C623 out_57 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C624 out_238 in_238 0.01569f
-C625 in_202 vdd 0
-C626 out_80 out_81 0.12741f
-C627 out_23 vdd 0.0396f
-C628 in_3 in_2 0.0435f
-C629 out_201 out_202 0.12741f
-C630 out_58 vdd 0.0396f
-C631 in_61 out_61 0.01569f
-C632 vdd out_180 0.0396f
-C633 out_100 out_101 0.12741f
-C634 wrom2_pinv_dec_3_9/w_692_n79# in_107 -0.00122f
-C635 out_174 out_175 0.12741f
-C636 in_126 out_125 0.01793f
-C637 wrom2_pinv_dec_3_9/w_692_n79# out_114 -0.02056f
-C638 vdd out_64 0.0396f
-C639 in_197 vdd 0
-C640 in_151 vdd 0
-C641 vdd out_113 0.0396f
-C642 in_65 in_66 0.0435f
-C643 wrom2_pinv_dec_3_9/w_692_n79# in_246 -0.00122f
-C644 out_201 vdd 0.0396f
-C645 out_172 in_172 0.01569f
-C646 in_180 out_180 0.01569f
-C647 vdd in_133 0
-C648 out_139 in_139 0.01569f
-C649 out_120 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C650 in_64 vdd 0
-C651 in_196 in_195 0.0435f
-C652 out_184 in_185 0.01793f
-C653 in_183 vdd 0
-C654 in_34 vdd 0
-C655 in_2 vdd 0
-C656 out_227 out_226 0.12741f
-C657 out_210 out_211 0.12741f
-C658 out_41 out_42 0.12741f
-C659 out_14 out_13 0.12741f
-C660 wrom2_pinv_dec_3_9/w_692_n79# out_12 -0.02056f
-C661 wrom2_pinv_dec_3_9/w_692_n79# in_216 -0.00122f
-C662 out_124 vdd 0.0396f
-C663 wrom2_pinv_dec_3_9/w_692_n79# out_101 -0.02056f
-C664 out_244 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C665 out_200 out_201 0.12741f
-C666 out_55 vdd 0.0396f
-C667 out_198 out_197 0.12741f
-C668 out_93 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C669 in_162 out_162 0.01569f
-C670 in_31 out_31 0.01569f
-C671 vdd out_61 0.0396f
-C672 out_96 in_96 0.01569f
-C673 out_255 vdd 0
-C674 in_88 out_88 0.01569f
-C675 in_76 out_75 0.01793f
-C676 out_176 vdd 0.0396f
-C677 out_158 vdd 0.0396f
-C678 out_92 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C679 out_161 vdd 0.0396f
-C680 in_126 in_127 0.0435f
-C681 in_77 out_77 0.01569f
-C682 out_50 vdd 0.0396f
-C683 out_19 in_20 0.01793f
-C684 out_244 in_244 0.01569f
-C685 in_144 out_144 0.01569f
-C686 out_88 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C687 out_52 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C688 out_17 out_16 0.12741f
-C689 wrom2_pinv_dec_3_9/w_692_n79# out_118 -0.02056f
-C690 out_15 out_14 0.12741f
-C691 out_165 out_166 0.12741f
-C692 out_150 in_150 0.01569f
-C693 out_194 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C694 in_144 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C695 in_63 out_62 0.01793f
-C696 in_41 vdd 0
-C697 vdd out_232 0.0396f
-C698 out_45 vdd 0.0396f
-C699 in_72 in_73 0.0435f
-C700 in_62 out_61 0.01793f
-C701 out_151 vdd 0.0396f
-C702 in_60 in_61 0.0435f
-C703 wrom2_pinv_dec_3_9/w_692_n79# in_224 -0.00122f
-C704 in_228 vdd 0
-C705 vdd in_94 0
-C706 out_78 in_79 0.01793f
-C707 out_56 in_57 0.01793f
-C708 out_204 out_203 0.12741f
-C709 out_124 in_125 0.01793f
-C710 in_222 out_221 0.01793f
-C711 in_120 in_121 0.0435f
-C712 out_171 in_172 0.01793f
-C713 in_134 vdd 0
-C714 out_119 vdd 0.0396f
-C715 wrom2_pinv_dec_3_9/w_692_n79# in_188 -0.00122f
-C716 out_122 vdd 0.0396f
-C717 in_226 out_226 0.01569f
-C718 wrom2_pinv_dec_3_9/w_692_n79# out_155 -0.02056f
-C719 in_100 in_99 0.0435f
-C720 wrom2_pinv_dec_3_9/w_692_n79# out_121 -0.02056f
-C721 in_88 in_87 0.0435f
-C722 in_247 in_246 0.0435f
-C723 in_24 out_24 0.01569f
-C724 in_87 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C725 in_60 vdd 0
-C726 in_41 in_42 0.0435f
-C727 wrom2_pinv_dec_3_9/w_692_n79# in_218 -0.00122f
-C728 out_8 in_8 0.01569f
-C729 in_199 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C730 in_31 vdd 0
-C731 out_212 out_213 0.12741f
-C732 in_186 vdd 0
-C733 out_191 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C734 vdd out_175 0.0396f
-C735 in_97 out_97 0.01569f
-C736 in_55 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C737 out_248 out_247 0.12741f
-C738 in_148 in_147 0.0435f
-C739 wrom2_pinv_dec_3_9/w_692_n79# out_222 -0.02056f
-C740 in_212 vdd 0
-C741 wrom2_pinv_dec_3_9/w_692_n79# out_43 -0.02056f
-C742 out_231 out_230 0.12741f
-C743 in_101 vdd 0
-C744 out_70 out_71 0.12741f
-C745 out_26 out_25 0.12741f
-C746 out_21 in_22 0.01793f
-C747 out_194 in_195 0.01793f
-C748 wrom2_pinv_dec_3_9/w_692_n79# in_46 -0.00122f
-C749 out_170 in_170 0.01569f
-C750 out_84 vdd 0.0396f
-C751 wrom2_pinv_dec_3_9/w_692_n79# out_226 -0.02056f
-C752 in_219 vdd 0
-C753 out_63 out_62 0.12741f
-C754 in_242 out_241 0.01793f
-C755 out_157 vdd 0.0396f
-C756 wrom2_pinv_dec_3_9/w_692_n79# in_32 -0.00122f
-C757 in_38 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C758 wrom2_pinv_dec_3_9/w_692_n79# in_221 -0.00122f
-C759 wrom2_pinv_dec_3_9/w_692_n79# out_247 -0.02056f
-C760 wrom2_pinv_dec_3_9/w_692_n79# out_35 -0.02056f
-C761 in_149 vdd 0
-C762 out_123 in_124 0.01793f
-C763 in_122 vdd 0
-C764 in_19 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C765 in_15 out_15 0.01569f
-C766 in_240 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C767 out_197 out_196 0.12741f
-C768 out_126 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C769 in_91 in_92 0.0435f
-C770 out_220 in_221 0.01793f
-C771 vdd in_176 0
-C772 in_163 in_164 0.0435f
-C773 in_136 out_135 0.01793f
-C774 in_78 out_78 0.01569f
-C775 in_223 in_224 0.0435f
-C776 in_206 vdd 0
-C777 in_185 vdd 0
-C778 in_100 out_100 0.01569f
-C779 out_63 in_63 0.01569f
-C780 out_190 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C781 out_74 vdd 0.0396f
-C782 out_89 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C783 wrom2_pinv_dec_3_9/w_692_n79# out_212 -0.02056f
-C784 out_149 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C785 vdd out_145 0.0396f
-C786 out_80 in_81 0.01793f
-C787 vdd in_204 0
-C788 in_158 out_158 0.01569f
-C789 out_127 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C790 out_212 in_213 0.01793f
-C791 out_186 vdd 0.0396f
-C792 out_159 in_160 0.01793f
-C793 in_214 vdd 0
-C794 wrom2_pinv_dec_3_9/w_692_n79# out_139 -0.02056f
-C795 in_100 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C796 out_50 out_49 0.12726f
-C797 in_84 out_84 0.01569f
-C798 in_145 vdd 0
-C799 out_177 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C800 out_66 vdd 0.0396f
-C801 out_234 in_234 0.01569f
-C802 out_105 in_106 0.01793f
-C803 vdd in_22 0
-C804 wrom2_pinv_dec_3_9/w_692_n79# in_190 -0.00122f
-C805 out_34 vdd 0.0396f
-C806 in_166 in_167 0.0435f
-C807 in_153 out_152 0.01793f
-C808 in_110 out_110 0.01569f
-C809 in_237 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C810 wrom2_pinv_dec_3_9/w_692_n79# in_235 -0.00122f
-C811 in_223 out_222 0.01793f
-C812 in_212 out_211 0.01793f
-C813 out_164 in_165 0.01793f
-C814 out_48 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C815 in_152 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C816 out_18 vdd 0.0396f
-C817 in_219 out_219 0.01569f
-C818 in_197 out_197 0.01569f
-C819 in_148 vdd 0
-C820 in_65 out_64 0.01793f
-C821 out_202 in_203 0.01793f
-C822 vdd out_97 0.0396f
-C823 in_247 out_247 0.01569f
-C824 out_205 in_205 0.01569f
-C825 in_142 out_142 0.01569f
-C826 out_72 out_73 0.12741f
-C827 out_50 in_50 0.01569f
-C828 in_65 in_64 0.0435f
-C829 in_200 vdd 0
-C830 in_146 out_145 0.01793f
-C831 in_192 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C832 out_133 in_133 0.01569f
-C833 wrom2_pinv_dec_3_9/w_692_n79# in_205 -0.00122f
-C834 in_203 vdd 0
-C835 out_36 vdd 0.0396f
-C836 out_152 vdd 0.0396f
-C837 out_5 vdd 0.0396f
-C838 in_35 out_35 0.01569f
-C839 out_200 in_200 0.01569f
-C840 out_157 in_157 0.01569f
-C841 out_39 in_39 0.01569f
-C842 out_139 out_140 0.12741f
-C843 wrom2_pinv_dec_3_9/w_692_n79# out_147 -0.02056f
-C844 in_146 in_145 0.0435f
-C845 out_236 in_236 0.01569f
-C846 in_183 in_182 0.0435f
-C847 in_56 out_56 0.01569f
-C848 out_229 vdd 0.0396f
-C849 out_85 in_86 0.01793f
-C850 in_36 vdd 0
-C851 in_181 out_180 0.01793f
-C852 in_171 vdd 0
-C853 in_99 out_99 0.01569f
-C854 out_98 out_97 0.12741f
-C855 out_70 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C856 out_17 vdd 0.0396f
-C857 wrom2_pinv_dec_3_9/w_692_n79# in_167 -0.00122f
-C858 out_233 in_233 0.01569f
-C859 out_225 in_226 0.01793f
-C860 out_153 in_153 0.01569f
-C861 in_41 out_41 0.01569f
-C862 in_188 in_187 0.0435f
-C863 in_83 out_83 0.01569f
-C864 vdd out_29 0.01143f
-C865 out_253 in_253 0.01569f
-C866 in_158 out_157 0.01793f
-C867 out_120 in_121 0.01793f
-C868 out_94 vdd 0.0396f
-C869 in_23 out_22 0.01793f
-C870 in_126 vdd 0
-C871 out_75 vdd 0.0396f
-C872 out_28 in_29 0.01793f
-C873 out_250 vdd 0.0396f
-C874 out_204 in_204 0.01569f
-C875 wrom2_pinv_dec_3_9/w_692_n79# out_141 -0.02056f
-C876 in_224 out_224 0.01569f
-C877 in_150 vdd 0
-C878 out_13 out_12 0.12741f
-C879 out_253 in_254 0.01793f
-C880 in_165 in_166 0.0435f
-C881 out_253 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C882 in_240 in_239 0.0435f
-C883 in_234 vdd 0
-C884 in_57 vdd 0
-C885 wrom2_pinv_dec_3_9/w_692_n79# out_156 -0.02056f
-C886 out_153 vdd 0.0396f
-C887 out_153 out_154 0.12741f
-C888 out_207 out_208 0.12741f
-C889 in_58 vdd 0
-C890 in_10 in_9 0.0435f
-C891 in_211 out_210 0.01793f
-C892 in_142 in_143 0.0435f
-C893 wrom2_pinv_dec_3_9/w_692_n79# out_9 -0.02056f
-C894 in_134 out_133 0.01793f
-C895 in_119 vdd 0
-C896 vdd out_108 0.0396f
-C897 out_74 in_75 0.01793f
-C898 in_55 out_54 0.01793f
-C899 out_236 vdd 0.0396f
-C900 out_225 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C901 in_76 out_76 0.01569f
-C902 wrom2_pinv_dec_3_9/w_692_n79# out_103 -0.02056f
-C903 wrom2_pinv_dec_3_9/w_692_n79# in_155 -0.00122f
-C904 in_141 out_141 0.01569f
-C905 out_51 in_51 0.01569f
-C906 out_14 vdd 0.0396f
-C907 out_102 out_101 0.12741f
-C908 in_97 in_96 0.0435f
-C909 in_14 out_14 0.01569f
-C910 in_33 in_32 0.0435f
-C911 in_188 out_187 0.01793f
-C912 in_126 in_125 0.0435f
-C913 vdd out_242 0.0396f
-C914 out_206 out_205 0.12741f
-C915 out_173 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C916 wrom2_pinv_dec_3_9/w_692_n79# in_70 -0.00122f
-C917 out_134 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C918 in_30 in_31 0.0435f
-C919 in_196 out_195 0.01793f
-C920 in_173 in_172 0.0435f
-C921 wrom2_pinv_dec_3_9/w_692_n79# in_165 -0.00122f
-C922 wrom2_pinv_dec_3_9/w_692_n79# in_106 -0.00122f
-C923 out_57 out_56 0.12741f
-C924 out_99 out_100 0.12741f
-C925 out_206 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C926 wrom2_pinv_dec_3_9/w_692_n79# in_194 -0.00122f
-C927 out_146 out_145 0.12741f
-C928 out_95 out_94 0.12741f
-C929 out_140 out_141 0.12741f
-C930 wrom2_pinv_dec_3_9/w_692_n79# out_62 -0.02056f
-C931 in_82 in_83 0.0435f
-C932 out_37 out_36 0.12741f
-C933 in_24 vdd 0
-C934 in_198 vdd 0
-C935 out_240 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C936 out_27 out_28 0.12741f
-C937 in_134 in_135 0.0435f
-C938 vdd out_46 0.0396f
-C939 in_37 vdd 0
-C940 out_121 in_121 0.01569f
-C941 in_11 out_10 0.01793f
-C942 out_243 vdd 0.0396f
-C943 out_99 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C944 wrom2_pinv_dec_3_9/w_692_n79# in_92 -0.00122f
-C945 out_69 vdd 0.0396f
-C946 vdd in_0 0
-C947 out_6 vdd 0.0396f
-C948 out_223 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C949 out_158 in_159 0.01793f
-C950 out_118 out_117 0.12741f
-C951 out_68 vdd 0.0396f
-C952 in_68 vdd 0
-C953 out_38 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C954 out_82 in_83 0.01793f
-C955 in_26 vdd 0
-C956 out_7 vdd 0.0396f
-C957 out_245 vdd 0.0396f
-C958 out_216 vdd 0.0396f
-C959 out_73 vdd 0.0396f
-C960 wrom2_pinv_dec_3_9/w_692_n79# in_63 -0.00122f
-C961 in_10 in_11 0.0435f
-C962 in_120 vdd 0
-C963 out_82 out_83 0.12741f
-C964 out_60 out_61 0.12741f
-C965 in_233 in_232 0.0435f
-C966 out_135 vdd 0.0396f
-C967 in_26 in_27 0.0435f
-C968 out_23 out_22 0.12741f
-C969 in_129 out_128 0.01793f
-C970 wrom2_pinv_dec_3_9/w_692_n79# in_124 -0.00122f
-C971 vdd in_238 0
-C972 in_97 in_98 0.0435f
-C973 out_52 out_51 0.12741f
-C974 in_183 out_183 0.01569f
-C975 out_142 vdd 0.0396f
-C976 out_5 out_4 0.12741f
-C977 wrom2_pinv_dec_3_9/w_692_n79# out_237 -0.02056f
-C978 out_230 vdd 0.0396f
-C979 in_59 vdd 0
-C980 out_254 in_255 0.01793f
-C981 out_207 vdd 0.0396f
-C982 in_194 in_195 0.0435f
-C983 out_80 vdd 0.0396f
-C984 out_194 out_193 0.12741f
-C985 in_75 out_75 0.01569f
-C986 wrom2_pinv_dec_3_9/w_692_n79# in_160 -0.00122f
-C987 out_28 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C988 in_1 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C989 out_123 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C990 out_84 in_85 0.01793f
-C991 in_79 vdd 0
-C992 in_93 in_94 0.0435f
-C993 wrom2_pinv_dec_3_9/w_692_n79# in_17 -0.00122f
-C994 in_15 vdd 0
-C995 in_54 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C996 in_231 in_230 0.0435f
-C997 in_189 out_189 0.01569f
-C998 out_159 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C999 vdd out_59 0.0396f
-C1000 in_249 vdd 0
-C1001 wrom2_pinv_dec_3_9/w_692_n79# in_220 -0.00122f
-C1002 out_39 vdd 0.0396f
-C1003 in_15 in_14 0.0435f
-C1004 out_233 out_232 0.12741f
-C1005 wrom2_pinv_dec_3_9/w_692_n79# in_184 -0.00122f
-C1006 out_138 out_139 0.12741f
-C1007 out_177 in_177 0.01569f
-C1008 out_115 in_116 0.01793f
-C1009 vdd in_96 0
-C1010 wrom2_pinv_dec_3_9/w_692_n79# out_85 -0.02056f
-C1011 out_194 out_195 0.12741f
-C1012 out_0 out_1 0.12741f
-C1013 out_246 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1014 out_227 out_228 0.12741f
-C1015 out_126 out_125 0.12741f
-C1016 vdd in_172 0
-C1017 vdd out_162 0.0396f
-C1018 wrom2_pinv_dec_3_9/w_692_n79# out_63 -0.02056f
-C1019 out_60 in_60 0.01569f
-C1020 out_177 in_178 0.01793f
-C1021 out_173 out_172 0.12741f
-C1022 in_15 in_16 0.0435f
-C1023 out_220 in_220 0.01569f
-C1024 in_188 out_188 0.01569f
-C1025 wrom2_pinv_dec_3_9/w_692_n79# in_175 -0.00122f
-C1026 in_67 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1027 out_37 in_37 0.01569f
-C1028 out_130 in_130 0.01569f
-C1029 out_115 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1030 in_82 out_82 0.01569f
-C1031 in_223 out_223 0.01569f
-C1032 out_110 vdd 0.0396f
-C1033 out_254 vdd 0.0396f
-C1034 in_91 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1035 wrom2_pinv_dec_3_9/w_692_n79# in_74 -0.00122f
-C1036 out_164 out_163 0.12741f
-C1037 out_253 out_252 0.12741f
-C1038 wrom2_pinv_dec_3_9/w_692_n79# out_218 -0.02056f
-C1039 in_143 vdd 0
-C1040 in_56 vdd 0
-C1041 in_47 out_46 0.01793f
-C1042 out_185 in_186 0.01793f
-C1043 out_30 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1044 wrom2_pinv_dec_3_9/w_692_n79# in_86 -0.00122f
-C1045 in_7 out_6 0.01793f
-C1046 in_127 out_126 0.01793f
-C1047 in_23 out_23 0.01569f
-C1048 wrom2_pinv_dec_3_9/w_692_n79# in_139 -0.00122f
-C1049 in_52 in_53 0.0435f
-C1050 out_10 vdd 0.0396f
-C1051 in_88 out_87 0.01793f
-C1052 wrom2_pinv_dec_3_9/w_692_n79# in_44 -0.00122f
-C1053 in_129 vdd 0
-C1054 in_106 in_105 0.0435f
-C1055 vdd out_40 0.0396f
-C1056 in_30 out_29 0.00235f
-C1057 in_211 in_212 0.0435f
-C1058 wrom2_pinv_dec_3_9/w_692_n79# in_179 -0.00122f
-C1059 in_24 in_25 0.0435f
-C1060 in_131 vdd 0
-C1061 wrom2_pinv_dec_3_9/w_692_n79# out_87 -0.02056f
-C1062 out_7 in_7 0.01569f
-C1063 in_243 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1064 out_89 in_90 0.01793f
-C1065 in_53 vdd 0
-C1066 in_6 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1067 in_196 vdd 0
-C1068 out_149 out_150 0.12741f
-C1069 in_127 out_127 0.01569f
-C1070 out_95 in_96 0.01793f
-C1071 in_52 in_51 0.0435f
-C1072 in_114 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1073 in_49 vdd 0
-C1074 in_10 vdd 0
-C1075 in_2 out_1 0.01793f
-C1076 in_98 vdd 0
-C1077 out_80 out_79 0.12741f
-C1078 in_78 vdd 0
-C1079 in_38 in_39 0.0435f
-C1080 vdd in_18 0
-C1081 out_240 out_241 0.12741f
-C1082 out_216 out_215 0.12741f
-C1083 out_199 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1084 wrom2_pinv_dec_3_9/w_692_n79# in_29 -0.00122f
-C1085 in_243 in_244 0.0435f
-C1086 in_207 vdd 0
-C1087 out_71 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1088 vdd in_71 0
-C1089 in_26 in_25 0.0435f
-C1090 in_8 out_7 0.01793f
-C1091 out_130 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1092 in_79 out_79 0.01569f
-C1093 vdd in_51 0
-C1094 in_251 vdd 0
-C1095 out_225 out_224 0.12741f
-C1096 wrom2_pinv_dec_3_9/w_692_n79# in_132 -0.00122f
-C1097 in_123 in_124 0.0435f
-C1098 in_242 vdd 0
-C1099 out_105 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1100 out_92 out_91 0.12741f
-C1101 in_231 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1102 out_111 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1103 in_217 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1104 out_185 in_185 0.01569f
-C1105 wrom2_pinv_dec_3_9/w_692_n79# out_169 -0.02056f
-C1106 out_246 in_247 0.01793f
-C1107 out_213 out_214 0.12741f
-C1108 out_47 out_46 0.12741f
-C1109 out_249 out_248 0.12741f
-C1110 out_164 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1111 in_98 out_98 0.01569f
-C1112 wrom2_pinv_dec_3_9/w_692_n79# out_227 -0.02056f
-C1113 out_123 in_123 0.01569f
-C1114 out_18 out_19 0.12741f
-C1115 out_76 vdd 0.0396f
-C1116 in_232 out_232 0.01569f
-C1117 out_185 out_186 0.12741f
-C1118 wrom2_pinv_dec_3_9/w_692_n79# out_11 -0.02056f
-C1119 out_57 vdd 0.0396f
-C1120 wrom2_pinv_dec_3_9/w_692_n79# in_230 -0.00122f
-C1121 wrom2_pinv_dec_3_9/w_692_n79# out_228 -0.02056f
-C1122 in_43 out_43 0.01569f
-C1123 out_237 out_238 0.12741f
-C1124 in_198 out_197 0.01793f
-C1125 in_99 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1126 wrom2_pinv_dec_3_9/w_692_n79# in_118 -0.00122f
-C1127 in_107 vdd 0
-C1128 in_95 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1129 in_45 in_46 0.0435f
-C1130 out_249 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1131 in_233 out_232 0.01793f
-C1132 in_229 in_230 0.0435f
-C1133 in_197 out_196 0.01793f
-C1134 vdd out_114 0.0396f
-C1135 in_229 out_228 0.01793f
-C1136 in_41 in_40 0.0435f
-C1137 vdd in_246 0
-C1138 out_191 in_191 0.01569f
-C1139 out_88 in_89 0.01793f
-C1140 in_171 out_170 0.01793f
-C1141 wrom2_pinv_dec_3_9/w_692_n79# in_137 -0.00122f
-C1142 out_120 vdd 0.0396f
-C1143 out_84 out_83 0.12741f
-C1144 out_223 out_224 0.12741f
-C1145 in_131 out_131 0.01569f
-C1146 vdd in_216 0
-C1147 out_65 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1148 out_12 vdd 0.0396f
-C1149 out_244 vdd 0.0396f
-C1150 vdd out_101 0.0396f
-C1151 out_163 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1152 out_132 in_132 0.01569f
-C1153 out_93 vdd 0.0396f
-C1154 out_52 in_52 0.01569f
-C1155 out_27 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1156 wrom2_pinv_dec_3_9/w_692_n79# in_13 -0.00122f
-C1157 in_251 in_252 0.0435f
-C1158 wrom2_pinv_dec_3_9/w_692_n79# out_213 -0.02056f
-C1159 in_53 out_53 0.01569f
-C1160 in_213 out_213 0.01569f
-C1161 in_214 in_215 0.0435f
-C1162 in_130 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1163 out_22 in_22 0.01569f
-C1164 out_107 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1165 out_92 vdd 0.0396f
-C1166 in_66 out_66 0.01569f
-C1167 in_113 in_114 0.0435f
-C1168 wrom2_pinv_dec_3_9/w_692_n79# out_214 -0.02056f
-C1169 out_118 vdd 0.0396f
-C1170 out_88 vdd 0.0396f
-C1171 out_52 vdd 0.0396f
-C1172 out_43 out_44 0.12741f
-C1173 in_6 in_5 0.0435f
-C1174 wrom2_pinv_dec_3_9/w_692_n79# in_166 -0.00122f
-C1175 out_102 out_103 0.12741f
-C1176 in_102 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1177 wrom2_pinv_dec_3_9/w_692_n79# in_226 -0.00122f
-C1178 out_194 vdd 0.0396f
-C1179 in_144 vdd 0
-C1180 out_66 out_67 0.12741f
-C1181 out_31 in_32 0.01793f
-C1182 out_250 in_250 0.01569f
-C1183 out_201 in_202 0.01793f
-C1184 in_156 out_155 0.01793f
-C1185 in_54 out_54 0.01569f
-C1186 in_160 in_161 0.0435f
-C1187 in_224 vdd 0
-C1188 out_190 in_191 0.01793f
-C1189 wrom2_pinv_dec_3_9/w_692_n79# out_248 -0.02056f
-C1190 in_73 out_73 0.01569f
-C1191 in_64 out_64 0.01569f
-C1192 in_116 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1193 wrom2_pinv_dec_3_9/w_692_n79# in_253 -0.00122f
-C1194 in_254 in_253 0.0435f
-C1195 wrom2_pinv_dec_3_9/w_692_n79# out_100 -0.02056f
-C1196 out_127 out_128 0.12741f
-C1197 in_188 vdd 0
-C1198 out_161 out_160 0.12741f
-C1199 out_155 out_154 0.12741f
-C1200 out_155 vdd 0.0396f
-C1201 wrom2_pinv_dec_3_9/w_692_n79# out_144 -0.02056f
-C1202 out_205 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1203 in_88 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1204 out_9 in_9 0.01569f
-C1205 out_121 vdd 0.0396f
-C1206 out_49 in_49 0.01569f
-C1207 in_254 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1208 wrom2_pinv_dec_3_9/w_692_n79# in_21 -0.00122f
-C1209 in_135 out_135 0.01569f
-C1210 out_233 in_234 0.01793f
-C1211 in_227 in_228 0.0435f
-C1212 in_218 vdd 0
-C1213 in_87 vdd 0
-C1214 wrom2_pinv_dec_3_9/w_692_n79# in_213 -0.00122f
-C1215 in_199 vdd 0
-C1216 in_190 in_191 0.0435f
-C1217 out_129 in_129 0.01569f
-C1218 wrom2_pinv_dec_3_9/w_692_n79# in_229 -0.00122f
-C1219 in_142 out_141 0.01793f
-C1220 out_191 vdd 0.0396f
-C1221 wrom2_pinv_dec_3_9/w_692_n79# in_80 -0.00122f
-C1222 in_55 vdd 0
-C1223 out_222 vdd 0.0396f
-C1224 out_43 vdd 0.0396f
-C1225 wrom2_pinv_dec_3_9/w_692_n79# in_244 -0.00122f
-C1226 out_220 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1227 out_105 in_105 0.01569f
-C1228 in_171 in_170 0.0435f
-C1229 in_49 in_48 0.0435f
-C1230 vdd in_46 0
-C1231 out_234 in_235 0.01793f
-C1232 in_151 out_151 0.01569f
-C1233 in_23 in_22 0.0435f
-C1234 vdd out_226 0.0396f
-C1235 wrom2_pinv_dec_3_9/w_692_n79# in_141 -0.00122f
-C1236 out_26 in_26 0.01569f
-C1237 vdd in_32 0
-C1238 out_52 out_53 0.12741f
-C1239 in_49 in_50 0.0435f
-C1240 in_38 vdd 0
-C1241 vdd in_221 0
-C1242 in_194 out_193 0.01793f
-C1243 in_192 in_191 0.0435f
-C1244 out_41 out_40 0.12741f
-C1245 out_247 vdd 0.0396f
-C1246 in_89 out_89 0.01569f
-C1247 out_169 out_168 0.12741f
-C1248 wrom2_pinv_dec_3_9/w_692_n79# out_33 -0.02056f
-C1249 in_147 out_147 0.01569f
-C1250 in_134 in_133 0.0435f
-C1251 in_50 in_51 0.0435f
-C1252 vdd out_35 0.0396f
-C1253 out_142 out_143 0.12741f
-C1254 in_19 vdd 0
-C1255 in_240 vdd 0
-C1256 out_126 vdd 0.0396f
-C1257 in_237 in_236 0.0435f
-C1258 in_236 in_235 0.0435f
-C1259 wrom2_pinv_dec_3_9/w_692_n79# out_140 -0.02056f
-C1260 out_236 out_235 0.12741f
-C1261 in_216 out_215 0.01793f
-C1262 out_132 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1263 wrom2_pinv_dec_3_9/w_692_n79# in_195 -0.00122f
-C1264 out_190 vdd 0.0396f
-C1265 in_245 out_245 0.01569f
-C1266 in_149 out_148 0.01793f
-C1267 out_89 vdd 0.0396f
-C1268 in_109 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1269 out_212 vdd 0.0396f
-C1270 out_149 vdd 0.0396f
-C1271 out_138 in_139 0.01793f
-C1272 out_127 vdd 0.0396f
-C1273 out_38 in_39 0.01793f
-C1274 in_247 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1275 out_139 vdd 0.0396f
-C1276 in_153 in_152 0.0435f
-C1277 in_100 vdd 0
-C1278 in_178 in_179 0.0435f
-C1279 in_141 out_140 0.01793f
-C1280 in_113 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1281 in_223 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1282 out_177 vdd 0.0396f
-C1283 wrom2_pinv_dec_3_9/w_692_n79# in_35 -0.00122f
-C1284 out_179 in_179 0.01569f
-C1285 in_169 out_169 0.01569f
-C1286 in_204 out_203 0.01793f
-C1287 in_190 vdd 0
-C1288 in_5 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1289 out_176 out_175 0.12741f
-C1290 in_249 in_250 0.0435f
-C1291 in_201 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1292 in_17 out_16 0.01793f
-C1293 in_237 vdd 0
-C1294 out_216 out_217 0.12741f
-C1295 in_198 out_198 0.01569f
-C1296 out_192 out_191 0.12741f
-C1297 in_173 out_173 0.01569f
-C1298 in_235 vdd 0
-C1299 out_60 out_59 0.12741f
-C1300 out_48 vdd 0.0396f
-C1301 in_12 out_12 0.01569f
-C1302 in_152 vdd 0
-C1303 out_172 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1304 out_153 in_154 0.01793f
-C1305 out_251 out_250 0.12741f
-C1306 out_173 out_174 0.12741f
-C1307 in_26 out_25 0.01793f
-C1308 out_143 in_143 0.01569f
-C1309 wrom2_pinv_dec_3_9/w_692_n79# in_123 -0.00122f
-C1310 out_116 out_115 0.12741f
-C1311 in_68 out_67 0.01793f
-C1312 out_158 out_157 0.12741f
-C1313 out_104 out_103 0.12741f
-C1314 out_68 out_67 0.12741f
-C1315 in_239 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1316 in_91 in_90 0.0435f
-C1317 in_234 in_233 0.0435f
-C1318 in_192 vdd 0
-C1319 in_205 vdd 0
-C1320 wrom2_pinv_dec_3_9/w_692_n79# in_162 -0.00122f
-C1321 in_148 out_148 0.01569f
-C1322 out_81 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1323 in_38 out_37 0.01793f
-C1324 in_231 out_231 0.01569f
-C1325 in_47 in_46 0.0435f
-C1326 vdd out_147 0.0396f
-C1327 in_103 out_103 0.01569f
-C1328 wrom2_pinv_dec_3_9/w_692_n79# out_238 -0.02056f
-C1329 out_176 in_176 0.01569f
-C1330 wrom2_pinv_dec_3_9/w_692_n79# in_105 -0.00122f
-C1331 in_167 vdd 0
-C1332 out_96 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1333 out_70 vdd 0.0396f
-C1334 out_252 in_253 0.01793f
-C1335 wrom2_pinv_dec_3_9/w_692_n79# out_241 -0.02056f
-C1336 in_203 out_203 0.01569f
-C1337 in_156 out_156 0.01569f
-C1338 wrom2_pinv_dec_3_9/w_692_n79# out_168 -0.02056f
-C1339 out_211 out_212 0.12741f
-C1340 in_23 in_24 0.0435f
-C1341 out_110 in_111 0.01793f
-C1342 out_86 in_87 0.01793f
-C1343 in_138 in_139 0.0435f
-C1344 in_115 out_114 0.01793f
-C1345 in_78 in_77 0.0435f
-C1346 out_34 in_34 0.01569f
-C1347 wrom2_pinv_dec_3_9/w_692_n79# in_187 -0.00122f
-C1348 vdd out_141 0.0396f
-C1349 in_78 out_77 0.01793f
-C1350 wrom2_pinv_dec_3_9/w_692_n79# out_252 -0.02056f
-C1351 out_184 in_184 0.01569f
-C1352 out_91 in_92 0.01793f
-C1353 out_253 vdd 0.0396f
-C1354 wrom2_pinv_dec_3_9/w_692_n79# in_33 -0.00122f
-C1355 in_210 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1356 in_202 in_203 0.0435f
-C1357 out_171 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1358 in_156 in_155 0.0435f
-C1359 in_13 out_13 0.01569f
-C1360 out_156 vdd 0.0396f
-C1361 in_122 out_122 0.01569f
-C1362 out_54 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1363 out_9 vdd 0.0396f
-C1364 in_251 in_250 0.0435f
-C1365 in_163 out_162 0.01793f
-C1366 wrom2_pinv_dec_3_9/w_692_n79# in_161 -0.00122f
-C1367 out_225 vdd 0.0396f
-C1368 out_78 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1369 wrom2_pinv_dec_3_9/w_692_n79# out_224 -0.02056f
-C1370 vdd out_103 0.0396f
-C1371 out_154 in_155 0.01793f
-C1372 vdd in_155 0
-C1373 in_77 out_76 0.01793f
-C1374 out_76 out_77 0.12741f
-C1375 out_117 in_118 0.01793f
-C1376 in_169 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1377 in_186 in_185 0.0435f
-C1378 out_175 in_176 0.01793f
-C1379 out_173 vdd 0.0396f
-C1380 in_70 vdd 0
-C1381 in_108 out_108 0.01569f
-C1382 in_165 vdd 0
-C1383 out_134 vdd 0.0396f
-C1384 in_106 vdd 0
-C1385 out_109 out_108 0.12741f
-C1386 out_33 in_33 0.01569f
-C1387 out_206 vdd 0.0396f
-C1388 out_204 in_205 0.01793f
-C1389 in_194 vdd 0
-C1390 in_192 out_192 0.01569f
-C1391 in_174 out_173 0.01793f
-C1392 wrom2_pinv_dec_3_9/w_692_n79# out_187 -0.02056f
-C1393 wrom2_pinv_dec_3_9/w_692_n79# in_177 -0.00122f
-C1394 out_62 vdd 0.0396f
-C1395 out_240 vdd 0.0396f
-C1396 out_186 in_186 0.01569f
-C1397 in_150 in_151 0.0435f
-C1398 out_138 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1399 in_102 out_102 0.01569f
-C1400 out_58 in_58 0.01569f
-C1401 in_175 out_174 0.01793f
-C1402 in_136 in_137 0.0435f
-C1403 in_178 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1404 out_136 out_135 0.12741f
-C1405 wrom2_pinv_dec_3_9/w_692_n79# in_121 -0.00122f
-C1406 out_99 vdd 0.0396f
-C1407 in_92 vdd 0
-C1408 in_104 out_103 0.01793f
-C1409 out_0 in_0 0.01569f
-C1410 out_152 out_151 0.12741f
-C1411 out_48 out_49 0.12741f
-C1412 wrom2_pinv_dec_3_9/w_692_n79# out_13 -0.02056f
-C1413 out_223 vdd 0.0396f
-C1414 out_179 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1415 in_45 in_44 0.0435f
-C1416 in_144 out_143 0.01793f
-C1417 in_137 in_138 0.0435f
-C1418 out_106 in_107 0.01793f
-C1419 out_38 vdd 0.0396f
-C1420 in_245 in_246 0.0435f
-C1421 wrom2_pinv_dec_3_9/w_692_n79# out_231 -0.02056f
-C1422 in_43 in_44 0.0435f
-C1423 in_62 out_62 0.01569f
-C1424 in_112 out_111 0.01793f
-C1425 in_72 in_71 0.0435f
-C1426 in_63 vdd 0
-C1427 out_71 out_72 0.12741f
-C1428 out_93 in_93 0.01569f
-C1429 out_39 in_40 0.01793f
-C1430 in_245 out_244 0.01793f
-C1431 out_8 out_7 0.12741f
-C1432 in_249 in_248 0.0435f
-C1433 in_222 out_222 0.01569f
-C1434 in_239 out_238 0.01793f
-C1435 out_166 in_167 0.01793f
-C1436 wrom2_pinv_dec_3_9/w_692_n79# out_125 -0.02056f
-C1437 out_99 out_98 0.12741f
-C1438 out_69 in_69 0.01569f
-C1439 out_15 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1440 out_92 in_93 0.01793f
-C1441 in_91 out_91 0.01569f
-C1442 out_48 in_48 0.01569f
-C1443 wrom2_pinv_dec_3_9/w_692_n79# out_102 -0.02056f
-C1444 out_23 in_24 0.01793f
-C1445 in_137 out_137 0.01569f
-C1446 vdd in_124 0
-C1447 out_31 out_30 0.12741f
-C1448 out_94 in_94 0.01569f
-C1449 out_68 in_69 0.01793f
-C1450 in_68 in_69 0.0435f
-C1451 out_237 vdd 0.0396f
-C1452 out_116 in_116 0.01569f
-C1453 out_47 out_48 0.12741f
-C1454 in_222 in_221 0.0435f
-C1455 out_156 in_157 0.01793f
-C1456 in_63 in_62 0.0435f
-C1457 in_110 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1458 in_198 in_197 0.0435f
-C1459 out_24 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1460 out_172 out_171 0.12741f
-C1461 wrom2_pinv_dec_3_9/w_692_n79# out_117 -0.02056f
-C1462 in_160 vdd 0
-C1463 out_146 out_147 0.12741f
-C1464 in_44 out_44 0.01569f
-C1465 out_28 vdd 0.0396f
-C1466 in_1 vdd 0
-C1467 out_123 vdd 0.0396f
-C1468 in_76 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1469 in_11 out_11 0.01569f
-C1470 in_145 out_145 0.01569f
-C1471 wrom2_pinv_dec_3_9/w_692_n79# in_81 -0.00122f
-C1472 in_127 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1473 in_17 vdd 0
-C1474 out_159 vdd 0.0396f
-C1475 wrom2_pinv_dec_3_9/w_692_n79# out_150 -0.02056f
-C1476 out_116 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1477 wrom2_pinv_dec_3_9/w_692_n79# in_90 -0.00122f
-C1478 in_54 vdd 0
-C1479 in_148 in_149 0.0435f
-C1480 vdd in_220 0
-C1481 in_215 in_216 0.0435f
-C1482 in_167 in_168 0.0435f
-C1483 in_192 in_193 0.0435f
-C1484 in_184 vdd 0
-C1485 in_136 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1486 in_81 in_80 0.0435f
-C1487 out_119 in_119 0.01569f
-C1488 vdd out_85 0.0396f
-C1489 out_105 out_104 0.12741f
-C1490 wrom2_pinv_dec_3_9/w_692_n79# out_56 -0.02056f
-C1491 in_40 out_40 0.01569f
-C1492 in_162 in_161 0.0435f
-C1493 wrom2_pinv_dec_3_9/w_692_n79# out_16 -0.02056f
-C1494 out_246 vdd 0.0396f
-C1495 out_207 in_208 0.01793f
-C1496 in_124 in_125 0.0435f
-C1497 wrom2_pinv_dec_3_9/w_692_n79# in_9 -0.00122f
-C1498 wrom2_pinv_dec_3_9/w_692_n79# in_138 -0.00122f
-C1499 out_63 vdd 0.03808f
-C1500 wrom2_pinv_dec_3_9/w_692_n79# out_51 -0.02056f
-C1501 in_16 in_17 0.0435f
-C1502 in_67 vdd 0
-C1503 wrom2_pinv_dec_3_9/w_692_n79# out_193 -0.02056f
-C1504 in_175 vdd 0
-C1505 out_115 vdd 0.0396f
-C1506 in_59 out_58 0.01793f
-C1507 in_91 vdd 0
-C1508 in_74 vdd 0
-C1509 out_45 out_46 0.12741f
-C1510 out_251 in_251 0.01569f
-C1511 in_174 in_175 0.0435f
-C1512 in_203 in_204 0.0435f
-C1513 wrom2_pinv_dec_3_9/w_692_n79# out_188 -0.02056f
-C1514 out_218 vdd 0.0396f
-C1515 out_38 out_37 0.12741f
-C1516 wrom2_pinv_dec_3_9/w_692_n79# in_39 -0.00122f
-C1517 out_30 vdd 0.0396f
-C1518 out_32 in_32 0.01569f
-C1519 in_4 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1520 wrom2_pinv_dec_3_9/w_692_n79# out_137 -0.02056f
-C1521 vdd in_86 0
-C1522 out_58 out_59 0.12741f
-C1523 in_109 in_110 0.0435f
-C1524 in_19 in_20 0.0435f
-C1525 in_142 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1526 in_19 out_19 0.01569f
-C1527 wrom2_pinv_dec_3_9/w_692_n79# out_195 -0.02056f
-C1528 vdd in_139 0
-C1529 out_112 out_111 0.12741f
-C1530 out_177 out_178 0.12741f
-C1531 in_149 in_150 0.0435f
-C1532 in_44 vdd 0
-C1533 in_179 vdd 0
-C1534 out_109 out_110 0.12741f
-C1535 in_169 out_168 0.01793f
-C1536 in_243 vdd 0
-C1537 in_129 in_128 0.0435f
-C1538 out_87 vdd 0.0396f
-C1539 out_74 out_75 0.12741f
-C1540 in_196 out_196 0.01569f
-C1541 in_112 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1542 in_218 out_217 0.01793f
-C1543 in_6 vdd 0
-C1544 out_184 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1545 in_180 in_179 0.0435f
-C1546 in_114 vdd 0
-C1547 out_119 in_120 0.01793f
-C1548 wrom2_pinv_dec_3_9/w_692_n79# out_2 -0.02056f
-C1549 wrom2_pinv_dec_3_9/w_692_n79# out_72 -0.02056f
-C1550 in_242 in_241 0.0435f
-C1551 out_199 vdd 0.0396f
-C1552 in_54 out_53 0.01793f
-C1553 in_29 vdd 0
-C1554 out_219 in_220 0.01793f
-C1555 in_142 in_141 0.0435f
-C1556 out_130 vdd 0.0396f
-C1557 out_71 vdd 0.0396f
-C1558 in_225 in_224 0.0435f
-C1559 in_132 vdd 0
-C1560 in_187 out_187 0.01569f
-C1561 out_105 vdd 0.0396f
-C1562 wrom2_pinv_dec_3_9/w_692_n79# in_11 -0.00122f
-C1563 out_200 out_199 0.12741f
-C1564 out_17 out_18 0.12741f
-C1565 in_231 vdd 0
-C1566 in_217 vdd 0
-C1567 in_199 out_198 0.01793f
-C1568 out_111 vdd 0.0396f
-C1569 out_169 vdd 0.0396f
-C1570 wrom2_pinv_dec_3_9/w_692_n79# in_45 -0.00122f
-C1571 in_193 in_194 0.0435f
-C1572 out_167 in_167 0.01569f
-C1573 out_221 out_222 0.12741f
-C1574 out_164 vdd 0.0396f
-C1575 wrom2_pinv_dec_3_9/w_692_n79# in_43 -0.00122f
-C1576 wrom2_pinv_dec_3_9/w_692_n79# out_208 -0.02056f
-C1577 in_173 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1578 out_227 vdd 0.0396f
-C1579 out_161 out_162 0.12741f
-C1580 in_97 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1581 out_43 out_42 0.12741f
-C1582 in_36 out_36 0.01569f
-C1583 in_189 in_188 0.0435f
-C1584 in_102 in_103 0.0435f
-C1585 out_55 in_56 0.01793f
-C1586 out_11 vdd 0.0396f
-C1587 wrom2_pinv_dec_3_9/w_692_n79# out_174 -0.02056f
-C1588 wrom2_pinv_dec_3_9/w_692_n79# in_147 -0.00122f
-C1589 out_134 out_133 0.12741f
-C1590 in_28 out_28 0.01569f
-C1591 out_254 out_255 0.12741f
-C1592 in_207 in_208 0.0435f
-C1593 wrom2_pinv_dec_3_9/w_692_n79# out_181 -0.02056f
-C1594 vdd in_230 0
-C1595 out_228 vdd 0.0396f
-C1596 in_195 out_195 0.01569f
-C1597 wrom2_pinv_dec_3_9/w_692_n79# in_191 -0.00122f
-C1598 out_128 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1599 in_99 vdd 0
-C1600 in_60 in_59 0.0435f
-C1601 out_218 out_219 0.12741f
-C1602 out_221 in_221 0.01569f
-C1603 vdd in_118 0
-C1604 in_95 vdd 0
-C1605 out_249 vdd 0.0396f
-C1606 out_81 in_81 0.01569f
-C1607 in_196 in_197 0.0435f
-C1608 out_234 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1609 out_104 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1610 in_137 vdd 0
-C1611 out_21 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1612 out_21 in_21 0.01569f
-C1613 out_65 vdd 0.0396f
-C1614 in_60 out_59 0.01793f
-C1615 out_31 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1616 in_4 in_5 0.0435f
-C1617 in_240 out_239 0.01793f
-C1618 out_163 vdd 0.0396f
-C1619 wrom2_pinv_dec_3_9/w_692_n79# out_91 -0.02056f
-C1620 wrom2_pinv_dec_3_9/w_692_n79# out_44 -0.02056f
-C1621 in_13 vdd 0
-C1622 out_153 out_152 0.12741f
-C1623 in_108 in_107 0.0435f
-C1624 out_27 vdd 0.0396f
-C1625 out_213 vdd 0.0396f
-C1626 in_99 out_98 0.01793f
-C1627 in_113 in_112 0.0435f
-C1628 wrom2_pinv_dec_3_9/w_692_n79# in_103 -0.00122f
-C1629 out_74 out_73 0.12741f
-C1630 in_14 in_13 0.0435f
-C1631 in_130 vdd 0
-C1632 out_107 vdd 0.0396f
-C1633 in_178 in_177 0.0435f
-C1634 out_130 out_131 0.12741f
-C1635 in_236 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1636 out_134 in_135 0.01793f
-C1637 in_75 in_74 0.0435f
-C1638 in_41 out_40 0.01793f
-C1639 in_254 in_255 0.0435f
-C1640 vdd out_214 0.0396f
-C1641 in_132 out_131 0.01793f
-C1642 wrom2_pinv_dec_3_9/w_692_n79# in_255 -0.00305f
-C1643 out_57 out_58 0.12741f
-C1644 out_27 in_27 0.01569f
-C1645 in_166 vdd 0
-C1646 out_86 out_85 0.12741f
-C1647 vdd in_226 0
-C1648 out_112 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1649 in_102 vdd 0
-C1650 in_88 in_89 0.0435f
-C1651 out_50 in_51 0.01793f
-C1652 wrom2_pinv_dec_3_9/w_692_n79# in_61 -0.00122f
-C1653 in_153 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1654 in_89 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1655 in_6 in_7 0.0435f
-C1656 in_235 out_235 0.01569f
-C1657 out_114 out_113 0.12741f
-C1658 wrom2_pinv_dec_3_9/w_692_n79# out_182 -0.02056f
-C1659 wrom2_pinv_dec_3_9/w_692_n79# in_156 -0.00122f
-C1660 in_95 out_95 0.01569f
-C1661 out_248 vdd 0.0396f
-C1662 in_116 vdd 0
-C1663 in_253 vdd 0
-C1664 out_100 vdd 0.0396f
-C1665 in_58 in_57 0.0435f
-C1666 in_3 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1667 in_52 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1668 in_37 out_36 0.01793f
-C1669 wrom2_pinv_dec_3_9/w_692_n79# out_202 -0.02056f
-C1670 vdd out_144 0.0396f
-C1671 out_209 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1672 out_205 vdd 0.0396f
-C1673 in_88 vdd 0
-C1674 out_86 in_86 0.01569f
-C1675 in_209 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1676 in_28 in_29 0.0435f
-C1677 out_247 in_248 0.01793f
-C1678 out_5 out_6 0.12741f
-C1679 in_254 vdd 0
-C1680 wrom2_pinv_dec_3_9/w_692_n79# out_154 -0.02056f
-C1681 in_37 in_36 0.0435f
-C1682 vdd in_21 0
-C1683 wrom2_pinv_dec_3_9/w_692_n79# vdd -1.29137f
-C1684 in_213 vdd 0
-C1685 in_14 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1686 in_173 out_172 0.01793f
-C1687 in_229 vdd 0
-C1688 out_200 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1689 in_174 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1690 out_86 out_87 0.12741f
-C1691 in_80 vdd 0
-C1692 in_189 in_190 0.0435f
-C1693 in_180 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1694 wrom2_pinv_dec_3_9/w_692_n79# in_27 -0.00122f
-C1695 vdd in_244 0
-C1696 out_220 vdd 0.0396f
-C1697 in_16 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1698 wrom2_pinv_dec_3_9/w_692_n79# out_98 -0.02056f
-C1699 wrom2_pinv_dec_3_9/w_692_n79# in_62 -0.00122f
-C1700 in_141 vdd 0
-C1701 out_139 in_140 0.01793f
-C1702 out_129 out_130 0.12741f
-C1703 out_106 in_106 0.01569f
-C1704 in_165 in_164 0.0435f
-C1705 out_138 in_138 0.01569f
-C1706 in_30 out_30 0.01569f
-C1707 wrom2_pinv_dec_3_9/w_692_n79# in_104 -0.00122f
-C1708 in_42 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1709 out_96 in_97 0.01793f
-C1710 out_33 vdd 0.0396f
-C1711 in_240 in_241 0.0435f
-C1712 out_119 out_120 0.12741f
-C1713 in_113 out_112 0.01793f
-C1714 in_93 in_92 0.0435f
-C1715 in_252 in_253 0.0435f
-C1716 wrom2_pinv_dec_3_9/w_692_n79# in_125 -0.00122f
-C1717 out_93 in_94 0.01793f
-C1718 out_229 out_230 0.12741f
-C1719 out_188 out_187 0.12741f
-C1720 in_146 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1721 out_140 vdd 0.0396f
-C1722 in_84 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1723 in_227 out_226 0.01793f
-C1724 out_132 vdd 0.0396f
-C1725 in_74 in_73 0.0435f
-C1726 out_138 out_137 0.12741f
-C1727 wrom2_pinv_dec_3_9/w_692_n79# out_95 -0.02056f
-C1728 out_27 in_28 0.01793f
-C1729 wrom2_pinv_dec_3_9/w_692_n79# in_252 -0.00122f
-C1730 in_85 out_85 0.01569f
-C1731 in_195 vdd 0
-C1732 out_104 in_105 0.01793f
-C1733 out_115 in_115 0.01569f
-C1734 in_109 vdd 0
-C1735 in_206 in_207 0.0435f
-C1736 in_120 in_119 0.0435f
-C1737 out_15 out_16 0.12741f
-C1738 out_243 out_242 0.12741f
-C1739 out_166 in_166 0.01569f
-C1740 in_160 in_159 0.0435f
-C1741 wrom2_pinv_dec_3_9/w_692_n79# out_131 -0.02056f
-C1742 out_119 out_118 0.12741f
-C1743 out_116 out_117 0.12741f
-C1744 in_30 in_29 0.0435f
-C1745 out_190 out_189 0.12741f
-C1746 out_127 in_128 0.01793f
-C1747 in_247 vdd 0
-C1748 out_214 out_215 0.12741f
-C1749 wrom2_pinv_dec_3_9/w_692_n79# out_219 -0.02056f
-C1750 out_159 in_159 0.01569f
-C1751 wrom2_pinv_dec_3_9/w_692_n79# out_53 -0.02056f
-C1752 in_55 out_55 0.01569f
-C1753 out_11 in_12 0.01793f
-C1754 out_204 out_205 0.12741f
-C1755 in_113 vdd 0
-C1756 out_149 out_148 0.12741f
-C1757 in_101 out_101 0.01569f
-C1758 in_223 vdd 0
-C1759 wrom2_pinv_dec_3_9/w_692_n79# out_211 -0.02056f
-C1760 in_59 in_58 0.0435f
-C1761 vdd in_35 0
-C1762 out_79 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1763 out_204 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1764 in_171 in_172 0.0435f
-C1765 out_225 in_225 0.01569f
-C1766 out_192 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1767 in_5 vdd 0
-C1768 out_90 out_89 0.12741f
-C1769 out_37 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1770 in_85 in_86 0.0435f
-C1771 out_220 out_219 0.12741f
-C1772 in_201 vdd 0
-C1773 out_79 in_80 0.01793f
-C1774 wrom2_pinv_dec_3_9/w_692_n79# in_157 -0.00122f
-C1775 out_69 out_68 0.12741f
-C1776 out_240 out_239 0.12741f
-C1777 out_129 in_130 0.01793f
-C1778 in_47 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1779 out_200 in_201 0.01793f
-C1780 in_190 out_189 0.01793f
-C1781 out_172 vdd 0.0396f
-C1782 in_68 out_68 0.01569f
-C1783 wrom2_pinv_dec_3_9/w_692_n79# in_7 -0.00122f
-C1784 in_115 in_114 0.0435f
-C1785 out_7 out_6 0.12741f
-C1786 out_178 in_179 0.01793f
-C1787 wrom2_pinv_dec_3_9/w_692_n79# out_166 -0.02056f
-C1788 in_123 vdd 0
-C1789 out_18 in_18 0.01569f
-C1790 in_13 in_12 0.0435f
-C1791 in_239 vdd 0
-C1792 in_98 out_97 0.01793f
-C1793 out_122 out_121 0.12741f
-C1794 in_15 out_14 0.01793f
-C1795 in_162 vdd 0
-C1796 in_28 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1797 in_158 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1798 in_75 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1799 out_65 in_65 0.01569f
-C1800 wrom2_pinv_dec_3_9/w_692_n79# out_215 -0.02056f
-C1801 out_45 in_46 0.01793f
-C1802 in_154 in_155 0.0435f
-C1803 out_132 out_131 0.12741f
-C1804 out_81 vdd 0.0396f
-C1805 wrom2_pinv_dec_3_9/w_692_n79# out_49 -0.02056f
-C1806 in_8 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1807 wrom2_pinv_dec_3_9/w_692_n79# in_25 -0.00122f
-C1808 vdd out_238 0.0396f
-C1809 in_105 vdd 0
-C1810 in_56 in_57 0.0435f
-C1811 out_96 vdd 0.0396f
-C1812 wrom2_pinv_dec_3_9/w_692_n79# out_4 -0.02056f
-C1813 out_183 in_184 0.01793f
-C1814 out_146 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1815 out_17 in_18 0.01793f
-C1816 vdd out_241 0.0396f
-C1817 out_148 out_147 0.12741f
-C1818 out_168 vdd 0.0396f
-C1819 wrom2_pinv_dec_3_9/w_692_n79# in_168 -0.00122f
-C1820 out_137 in_138 0.01793f
-C1821 out_86 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1822 out_129 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1823 wrom2_pinv_dec_3_9/w_692_n79# in_48 -0.00122f
-C1824 out_252 vdd 0.0396f
-C1825 in_187 vdd 0
-C1826 in_152 in_151 0.0435f
-C1827 in_210 out_209 0.01793f
-C1828 out_47 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1829 in_218 in_219 0.0435f
-C1830 in_210 in_209 0.0435f
-C1831 wrom2_pinv_dec_3_9/w_692_n79# in_50 -0.00122f
-C1832 out_177 out_176 0.12741f
-C1833 vdd in_33 0
-C1834 in_210 vdd 0
-C1835 out_171 vdd 0.0396f
-C1836 out_169 out_170 0.12741f
-C1837 out_54 vdd 0.0396f
-C1838 in_31 in_32 0.0435f
-C1839 in_251 out_250 0.01793f
-C1840 in_193 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1841 wrom2_pinv_dec_3_9/w_692_n79# in_12 -0.00122f
-C1842 in_105 in_104 0.0435f
-C1843 in_67 in_66 0.0435f
-C1844 in_144 in_145 0.0435f
-C1845 in_122 out_121 0.01793f
-C1846 vdd in_161 0
-C1847 out_41 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1848 out_165 in_165 0.01569f
-C1849 out_78 vdd 0.0396f
-C1850 out_8 out_9 0.12741f
-C1851 vdd out_224 0.0396f
-C1852 wrom2_pinv_dec_3_9/w_692_n79# out_197 -0.02056f
-C1853 out_218 out_217 0.12741f
-C1854 in_65 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1855 in_67 out_67 0.01569f
-C1856 wrom2_pinv_dec_3_9/w_692_n79# out_133 -0.02056f
-C1857 out_76 out_75 0.12741f
-C1858 in_169 vdd 0
-C1859 in_30 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1860 out_96 out_95 0.12741f
-C1861 in_59 out_59 0.01569f
-C1862 out_105 out_106 0.12741f
-C1863 in_103 out_102 0.01793f
-C1864 wrom2_pinv_dec_3_9/w_692_n79# in_182 -0.00122f
-C1865 out_20 in_21 0.01793f
-C1866 wrom2_pinv_dec_3_9/w_692_n79# out_20 -0.02056f
-C1867 out_240 in_241 0.01793f
-C1868 in_152 out_151 0.01793f
-C1869 out_57 in_57 0.01569f
-C1870 in_177 vdd 0
-C1871 vdd out_187 0.0396f
-C1872 out_249 in_250 0.01793f
-C1873 in_212 out_212 0.01569f
-C1874 out_111 in_111 0.01569f
-C1875 out_57 in_58 0.01793f
-C1876 out_164 in_164 0.01569f
-C1877 out_138 vdd 0.0396f
-C1878 in_115 in_116 0.0435f
-C1879 out_26 out_27 0.12741f
-C1880 out_252 in_252 0.01569f
-C1881 in_242 out_242 0.01569f
-C1882 out_93 out_94 0.12741f
-C1883 in_1 out_1 0.01569f
-C1884 wrom2_pinv_dec_3_9/w_692_n79# in_181 -0.00122f
-C1885 in_178 vdd 0
-C1886 vdd in_121 0
-C1887 in_100 in_101 0.0435f
-C1888 wrom2_pinv_dec_3_9/w_692_n79# in_73 -0.00122f
-C1889 out_179 vdd 0.0396f
-C1890 out_13 vdd 0.0396f
-C1891 wrom2_pinv_dec_3_9/w_692_n79# in_222 -0.00122f
-C1892 in_69 in_70 0.0435f
-C1893 in_5 out_4 0.01793f
-C1894 out_142 in_143 0.01793f
-C1895 in_14 out_13 0.01793f
-C1896 out_231 vdd 0.0396f
-C1897 wrom2_pinv_dec_3_9/w_692_n79# in_135 -0.00122f
-C1898 in_115 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1899 in_217 out_217 0.01569f
-C1900 in_180 out_179 0.01793f
-C1901 out_167 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1902 in_72 out_71 0.01793f
-C1903 out_199 out_198 0.12741f
-C1904 out_149 in_149 0.01569f
-C1905 out_132 out_133 0.12741f
-C1906 out_54 out_53 0.12741f
-C1907 out_125 vdd 0.0396f
-C1908 wrom2_pinv_dec_3_9/w_692_n79# in_85 -0.00122f
-C1909 out_15 vdd 0.0396f
-C1910 in_200 in_199 0.0435f
-C1911 out_178 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1912 out_163 in_164 0.01793f
-C1913 out_102 vdd 0.0396f
-C1914 in_89 in_90 0.0435f
-C1915 out_169 in_170 0.01793f
-C1916 out_143 out_144 0.12741f
-C1917 in_119 out_118 0.01793f
-C1918 out_106 out_107 0.12741f
-C1919 in_110 vdd 0
-C1920 out_78 out_79 0.12741f
-C1921 out_34 out_35 0.12741f
-C1922 wrom2_pinv_dec_3_9/w_692_n79# out_143 -0.02056f
-C1923 out_24 vdd 0.0396f
-C1924 wrom2_pinv_dec_3_9/w_692_n79# out_170 -0.02056f
-C1925 vdd out_117 0.0396f
-C1926 out_39 out_40 0.12741f
-C1927 out_3 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1928 out_15 in_16 0.01793f
-C1929 wrom2_pinv_dec_3_9/w_692_n79# in_159 -0.00122f
-C1930 in_76 vdd 0
-C1931 out_26 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1932 out_0 in_1 0.01793f
-C1933 in_81 vdd 0
-C1934 out_207 in_207 0.01569f
-C1935 in_127 vdd 0
-C1936 out_116 vdd 0.0396f
-C1937 wrom2_pinv_dec_3_9/w_692_n79# in_20 -0.00122f
-C1938 in_20 in_21 0.0435f
-C1939 out_150 vdd 0.0396f
-C1940 in_90 vdd 0
-C1941 in_78 in_79 0.0435f
-C1942 out_77 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1943 in_77 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1944 out_65 in_66 0.01793f
-C1945 out_62 out_61 0.12741f
-C1946 wrom2_pinv_dec_3_9/w_692_n79# out_19 -0.02056f
-C1947 out_18 in_19 0.01793f
-C1948 out_244 out_243 0.12741f
-C1949 in_136 vdd 0
-C1950 wrom2_pinv_dec_3_9/w_692_n79# in_250 -0.00122f
-C1951 in_140 in_139 0.0435f
-C1952 in_52 out_51 0.01793f
-C1953 out_245 in_246 0.01793f
-C1954 out_163 in_163 0.01569f
-C1955 out_56 vdd 0.0396f
-C1956 wrom2_pinv_dec_3_9/w_692_n79# out_32 -0.02056f
-C1957 out_36 out_35 0.12741f
-C1958 out_125 in_125 0.01569f
-C1959 out_168 in_168 0.01569f
-C1960 in_64 in_63 0.0435f
-C1961 vdd out_16 0.0396f
-C1962 out_216 in_216 0.01569f
-C1963 out_120 in_120 0.01569f
-C1964 out_60 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1965 in_9 vdd 0
-C1966 out_244 out_245 0.12741f
-C1967 in_138 vdd 0
-C1968 in_93 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1969 out_51 vdd 0.0396f
-C1970 in_215 out_214 0.01793f
-C1971 in_112 out_112 0.01569f
-C1972 in_36 out_35 0.01793f
-C1973 in_245 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1974 in_206 in_205 0.0435f
-C1975 vdd out_193 0.0396f
-C1976 out_160 in_160 0.01569f
-C1977 in_3 in_4 0.0435f
-C1978 in_223 in_222 0.0435f
-C1979 out_106 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1980 in_231 in_232 0.0435f
-C1981 out_185 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1982 wrom2_pinv_dec_3_9/w_692_n79# in_164 -0.00122f
-C1983 out_134 in_134 0.01569f
-C1984 in_45 out_44 0.01793f
-C1985 out_159 out_160 0.12741f
-C1986 in_205 in_204 0.0435f
-C1987 out_124 in_124 0.01569f
-C1988 out_233 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1989 out_188 vdd 0.0396f
-C1990 wrom2_pinv_dec_3_9/w_692_n79# in_111 -0.00122f
-C1991 in_39 vdd 0
-C1992 in_16 out_16 0.01569f
-C1993 in_211 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C1994 in_4 vdd 0
-C1995 in_245 in_244 0.0435f
-C1996 out_157 out_156 0.12741f
-C1997 out_137 vdd 0.0396f
-C1998 out_183 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C1999 in_142 vdd 0
-C2000 in_126 out_126 0.01569f
-C2001 out_33 out_32 0.12741f
-C2002 vdd out_195 0.0396f
-C2003 in_10 out_10 0.01569f
-C2004 in_1 in_2 0.0435f
-C2005 out_123 out_124 0.12741f
-C2006 in_3 out_2 0.01793f
-C2007 in_169 in_168 0.0435f
-C2008 out_22 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C2009 out_90 in_91 0.01793f
-C2010 wrom2_pinv_dec_3_9/w_692_n79# out_217 -0.02056f
-C2011 in_112 vdd 0
-C2012 in_198 in_199 0.0435f
-C2013 in_183 in_184 0.0435f
-C2014 wrom2_pinv_dec_3_9/w_692_n79# in_66 -0.00122f
-C2015 in_225 in_226 0.0435f
-C2016 in_215 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C2017 out_184 vdd 0.0396f
-C2018 out_63 out_64 0.12741f
-C2019 wrom2_pinv_dec_3_9/w_692_n79# out_235 -0.02056f
-C2020 wrom2_pinv_dec_3_9/w_692_n79# in_163 -0.00122f
-C2021 out_25 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C2022 vdd out_2 0.0396f
-C2023 out_149 in_150 0.01793f
-C2024 in_152 out_152 0.01569f
-C2025 in_72 wrom2_pinv_dec_3_9/w_692_n79# -0.00122f
-C2026 out_165 out_164 0.12741f
-C2027 out_72 vdd 0.0396f
-C2028 in_64 out_63 0.01793f
-C2029 out_158 out_159 0.12741f
-C2030 wrom2_pinv_dec_3_9/w_692_n79# out_221 -0.02056f
-C2031 wrom2_pinv_dec_3_9/w_692_n79# out_67 -0.02056f
-C2032 out_239 wrom2_pinv_dec_3_9/w_692_n79# -0.02056f
-C2033 wrom2_pinv_dec_3_9/w_692_n79# out_198 -0.02056f
-C2034 wrom2_pinv_dec_3_9/w_692_n79# in_170 -0.00122f
-C2035 wrom2_pinv_dec_3_9/w_692_n79# out_42 -0.02056f
-C2036 in_11 vdd 0
-C2037 out_182 out_181 0.12741f
-C2038 in_148 out_147 0.01793f
-C2039 wrom2_pinv_dec_3_9/w_692_n79# in_83 -0.00122f
-C2040 in_46 out_46 0.01569f
-C2041 out_209 out_208 0.12741f
-C2042 in_45 vdd 0
-C2043 in_209 out_208 0.01793f
-C2044 in_43 vdd 0
-C2045 in_38 in_37 0.0435f
-C2046 out_220 gnd -0.20323f
-C2047 in_220 gnd -0.08178f
-C2048 out_231 gnd -0.20323f
-C2049 in_231 gnd -0.08178f
-C2050 out_242 gnd -0.20323f
-C2051 in_242 gnd -0.0513f
-C2052 out_253 gnd -0.20323f
-C2053 in_253 gnd -0.08178f
-C2054 out_93 gnd -0.20323f
-C2055 in_93 gnd -0.08178f
-C2056 out_82 gnd -0.20323f
-C2057 in_82 gnd -0.08178f
-C2058 out_71 gnd -0.20323f
-C2059 in_71 gnd -0.08178f
-C2060 out_60 gnd -0.20323f
-C2061 in_60 gnd -0.08178f
-C2062 out_230 gnd -0.20323f
-C2063 in_230 gnd -0.08178f
-C2064 out_241 gnd -0.20323f
-C2065 in_241 gnd -0.08178f
-C2066 out_252 gnd -0.20323f
-C2067 in_252 gnd -0.08178f
-C2068 out_92 gnd -0.20323f
-C2069 in_92 gnd -0.08178f
-C2070 out_81 gnd -0.20323f
-C2071 in_81 gnd -0.08178f
-C2072 out_70 gnd -0.20323f
-C2073 in_70 gnd -0.08178f
-C2074 out_240 gnd -0.20323f
-C2075 in_240 gnd -0.08178f
-C2076 out_251 gnd -0.20323f
-C2077 in_251 gnd -0.08178f
-C2078 out_91 gnd -0.20323f
-C2079 in_91 gnd -0.08178f
-C2080 out_80 gnd -0.20323f
-C2081 in_80 gnd -0.08178f
-C2082 out_250 gnd -0.20323f
-C2083 in_250 gnd -0.08178f
-C2084 out_90 gnd -0.20323f
-C2085 in_90 gnd -0.08178f
-C2086 out_109 gnd -0.20323f
-C2087 in_109 gnd -0.08178f
-C2088 out_119 gnd -0.20323f
-C2089 in_119 gnd -0.08178f
-C2090 out_108 gnd -0.20323f
-C2091 in_108 gnd -0.08178f
-C2092 out_129 gnd -0.20323f
-C2093 in_129 gnd -0.08178f
-C2094 out_118 gnd -0.20323f
-C2095 in_118 gnd -0.08178f
-C2096 out_107 gnd -0.20323f
-C2097 in_107 gnd -0.08178f
-C2098 out_139 gnd -0.20323f
-C2099 in_139 gnd -0.08178f
-C2100 out_128 gnd -0.20323f
-C2101 in_128 gnd -0.08178f
-C2102 out_117 gnd -0.20323f
-C2103 in_117 gnd -0.08178f
-C2104 out_106 gnd -0.20323f
-C2105 in_106 gnd -0.08178f
-C2106 out_149 gnd -0.20323f
-C2107 in_149 gnd -0.08178f
-C2108 out_138 gnd -0.20323f
-C2109 in_138 gnd -0.08178f
-C2110 out_127 gnd -0.20323f
-C2111 in_127 gnd -0.08178f
-C2112 out_116 gnd -0.20323f
-C2113 in_116 gnd -0.08178f
-C2114 out_105 gnd -0.20323f
-C2115 in_105 gnd -0.08178f
-C2116 out_159 gnd -0.20323f
-C2117 in_159 gnd -0.08178f
-C2118 out_148 gnd -0.20323f
-C2119 in_148 gnd -0.08178f
-C2120 out_137 gnd -0.20323f
-C2121 in_137 gnd -0.08178f
-C2122 out_126 gnd -0.20323f
-C2123 in_126 gnd -0.08178f
-C2124 out_115 gnd -0.20323f
-C2125 in_115 gnd -0.08178f
-C2126 out_104 gnd -0.20323f
-C2127 in_104 gnd -0.08178f
-C2128 out_169 gnd -0.20323f
-C2129 in_169 gnd -0.08178f
-C2130 out_158 gnd -0.20323f
-C2131 in_158 gnd -0.08178f
-C2132 out_147 gnd -0.20323f
-C2133 in_147 gnd -0.08178f
-C2134 out_136 gnd -0.20323f
-C2135 in_136 gnd -0.08178f
-C2136 out_125 gnd -0.20323f
-C2137 in_125 gnd -0.08178f
-C2138 out_114 gnd -0.20323f
-C2139 in_114 gnd -0.08178f
-C2140 out_103 gnd -0.20323f
-C2141 in_103 gnd -0.08178f
-C2142 out_168 gnd -0.20323f
-C2143 in_168 gnd -0.08178f
-C2144 out_179 gnd -0.20323f
-C2145 in_179 gnd -0.08178f
-C2146 out_157 gnd -0.20323f
-C2147 in_157 gnd -0.08178f
-C2148 out_146 gnd -0.20323f
-C2149 in_146 gnd -0.08178f
-C2150 out_135 gnd -0.20323f
-C2151 in_135 gnd -0.08178f
-C2152 out_124 gnd -0.20323f
-C2153 in_124 gnd -0.08178f
-C2154 out_113 gnd -0.20323f
-C2155 in_113 gnd -0.08178f
-C2156 out_102 gnd -0.20323f
-C2157 in_102 gnd -0.08178f
-C2158 out_167 gnd -0.20323f
-C2159 in_167 gnd -0.08178f
-C2160 out_178 gnd -0.20323f
-C2161 in_178 gnd -0.08178f
-C2162 out_189 gnd -0.20323f
-C2163 in_189 gnd -0.08178f
-C2164 out_156 gnd -0.20323f
-C2165 in_156 gnd -0.08178f
-C2166 out_145 gnd -0.20323f
-C2167 in_145 gnd -0.08178f
-C2168 out_134 gnd -0.20323f
-C2169 in_134 gnd -0.08178f
-C2170 out_123 gnd -0.20323f
-C2171 in_123 gnd -0.08178f
-C2172 out_112 gnd -0.20323f
-C2173 in_112 gnd -0.08178f
-C2174 out_101 gnd -0.20323f
-C2175 in_101 gnd -0.08178f
-C2176 out_166 gnd -0.20323f
-C2177 in_166 gnd -0.08178f
-C2178 out_177 gnd -0.20323f
-C2179 in_177 gnd -0.08178f
-C2180 out_188 gnd -0.20323f
-C2181 in_188 gnd -0.08178f
-C2182 out_199 gnd -0.20323f
-C2183 in_199 gnd -0.08178f
-C2184 out_155 gnd -0.20323f
-C2185 in_155 gnd -0.08178f
-C2186 out_144 gnd -0.20323f
-C2187 in_144 gnd -0.08178f
-C2188 out_133 gnd -0.20323f
-C2189 in_133 gnd -0.08178f
-C2190 out_122 gnd -0.20323f
-C2191 in_122 gnd -0.08178f
-C2192 out_111 gnd -0.20323f
-C2193 in_111 gnd -0.08178f
-C2194 out_100 gnd -0.20323f
-C2195 in_100 gnd -0.08178f
-C2196 out_165 gnd -0.20323f
-C2197 in_165 gnd -0.08178f
-C2198 out_176 gnd -0.20323f
-C2199 in_176 gnd -0.08178f
-C2200 out_187 gnd -0.20323f
-C2201 in_187 gnd -0.08178f
-C2202 out_198 gnd -0.20323f
-C2203 in_198 gnd -0.08178f
-C2204 out_154 gnd -0.20323f
-C2205 in_154 gnd -0.08178f
-C2206 out_143 gnd -0.20323f
-C2207 in_143 gnd -0.08178f
-C2208 out_132 gnd -0.20323f
-C2209 in_132 gnd -0.08178f
-C2210 out_121 gnd -0.20323f
-C2211 in_121 gnd -0.08178f
-C2212 out_110 gnd -0.20323f
-C2213 in_110 gnd -0.08178f
-C2214 out_164 gnd -0.20323f
-C2215 in_164 gnd -0.08178f
-C2216 out_175 gnd -0.20323f
-C2217 in_175 gnd -0.08178f
-C2218 out_186 gnd -0.20323f
-C2219 in_186 gnd -0.08178f
-C2220 out_197 gnd -0.20323f
-C2221 in_197 gnd -0.08178f
-C2222 out_153 gnd -0.20323f
-C2223 in_153 gnd -0.08178f
-C2224 out_142 gnd -0.20323f
-C2225 in_142 gnd -0.08178f
-C2226 out_131 gnd -0.20323f
-C2227 in_131 gnd -0.08178f
-C2228 out_120 gnd -0.20323f
-C2229 in_120 gnd -0.08178f
-C2230 out_163 gnd -0.20323f
-C2231 in_163 gnd -0.08178f
-C2232 out_174 gnd -0.20323f
-C2233 in_174 gnd -0.08178f
-C2234 out_185 gnd -0.20323f
-C2235 in_185 gnd -0.08178f
-C2236 out_196 gnd -0.20323f
-C2237 in_196 gnd -0.08178f
-C2238 out_152 gnd -0.20323f
-C2239 in_152 gnd -0.08178f
-C2240 out_141 gnd -0.20323f
-C2241 in_141 gnd -0.08178f
-C2242 out_130 gnd -0.20323f
-C2243 in_130 gnd -0.08178f
-C2244 out_162 gnd -0.20323f
-C2245 in_162 gnd -0.08178f
-C2246 out_173 gnd -0.20323f
-C2247 in_173 gnd -0.08178f
-C2248 out_184 gnd -0.20323f
-C2249 in_184 gnd -0.08178f
-C2250 out_195 gnd -0.20323f
-C2251 in_195 gnd -0.08178f
-C2252 out_151 gnd -0.20323f
-C2253 in_151 gnd -0.08178f
-C2254 out_140 gnd -0.20323f
-C2255 in_140 gnd -0.08178f
-C2256 out_161 gnd -0.20323f
-C2257 in_161 gnd -0.08178f
-C2258 out_172 gnd -0.20323f
-C2259 in_172 gnd -0.08178f
-C2260 out_183 gnd -0.20323f
-C2261 in_183 gnd -0.08178f
-C2262 out_194 gnd -0.20323f
-C2263 in_194 gnd -0.08178f
-C2264 out_150 gnd -0.20323f
-C2265 in_150 gnd -0.08178f
-C2266 out_9 gnd -0.20323f
-C2267 in_9 gnd -0.08178f
-C2268 out_160 gnd -0.20323f
-C2269 in_160 gnd -0.08178f
-C2270 out_171 gnd -0.20323f
-C2271 in_171 gnd -0.08178f
-C2272 out_182 gnd -0.20323f
-C2273 in_182 gnd -0.08178f
-C2274 out_193 gnd -0.20323f
-C2275 in_193 gnd -0.08178f
-C2276 out_170 gnd -0.20323f
-C2277 in_170 gnd -0.08178f
-C2278 out_181 gnd -0.20323f
-C2279 in_181 gnd -0.08178f
-C2280 out_192 gnd -0.20323f
-C2281 in_192 gnd -0.08178f
-C2282 out_8 gnd -0.20323f
-C2283 in_8 gnd -0.08178f
-C2284 out_19 gnd -0.20323f
-C2285 in_19 gnd -0.08178f
-C2286 out_7 gnd -0.20323f
-C2287 in_7 gnd -0.08178f
-C2288 out_180 gnd -0.20323f
-C2289 in_180 gnd -0.08178f
-C2290 out_191 gnd -0.20323f
-C2291 in_191 gnd -0.08178f
-C2292 out_29 gnd -0.06271f
-C2293 in_29 gnd -0.08178f
-C2294 out_18 gnd -0.20323f
-C2295 in_18 gnd -0.08178f
-C2296 out_190 gnd -0.20323f
-C2297 in_190 gnd -0.08178f
-C2298 out_6 gnd -0.20323f
-C2299 in_6 gnd -0.08178f
-C2300 out_39 gnd -0.20323f
-C2301 in_39 gnd -0.08178f
-C2302 out_28 gnd -0.20323f
-C2303 in_28 gnd -0.08178f
-C2304 out_17 gnd -0.20323f
-C2305 in_17 gnd -0.08178f
-C2306 out_5 gnd -0.20323f
-C2307 in_5 gnd -0.08178f
-C2308 out_209 gnd -0.20323f
-C2309 in_209 gnd -0.08178f
-C2310 out_49 gnd -0.20323f
-C2311 in_49 gnd -0.08178f
-C2312 out_38 gnd -0.20323f
-C2313 in_38 gnd -0.08178f
-C2314 out_27 gnd -0.20323f
-C2315 in_27 gnd -0.08178f
-C2316 out_16 gnd -0.20323f
-C2317 in_16 gnd -0.08178f
-C2318 out_4 gnd -0.20323f
-C2319 in_4 gnd -0.08178f
-C2320 out_208 gnd -0.20323f
-C2321 in_208 gnd -0.08178f
-C2322 out_219 gnd -0.20323f
-C2323 in_219 gnd -0.08178f
-C2324 out_59 gnd -0.20323f
-C2325 in_59 gnd -0.08178f
-C2326 out_48 gnd -0.20323f
-C2327 in_48 gnd -0.08178f
-C2328 out_37 gnd -0.20323f
-C2329 in_37 gnd -0.08178f
-C2330 out_26 gnd -0.20323f
-C2331 in_26 gnd -0.08178f
-C2332 out_15 gnd -0.20323f
-C2333 in_15 gnd -0.08178f
-C2334 out_3 gnd -0.20323f
-C2335 in_3 gnd -0.08178f
-C2336 out_207 gnd -0.20323f
-C2337 in_207 gnd -0.08178f
-C2338 out_218 gnd -0.20323f
-C2339 in_218 gnd -0.08178f
-C2340 out_229 gnd -0.20323f
-C2341 in_229 gnd -0.08178f
-C2342 out_69 gnd -0.20323f
-C2343 in_69 gnd -0.08178f
-C2344 out_58 gnd -0.20323f
-C2345 in_58 gnd -0.08178f
-C2346 out_47 gnd -0.20323f
-C2347 in_47 gnd -0.08178f
-C2348 out_36 gnd -0.20323f
-C2349 in_36 gnd -0.08178f
-C2350 out_25 gnd -0.20323f
-C2351 in_25 gnd -0.08178f
-C2352 out_14 gnd -0.20323f
-C2353 in_14 gnd -0.08178f
-C2354 out_2 gnd -0.20323f
-C2355 in_2 gnd -0.08178f
-C2356 out_206 gnd -0.20323f
-C2357 in_206 gnd -0.08178f
-C2358 out_217 gnd -0.20323f
-C2359 in_217 gnd -0.08178f
-C2360 out_228 gnd -0.20323f
-C2361 in_228 gnd -0.08178f
-C2362 out_239 gnd -0.20323f
-C2363 in_239 gnd -0.08178f
-C2364 out_79 gnd -0.20323f
-C2365 in_79 gnd -0.08178f
-C2366 out_68 gnd -0.20323f
-C2367 in_68 gnd -0.08178f
-C2368 out_57 gnd -0.20323f
-C2369 in_57 gnd -0.08178f
-C2370 out_46 gnd -0.20323f
-C2371 in_46 gnd -0.08178f
-C2372 out_35 gnd -0.20323f
-C2373 in_35 gnd -0.08178f
-C2374 out_24 gnd -0.20323f
-C2375 in_24 gnd -0.08178f
-C2376 out_13 gnd -0.20323f
-C2377 in_13 gnd -0.08178f
-C2378 out_1 gnd -0.20323f
-C2379 in_1 gnd -0.08178f
-C2380 out_205 gnd -0.20323f
-C2381 in_205 gnd -0.08178f
-C2382 out_216 gnd -0.20323f
-C2383 in_216 gnd -0.08178f
-C2384 out_227 gnd -0.20323f
-C2385 in_227 gnd -0.08178f
-C2386 out_238 gnd -0.20323f
-C2387 in_238 gnd -0.08178f
-C2388 out_249 gnd -0.20323f
-C2389 in_249 gnd -0.08178f
-C2390 out_89 gnd -0.20323f
-C2391 in_89 gnd -0.08178f
-C2392 out_78 gnd -0.20323f
-C2393 in_78 gnd -0.08178f
-C2394 out_67 gnd -0.20323f
-C2395 in_67 gnd -0.08178f
-C2396 out_56 gnd -0.20323f
-C2397 in_56 gnd -0.08178f
-C2398 out_45 gnd -0.20323f
-C2399 in_45 gnd -0.08178f
-C2400 out_34 gnd -0.20323f
-C2401 in_34 gnd -0.08178f
-C2402 out_23 gnd -0.20323f
-C2403 in_23 gnd -0.08178f
-C2404 out_12 gnd -0.20323f
-C2405 in_12 gnd -0.08178f
-C2406 out_0 gnd -0.09378f
-C2407 in_0 gnd -0.04396f
-C2408 out_204 gnd -0.20323f
-C2409 in_204 gnd -0.08178f
-C2410 out_215 gnd -0.20323f
-C2411 in_215 gnd -0.08178f
-C2412 out_226 gnd -0.20323f
-C2413 in_226 gnd -0.08178f
-C2414 out_237 gnd -0.20323f
-C2415 in_237 gnd -0.08178f
-C2416 out_248 gnd -0.20323f
-C2417 in_248 gnd -0.08178f
-C2418 out_99 gnd -0.20323f
-C2419 in_99 gnd -0.08178f
-C2420 out_88 gnd -0.20323f
-C2421 in_88 gnd -0.08178f
-C2422 out_77 gnd -0.20323f
-C2423 in_77 gnd -0.08178f
-C2424 out_66 gnd -0.20323f
-C2425 in_66 gnd -0.08178f
-C2426 out_55 gnd -0.20323f
-C2427 in_55 gnd -0.08178f
-C2428 out_44 gnd -0.20323f
-C2429 in_44 gnd -0.08178f
-C2430 out_33 gnd -0.20323f
-C2431 in_33 gnd -0.08178f
-C2432 out_22 gnd -0.20323f
-C2433 in_22 gnd -0.08178f
-C2434 out_11 gnd -0.20323f
-C2435 in_11 gnd -0.08178f
-C2436 out_203 gnd -0.20323f
-C2437 in_203 gnd -0.08178f
-C2438 out_214 gnd -0.20323f
-C2439 in_214 gnd -0.08178f
-C2440 out_225 gnd -0.20323f
-C2441 in_225 gnd -0.08178f
-C2442 out_236 gnd -0.20323f
-C2443 in_236 gnd -0.08178f
-C2444 out_247 gnd -0.20323f
-C2445 in_247 gnd -0.08178f
-C2446 out_98 gnd -0.20323f
-C2447 in_98 gnd -0.08178f
-C2448 out_87 gnd -0.20323f
-C2449 in_87 gnd -0.08178f
-C2450 out_76 gnd -0.20323f
-C2451 in_76 gnd -0.08178f
-C2452 out_65 gnd -0.20323f
-C2453 in_65 gnd -0.08178f
-C2454 out_54 gnd -0.20323f
-C2455 in_54 gnd -0.08178f
-C2456 out_43 gnd -0.20323f
-C2457 in_43 gnd -0.08178f
-C2458 out_32 gnd -0.20323f
-C2459 in_32 gnd -0.08178f
-C2460 out_21 gnd -0.20323f
-C2461 in_21 gnd -0.08178f
-C2462 out_10 gnd -0.20323f
-C2463 in_10 gnd -0.08178f
-C2464 out_202 gnd -0.20323f
-C2465 in_202 gnd -0.08178f
-C2466 out_213 gnd -0.20323f
-C2467 in_213 gnd -0.08178f
-C2468 out_224 gnd -0.20323f
-C2469 in_224 gnd -0.08178f
-C2470 out_235 gnd -0.20323f
-C2471 in_235 gnd -0.08178f
-C2472 out_246 gnd -0.20323f
-C2473 in_246 gnd -0.08178f
-C2474 out_97 gnd -0.20323f
-C2475 in_97 gnd -0.08178f
-C2476 out_86 gnd -0.20323f
-C2477 in_86 gnd -0.08178f
-C2478 out_75 gnd -0.20323f
-C2479 in_75 gnd -0.08178f
-C2480 out_64 gnd -0.20323f
-C2481 in_64 gnd -0.08178f
-C2482 out_53 gnd -0.20323f
-C2483 in_53 gnd -0.08178f
-C2484 out_42 gnd -0.20323f
-C2485 in_42 gnd -0.08178f
-C2486 out_31 gnd -0.20323f
-C2487 in_31 gnd -0.08178f
-C2488 out_20 gnd -0.20323f
-C2489 in_20 gnd -0.08178f
-C2490 out_201 gnd -0.20323f
-C2491 in_201 gnd -0.08178f
-C2492 out_212 gnd -0.20323f
-C2493 in_212 gnd -0.08178f
-C2494 out_223 gnd -0.20323f
-C2495 in_223 gnd -0.08178f
-C2496 out_234 gnd -0.20323f
-C2497 in_234 gnd -0.08178f
-C2498 out_245 gnd -0.20323f
-C2499 in_245 gnd -0.08178f
-C2500 out_96 gnd -0.20323f
-C2501 in_96 gnd -0.08178f
-C2502 out_85 gnd -0.20323f
-C2503 in_85 gnd -0.08178f
-C2504 out_74 gnd -0.20323f
-C2505 in_74 gnd -0.08178f
-C2506 out_63 gnd -0.20476f
-C2507 in_63 gnd -0.08223f
-C2508 out_52 gnd -0.20323f
-C2509 in_52 gnd -0.08178f
-C2510 out_41 gnd -0.20323f
-C2511 in_41 gnd -0.08178f
-C2512 out_30 gnd -0.20323f
-C2513 in_30 gnd -0.08178f
-C2514 out_200 gnd -0.20323f
-C2515 in_200 gnd -0.08178f
-C2516 out_211 gnd -0.20323f
-C2517 in_211 gnd -0.08178f
-C2518 out_222 gnd -0.20323f
-C2519 in_222 gnd -0.08178f
-C2520 out_233 gnd -0.20323f
-C2521 in_233 gnd -0.08178f
-C2522 out_244 gnd -0.20323f
-C2523 in_244 gnd -0.08178f
-C2524 vdd gnd -7.17839f
-C2525 out_255 gnd -0.06395f
-C2526 in_255 gnd -0.03952f
-C2527 wrom2_pinv_dec_3_9/w_692_n79# gnd -0.158p
-C2528 out_95 gnd -0.20323f
-C2529 in_95 gnd -0.08178f
-C2530 out_84 gnd -0.20323f
-C2531 in_84 gnd -0.08178f
-C2532 out_73 gnd -0.20323f
-C2533 in_73 gnd -0.08178f
-C2534 out_62 gnd -0.20323f
-C2535 in_62 gnd -0.08178f
-C2536 out_51 gnd -0.20323f
-C2537 in_51 gnd -0.08178f
-C2538 out_40 gnd -0.20323f
-C2539 in_40 gnd -0.08178f
-C2540 out_210 gnd -0.20323f
-C2541 in_210 gnd -0.08178f
-C2542 out_221 gnd -0.20323f
-C2543 in_221 gnd -0.08178f
-C2544 out_232 gnd -0.20323f
-C2545 in_232 gnd -0.08178f
-C2546 out_243 gnd -0.20323f
-C2547 in_243 gnd -0.08178f
-C2548 out_254 gnd -0.20323f
-C2549 in_254 gnd -0.08178f
-C2550 out_94 gnd -0.20323f
-C2551 in_94 gnd -0.08178f
-C2552 out_83 gnd -0.20323f
-C2553 in_83 gnd -0.08178f
-C2554 out_72 gnd -0.20323f
-C2555 in_72 gnd -0.08178f
-C2556 out_61 gnd -0.20323f
-C2557 in_61 gnd -0.08178f
-C2558 out_50 gnd -0.20368f
-C2559 in_50 gnd -0.08178f
+.subckt wrom2_rom_output_buffer in_23 in_14 in_7 in_0 in_12 in_5 in_30 in_21 in_3 out_29 out_18 in_28 out_27 out_16 in_19 out_25 out_14 in_26 in_17 out_23 in_10 out_12 out_11 in_24 in_15 out_20 out_9 in_8 out_21 out_30 in_1 out_7 in_22 in_13 out_5 out_28 in_6 gnd out_19 out_4 out_3 in_31 out_2 in_4 out_26 out_17 out_10 out_0 in_29 in_20 in_2 out_24 out_15 out_8 in_27 out_1 in_18 out_22 out_13 in_11 out_6 in_25 in_16 vdd out_31 in_9
+Xwrom2_pinv_dec_4_30 gnd vdd in_1 vdd out_1 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_20 gnd vdd in_11 vdd out_11 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_31 gnd vdd in_0 vdd out_0 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_10 gnd vdd in_21 vdd out_21 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_21 gnd vdd in_10 vdd out_10 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_11 gnd vdd in_20 vdd out_20 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_22 gnd vdd in_9 vdd out_9 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_12 gnd vdd in_19 vdd out_19 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_23 gnd vdd in_8 vdd out_8 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_13 gnd vdd in_18 vdd out_18 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_24 gnd vdd in_7 vdd out_7 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_14 gnd vdd in_17 vdd out_17 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_25 gnd vdd in_6 vdd out_6 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_0 gnd vdd in_31 vdd out_31 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_15 gnd vdd in_16 vdd out_16 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_16 gnd vdd in_15 vdd out_15 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_26 gnd vdd in_5 vdd out_5 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_27 gnd vdd in_4 vdd out_4 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_1 gnd vdd in_30 vdd out_30 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_17 gnd vdd in_14 vdd out_14 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_28 gnd vdd in_3 vdd out_3 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_2 gnd vdd in_29 vdd out_29 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_18 gnd vdd in_13 vdd out_13 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_29 gnd vdd in_2 vdd out_2 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_3 gnd vdd in_28 vdd out_28 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_19 gnd vdd in_12 vdd out_12 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_4 gnd vdd in_27 vdd out_27 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_5 gnd vdd in_26 vdd out_26 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_6 gnd vdd in_25 vdd out_25 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_7 gnd vdd in_24 vdd out_24 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_8 gnd vdd in_23 vdd out_23 wrom2_pinv_dec_4
+Xwrom2_pinv_dec_4_9 gnd vdd in_22 vdd out_22 wrom2_pinv_dec_4
+C0 in_28 out_27 0
+C1 vdd in_12 0.00703f
+C2 out_28 vdd 0.09264f
+C3 in_13 out_13 0.00871f
+C4 out_8 in_8 0.00871f
+C5 in_17 vdd 0.00703f
+C6 vdd out_25 0.09264f
+C7 out_3 in_2 0.0112f
+C8 in_20 out_20 0.00871f
+C9 vdd in_4 0.00703f
+C10 out_16 out_17 0.12164f
+C11 out_20 in_21 0
+C12 out_11 in_10 0.0112f
+C13 out_13 out_14 0.12164f
+C14 in_7 out_6 0
+C15 vdd in_23 0.00703f
+C16 in_9 out_8 0
+C17 vdd out_27 0.09264f
+C18 in_9 in_8 0.02634f
+C19 in_24 out_23 0
+C20 in_13 vdd 0.00703f
+C21 vdd in_1 0.00703f
+C22 in_6 out_6 0.00871f
+C23 in_16 out_16 0.00871f
+C24 out_12 in_11 0.0112f
+C25 out_8 out_9 0.12164f
+C26 in_28 in_27 0.02634f
+C27 vdd out_24 0.09264f
+C28 in_30 out_31 0.0112f
+C29 in_17 out_17 0.00871f
+C30 in_8 out_9 0.0112f
+C31 out_12 out_13 0.12164f
+C32 in_26 vdd 0.00703f
+C33 vdd out_14 0.09264f
+C34 in_22 in_23 0.02634f
+C35 out_2 in_1 0.0112f
+C36 vdd out_4 0.09264f
+C37 in_31 out_31 0.00871f
+C38 out_7 in_7 0.00871f
+C39 out_5 in_5 0.00871f
+C40 in_9 out_9 0.00871f
+C41 vdd in_18 0.00703f
+C42 in_3 in_4 0.02634f
+C43 in_16 in_17 0.02634f
+C44 in_29 in_28 0.02634f
+C45 in_25 vdd 0.00703f
+C46 in_6 out_7 0.0112f
+C47 out_12 vdd 0.09264f
+C48 out_30 in_29 0.0112f
+C49 vdd in_27 0.00703f
+C50 in_30 out_30 0.00871f
+C51 vdd out_21 0.09264f
+C52 out_7 out_8 0.12164f
+C53 vdd out_22 0.09264f
+C54 out_15 vdd 0.09264f
+C55 out_20 out_19 0.12164f
+C56 out_18 vdd 0.09264f
+C57 out_7 in_8 0
+C58 out_28 out_29 0.12164f
+C59 out_30 in_31 0
+C60 in_15 vdd 0.00703f
+C61 in_18 out_17 0
+C62 in_4 in_5 0.02634f
+C63 in_23 out_23 0.00871f
+C64 vdd in_19 0.00703f
+C65 in_22 out_21 0
+C66 in_22 out_22 0.00871f
+C67 in_29 vdd 0.00703f
+C68 in_30 vdd 0.00703f
+C69 in_3 out_4 0.0112f
+C70 out_26 out_25 0.12164f
+C71 out_7 out_6 0.12164f
+C72 vdd in_7 0.00703f
+C73 out_18 out_17 0.12164f
+C74 out_24 out_23 0.12164f
+C75 in_20 out_21 0.0112f
+C76 out_1 in_1 0.00871f
+C77 in_31 vdd 0.00543f
+C78 out_10 in_9 0.0112f
+C79 out_21 in_21 0.00871f
+C80 out_22 in_21 0.0112f
+C81 out_26 out_27 0.12164f
+C82 in_6 vdd 0.00703f
+C83 vdd out_8 0.09264f
+C84 vdd in_2 0.00703f
+C85 vdd out_3 0.09264f
+C86 out_10 out_9 0.12164f
+C87 vdd in_8 0.00703f
+C88 in_16 out_15 0
+C89 out_4 in_5 0
+C90 in_20 in_19 0.02634f
+C91 out_26 in_26 0.00871f
+C92 in_16 in_15 0.02634f
+C93 out_3 out_2 0.12164f
+C94 out_2 in_2 0.00871f
+C95 out_22 out_23 0.12164f
+C96 in_24 out_25 0.0112f
+C97 in_0 out_0 0.00871f
+C98 in_13 in_14 0.02634f
+C99 in_9 vdd 0.00703f
+C100 out_11 in_12 0
+C101 out_30 out_31 0.12164f
+C102 in_24 in_23 0.02634f
+C103 vdd out_9 0.09264f
+C104 vdd out_6 0.09264f
+C105 in_14 out_14 0.00871f
+C106 in_25 out_26 0.0112f
+C107 out_26 in_27 0
+C108 out_5 in_4 0.0112f
+C109 in_17 out_16 0
+C110 in_18 out_19 0.0112f
+C111 in_24 out_24 0.00871f
+C112 in_29 out_29 0.00871f
+C113 in_3 in_2 0.02634f
+C114 in_30 out_29 0
+C115 in_3 out_3 0.00871f
+C116 out_18 out_19 0.12164f
+C117 vdd out_31 0.08774f
+C118 out_10 in_11 0
+C119 out_15 in_14 0.0112f
+C120 in_9 in_10 0.02634f
+C121 vdd in_0 0.00179f
+C122 out_7 vdd 0.09264f
+C123 vdd out_0 0.0316f
+C124 in_15 in_14 0.02634f
+C125 in_10 out_9 0
+C126 in_6 in_5 0.02634f
+C127 in_19 out_19 0.00871f
+C128 in_25 in_24 0.02634f
+C129 out_4 out_5 0.12164f
+C130 out_28 out_27 0.12164f
+C131 out_1 in_2 0
+C132 in_13 in_12 0.02634f
+C133 in_11 vdd 0.00703f
+C134 in_28 vdd 0.00703f
+C135 out_30 vdd 0.09264f
+C136 out_10 vdd 0.09264f
+C137 vdd out_13 0.09264f
+C138 out_20 out_21 0.12164f
+C139 out_12 out_11 0.12164f
+C140 out_24 out_25 0.12164f
+C141 in_26 out_25 0
+C142 out_16 out_15 0.12164f
+C143 in_23 out_24 0.0112f
+C144 in_5 out_6 0.0112f
+C145 out_4 in_4 0.00871f
+C146 in_15 out_16 0.0112f
+C147 out_20 in_19 0.0112f
+C148 in_17 in_18 0.02634f
+C149 out_12 in_12 0.00871f
+C150 in_26 out_27 0.0112f
+C151 out_28 in_27 0.0112f
+C152 in_25 out_25 0.00871f
+C153 in_13 out_14 0.0112f
+C154 in_11 in_10 0.02634f
+C155 out_10 in_10 0.00871f
+C156 vdd out_2 0.09264f
+C157 in_17 out_18 0.0112f
+C158 out_22 in_23 0
+C159 in_22 vdd 0.00703f
+C160 out_27 in_27 0.00871f
+C161 in_6 out_5 0
+C162 out_1 in_0 0.0112f
+C163 vdd out_17 0.09264f
+C164 out_1 out_0 0.12164f
+C165 in_13 out_12 0
+C166 out_28 in_29 0
+C167 in_25 out_24 0
+C168 in_20 vdd 0.00703f
+C169 in_25 in_26 0.02634f
+C170 vdd in_10 0.00703f
+C171 out_29 in_28 0.0112f
+C172 in_26 in_27 0.02634f
+C173 vdd in_21 0.00703f
+C174 out_30 out_29 0.12164f
+C175 vdd in_3 0.00703f
+C176 out_15 out_14 0.12164f
+C177 in_16 vdd 0.00703f
+C178 in_15 out_14 0
+C179 out_5 out_6 0.12164f
+C180 in_3 out_2 0
+C181 out_18 in_18 0.00871f
+C182 out_3 in_4 0
+C183 vdd out_23 0.09264f
+C184 in_22 in_21 0.02634f
+C185 out_22 out_21 0.12164f
+C186 out_29 vdd 0.09264f
+C187 out_1 vdd 0.09264f
+C188 vdd in_5 0.00703f
+C189 in_20 in_21 0.02634f
+C190 in_14 out_13 0
+C191 in_16 out_17 0.0112f
+C192 in_18 in_19 0.02634f
+C193 in_15 out_15 0.00871f
+C194 in_1 in_2 0.02634f
+C195 out_26 vdd 0.09264f
+C196 out_1 out_2 0.12164f
+C197 in_22 out_23 0.0112f
+C198 vdd out_19 0.09264f
+C199 out_18 in_19 0
+C200 out_3 out_4 0.12164f
+C201 vdd in_14 0.00703f
+C202 out_11 in_11 0.00871f
+C203 out_10 out_11 0.12164f
+C204 in_30 in_29 0.02634f
+C205 in_24 vdd 0.00703f
+C206 in_20 out_19 0
+C207 in_11 in_12 0.02634f
+C208 out_20 vdd 0.09264f
+C209 out_28 in_28 0.00871f
+C210 in_30 in_31 0.02634f
+C211 in_12 out_13 0.0112f
+C212 out_11 vdd 0.09264f
+C213 vdd out_5 0.09264f
+C214 out_16 vdd 0.09264f
+C215 in_0 in_1 0.02634f
+C216 in_6 in_7 0.02634f
+C217 in_1 out_0 0
+C218 out_8 in_7 0.0112f
+C219 in_7 in_8 0.02634f
+C220 out_22 gnd -0.34885f
+C221 in_22 gnd -0.05985f
+C222 out_23 gnd -0.34885f
+C223 in_23 gnd -0.05985f
+C224 out_24 gnd -0.34885f
+C225 in_24 gnd -0.05985f
+C226 out_25 gnd -0.34885f
+C227 in_25 gnd -0.05985f
+C228 out_26 gnd -0.34885f
+C229 in_26 gnd -0.05985f
+C230 out_27 gnd -0.34885f
+C231 in_27 gnd -0.05985f
+C232 out_12 gnd -0.34885f
+C233 in_12 gnd -0.05985f
+C234 out_28 gnd -0.34885f
+C235 in_28 gnd -0.05985f
+C236 out_2 gnd -0.34885f
+C237 in_2 gnd -0.05985f
+C238 out_13 gnd -0.34885f
+C239 in_13 gnd -0.05985f
+C240 out_29 gnd -0.34885f
+C241 in_29 gnd -0.05985f
+C242 out_3 gnd -0.34885f
+C243 in_3 gnd -0.05985f
+C244 out_14 gnd -0.34885f
+C245 in_14 gnd -0.05985f
+C246 out_30 gnd -0.34885f
+C247 in_30 gnd -0.05985f
+C248 out_4 gnd -0.34885f
+C249 in_4 gnd -0.05985f
+C250 out_5 gnd -0.34885f
+C251 in_5 gnd -0.05985f
+C252 out_15 gnd -0.34885f
+C253 in_15 gnd -0.05985f
+C254 out_16 gnd -0.34885f
+C255 in_16 gnd -0.05985f
+C256 out_31 gnd -0.20501f
+C257 in_31 gnd -0.03149f
+C258 out_6 gnd -0.34885f
+C259 in_6 gnd -0.05985f
+C260 out_17 gnd -0.34885f
+C261 in_17 gnd -0.05985f
+C262 out_7 gnd -0.34885f
+C263 in_7 gnd -0.05985f
+C264 out_18 gnd -0.34885f
+C265 in_18 gnd -0.05985f
+C266 out_8 gnd -0.34885f
+C267 in_8 gnd -0.05985f
+C268 out_19 gnd -0.34885f
+C269 in_19 gnd -0.05985f
+C270 out_9 gnd -0.34885f
+C271 in_9 gnd -0.05985f
+C272 out_20 gnd -0.34885f
+C273 in_20 gnd -0.05985f
+C274 out_10 gnd -0.34885f
+C275 in_10 gnd -0.05985f
+C276 out_21 gnd -0.34885f
+C277 in_21 gnd -0.05985f
+C278 out_0 gnd -0.13906f
+C279 in_0 gnd -0.02808f
+C280 vdd gnd -5.58472f
+C281 out_11 gnd -0.34885f
+C282 in_11 gnd -0.05985f
+C283 out_1 gnd -0.34885f
+C284 in_1 gnd -0.05985f
 .ends
 
 .options gmin=1e-12 abstol=1e-12 reltol=1e-3 itl1=500 itl4=100

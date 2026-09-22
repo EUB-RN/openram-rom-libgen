@@ -1,27 +1,28 @@
-* wrom2 -- ARKA UC gecikmesi: bitline -> dout0  (kolon 236, ss)
-* Yol: bl_0_236 -> bitline_inverter -> column_mux(sel) -> output_buffer -> dout0
-* Tutulan: rom_bitline_inverter + rom_column_mux_array + rom_output_buffer
-* Silinen: hucre dizisi / kod cozucu / kontrol mantigi (ucundaki dugumler
-*          ideal kaynakla surulur -- o kisim zaten t_dis_50'de sayili)
-* Ust seviye C: 5372 korundu, 965 atildi;
-*   negatif net kapasitans duzeltmesi 254 dugum / 38.1 fF
-* Surulen bitline kenari OLCULEN egimden: t_dis_50=43.0865 ns,
-*   t_dis_10=77.7284 ns -> VDD->0 tam gecis 86.605 ns
-* Olculen bit: dout0[29]   (sec: wrom2_rom_column_decode_0/wl_4)   cikis yuku: 6.89 fF
+* wrom2 -- BACK END delay: bitline -> dout0  (column 236, ss)
+* Path: bl_0_236 -> bitline_inverter -> column_mux(sel) -> output_buffer -> dout0
+* Kept: rom_bitline_inverter + rom_column_mux_array + rom_output_buffer
+* Deleted: cell array / decoders / control logic (the nodes they leave behind
+*          are driven by ideal sources -- that part is already in t_dis_50)
+* Top-level C: 5372 kept, 965 dropped;
+*   negative-net-capacitance fix on 254 nodes / 38.1 fF
+* The driven bitline edge comes from the MEASURED slope:
+*   t_dis_50=39.2307 ns, t_dis_10=77.7893 ns
+*   -> full VDD->0 transition 96.396 ns
+* Measured bit: dout0[29]   (select: wrom2_rom_column_decode_0/wl_4)   output load: 6.89 fF
 
 .lib /home/hpw/OpenLane/pdks/sky130A/libs.tech/ngspice/sky130.lib.spice ss
 .temp 100
 .param VDD=1.6
-.param TFALL=8.660470e-08
+.param TFALL=9.639638e-08
 .param TSTART=5.000000e-09
 
 Vvdd vccd1 0 DC {VDD}
 Vgnd vssd1 0 DC 0
 
-* olculen kolonun bitline'i: on-sarjli VDD'den olculen egimle iner
-Vsrc wrom2_rom_base_array_0/bl_0_236 0 PWL(0 {VDD} {TSTART} {VDD} '5.000000e-09+8.660470e-08' 0)
+* the measured column's bitline: falls from precharged VDD at the measured slope
+Vsrc wrom2_rom_base_array_0/bl_0_236 0 PWL(0 {VDD} {TSTART} {VDD} '5.000000e-09+9.639638e-08' 0)
 
-* diger bitline'lar on-sarjda kalir
+* the other bitlines stay precharged
 Vbl0 wrom2_rom_base_array_0/bl_0_0 0 DC {VDD}
 Vbl1 wrom2_rom_base_array_0/bl_0_1 0 DC {VDD}
 Vbl2 wrom2_rom_base_array_0/bl_0_10 0 DC {VDD}
@@ -278,7 +279,7 @@ Vbl252 wrom2_rom_base_array_0/bl_0_97 0 DC {VDD}
 Vbl253 wrom2_rom_base_array_0/bl_0_98 0 DC {VDD}
 Vbl254 wrom2_rom_base_array_0/bl_0_99 0 DC {VDD}
 
-* kolon secimi
+* column select
 Vsel0 wrom2_rom_column_decode_0/wl_0 0 DC 0
 Vsel1 wrom2_rom_column_decode_0/wl_1 0 DC 0
 Vsel2 wrom2_rom_column_decode_0/wl_2 0 DC 0
@@ -5667,6 +5668,34 @@ C_fx551 wrom2_rom_column_mux_array_0/bl_97 vssd1 0.16036f
 C_fx552 wrom2_rom_column_mux_array_0/bl_98 vssd1 0.16036f
 C_fx553 wrom2_rom_column_mux_array_0/bl_99 vssd1 0.16100f
 
+.subckt wrom2_pinv_dec_3 gnd vdd w_692_n79# A Z
+X0 vdd A Z w_692_n79# sky130_fd_pr__pfet_01v8 ad=1.5u pd=10.6 as=1.5u ps=10.6 w=5 l=0.15
+X1 gnd A Z gnd sky130_fd_pr__nfet_01v8 ad=0.504u pd=3.96 as=0.504u ps=3.96 w=1.68 l=0.15
+C0 w_692_n79# A 0.10891f
+C1 Z w_692_n79# 0.05333f
+C2 Z A 0.04991f
+C3 vdd w_692_n79# 0.02783f
+C4 vdd A 0.01892f
+C5 vdd Z 0.06954f
+C6 vdd gnd 0.06645f
+C7 Z gnd 0.35042f
+C8 A gnd 0.23452f
+C9 w_692_n79# gnd 1.35078f
+.ends
+.subckt wrom2_pinv_dec_4 gnd vdd A w_692_n45# Z
+X0 vdd A Z w_692_n45# sky130_fd_pr__pfet_01v8 ad=1.5u pd=10.6 as=1.5u ps=10.6 w=5 l=0.15
+X1 gnd A Z gnd sky130_fd_pr__nfet_01v8 ad=0.504u pd=3.96 as=0.504u ps=3.96 w=1.68 l=0.15
+C0 w_692_n45# A 0.03803f
+C1 Z vdd 0.0911f
+C2 Z A 0.07117f
+C3 vdd A 0.01557f
+C4 Z w_692_n45# 0.08379f
+C5 w_692_n45# vdd 0.02571f
+C6 vdd gnd 0.06995f
+C7 Z gnd 0.50526f
+C8 A gnd 0.30138f
+C9 w_692_n45# gnd 1.1507f
+.ends
 .subckt wrom2_rom_bitline_inverter in_202 out_132 out_187 in_234 out_134 out_164 out_189 in_232 out_141 in_211 out_111 out_196 out_166 in_241 in_236 out_194 out_173 in_243 out_143 out_171 in_213 out_198 out_19 in_250 out_150 in_220 out_120 out_180 in_9 out_175 out_28 out_17 in_245 out_145 out_182 in_7 out_49 in_252 out_152 in_119 out_209 out_26 in_222 out_122 out_37 in_18 in_5 out_177 out_58 out_47 in_247 in_117 in_128 in_39 out_184 out_79 out_207 out_218 out_35 out_24 out_14 in_254 out_154 in_105 in_149 in_27 in_16 in_3 out_191 out_239 out_67 out_56 out_12 in_224 out_69 in_107 in_115 in_126 in_137 out_161 in_48 in_37 out_39 out_227 out_216 out_77 out_88 out_99 out_44 out_33 in_231 out_131 out_229 in_2 in_59 in_147 in_158 in_103 in_114 in_69 in_25 in_14 in_201 out_101 out_46 out_204 out_248 out_237 out_65 out_76 out_54 out_21 out_10 out_186 in_29 in_169 in_124 in_135 in_179 out_16 out_156 in_57 in_46 in_0 out_206 in_139 out_236 out_225 out_214 out_86 out_97 out_53 out_42 out_31 out_193 in_36 in_101 in_112 in_156 in_167 in_109 out_23 out_163 in_78 in_89 out_8 in_67 in_34 in_23 in_12 in_146 out_246 out_74 out_202 out_213 out_63 out_133 in_233 out_78 in_4 in_122 in_133 in_144 in_177 in_188 in_199 out_30 in_116 out_170 in_13 in_66 in_99 in_55 in_44 in_11 out_7 out_95 out_234 out_223 out_84 out_51 out_40 in_203 out_48 out_188 out_238 in_240 out_140 out_85 out_9 in_110 in_121 in_154 in_165 in_176 in_123 in_68 out_18 in_76 in_87 in_98 in_43 in_32 in_21 out_200 out_255 out_244 out_211 out_72 out_83 out_61 in_210 out_110 out_208 out_55 out_195 in_38 out_245 in_178 in_131 in_142 in_153 in_186 in_197 out_25 in_75 in_97 in_64 in_53 in_20 out_5 out_165 out_243 out_232 out_221 out_93 out_60 out_215 out_62 in_148 in_100 in_45 in_130 in_152 in_163 in_174 in_185 in_235 in_6 out_32 in_118 in_74 in_85 in_96 in_41 in_30 out_172 out_253 out_220 in_15 out_70 out_81 out_92 out_222 in_155 in_52 in_140 in_151 in_184 in_195 out_87 in_242 out_142 in_125 in_73 in_62 out_3 in_51 out_252 out_241 out_230 in_22 out_91 in_162 in_212 out_112 out_57 out_197 in_161 in_172 in_183 out_247 out_94 in_77 in_132 in_83 in_94 in_50 out_27 out_90 out_251 out_167 out_217 out_64 in_102 in_47 in_160 in_182 in_193 out_254 in_187 in_84 in_71 in_82 in_60 out_1 in_8 out_250 out_34 out_174 in_17 out_224 out_71 in_157 in_54 in_170 in_181 in_192 in_194 out_144 in_244 in_81 in_92 out_0 out_89 out_41 in_127 out_181 in_24 in_164 out_231 out_2 in_61 in_214 out_59 in_191 out_199 out_11 out_249 out_151 in_251 in_80 in_91 out_96 out_201 in_134 in_79 in_31 out_29 in_171 out_121 in_221 out_66 out_219 in_190 in_104 in_49 in_90 in_189 in_141 in_86 out_36 out_176 in_19 out_108 out_119 out_226 in_159 out_73 in_111 out_109 in_56 in_196 in_246 in_93 in_129 out_43 in_209 out_183 in_26 out_107 out_129 out_80 out_233 in_166 out_4 in_63 out_13 in_253 out_98 out_153 out_203 in_136 out_50 in_208 in_219 out_190 in_33 out_106 out_117 out_128 out_139 out_240 in_173 in_223 out_123 in_70 out_68 out_20 in_106 out_160 out_210 in_143 in_207 in_229 in_88 in_40 out_38 out_105 out_116 out_127 out_138 out_149 out_178 in_180 out_228 out_130 in_230 out_75 in_1 in_113 in_58 in_198 in_10 in_95 in_150 in_206 in_239 in_228 in_217 out_45 out_100 in_200 out_126 out_137 out_148 out_159 out_104 out_115 out_185 in_28 out_82 out_235 in_168 out_6 out_118 in_120 in_218 in_65 out_15 out_155 in_255 in_205 in_249 in_238 in_227 in_216 out_205 in_138 out_52 out_103 out_114 out_136 out_147 out_158 out_169 out_192 in_35 in_175 out_242 wrom2_pinv_dec_3_9/w_692_n79# in_72 in_225 out_125 out_22 in_108 out_162 in_204 in_248 in_237 in_226 in_215 out_212 in_145 out_102 out_113 out_124 out_135 out_146 out_157 out_168 out_179 gnd in_42 vdd
 Xwrom2_pinv_dec_3_50 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_50 out_50 wrom2_pinv_dec_3
 Xwrom2_pinv_dec_3_61 gnd vdd wrom2_pinv_dec_3_9/w_692_n79# in_61 out_61 wrom2_pinv_dec_3
@@ -8484,20 +8513,6 @@ C2556 out_61 gnd -0.20323f
 C2557 in_61 gnd -0.08178f
 C2558 out_50 gnd -0.20368f
 C2559 in_50 gnd -0.08178f
-.ends
-.subckt wrom2_pinv_dec_4 gnd vdd A w_692_n45# Z
-X0 vdd A Z w_692_n45# sky130_fd_pr__pfet_01v8 ad=1.5u pd=10.6 as=1.5u ps=10.6 w=5 l=0.15
-X1 gnd A Z gnd sky130_fd_pr__nfet_01v8 ad=0.504u pd=3.96 as=0.504u ps=3.96 w=1.68 l=0.15
-C0 w_692_n45# A 0.03803f
-C1 Z vdd 0.0911f
-C2 Z A 0.07117f
-C3 vdd A 0.01557f
-C4 Z w_692_n45# 0.08379f
-C5 w_692_n45# vdd 0.02571f
-C6 vdd gnd 0.06995f
-C7 Z gnd 0.50526f
-C8 A gnd 0.30138f
-C9 w_692_n45# gnd 1.1507f
 .ends
 .subckt wrom2_rom_column_mux bl bl_out gnd sel
 X0 bl_out sel bl gnd sky130_fd_pr__nfet_01v8 ad=0.864u pd=6.36 as=0.864u ps=6.36 w=2.88 l=0.15
@@ -11550,20 +11565,6 @@ C2781 bl_75 gnd -0.03638f
 C2782 bl_64 gnd -0.0375f
 C2783 bl_out_8 gnd 1.23466f
 C2784 bl_65 gnd -0.03574f
-.ends
-.subckt wrom2_pinv_dec_3 gnd vdd w_692_n79# A Z
-X0 vdd A Z w_692_n79# sky130_fd_pr__pfet_01v8 ad=1.5u pd=10.6 as=1.5u ps=10.6 w=5 l=0.15
-X1 gnd A Z gnd sky130_fd_pr__nfet_01v8 ad=0.504u pd=3.96 as=0.504u ps=3.96 w=1.68 l=0.15
-C0 w_692_n79# A 0.10891f
-C1 Z w_692_n79# 0.05333f
-C2 Z A 0.04991f
-C3 vdd w_692_n79# 0.02783f
-C4 vdd A 0.01892f
-C5 vdd Z 0.06954f
-C6 vdd gnd 0.06645f
-C7 Z gnd 0.35042f
-C8 A gnd 0.23452f
-C9 w_692_n79# gnd 1.35078f
 .ends
 .subckt wrom2_rom_output_buffer in_23 in_14 in_7 in_0 in_12 in_5 in_30 in_21 in_3 out_29 out_18 in_28 out_27 out_16 in_19 out_25 out_14 in_26 in_17 out_23 in_10 out_12 out_11 in_24 in_15 out_20 out_9 in_8 out_21 out_30 in_1 out_7 in_22 in_13 out_5 out_28 in_6 gnd out_19 out_4 out_3 in_31 out_2 in_4 out_26 out_17 out_10 out_0 in_29 in_20 in_2 out_24 out_15 out_8 in_27 out_1 in_18 out_22 out_13 in_11 out_6 in_25 in_16 vdd out_31 in_9
 Xwrom2_pinv_dec_4_30 gnd vdd in_1 vdd out_1 wrom2_pinv_dec_4

@@ -2,7 +2,7 @@
 Note: No compatibility mode selected!
 
 
-Circuit: * wrom3 kolon 10 -- aktif cevrim enerjisi (kolon basina)
+Circuit: * wrom3 column 10 -- active cycle energy (per column)
 
 Doing analysis at TEMP = 100.000000 and TNOM = 27.000000
 
@@ -14,22 +14,22 @@ No. of Data Rows : 1683
 
   Measurements for Transient Analysis
 
-q_c2                =   -1.99330e-13 from=  2.00000e-07 to=  4.00000e-07
-q_c3                =   -2.00123e-13 from=  4.00000e-07 to=  6.00000e-07
-e_col_pj            =  3.20197e-01
+q_c2                =   -2.06779e-13 from=  2.00000e-07 to=  4.00000e-07
+q_c3                =   -2.07520e-13 from=  4.00000e-07 to=  6.00000e-07
+e_col_pj            =  3.32032e-01
 
 
-Total analysis time (seconds) = 1.04031
+Total analysis time (seconds) = 0.549625
 
-Total elapsed time (seconds) = 106.360 
+Total elapsed time (seconds) = 39.745 
 
-Total DRAM available = 31789.582 MB.
-DRAM currently available = 12185.035 MB.
-Maximum ngspice program size =  420.578 MB.
-Current ngspice program size =  353.789 MB.
+Total DRAM available = 31789.559 MB.
+DRAM currently available = 18093.309 MB.
+Maximum ngspice program size =  421.355 MB.
+Current ngspice program size =  354.547 MB.
 
-Shared ngspice pages =   11.348 MB.
+Shared ngspice pages =   11.328 MB.
 Text (code) pages =    6.520 MB.
 Stack = 0 bytes.
-Library pages =  398.414 MB.
+Library pages =  399.191 MB.
 

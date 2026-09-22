@@ -2,7 +2,7 @@
 Note: No compatibility mode selected!
 
 
-Circuit: * wrom0 -- hucre esdeger kapi kapasitansi (ff)
+Circuit: * wrom0 -- cell equivalent gate capacitance (ff)
 
 Doing analysis at TEMP = -40.000000 and TNOM = 27.000000
 
@@ -20,17 +20,17 @@ c_one_ff            =  4.94864e-01
 c_zero_ff           =  4.94864e-01
 
 
-Total analysis time (seconds) = 0.0955639
+Total analysis time (seconds) = 0.0664842
 
-Total elapsed time (seconds) = 100.305 
+Total elapsed time (seconds) = 39.488 
 
-Total DRAM available = 31789.582 MB.
-DRAM currently available =  268.617 MB.
-Maximum ngspice program size =  421.000 MB.
-Current ngspice program size =  354.410 MB.
+Total DRAM available = 31789.578 MB.
+DRAM currently available = 20875.141 MB.
+Maximum ngspice program size =  420.379 MB.
+Current ngspice program size =  353.598 MB.
 
-Shared ngspice pages =   11.547 MB.
+Shared ngspice pages =   11.355 MB.
 Text (code) pages =    6.520 MB.
 Stack = 0 bytes.
-Library pages =  398.836 MB.
+Library pages =  398.215 MB.
 

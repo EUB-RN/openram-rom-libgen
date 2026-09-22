@@ -1,7 +1,7 @@
-* wrom3 kolon 10 -- AKTIF CEVRIM ENERJISI (kolon basina)
-* Bir tam cevrimde VDD'den cekilen YUK integrali -> E = Q*VDD.
-* Enerji FREKANSTAN BAGIMSIZ; --tclk degistirilerek dogrulanabilir.
-* Toplam makro enerjisi ~ 264 x (bu deger) + cevre birimi.
+* wrom3 column 10 -- ACTIVE CYCLE ENERGY (per column)
+* Charge integral drawn from VDD over one full cycle -> E = Q*VDD.
+* The energy is FREQUENCY INDEPENDENT; verify by changing --tclk.
+* Whole-macro energy ~ 256 x (this value) + periphery.
 .lib /home/hpw/OpenLane/pdks/sky130A/libs.tech/ngspice/sky130.lib.spice ff
 .temp -40
 .param VDD=1.95
@@ -144,87 +144,99 @@ Vwl132 wl_0_132 0 DC {VDD}
 .param TCLK=200n
 Vprecharge precharge 0 PULSE(0 {VDD} {TCLK/2} 100p 100p {TCLK/2-100p} {TCLK})
 
-* wrom3 -- GERCEK PARAZITIK C ile kolon 10 izole olcum
-* 77 seri NMOS + 57 olu hucre (graf yuruyusu, isim-bagimsiz)
+* wrom3 -- isolated measurement of column 10 with REAL PARASITIC C
+* 77 series NMOS + 57 dead cells (graph walk, name independent)
+* wire resistance: 505.4 ohm per cell (77 x = 38.9 kohm)
+* TCLK/2 is the PRECHARGE PHASE, and it is a real parameter of the answer --
+* not a formality. The internal chain nodes never reach VDD (every cell is a
+* pass transistor, so each one loses a Vth and the deeper nodes settle lower
+* still), so the longer the precharge lasts the more charge the next read has
+* to remove and the slower it is. Measured on wrom0 column 236 at TT:
+*     precharge phase   25n     50n     100n    200n    1u
+*     settled t_dis_50  6.9642  9.5409  11.5907 12.9614 14.8495 ns
+* Monotonic and saturating, so the WORST CASE is the longest precharge: a ROM
+* that has been idle with clk0 parked low, whose chain has filled
+* asymptotically, and whose next read is the slowest read it can perform.
+* That is what a .lib has to cover, so the phase is 1 us here.
 Xprechg_pmos bl_0_10 precharge vdd gnd wrom3_precharge_cell
 Xbl_inv gnd vdd vdd bl_0_10 bl_b wrom3_pinv_dec_3
-Xwrom3_rom_base_one_cell_15730 bl_0_10 wrom3_rom_base_one_cell_15730/D wl_0_1 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_15604 wrom3_rom_base_one_cell_15730/D wrom3_rom_base_one_cell_15604/D wl_0_2 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_15488 wrom3_rom_base_one_cell_15604/D wrom3_rom_base_one_cell_15488/D wl_0_3 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_15083 wrom3_rom_base_one_cell_15488/D wrom3_rom_base_one_cell_15083/D wl_0_6 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_14841 wrom3_rom_base_one_cell_15083/D wrom3_rom_base_one_cell_14841/D wl_0_8 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_14435 wrom3_rom_base_one_cell_14841/D wrom3_rom_base_one_cell_14435/D wl_0_11 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_14182 wrom3_rom_base_one_cell_14435/D wrom3_rom_base_one_cell_14182/D wl_0_13 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_14037 wrom3_rom_base_one_cell_14182/D wrom3_rom_base_one_cell_14037/D wl_0_14 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_13925 wrom3_rom_base_one_cell_14037/D wrom3_rom_base_one_cell_13925/D wl_0_15 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_13362 wrom3_rom_base_one_cell_13925/D wrom3_rom_base_one_cell_13362/D wl_0_19 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_12837 wrom3_rom_base_one_cell_13362/D wrom3_rom_base_one_cell_12837/D wl_0_23 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_12721 wrom3_rom_base_one_cell_12837/D wrom3_rom_base_one_cell_12721/D wl_0_24 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_12108 wrom3_rom_base_one_cell_12721/D wrom3_rom_base_one_cell_12108/D wl_0_32 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_11975 wrom3_rom_base_one_cell_12108/D wrom3_rom_base_one_cell_11975/D wl_0_33 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_11595 wrom3_rom_base_one_cell_11975/D wrom3_rom_base_one_cell_11595/D wl_0_36 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_11467 wrom3_rom_base_one_cell_11595/D wrom3_rom_base_one_cell_11467/D wl_0_37 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_10959 wrom3_rom_base_one_cell_11467/D wrom3_rom_base_one_cell_10959/D wl_0_41 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_10813 wrom3_rom_base_one_cell_10959/D wrom3_rom_base_one_cell_10813/D wl_0_42 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_10689 wrom3_rom_base_one_cell_10813/D wrom3_rom_base_one_cell_10689/D wl_0_43 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_10303 wrom3_rom_base_one_cell_10689/D wrom3_rom_base_one_cell_10303/D wl_0_46 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_10178 wrom3_rom_base_one_cell_10303/D wrom3_rom_base_one_cell_10178/D wl_0_47 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_10047 wrom3_rom_base_one_cell_10178/D wrom3_rom_base_one_cell_9684/S wl_0_48 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_9684 wrom3_rom_base_one_cell_9684/S wrom3_rom_base_one_cell_9684/D wl_0_51 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_9557 wrom3_rom_base_one_cell_9684/D wrom3_rom_base_one_cell_9557/D wl_0_52 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_9201 wrom3_rom_base_one_cell_9557/D wrom3_rom_base_one_cell_9201/D wl_0_55 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_9070 wrom3_rom_base_one_cell_9201/D wrom3_rom_base_one_cell_9070/D wl_0_56 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_8935 wrom3_rom_base_one_cell_9070/D wrom3_rom_base_one_cell_8935/D wl_0_57 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_8694 wrom3_rom_base_one_cell_8935/D wrom3_rom_base_one_cell_8694/D wl_0_59 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_8417 wrom3_rom_base_one_cell_8694/D wrom3_rom_base_one_cell_8417/D wl_0_64 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_8290 wrom3_rom_base_one_cell_8417/D wrom3_rom_base_one_cell_8290/D wl_0_65 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_8028 wrom3_rom_base_one_cell_8290/D wrom3_rom_base_one_cell_8028/D wl_0_67 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_7892 wrom3_rom_base_one_cell_8028/D wrom3_rom_base_one_cell_7892/D wl_0_68 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_7628 wrom3_rom_base_one_cell_7892/D wrom3_rom_base_one_cell_7628/D wl_0_70 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_7384 wrom3_rom_base_one_cell_7628/D wrom3_rom_base_one_cell_7384/D wl_0_72 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_7257 wrom3_rom_base_one_cell_7384/D wrom3_rom_base_one_cell_7257/D wl_0_73 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_7132 wrom3_rom_base_one_cell_7257/D wrom3_rom_base_one_cell_7132/D wl_0_74 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_7000 wrom3_rom_base_one_cell_7132/D wrom3_rom_base_one_cell_7000/D wl_0_75 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_6739 wrom3_rom_base_one_cell_7000/D wrom3_rom_base_one_cell_6739/D wl_0_77 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_6603 wrom3_rom_base_one_cell_6739/D wrom3_rom_base_one_cell_6603/D wl_0_78 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_6480 wrom3_rom_base_one_cell_6603/D wrom3_rom_base_one_cell_6480/D wl_0_79 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_6356 wrom3_rom_base_one_cell_6480/D wrom3_rom_base_one_cell_6356/D wl_0_80 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_6240 wrom3_rom_base_one_cell_6356/D wrom3_rom_base_one_cell_6240/D wl_0_81 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_6123 wrom3_rom_base_one_cell_6240/D wrom3_rom_base_one_cell_6123/D wl_0_82 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_5987 wrom3_rom_base_one_cell_6123/D wrom3_rom_base_one_cell_5987/D wl_0_83 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_5850 wrom3_rom_base_one_cell_5987/D wrom3_rom_base_one_cell_5850/D wl_0_84 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_5603 wrom3_rom_base_one_cell_5850/D wrom3_rom_base_one_cell_5603/D wl_0_86 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_5487 wrom3_rom_base_one_cell_5603/D wrom3_rom_base_one_cell_5487/D wl_0_87 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_5363 wrom3_rom_base_one_cell_5487/D wrom3_rom_base_one_cell_5363/D wl_0_88 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_5230 wrom3_rom_base_one_cell_5363/D wrom3_rom_base_one_cell_5230/D wl_0_89 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_4963 wrom3_rom_base_one_cell_5230/D wrom3_rom_base_one_cell_4963/D wl_0_91 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_4839 wrom3_rom_base_one_cell_4963/D wrom3_rom_base_one_cell_4839/D wl_0_92 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_4719 wrom3_rom_base_one_cell_4839/D wrom3_rom_base_one_cell_4719/D wl_0_96 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_4590 wrom3_rom_base_one_cell_4719/D wrom3_rom_base_one_cell_4590/D wl_0_97 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_4444 wrom3_rom_base_one_cell_4590/D wrom3_rom_base_one_cell_4444/D wl_0_98 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_4176 wrom3_rom_base_one_cell_4444/D wrom3_rom_base_one_cell_4176/D wl_0_100 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_3925 wrom3_rom_base_one_cell_4176/D wrom3_rom_base_one_cell_3925/D wl_0_102 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_3548 wrom3_rom_base_one_cell_3925/D wrom3_rom_base_one_cell_3548/D wl_0_105 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_3279 wrom3_rom_base_one_cell_3548/D wrom3_rom_base_one_cell_3279/D wl_0_107 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_3144 wrom3_rom_base_one_cell_3279/D wrom3_rom_base_one_cell_3144/D wl_0_108 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_2900 wrom3_rom_base_one_cell_3144/D wrom3_rom_base_one_cell_2900/D wl_0_110 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_2757 wrom3_rom_base_one_cell_2900/D wrom3_rom_base_one_cell_2757/D wl_0_111 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_2617 wrom3_rom_base_one_cell_2757/D wrom3_rom_base_one_cell_2617/D wl_0_112 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_2469 wrom3_rom_base_one_cell_2617/D wrom3_rom_base_one_cell_2469/D wl_0_113 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_2206 wrom3_rom_base_one_cell_2469/D wrom3_rom_base_one_cell_2206/D wl_0_115 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_2084 wrom3_rom_base_one_cell_2206/D wrom3_rom_base_one_cell_2084/D wl_0_116 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_1961 wrom3_rom_base_one_cell_2084/D wrom3_rom_base_one_cell_1961/D wl_0_117 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_1833 wrom3_rom_base_one_cell_1961/D wrom3_rom_base_one_cell_1833/D wl_0_118 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_1697 wrom3_rom_base_one_cell_1833/D wrom3_rom_base_one_cell_1697/D wl_0_119 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_1565 wrom3_rom_base_one_cell_1697/D wrom3_rom_base_one_cell_1565/D wl_0_120 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_1322 wrom3_rom_base_one_cell_1565/D wrom3_rom_base_one_cell_1322/D wl_0_122 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_1192 wrom3_rom_base_one_cell_1322/D wrom3_rom_base_one_cell_925/S wl_0_123 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_925 wrom3_rom_base_one_cell_925/S wrom3_rom_base_one_cell_925/D wl_0_128 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_772 wrom3_rom_base_one_cell_925/D wrom3_rom_base_one_cell_772/D wl_0_129 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_643 wrom3_rom_base_one_cell_772/D wrom3_rom_base_one_cell_643/D wl_0_130 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_510 wrom3_rom_base_one_cell_643/D wrom3_rom_base_one_cell_510/D wl_0_131 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_364 wrom3_rom_base_one_cell_510/D wrom3_rom_base_one_cell_364/D wl_0_132 gnd wrom3_rom_base_one_cell
-Xwrom3_rom_base_one_cell_245 wrom3_rom_base_one_cell_364/D gnd_uq0 precharge gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_15730 bl_0_10_r wrom3_rom_base_one_cell_15730/D wl_0_1 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_15604 wrom3_rom_base_one_cell_15730/D_r1 wrom3_rom_base_one_cell_15604/D wl_0_2 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_15488 wrom3_rom_base_one_cell_15604/D_r2 wrom3_rom_base_one_cell_15488/D wl_0_3 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_15083 wrom3_rom_base_one_cell_15488/D_r3 wrom3_rom_base_one_cell_15083/D wl_0_6 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_14841 wrom3_rom_base_one_cell_15083/D_r4 wrom3_rom_base_one_cell_14841/D wl_0_8 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_14435 wrom3_rom_base_one_cell_14841/D_r5 wrom3_rom_base_one_cell_14435/D wl_0_11 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_14182 wrom3_rom_base_one_cell_14435/D_r6 wrom3_rom_base_one_cell_14182/D wl_0_13 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_14037 wrom3_rom_base_one_cell_14182/D_r7 wrom3_rom_base_one_cell_14037/D wl_0_14 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_13925 wrom3_rom_base_one_cell_14037/D_r8 wrom3_rom_base_one_cell_13925/D wl_0_15 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_13362 wrom3_rom_base_one_cell_13925/D_r9 wrom3_rom_base_one_cell_13362/D wl_0_19 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_12837 wrom3_rom_base_one_cell_13362/D_r10 wrom3_rom_base_one_cell_12837/D wl_0_23 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_12721 wrom3_rom_base_one_cell_12837/D_r11 wrom3_rom_base_one_cell_12721/D wl_0_24 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_12108 wrom3_rom_base_one_cell_12721/D_r12 wrom3_rom_base_one_cell_12108/D wl_0_32 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_11975 wrom3_rom_base_one_cell_12108/D_r13 wrom3_rom_base_one_cell_11975/D wl_0_33 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_11595 wrom3_rom_base_one_cell_11975/D_r14 wrom3_rom_base_one_cell_11595/D wl_0_36 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_11467 wrom3_rom_base_one_cell_11595/D_r15 wrom3_rom_base_one_cell_11467/D wl_0_37 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_10959 wrom3_rom_base_one_cell_11467/D_r16 wrom3_rom_base_one_cell_10959/D wl_0_41 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_10813 wrom3_rom_base_one_cell_10959/D_r17 wrom3_rom_base_one_cell_10813/D wl_0_42 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_10689 wrom3_rom_base_one_cell_10813/D_r18 wrom3_rom_base_one_cell_10689/D wl_0_43 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_10303 wrom3_rom_base_one_cell_10689/D_r19 wrom3_rom_base_one_cell_10303/D wl_0_46 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_10178 wrom3_rom_base_one_cell_10303/D_r20 wrom3_rom_base_one_cell_10178/D wl_0_47 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_10047 wrom3_rom_base_one_cell_10178/D_r21 wrom3_rom_base_one_cell_9684/S wl_0_48 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_9684 wrom3_rom_base_one_cell_9684/S_r22 wrom3_rom_base_one_cell_9684/D wl_0_51 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_9557 wrom3_rom_base_one_cell_9684/D_r23 wrom3_rom_base_one_cell_9557/D wl_0_52 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_9201 wrom3_rom_base_one_cell_9557/D_r24 wrom3_rom_base_one_cell_9201/D wl_0_55 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_9070 wrom3_rom_base_one_cell_9201/D_r25 wrom3_rom_base_one_cell_9070/D wl_0_56 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_8935 wrom3_rom_base_one_cell_9070/D_r26 wrom3_rom_base_one_cell_8935/D wl_0_57 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_8694 wrom3_rom_base_one_cell_8935/D_r27 wrom3_rom_base_one_cell_8694/D wl_0_59 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_8417 wrom3_rom_base_one_cell_8694/D_r28 wrom3_rom_base_one_cell_8417/D wl_0_64 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_8290 wrom3_rom_base_one_cell_8417/D_r29 wrom3_rom_base_one_cell_8290/D wl_0_65 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_8028 wrom3_rom_base_one_cell_8290/D_r30 wrom3_rom_base_one_cell_8028/D wl_0_67 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_7892 wrom3_rom_base_one_cell_8028/D_r31 wrom3_rom_base_one_cell_7892/D wl_0_68 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_7628 wrom3_rom_base_one_cell_7892/D_r32 wrom3_rom_base_one_cell_7628/D wl_0_70 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_7384 wrom3_rom_base_one_cell_7628/D_r33 wrom3_rom_base_one_cell_7384/D wl_0_72 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_7257 wrom3_rom_base_one_cell_7384/D_r34 wrom3_rom_base_one_cell_7257/D wl_0_73 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_7132 wrom3_rom_base_one_cell_7257/D_r35 wrom3_rom_base_one_cell_7132/D wl_0_74 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_7000 wrom3_rom_base_one_cell_7132/D_r36 wrom3_rom_base_one_cell_7000/D wl_0_75 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_6739 wrom3_rom_base_one_cell_7000/D_r37 wrom3_rom_base_one_cell_6739/D wl_0_77 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_6603 wrom3_rom_base_one_cell_6739/D_r38 wrom3_rom_base_one_cell_6603/D wl_0_78 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_6480 wrom3_rom_base_one_cell_6603/D_r39 wrom3_rom_base_one_cell_6480/D wl_0_79 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_6356 wrom3_rom_base_one_cell_6480/D_r40 wrom3_rom_base_one_cell_6356/D wl_0_80 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_6240 wrom3_rom_base_one_cell_6356/D_r41 wrom3_rom_base_one_cell_6240/D wl_0_81 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_6123 wrom3_rom_base_one_cell_6240/D_r42 wrom3_rom_base_one_cell_6123/D wl_0_82 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_5987 wrom3_rom_base_one_cell_6123/D_r43 wrom3_rom_base_one_cell_5987/D wl_0_83 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_5850 wrom3_rom_base_one_cell_5987/D_r44 wrom3_rom_base_one_cell_5850/D wl_0_84 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_5603 wrom3_rom_base_one_cell_5850/D_r45 wrom3_rom_base_one_cell_5603/D wl_0_86 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_5487 wrom3_rom_base_one_cell_5603/D_r46 wrom3_rom_base_one_cell_5487/D wl_0_87 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_5363 wrom3_rom_base_one_cell_5487/D_r47 wrom3_rom_base_one_cell_5363/D wl_0_88 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_5230 wrom3_rom_base_one_cell_5363/D_r48 wrom3_rom_base_one_cell_5230/D wl_0_89 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_4963 wrom3_rom_base_one_cell_5230/D_r49 wrom3_rom_base_one_cell_4963/D wl_0_91 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_4839 wrom3_rom_base_one_cell_4963/D_r50 wrom3_rom_base_one_cell_4839/D wl_0_92 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_4719 wrom3_rom_base_one_cell_4839/D_r51 wrom3_rom_base_one_cell_4719/D wl_0_96 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_4590 wrom3_rom_base_one_cell_4719/D_r52 wrom3_rom_base_one_cell_4590/D wl_0_97 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_4444 wrom3_rom_base_one_cell_4590/D_r53 wrom3_rom_base_one_cell_4444/D wl_0_98 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_4176 wrom3_rom_base_one_cell_4444/D_r54 wrom3_rom_base_one_cell_4176/D wl_0_100 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_3925 wrom3_rom_base_one_cell_4176/D_r55 wrom3_rom_base_one_cell_3925/D wl_0_102 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_3548 wrom3_rom_base_one_cell_3925/D_r56 wrom3_rom_base_one_cell_3548/D wl_0_105 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_3279 wrom3_rom_base_one_cell_3548/D_r57 wrom3_rom_base_one_cell_3279/D wl_0_107 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_3144 wrom3_rom_base_one_cell_3279/D_r58 wrom3_rom_base_one_cell_3144/D wl_0_108 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_2900 wrom3_rom_base_one_cell_3144/D_r59 wrom3_rom_base_one_cell_2900/D wl_0_110 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_2757 wrom3_rom_base_one_cell_2900/D_r60 wrom3_rom_base_one_cell_2757/D wl_0_111 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_2617 wrom3_rom_base_one_cell_2757/D_r61 wrom3_rom_base_one_cell_2617/D wl_0_112 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_2469 wrom3_rom_base_one_cell_2617/D_r62 wrom3_rom_base_one_cell_2469/D wl_0_113 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_2206 wrom3_rom_base_one_cell_2469/D_r63 wrom3_rom_base_one_cell_2206/D wl_0_115 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_2084 wrom3_rom_base_one_cell_2206/D_r64 wrom3_rom_base_one_cell_2084/D wl_0_116 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_1961 wrom3_rom_base_one_cell_2084/D_r65 wrom3_rom_base_one_cell_1961/D wl_0_117 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_1833 wrom3_rom_base_one_cell_1961/D_r66 wrom3_rom_base_one_cell_1833/D wl_0_118 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_1697 wrom3_rom_base_one_cell_1833/D_r67 wrom3_rom_base_one_cell_1697/D wl_0_119 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_1565 wrom3_rom_base_one_cell_1697/D_r68 wrom3_rom_base_one_cell_1565/D wl_0_120 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_1322 wrom3_rom_base_one_cell_1565/D_r69 wrom3_rom_base_one_cell_1322/D wl_0_122 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_1192 wrom3_rom_base_one_cell_1322/D_r70 wrom3_rom_base_one_cell_925/S wl_0_123 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_925 wrom3_rom_base_one_cell_925/S_r71 wrom3_rom_base_one_cell_925/D wl_0_128 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_772 wrom3_rom_base_one_cell_925/D_r72 wrom3_rom_base_one_cell_772/D wl_0_129 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_643 wrom3_rom_base_one_cell_772/D_r73 wrom3_rom_base_one_cell_643/D wl_0_130 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_510 wrom3_rom_base_one_cell_643/D_r74 wrom3_rom_base_one_cell_510/D wl_0_131 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_364 wrom3_rom_base_one_cell_510/D_r75 wrom3_rom_base_one_cell_364/D wl_0_132 gnd wrom3_rom_base_one_cell
+Xwrom3_rom_base_one_cell_245 wrom3_rom_base_one_cell_364/D_r76 gnd_uq0 precharge gnd wrom3_rom_base_one_cell
 Xwrom3_rom_base_zero_cell_18418 bl_0_10 wl_0_0 gnd wrom3_rom_base_zero_cell
 Xwrom3_rom_base_zero_cell_17909 wrom3_rom_base_one_cell_15488/D wl_0_4 gnd wrom3_rom_base_zero_cell
 Xwrom3_rom_base_zero_cell_17777 wrom3_rom_base_one_cell_15488/D wl_0_5 gnd wrom3_rom_base_zero_cell
@@ -282,6 +294,83 @@ Xwrom3_rom_base_zero_cell_1357 wrom3_rom_base_one_cell_925/S wl_0_125 gnd wrom3_
 Xwrom3_rom_base_zero_cell_1101 wrom3_rom_base_one_cell_925/S wl_0_126 gnd wrom3_rom_base_zero_cell
 Xwrom3_rom_base_zero_cell_845 wrom3_rom_base_one_cell_925/S wl_0_127 gnd wrom3_rom_base_zero_cell
 Xwrom3_rom_base_zero_cell_1479 wrom3_rom_base_one_cell_925/S wl_0_124 gnd wrom3_rom_base_zero_cell
+Rw0 bl_0_10 bl_0_10_r 505.3714
+Rw1 wrom3_rom_base_one_cell_15730/D wrom3_rom_base_one_cell_15730/D_r1 505.3714
+Rw2 wrom3_rom_base_one_cell_15604/D wrom3_rom_base_one_cell_15604/D_r2 505.3714
+Rw3 wrom3_rom_base_one_cell_15488/D wrom3_rom_base_one_cell_15488/D_r3 505.3714
+Rw4 wrom3_rom_base_one_cell_15083/D wrom3_rom_base_one_cell_15083/D_r4 505.3714
+Rw5 wrom3_rom_base_one_cell_14841/D wrom3_rom_base_one_cell_14841/D_r5 505.3714
+Rw6 wrom3_rom_base_one_cell_14435/D wrom3_rom_base_one_cell_14435/D_r6 505.3714
+Rw7 wrom3_rom_base_one_cell_14182/D wrom3_rom_base_one_cell_14182/D_r7 505.3714
+Rw8 wrom3_rom_base_one_cell_14037/D wrom3_rom_base_one_cell_14037/D_r8 505.3714
+Rw9 wrom3_rom_base_one_cell_13925/D wrom3_rom_base_one_cell_13925/D_r9 505.3714
+Rw10 wrom3_rom_base_one_cell_13362/D wrom3_rom_base_one_cell_13362/D_r10 505.3714
+Rw11 wrom3_rom_base_one_cell_12837/D wrom3_rom_base_one_cell_12837/D_r11 505.3714
+Rw12 wrom3_rom_base_one_cell_12721/D wrom3_rom_base_one_cell_12721/D_r12 505.3714
+Rw13 wrom3_rom_base_one_cell_12108/D wrom3_rom_base_one_cell_12108/D_r13 505.3714
+Rw14 wrom3_rom_base_one_cell_11975/D wrom3_rom_base_one_cell_11975/D_r14 505.3714
+Rw15 wrom3_rom_base_one_cell_11595/D wrom3_rom_base_one_cell_11595/D_r15 505.3714
+Rw16 wrom3_rom_base_one_cell_11467/D wrom3_rom_base_one_cell_11467/D_r16 505.3714
+Rw17 wrom3_rom_base_one_cell_10959/D wrom3_rom_base_one_cell_10959/D_r17 505.3714
+Rw18 wrom3_rom_base_one_cell_10813/D wrom3_rom_base_one_cell_10813/D_r18 505.3714
+Rw19 wrom3_rom_base_one_cell_10689/D wrom3_rom_base_one_cell_10689/D_r19 505.3714
+Rw20 wrom3_rom_base_one_cell_10303/D wrom3_rom_base_one_cell_10303/D_r20 505.3714
+Rw21 wrom3_rom_base_one_cell_10178/D wrom3_rom_base_one_cell_10178/D_r21 505.3714
+Rw22 wrom3_rom_base_one_cell_9684/S wrom3_rom_base_one_cell_9684/S_r22 505.3714
+Rw23 wrom3_rom_base_one_cell_9684/D wrom3_rom_base_one_cell_9684/D_r23 505.3714
+Rw24 wrom3_rom_base_one_cell_9557/D wrom3_rom_base_one_cell_9557/D_r24 505.3714
+Rw25 wrom3_rom_base_one_cell_9201/D wrom3_rom_base_one_cell_9201/D_r25 505.3714
+Rw26 wrom3_rom_base_one_cell_9070/D wrom3_rom_base_one_cell_9070/D_r26 505.3714
+Rw27 wrom3_rom_base_one_cell_8935/D wrom3_rom_base_one_cell_8935/D_r27 505.3714
+Rw28 wrom3_rom_base_one_cell_8694/D wrom3_rom_base_one_cell_8694/D_r28 505.3714
+Rw29 wrom3_rom_base_one_cell_8417/D wrom3_rom_base_one_cell_8417/D_r29 505.3714
+Rw30 wrom3_rom_base_one_cell_8290/D wrom3_rom_base_one_cell_8290/D_r30 505.3714
+Rw31 wrom3_rom_base_one_cell_8028/D wrom3_rom_base_one_cell_8028/D_r31 505.3714
+Rw32 wrom3_rom_base_one_cell_7892/D wrom3_rom_base_one_cell_7892/D_r32 505.3714
+Rw33 wrom3_rom_base_one_cell_7628/D wrom3_rom_base_one_cell_7628/D_r33 505.3714
+Rw34 wrom3_rom_base_one_cell_7384/D wrom3_rom_base_one_cell_7384/D_r34 505.3714
+Rw35 wrom3_rom_base_one_cell_7257/D wrom3_rom_base_one_cell_7257/D_r35 505.3714
+Rw36 wrom3_rom_base_one_cell_7132/D wrom3_rom_base_one_cell_7132/D_r36 505.3714
+Rw37 wrom3_rom_base_one_cell_7000/D wrom3_rom_base_one_cell_7000/D_r37 505.3714
+Rw38 wrom3_rom_base_one_cell_6739/D wrom3_rom_base_one_cell_6739/D_r38 505.3714
+Rw39 wrom3_rom_base_one_cell_6603/D wrom3_rom_base_one_cell_6603/D_r39 505.3714
+Rw40 wrom3_rom_base_one_cell_6480/D wrom3_rom_base_one_cell_6480/D_r40 505.3714
+Rw41 wrom3_rom_base_one_cell_6356/D wrom3_rom_base_one_cell_6356/D_r41 505.3714
+Rw42 wrom3_rom_base_one_cell_6240/D wrom3_rom_base_one_cell_6240/D_r42 505.3714
+Rw43 wrom3_rom_base_one_cell_6123/D wrom3_rom_base_one_cell_6123/D_r43 505.3714
+Rw44 wrom3_rom_base_one_cell_5987/D wrom3_rom_base_one_cell_5987/D_r44 505.3714
+Rw45 wrom3_rom_base_one_cell_5850/D wrom3_rom_base_one_cell_5850/D_r45 505.3714
+Rw46 wrom3_rom_base_one_cell_5603/D wrom3_rom_base_one_cell_5603/D_r46 505.3714
+Rw47 wrom3_rom_base_one_cell_5487/D wrom3_rom_base_one_cell_5487/D_r47 505.3714
+Rw48 wrom3_rom_base_one_cell_5363/D wrom3_rom_base_one_cell_5363/D_r48 505.3714
+Rw49 wrom3_rom_base_one_cell_5230/D wrom3_rom_base_one_cell_5230/D_r49 505.3714
+Rw50 wrom3_rom_base_one_cell_4963/D wrom3_rom_base_one_cell_4963/D_r50 505.3714
+Rw51 wrom3_rom_base_one_cell_4839/D wrom3_rom_base_one_cell_4839/D_r51 505.3714
+Rw52 wrom3_rom_base_one_cell_4719/D wrom3_rom_base_one_cell_4719/D_r52 505.3714
+Rw53 wrom3_rom_base_one_cell_4590/D wrom3_rom_base_one_cell_4590/D_r53 505.3714
+Rw54 wrom3_rom_base_one_cell_4444/D wrom3_rom_base_one_cell_4444/D_r54 505.3714
+Rw55 wrom3_rom_base_one_cell_4176/D wrom3_rom_base_one_cell_4176/D_r55 505.3714
+Rw56 wrom3_rom_base_one_cell_3925/D wrom3_rom_base_one_cell_3925/D_r56 505.3714
+Rw57 wrom3_rom_base_one_cell_3548/D wrom3_rom_base_one_cell_3548/D_r57 505.3714
+Rw58 wrom3_rom_base_one_cell_3279/D wrom3_rom_base_one_cell_3279/D_r58 505.3714
+Rw59 wrom3_rom_base_one_cell_3144/D wrom3_rom_base_one_cell_3144/D_r59 505.3714
+Rw60 wrom3_rom_base_one_cell_2900/D wrom3_rom_base_one_cell_2900/D_r60 505.3714
+Rw61 wrom3_rom_base_one_cell_2757/D wrom3_rom_base_one_cell_2757/D_r61 505.3714
+Rw62 wrom3_rom_base_one_cell_2617/D wrom3_rom_base_one_cell_2617/D_r62 505.3714
+Rw63 wrom3_rom_base_one_cell_2469/D wrom3_rom_base_one_cell_2469/D_r63 505.3714
+Rw64 wrom3_rom_base_one_cell_2206/D wrom3_rom_base_one_cell_2206/D_r64 505.3714
+Rw65 wrom3_rom_base_one_cell_2084/D wrom3_rom_base_one_cell_2084/D_r65 505.3714
+Rw66 wrom3_rom_base_one_cell_1961/D wrom3_rom_base_one_cell_1961/D_r66 505.3714
+Rw67 wrom3_rom_base_one_cell_1833/D wrom3_rom_base_one_cell_1833/D_r67 505.3714
+Rw68 wrom3_rom_base_one_cell_1697/D wrom3_rom_base_one_cell_1697/D_r68 505.3714
+Rw69 wrom3_rom_base_one_cell_1565/D wrom3_rom_base_one_cell_1565/D_r69 505.3714
+Rw70 wrom3_rom_base_one_cell_1322/D wrom3_rom_base_one_cell_1322/D_r70 505.3714
+Rw71 wrom3_rom_base_one_cell_925/S wrom3_rom_base_one_cell_925/S_r71 505.3714
+Rw72 wrom3_rom_base_one_cell_925/D wrom3_rom_base_one_cell_925/D_r72 505.3714
+Rw73 wrom3_rom_base_one_cell_772/D wrom3_rom_base_one_cell_772/D_r73 505.3714
+Rw74 wrom3_rom_base_one_cell_643/D wrom3_rom_base_one_cell_643/D_r74 505.3714
+Rw75 wrom3_rom_base_one_cell_510/D wrom3_rom_base_one_cell_510/D_r75 505.3714
+Rw76 wrom3_rom_base_one_cell_364/D wrom3_rom_base_one_cell_364/D_r76 505.3714
 .subckt wrom3_rom_base_one_cell S D G gnd
 X0 D G S gnd sky130_fd_pr__special_nfet_01v8 ad=0.108u pd=1.32 as=0.108u ps=1.32 w=0.36 l=0.15
 C0 D G 0.00394f
@@ -320,14 +409,45 @@ C7 Z gnd 0.35042f
 C8 A gnd 0.23452f
 C9 w_692_n79# gnd 1.35078f
 .ends
+* THE FIRST CYCLE IS NOT A MEASUREMENT (found 2026-09-20 from a waveform).
+* `.ic` sets the bitline only; with `uic` the 77 internal chain nodes start at
+* 0 V and jump within picoseconds to a capacitive-divider level set by each
+* cell's parasitic C to vdd and to gnd. That level is HIGHER than the state
+* conduction produces, and the nodes cannot come back down: the foot
+* transistor is off during precharge, so they can only be charged, never
+* discharged. A longer first precharge therefore does not wash it out --
+* wrom0 cycle 1 gives 16.5035 ns whether the first precharge phase is 25 ns,
+* 100 ns or 1 us, against 14.8495 ns settled at the same 1 us phase.
+* Probed at the end of the precharge phase (wrom0, TT):
+*     node          cycle 1   settled
+*     bitline       1.8000 V  1.7990 V
+*     chain node 1  1.2623 V  1.0696 V
+*     chain node 41 1.1171 V  0.8426 V
+*     chain node 81 1.1082 V  0.8201 V
+* Cycle 1 is nearly flat -- a capacitive divider; the settled state is a
+* gradient built by conduction. So every measurement below sits on a LATE
+* cycle, the same rule the energy decks already follow (q_c2 vs q_c3).
+*
+* t_dis_50_prev is the previous cycle and exists to PROVE the settling: if it
+* differs from t_dis_50, the deck has not settled and the number must not be
+* used. On these macros the two agree to four decimals.
+* t_pre_50: the bitline crosses the bitline-inverter trip point on the way
+* back up -- this is the moment dout0 STOPS being valid after clk0 falls.
+* It feeds the falling_edge arc of the .lib (gen_rom_lib.py --t-invalid).
+* t_pre_90/t_pre_99 are the recharge-complete times and are much later, so
+* they must NOT be used for that arc.
+* These sit on the falling edge that ENDS cycle 2, i.e. after two discharges.
+* 200 ps: the step is not a sensitivity here -- 100 ps against 200 ps moves
+* t_dis_50 by 0.007% -- and at a 1 us phase it keeps the run under a few
+* minutes.
 
 .tran '200n/400' '4*TCLK' uic
-* 2. VE 3. cevrim ayri olculur: esit cikmalari devrenin OTURDUGUNU gosterir
-* (uic ile tum dugumler 0'dan basliyor, zincir yavas doluyor).
-* 3. cevrim daha oturmus oldugu icin .lib'e O yazilir.
-* FREKANS BAGIMSIZLIGI DOGRULANDI (2026-09-05, wrom0 kolon 155, TT):
+* Cycles 2 AND 3 are measured separately: equal values prove the circuit has
+* SETTLED (with uic every node starts at 0 and the chain fills slowly).
+* Cycle 3 is the more settled one, so THAT is what goes into the .lib.
+* FREQUENCY INDEPENDENCE VERIFIED (2026-09-05, wrom0 column 155, TT):
 *   TCLK=200n -> q_c3 = 2.342e-13 C
-*   TCLK=400n -> q_c3 = 2.419e-13 C   (periyot 2x, yuk %3.3 farkli)
+*   TCLK=400n -> q_c3 = 2.419e-13 C   (period 2x, charge 3.3% different)
 .measure tran q_c2 integ i(Vvdd) from='TCLK' to='2*TCLK'
 .measure tran q_c3 integ i(Vvdd) from='2*TCLK' to='3*TCLK'
 .measure tran e_col_pj param='abs(q_c3)*VDD*1e12'

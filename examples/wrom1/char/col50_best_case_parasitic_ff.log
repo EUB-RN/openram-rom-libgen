@@ -1,0 +1,422 @@
+
+Note: No compatibility mode selected!
+
+
+Circuit: * wrom1 -- isolated measurement of column 50 with real parasitic c
+
+Doing analysis at TEMP = -40.000000 and TNOM = 27.000000
+
+Using SPARSE 1.3 as Direct Linear Solver
+Note: Starting dynamic gmin stepping
+Note: Dynamic gmin stepping completed
+
+Initial Transient Solution
+--------------------------
+
+Node                                   Voltage
+----                                   -------
+vdd                                       1.95
+gnd_uq0                                      0
+precharge                                    0
+wl_0_0                                    1.95
+wl_0_1                                    1.95
+wl_0_2                                    1.95
+wl_0_3                                    1.95
+wl_0_4                                    1.95
+wl_0_5                                    1.95
+wl_0_6                                    1.95
+wl_0_7                                    1.95
+wl_0_8                                    1.95
+wl_0_9                                    1.95
+wl_0_10                                   1.95
+wl_0_11                                   1.95
+wl_0_12                                   1.95
+wl_0_13                                   1.95
+wl_0_14                                   1.95
+wl_0_15                                   1.95
+wl_0_16                                   1.95
+wl_0_17                                   1.95
+wl_0_18                                   1.95
+wl_0_19                                   1.95
+wl_0_20                                   1.95
+wl_0_21                                   1.95
+wl_0_22                                   1.95
+wl_0_23                                   1.95
+wl_0_24                                   1.95
+wl_0_25                                   1.95
+wl_0_26                                   1.95
+wl_0_27                                   1.95
+wl_0_28                                   1.95
+wl_0_29                                   1.95
+wl_0_30                                   1.95
+wl_0_31                                   1.95
+wl_0_32                                   1.95
+wl_0_33                                   1.95
+wl_0_34                                   1.95
+wl_0_35                                   1.95
+wl_0_36                                   1.95
+wl_0_37                                   1.95
+wl_0_38                                   1.95
+wl_0_39                                   1.95
+wl_0_40                                   1.95
+wl_0_41                                   1.95
+wl_0_42                                   1.95
+wl_0_43                                   1.95
+wl_0_44                                   1.95
+wl_0_45                                   1.95
+wl_0_46                                   1.95
+wl_0_47                                   1.95
+wl_0_48                                   1.95
+wl_0_49                                   1.95
+wl_0_50                                   1.95
+wl_0_51                                   1.95
+wl_0_52                                   1.95
+wl_0_53                                   1.95
+wl_0_54                                   1.95
+wl_0_55                                   1.95
+wl_0_56                                   1.95
+wl_0_57                                   1.95
+wl_0_58                                   1.95
+wl_0_59                                   1.95
+wl_0_60                                   1.95
+wl_0_61                                   1.95
+wl_0_62                                   1.95
+wl_0_63                                   1.95
+wl_0_64                                   1.95
+wl_0_65                                   1.95
+wl_0_66                                   1.95
+wl_0_67                                   1.95
+wl_0_68                                   1.95
+wl_0_69                                   1.95
+wl_0_70                                   1.95
+wl_0_71                                   1.95
+wl_0_72                                   1.95
+wl_0_73                                   1.95
+wl_0_74                                   1.95
+wl_0_75                                   1.95
+wl_0_76                                   1.95
+wl_0_77                                   1.95
+wl_0_78                                   1.95
+wl_0_79                                   1.95
+wl_0_80                                   1.95
+wl_0_81                                   1.95
+wl_0_82                                   1.95
+wl_0_83                                   1.95
+wl_0_84                                   1.95
+wl_0_85                                   1.95
+wl_0_86                                   1.95
+wl_0_87                                   1.95
+wl_0_88                                   1.95
+wl_0_89                                   1.95
+wl_0_90                                   1.95
+wl_0_91                                   1.95
+wl_0_92                                   1.95
+wl_0_93                                   1.95
+wl_0_94                                   1.95
+wl_0_95                                   1.95
+wl_0_96                                   1.95
+wl_0_97                                   1.95
+wl_0_98                                   1.95
+wl_0_99                                   1.95
+wl_0_100                                  1.95
+wl_0_101                                  1.95
+wl_0_102                                  1.95
+wl_0_103                                  1.95
+wl_0_104                                  1.95
+wl_0_105                                  1.95
+wl_0_106                                  1.95
+wl_0_107                                  1.95
+wl_0_108                                  1.95
+wl_0_109                                  1.95
+wl_0_110                                  1.95
+wl_0_111                                  1.95
+wl_0_112                                  1.95
+wl_0_113                                  1.95
+wl_0_114                                  1.95
+wl_0_115                                  1.95
+wl_0_116                                  1.95
+wl_0_117                                  1.95
+wl_0_118                                  1.95
+wl_0_119                                  1.95
+wl_0_120                                  1.95
+wl_0_121                                  1.95
+wl_0_122                                  1.95
+wl_0_123                                  1.95
+wl_0_124                                  1.95
+wl_0_125                                  1.95
+wl_0_126                                  1.95
+wl_0_127                                  1.95
+wl_0_128                                  1.95
+wl_0_129                                  1.95
+wl_0_130                                  1.95
+wl_0_131                                  1.95
+wl_0_132                                  1.95
+bl_0_50                                   1.95
+bl_b                               3.46052e-08
+wrom1_rom_base_one_cell_17324/d         1.45699
+bl_0_50_r                                 1.95
+wrom1_rom_base_one_cell_17070/d         1.41066
+wrom1_rom_base_one_cell_17324/d_r1         1.45699
+wrom1_rom_base_one_cell_16931/d         1.39363
+wrom1_rom_base_one_cell_17070/d_r2         1.41066
+wrom1_rom_base_one_cell_16297/d         1.38349
+wrom1_rom_base_one_cell_16931/d_r3         1.39363
+wrom1_rom_base_one_cell_16172/d         1.37617
+wrom1_rom_base_one_cell_16297/d_r4         1.38349
+wrom1_rom_base_one_cell_15779/d         1.37053
+wrom1_rom_base_one_cell_16172/d_r5         1.37617
+wrom1_rom_base_one_cell_15643/d         1.36591
+wrom1_rom_base_one_cell_15779/d_r6         1.37053
+wrom1_rom_base_one_cell_15497/d           1.362
+wrom1_rom_base_one_cell_15643/d_r7         1.36591
+wrom1_rom_base_one_cell_15230/d         1.35864
+wrom1_rom_base_one_cell_15497/d_r8           1.362
+wrom1_rom_base_one_cell_14541/d         1.35576
+wrom1_rom_base_one_cell_15230/d_r9         1.35864
+wrom1_rom_base_one_cell_14435/d         1.35318
+wrom1_rom_base_one_cell_14541/d_r10         1.35576
+wrom1_rom_base_one_cell_14312/d         1.35085
+wrom1_rom_base_one_cell_14435/d_r11         1.35318
+wrom1_rom_base_one_cell_13810/d         1.34878
+wrom1_rom_base_one_cell_14312/d_r12         1.35085
+wrom1_rom_base_one_cell_13542/d         1.34689
+wrom1_rom_base_one_cell_13810/d_r13         1.34878
+wrom1_rom_base_one_cell_13427/d         1.34513
+wrom1_rom_base_one_cell_13542/d_r14         1.34688
+wrom1_rom_base_one_cell_13164/d         1.34352
+wrom1_rom_base_one_cell_13427/d_r15         1.34513
+wrom1_rom_base_one_cell_12203/d          1.3421
+wrom1_rom_base_one_cell_13164/d_r16         1.34352
+wrom1_rom_base_one_cell_11436/d         1.34084
+wrom1_rom_base_one_cell_12203/d_r17          1.3421
+wrom1_rom_base_one_cell_11302/d         1.33965
+wrom1_rom_base_one_cell_11436/d_r18         1.34084
+wrom1_rom_base_zero_cell_9927/s         1.33855
+wrom1_rom_base_one_cell_11302/d_r19         1.33965
+wrom1_rom_base_one_cell_10393/d         1.33754
+wrom1_rom_base_zero_cell_9927/s_r20         1.33855
+wrom1_rom_base_one_cell_10247/d         1.33658
+wrom1_rom_base_one_cell_10393/d_r21         1.33754
+wrom1_rom_base_one_cell_10137/d         1.33566
+wrom1_rom_base_one_cell_10247/d_r22         1.33658
+wrom1_rom_base_one_cell_9904/s         1.33478
+wrom1_rom_base_one_cell_10137/d_r23         1.33566
+wrom1_rom_base_one_cell_9904/d         1.33394
+wrom1_rom_base_one_cell_9904/s_r24         1.33478
+wrom1_rom_base_one_cell_9793/d         1.33314
+wrom1_rom_base_one_cell_9904/d_r25         1.33394
+wrom1_rom_base_one_cell_9662/d         1.33237
+wrom1_rom_base_one_cell_9793/d_r26         1.33314
+wrom1_rom_base_one_cell_9280/d         1.33165
+wrom1_rom_base_one_cell_9662/d_r27         1.33237
+wrom1_rom_base_one_cell_8766/d         1.33099
+wrom1_rom_base_one_cell_9280/d_r28         1.33165
+wrom1_rom_base_one_cell_8252/d         1.33038
+wrom1_rom_base_one_cell_8766/d_r29         1.33099
+wrom1_rom_base_one_cell_7432/d         1.32985
+wrom1_rom_base_one_cell_8252/d_r30         1.33038
+wrom1_rom_base_one_cell_7164/d         1.32934
+wrom1_rom_base_one_cell_7432/d_r31         1.32985
+wrom1_rom_base_one_cell_6911/d         1.32886
+wrom1_rom_base_one_cell_7164/d_r32         1.32934
+wrom1_rom_base_one_cell_6777/d         1.32839
+wrom1_rom_base_one_cell_6911/d_r33         1.32886
+wrom1_rom_base_one_cell_6646/d         1.32795
+wrom1_rom_base_one_cell_6777/d_r34         1.32839
+wrom1_rom_base_one_cell_6511/d         1.32752
+wrom1_rom_base_one_cell_6646/d_r35         1.32795
+wrom1_rom_base_one_cell_6229/d         1.32711
+wrom1_rom_base_one_cell_6511/d_r36         1.32752
+wrom1_rom_base_one_cell_5464/d         1.32677
+wrom1_rom_base_one_cell_6229/d_r37         1.32711
+wrom1_rom_base_one_cell_5324/d         1.32643
+wrom1_rom_base_one_cell_5464/d_r38         1.32677
+wrom1_rom_base_one_cell_5201/d         1.32611
+wrom1_rom_base_one_cell_5324/d_r39         1.32643
+wrom1_rom_base_one_cell_5058/d          1.3258
+wrom1_rom_base_one_cell_5201/d_r40         1.32611
+wrom1_rom_base_one_cell_4793/d         1.32551
+wrom1_rom_base_one_cell_5058/d_r41          1.3258
+wrom1_rom_base_one_cell_4670/d         1.32524
+wrom1_rom_base_one_cell_4793/d_r42         1.32551
+wrom1_rom_base_one_cell_4417/d         1.32498
+wrom1_rom_base_one_cell_4670/d_r43         1.32524
+wrom1_rom_base_one_cell_2961/d         1.32481
+wrom1_rom_base_one_cell_4417/d_r44         1.32498
+wrom1_rom_base_one_cell_2426/d         1.32467
+wrom1_rom_base_one_cell_2961/d_r45         1.32481
+wrom1_rom_base_zero_cell_958/s         1.32455
+wrom1_rom_base_one_cell_2426/d_r46         1.32467
+wrom1_rom_base_one_cell_889/s          1.32449
+wrom1_rom_base_zero_cell_958/s_r47         1.32455
+wrom1_rom_base_one_cell_889/d          1.32445
+wrom1_rom_base_one_cell_889/s_r48         1.32449
+wrom1_rom_base_one_cell_609/d          1.32443
+wrom1_rom_base_one_cell_889/d_r49         1.32445
+wrom1_rom_base_one_cell_364/d          1.32442
+wrom1_rom_base_one_cell_609/d_r50         1.32443
+wrom1_rom_base_one_cell_364/d_r51         1.32442
+vwl132#branch                                0
+vwl131#branch                                0
+vwl130#branch                                0
+vwl129#branch                                0
+vwl128#branch                                0
+vwl127#branch                                0
+vwl126#branch                                0
+vwl125#branch                                0
+vwl124#branch                                0
+vwl123#branch                                0
+vwl122#branch                                0
+vwl121#branch                                0
+vwl120#branch                                0
+vwl119#branch                                0
+vwl118#branch                                0
+vwl117#branch                                0
+vwl116#branch                                0
+vwl115#branch                                0
+vwl114#branch                                0
+vwl113#branch                                0
+vwl112#branch                                0
+vwl111#branch                                0
+vwl110#branch                                0
+vwl109#branch                                0
+vwl108#branch                                0
+vwl107#branch                                0
+vwl106#branch                                0
+vwl105#branch                                0
+vwl104#branch                                0
+vwl103#branch                                0
+vwl102#branch                                0
+vwl101#branch                                0
+vwl100#branch                                0
+vwl99#branch                                 0
+vwl98#branch                                 0
+vwl97#branch                                 0
+vwl96#branch                                 0
+vwl95#branch                                 0
+vwl94#branch                                 0
+vwl93#branch                                 0
+vwl92#branch                                 0
+vwl91#branch                                 0
+vwl90#branch                                 0
+vwl89#branch                                 0
+vwl88#branch                                 0
+vwl87#branch                                 0
+vwl86#branch                                 0
+vwl85#branch                                 0
+vwl84#branch                                 0
+vwl83#branch                                 0
+vwl82#branch                                 0
+vwl81#branch                                 0
+vwl80#branch                                 0
+vwl79#branch                                 0
+vwl78#branch                                 0
+vwl77#branch                                 0
+vwl76#branch                                 0
+vwl75#branch                                 0
+vwl74#branch                                 0
+vwl73#branch                                 0
+vwl72#branch                                 0
+vwl71#branch                                 0
+vwl70#branch                                 0
+vwl69#branch                                 0
+vwl68#branch                                 0
+vwl67#branch                                 0
+vwl66#branch                                 0
+vwl65#branch                                 0
+vwl64#branch                                 0
+vwl63#branch                                 0
+vwl62#branch                                 0
+vwl61#branch                                 0
+vwl60#branch                                 0
+vwl59#branch                                 0
+vwl58#branch                                 0
+vwl57#branch                                 0
+vwl56#branch                                 0
+vwl55#branch                                 0
+vwl54#branch                                 0
+vwl53#branch                                 0
+vwl52#branch                                 0
+vwl51#branch                                 0
+vwl50#branch                                 0
+vwl49#branch                                 0
+vwl48#branch                                 0
+vwl47#branch                                 0
+vwl46#branch                                 0
+vwl45#branch                                 0
+vwl44#branch                                 0
+vwl43#branch                                 0
+vwl42#branch                                 0
+vwl41#branch                                 0
+vwl40#branch                                 0
+vwl39#branch                                 0
+vwl38#branch                                 0
+vwl37#branch                                 0
+vwl36#branch                                 0
+vwl35#branch                                 0
+vwl34#branch                                 0
+vwl33#branch                                 0
+vwl32#branch                                 0
+vwl31#branch                                 0
+vwl30#branch                                 0
+vwl29#branch                                 0
+vwl28#branch                                 0
+vwl27#branch                                 0
+vwl26#branch                                 0
+vwl25#branch                                 0
+vwl24#branch                                 0
+vwl23#branch                                 0
+vwl22#branch                                 0
+vwl21#branch                                 0
+vwl20#branch                                 0
+vwl19#branch                                 0
+vwl18#branch                                 0
+vwl17#branch                                 0
+vwl16#branch                                 0
+vwl15#branch                                 0
+vwl14#branch                                 0
+vwl13#branch                                 0
+vwl12#branch                                 0
+vwl11#branch                                 0
+vwl10#branch                                 0
+vwl9#branch                                  0
+vwl8#branch                                  0
+vwl7#branch                                  0
+vwl6#branch                                  0
+vwl5#branch                                  0
+vwl4#branch                                  0
+vwl3#branch                                  0
+vwl2#branch                                  0
+vwl1#branch                                  0
+vwl0#branch                                  0
+vprecharge#branch                            0
+vgndgnd_uq0#branch                 7.63074e-15
+vvdd#branch                       -1.53593e-10
+
+
+No. of Data Rows : 30054
+
+  Measurements for Transient Analysis
+
+t_dis_50            =  5.292128e-09 targ=  5.005342e-06 trig=  5.000050e-06
+t_dis_10            =  1.253719e-08 targ=  5.012587e-06 trig=  5.000050e-06
+t_dis_50_prev       =  5.292128e-09 targ=  3.005342e-06 trig=  3.000050e-06
+t_pre_50            =  1.935091e-10 targ=  4.000244e-06 trig=  4.000050e-06
+t_pre_90            =  4.926089e-10 targ=  4.000543e-06 trig=  4.000050e-06
+t_pre_99            =  9.695146e-09 targ=  4.009745e-06 trig=  4.000050e-06
+
+
+Total analysis time (seconds) = 12.5469
+
+Total elapsed time (seconds) = 71.292 
+
+Total DRAM available = 31789.559 MB.
+DRAM currently available = 18877.254 MB.
+Maximum ngspice program size =  421.223 MB.
+Current ngspice program size =  354.629 MB.
+
+Shared ngspice pages =   11.543 MB.
+Text (code) pages =    6.520 MB.
+Stack = 0 bytes.
+Library pages =  399.059 MB.
+

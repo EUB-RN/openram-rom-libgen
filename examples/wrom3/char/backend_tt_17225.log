@@ -2,7 +2,7 @@
 Note: No compatibility mode selected!
 
 
-Circuit: * wrom3 -- arka uc gecikmesi: bitline -> dout0  (kolon 10, tt)
+Circuit: * wrom3 -- back end delay: bitline -> dout0  (column 10, tt)
 
 Doing analysis at TEMP = 25.000000 and TNOM = 27.000000
 
@@ -14,21 +14,21 @@ No. of Data Rows : 4024
 
   Measurements for Transient Analysis
 
-t_bl2dout           =  1.134751e-09 targ=  2.596740e-08 trig=  2.483265e-08
-t_dout_slew         =  4.016169e-10 targ=  2.617237e-08 trig=  2.577075e-08
+t_bl2dout           =  1.280421e-09 targ=  3.108420e-08 trig=  2.980377e-08
+t_dout_slew         =  4.633883e-10 targ=  3.131778e-08 trig=  3.085439e-08
 
 
-Total analysis time (seconds) = 27.1595
+Total analysis time (seconds) = 38.0841
 
-Total elapsed time (seconds) = 127.307 
+Total elapsed time (seconds) = 157.686 
 
-Total DRAM available = 31789.582 MB.
-DRAM currently available = 9825.797 MB.
-Maximum ngspice program size =  752.305 MB.
-Current ngspice program size =  685.684 MB.
+Total DRAM available = 31789.559 MB.
+DRAM currently available = 15219.121 MB.
+Maximum ngspice program size =  752.320 MB.
+Current ngspice program size =  685.637 MB.
 
-Shared ngspice pages =   11.473 MB.
+Shared ngspice pages =   11.422 MB.
 Text (code) pages =    6.520 MB.
 Stack = 0 bytes.
-Library pages =  730.141 MB.
+Library pages =  730.156 MB.
 

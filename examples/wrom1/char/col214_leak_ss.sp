@@ -1,7 +1,7 @@
-* wrom1 kolon 214 -- IDLE SIZINTI (kolon basina)
-* precharge=0: on-sarj fazi, ayak transistoru KAPALI, bitline VDD'de.
-* Baskin sizinti yolu: VDD -> prechg PMOS(acik) -> zincir(acik) -> ayak(KAPALI) -> gnd
-* Toplam makro sizintisi ~ 264 x (bu deger) + cevre birimi.
+* wrom1 column 214 -- IDLE LEAKAGE (per column)
+* precharge=0: precharge phase, foot transistor OFF, bitline at VDD.
+* Dominant leakage path: VDD -> prechg PMOS(on) -> chain(on) -> foot(OFF) -> gnd
+* Whole-macro leakage ~ 256 x (this value) + periphery.
 .lib /home/hpw/OpenLane/pdks/sky130A/libs.tech/ngspice/sky130.lib.spice ss
 .temp 100
 .param VDD=1.6
@@ -143,98 +143,110 @@ Vwl131 wl_0_131 0 DC {VDD}
 Vwl132 wl_0_132 0 DC {VDD}
 Vprecharge precharge 0 DC 0
 
-* wrom1 -- GERCEK PARAZITIK C ile kolon 214 izole olcum
-* 88 seri NMOS + 46 olu hucre (graf yuruyusu, isim-bagimsiz)
+* wrom1 -- isolated measurement of column 214 with REAL PARASITIC C
+* 88 series NMOS + 46 dead cells (graph walk, name independent)
+* wire resistance: 505.4 ohm per cell (88 x = 44.5 kohm)
+* TCLK/2 is the PRECHARGE PHASE, and it is a real parameter of the answer --
+* not a formality. The internal chain nodes never reach VDD (every cell is a
+* pass transistor, so each one loses a Vth and the deeper nodes settle lower
+* still), so the longer the precharge lasts the more charge the next read has
+* to remove and the slower it is. Measured on wrom0 column 236 at TT:
+*     precharge phase   25n     50n     100n    200n    1u
+*     settled t_dis_50  6.9642  9.5409  11.5907 12.9614 14.8495 ns
+* Monotonic and saturating, so the WORST CASE is the longest precharge: a ROM
+* that has been idle with clk0 parked low, whose chain has filled
+* asymptotically, and whose next read is the slowest read it can perform.
+* That is what a .lib has to cover, so the phase is 1 us here.
 Xprechg_pmos bl_0_214 precharge vdd gnd wrom1_precharge_cell
 Xbl_inv gnd vdd vdd bl_0_214 bl_b wrom1_pinv_dec_3
-Xwrom1_rom_base_one_cell_16988 bl_0_214 wrom1_rom_base_one_cell_16988/D wl_0_3 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_16848 wrom1_rom_base_one_cell_16988/D wrom1_rom_base_one_cell_16848/D wl_0_4 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_16597 wrom1_rom_base_one_cell_16848/D wrom1_rom_base_one_cell_16597/D wl_0_6 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_16351 wrom1_rom_base_one_cell_16597/D wrom1_rom_base_one_cell_16351/D wl_0_8 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_16089 wrom1_rom_base_one_cell_16351/D wrom1_rom_base_one_cell_16089/D wl_0_10 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_15964 wrom1_rom_base_one_cell_16089/D wrom1_rom_base_one_cell_15964/D wl_0_11 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_15692 wrom1_rom_base_one_cell_15964/D wrom1_rom_base_one_cell_15692/D wl_0_13 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_15550 wrom1_rom_base_one_cell_15692/D wrom1_rom_base_one_cell_15550/D wl_0_14 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_15279 wrom1_rom_base_one_cell_15550/D wrom1_rom_base_one_cell_15279/D wl_0_16 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_15147 wrom1_rom_base_one_cell_15279/D wrom1_rom_base_one_cell_15147/D wl_0_17 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_15011 wrom1_rom_base_one_cell_15147/D wrom1_rom_base_one_cell_15011/D wl_0_18 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_14872 wrom1_rom_base_one_cell_15011/D wrom1_rom_base_one_cell_14872/D wl_0_19 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_14600 wrom1_rom_base_one_cell_14872/D wrom1_rom_base_one_cell_14600/D wl_0_21 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_14363 wrom1_rom_base_one_cell_14600/D wrom1_rom_base_one_cell_14363/D wl_0_23 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_14223 wrom1_rom_base_one_cell_14363/D wrom1_rom_base_one_cell_14223/D wl_0_24 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_13963 wrom1_rom_base_one_cell_14223/D wrom1_rom_base_one_cell_13963/D wl_0_26 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_13730 wrom1_rom_base_one_cell_13963/D wrom1_rom_base_one_cell_13730/D wl_0_28 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_13591 wrom1_rom_base_one_cell_13730/D wrom1_rom_base_one_cell_13591/D wl_0_29 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_13468 wrom1_rom_base_one_cell_13591/D wrom1_rom_base_one_cell_13468/D wl_0_30 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_13345 wrom1_rom_base_one_cell_13468/D wrom1_rom_base_one_cell_13345/D wl_0_31 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_13213 wrom1_rom_base_one_cell_13345/D wrom1_rom_base_one_cell_13213/D wl_0_32 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_13072 wrom1_rom_base_one_cell_13213/D wrom1_rom_base_one_cell_13072/D wl_0_33 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_12936 wrom1_rom_base_one_cell_13072/D wrom1_rom_base_one_cell_12936/D wl_0_34 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_12829 wrom1_rom_base_one_cell_12936/D wrom1_rom_base_one_cell_12829/D wl_0_35 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_12718 wrom1_rom_base_one_cell_12829/D wrom1_rom_base_one_cell_12718/D wl_0_36 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_12478 wrom1_rom_base_one_cell_12718/D wrom1_rom_base_one_cell_12478/D wl_0_38 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_12347 wrom1_rom_base_one_cell_12478/D wrom1_rom_base_one_cell_12347/D wl_0_39 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_12245 wrom1_rom_base_one_cell_12347/D wrom1_rom_base_one_cell_12245/D wl_0_40 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_12105 wrom1_rom_base_one_cell_12245/D wrom1_rom_base_one_cell_12105/D wl_0_41 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_11980 wrom1_rom_base_one_cell_12105/D wrom1_rom_base_one_cell_11980/D wl_0_42 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_11861 wrom1_rom_base_one_cell_11980/D wrom1_rom_base_one_cell_11861/D wl_0_43 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_11736 wrom1_rom_base_one_cell_11861/D wrom1_rom_base_one_cell_11736/D wl_0_44 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_11612 wrom1_rom_base_one_cell_11736/D wrom1_rom_base_one_cell_11612/D wl_0_45 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_11342 wrom1_rom_base_one_cell_11612/D wrom1_rom_base_one_cell_11342/D wl_0_47 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_11078 wrom1_rom_base_one_cell_11342/D wrom1_rom_base_one_cell_11078/D wl_0_49 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_10954 wrom1_rom_base_one_cell_11078/D wrom1_rom_base_one_cell_10954/D wl_0_50 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_10814 wrom1_rom_base_one_cell_10954/D wrom1_rom_base_zero_cell_9962/S wl_0_51 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_10439 wrom1_rom_base_zero_cell_9962/S wrom1_rom_base_one_cell_10439/D wl_0_54 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_10302 wrom1_rom_base_one_cell_10439/D wrom1_rom_base_one_cell_10302/D wl_0_55 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_10173 wrom1_rom_base_one_cell_10302/D wrom1_rom_base_one_cell_9932/S wl_0_56 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_9932 wrom1_rom_base_one_cell_9932/S wrom1_rom_base_one_cell_9932/D wl_0_58 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_9833 wrom1_rom_base_one_cell_9932/D wrom1_rom_base_one_cell_9833/D wl_0_59 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_9712 wrom1_rom_base_one_cell_9833/D wrom1_rom_base_one_cell_9712/D wl_0_60 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_9570 wrom1_rom_base_one_cell_9712/D wrom1_rom_base_one_cell_9570/D wl_0_61 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_9325 wrom1_rom_base_one_cell_9570/D wrom1_rom_base_one_cell_9325/D wl_0_63 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_9071 wrom1_rom_base_one_cell_9325/D wrom1_rom_base_one_cell_9071/D wl_0_65 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_8947 wrom1_rom_base_one_cell_9071/D wrom1_rom_base_one_cell_8947/D wl_0_66 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_8819 wrom1_rom_base_one_cell_8947/D wrom1_rom_base_one_cell_8819/D wl_0_67 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_8555 wrom1_rom_base_one_cell_8819/D wrom1_rom_base_one_cell_8555/D wl_0_69 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_8436 wrom1_rom_base_one_cell_8555/D wrom1_rom_base_one_cell_8436/D wl_0_70 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_8300 wrom1_rom_base_one_cell_8436/D wrom1_rom_base_one_cell_8300/D wl_0_71 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_8149 wrom1_rom_base_one_cell_8300/D wrom1_rom_base_one_cell_8149/D wl_0_72 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_8017 wrom1_rom_base_one_cell_8149/D wrom1_rom_base_one_cell_8017/D wl_0_73 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_7743 wrom1_rom_base_one_cell_8017/D wrom1_rom_base_one_cell_7743/D wl_0_75 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_7091 wrom1_rom_base_one_cell_7743/D wrom1_rom_base_one_cell_7091/D wl_0_80 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_6827 wrom1_rom_base_one_cell_7091/D wrom1_rom_base_one_cell_6827/D wl_0_82 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_6283 wrom1_rom_base_one_cell_6827/D wrom1_rom_base_one_cell_6283/D wl_0_86 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_6146 wrom1_rom_base_one_cell_6283/D wrom1_rom_base_one_cell_6146/D wl_0_87 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_6034 wrom1_rom_base_one_cell_6146/D wrom1_rom_base_one_cell_6034/D wl_0_88 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_5901 wrom1_rom_base_one_cell_6034/D wrom1_rom_base_one_cell_5901/D wl_0_89 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_5769 wrom1_rom_base_one_cell_5901/D wrom1_rom_base_one_cell_5769/D wl_0_90 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_5515 wrom1_rom_base_one_cell_5769/D wrom1_rom_base_one_cell_5515/D wl_0_92 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_5377 wrom1_rom_base_one_cell_5515/D wrom1_rom_base_one_cell_5377/D wl_0_93 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_5115 wrom1_rom_base_one_cell_5377/D wrom1_rom_base_one_cell_5115/D wl_0_95 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_4966 wrom1_rom_base_one_cell_5115/D wrom1_rom_base_one_cell_4966/D wl_0_96 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_4582 wrom1_rom_base_one_cell_4966/D wrom1_rom_base_one_cell_4582/D wl_0_99 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_4464 wrom1_rom_base_one_cell_4582/D wrom1_rom_base_one_cell_4464/D wl_0_100 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_4046 wrom1_rom_base_one_cell_4464/D wrom1_rom_base_one_cell_4046/D wl_0_103 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_3915 wrom1_rom_base_one_cell_4046/D wrom1_rom_base_one_cell_3915/D wl_0_104 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_3807 wrom1_rom_base_one_cell_3915/D wrom1_rom_base_one_cell_3807/D wl_0_105 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_3536 wrom1_rom_base_one_cell_3807/D wrom1_rom_base_one_cell_3536/D wl_0_107 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_3281 wrom1_rom_base_one_cell_3536/D wrom1_rom_base_one_cell_3281/D wl_0_109 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_3143 wrom1_rom_base_one_cell_3281/D wrom1_rom_base_one_cell_3143/D wl_0_110 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_2880 wrom1_rom_base_one_cell_3143/D wrom1_rom_base_one_cell_2880/D wl_0_112 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_2731 wrom1_rom_base_one_cell_2880/D wrom1_rom_base_one_cell_2731/D wl_0_113 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_2479 wrom1_rom_base_one_cell_2731/D wrom1_rom_base_one_cell_2479/D wl_0_115 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_2341 wrom1_rom_base_one_cell_2479/D wrom1_rom_base_one_cell_2341/D wl_0_116 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_2235 wrom1_rom_base_one_cell_2341/D wrom1_rom_base_one_cell_2235/D wl_0_117 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_1959 wrom1_rom_base_one_cell_2235/D wrom1_rom_base_one_cell_1959/D wl_0_119 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_1846 wrom1_rom_base_one_cell_1959/D wrom1_rom_base_one_cell_1846/D wl_0_120 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_1718 wrom1_rom_base_one_cell_1846/D wrom1_rom_base_one_cell_1718/D wl_0_121 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_1581 wrom1_rom_base_one_cell_1718/D wrom1_rom_base_one_cell_1581/D wl_0_122 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_1449 wrom1_rom_base_one_cell_1581/D wrom1_rom_base_one_cell_1449/D wl_0_123 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_1214 wrom1_rom_base_one_cell_1449/D wrom1_rom_base_one_cell_1214/D wl_0_125 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_1078 wrom1_rom_base_one_cell_1214/D wrom1_rom_base_one_cell_652/S wl_0_126 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_652 wrom1_rom_base_one_cell_652/S wrom1_rom_base_one_cell_652/D wl_0_129 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_274 wrom1_rom_base_one_cell_652/D wrom1_rom_base_one_cell_41/S wl_0_132 gnd wrom1_rom_base_one_cell
-Xwrom1_rom_base_one_cell_41 wrom1_rom_base_one_cell_41/S gnd_uq0 precharge gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_16988 bl_0_214_r wrom1_rom_base_one_cell_16988/D wl_0_3 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_16848 wrom1_rom_base_one_cell_16988/D_r1 wrom1_rom_base_one_cell_16848/D wl_0_4 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_16597 wrom1_rom_base_one_cell_16848/D_r2 wrom1_rom_base_one_cell_16597/D wl_0_6 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_16351 wrom1_rom_base_one_cell_16597/D_r3 wrom1_rom_base_one_cell_16351/D wl_0_8 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_16089 wrom1_rom_base_one_cell_16351/D_r4 wrom1_rom_base_one_cell_16089/D wl_0_10 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_15964 wrom1_rom_base_one_cell_16089/D_r5 wrom1_rom_base_one_cell_15964/D wl_0_11 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_15692 wrom1_rom_base_one_cell_15964/D_r6 wrom1_rom_base_one_cell_15692/D wl_0_13 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_15550 wrom1_rom_base_one_cell_15692/D_r7 wrom1_rom_base_one_cell_15550/D wl_0_14 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_15279 wrom1_rom_base_one_cell_15550/D_r8 wrom1_rom_base_one_cell_15279/D wl_0_16 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_15147 wrom1_rom_base_one_cell_15279/D_r9 wrom1_rom_base_one_cell_15147/D wl_0_17 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_15011 wrom1_rom_base_one_cell_15147/D_r10 wrom1_rom_base_one_cell_15011/D wl_0_18 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_14872 wrom1_rom_base_one_cell_15011/D_r11 wrom1_rom_base_one_cell_14872/D wl_0_19 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_14600 wrom1_rom_base_one_cell_14872/D_r12 wrom1_rom_base_one_cell_14600/D wl_0_21 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_14363 wrom1_rom_base_one_cell_14600/D_r13 wrom1_rom_base_one_cell_14363/D wl_0_23 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_14223 wrom1_rom_base_one_cell_14363/D_r14 wrom1_rom_base_one_cell_14223/D wl_0_24 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_13963 wrom1_rom_base_one_cell_14223/D_r15 wrom1_rom_base_one_cell_13963/D wl_0_26 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_13730 wrom1_rom_base_one_cell_13963/D_r16 wrom1_rom_base_one_cell_13730/D wl_0_28 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_13591 wrom1_rom_base_one_cell_13730/D_r17 wrom1_rom_base_one_cell_13591/D wl_0_29 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_13468 wrom1_rom_base_one_cell_13591/D_r18 wrom1_rom_base_one_cell_13468/D wl_0_30 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_13345 wrom1_rom_base_one_cell_13468/D_r19 wrom1_rom_base_one_cell_13345/D wl_0_31 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_13213 wrom1_rom_base_one_cell_13345/D_r20 wrom1_rom_base_one_cell_13213/D wl_0_32 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_13072 wrom1_rom_base_one_cell_13213/D_r21 wrom1_rom_base_one_cell_13072/D wl_0_33 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_12936 wrom1_rom_base_one_cell_13072/D_r22 wrom1_rom_base_one_cell_12936/D wl_0_34 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_12829 wrom1_rom_base_one_cell_12936/D_r23 wrom1_rom_base_one_cell_12829/D wl_0_35 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_12718 wrom1_rom_base_one_cell_12829/D_r24 wrom1_rom_base_one_cell_12718/D wl_0_36 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_12478 wrom1_rom_base_one_cell_12718/D_r25 wrom1_rom_base_one_cell_12478/D wl_0_38 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_12347 wrom1_rom_base_one_cell_12478/D_r26 wrom1_rom_base_one_cell_12347/D wl_0_39 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_12245 wrom1_rom_base_one_cell_12347/D_r27 wrom1_rom_base_one_cell_12245/D wl_0_40 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_12105 wrom1_rom_base_one_cell_12245/D_r28 wrom1_rom_base_one_cell_12105/D wl_0_41 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_11980 wrom1_rom_base_one_cell_12105/D_r29 wrom1_rom_base_one_cell_11980/D wl_0_42 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_11861 wrom1_rom_base_one_cell_11980/D_r30 wrom1_rom_base_one_cell_11861/D wl_0_43 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_11736 wrom1_rom_base_one_cell_11861/D_r31 wrom1_rom_base_one_cell_11736/D wl_0_44 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_11612 wrom1_rom_base_one_cell_11736/D_r32 wrom1_rom_base_one_cell_11612/D wl_0_45 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_11342 wrom1_rom_base_one_cell_11612/D_r33 wrom1_rom_base_one_cell_11342/D wl_0_47 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_11078 wrom1_rom_base_one_cell_11342/D_r34 wrom1_rom_base_one_cell_11078/D wl_0_49 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_10954 wrom1_rom_base_one_cell_11078/D_r35 wrom1_rom_base_one_cell_10954/D wl_0_50 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_10814 wrom1_rom_base_one_cell_10954/D_r36 wrom1_rom_base_zero_cell_9962/S wl_0_51 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_10439 wrom1_rom_base_zero_cell_9962/S_r37 wrom1_rom_base_one_cell_10439/D wl_0_54 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_10302 wrom1_rom_base_one_cell_10439/D_r38 wrom1_rom_base_one_cell_10302/D wl_0_55 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_10173 wrom1_rom_base_one_cell_10302/D_r39 wrom1_rom_base_one_cell_9932/S wl_0_56 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_9932 wrom1_rom_base_one_cell_9932/S_r40 wrom1_rom_base_one_cell_9932/D wl_0_58 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_9833 wrom1_rom_base_one_cell_9932/D_r41 wrom1_rom_base_one_cell_9833/D wl_0_59 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_9712 wrom1_rom_base_one_cell_9833/D_r42 wrom1_rom_base_one_cell_9712/D wl_0_60 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_9570 wrom1_rom_base_one_cell_9712/D_r43 wrom1_rom_base_one_cell_9570/D wl_0_61 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_9325 wrom1_rom_base_one_cell_9570/D_r44 wrom1_rom_base_one_cell_9325/D wl_0_63 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_9071 wrom1_rom_base_one_cell_9325/D_r45 wrom1_rom_base_one_cell_9071/D wl_0_65 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_8947 wrom1_rom_base_one_cell_9071/D_r46 wrom1_rom_base_one_cell_8947/D wl_0_66 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_8819 wrom1_rom_base_one_cell_8947/D_r47 wrom1_rom_base_one_cell_8819/D wl_0_67 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_8555 wrom1_rom_base_one_cell_8819/D_r48 wrom1_rom_base_one_cell_8555/D wl_0_69 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_8436 wrom1_rom_base_one_cell_8555/D_r49 wrom1_rom_base_one_cell_8436/D wl_0_70 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_8300 wrom1_rom_base_one_cell_8436/D_r50 wrom1_rom_base_one_cell_8300/D wl_0_71 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_8149 wrom1_rom_base_one_cell_8300/D_r51 wrom1_rom_base_one_cell_8149/D wl_0_72 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_8017 wrom1_rom_base_one_cell_8149/D_r52 wrom1_rom_base_one_cell_8017/D wl_0_73 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_7743 wrom1_rom_base_one_cell_8017/D_r53 wrom1_rom_base_one_cell_7743/D wl_0_75 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_7091 wrom1_rom_base_one_cell_7743/D_r54 wrom1_rom_base_one_cell_7091/D wl_0_80 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_6827 wrom1_rom_base_one_cell_7091/D_r55 wrom1_rom_base_one_cell_6827/D wl_0_82 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_6283 wrom1_rom_base_one_cell_6827/D_r56 wrom1_rom_base_one_cell_6283/D wl_0_86 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_6146 wrom1_rom_base_one_cell_6283/D_r57 wrom1_rom_base_one_cell_6146/D wl_0_87 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_6034 wrom1_rom_base_one_cell_6146/D_r58 wrom1_rom_base_one_cell_6034/D wl_0_88 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_5901 wrom1_rom_base_one_cell_6034/D_r59 wrom1_rom_base_one_cell_5901/D wl_0_89 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_5769 wrom1_rom_base_one_cell_5901/D_r60 wrom1_rom_base_one_cell_5769/D wl_0_90 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_5515 wrom1_rom_base_one_cell_5769/D_r61 wrom1_rom_base_one_cell_5515/D wl_0_92 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_5377 wrom1_rom_base_one_cell_5515/D_r62 wrom1_rom_base_one_cell_5377/D wl_0_93 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_5115 wrom1_rom_base_one_cell_5377/D_r63 wrom1_rom_base_one_cell_5115/D wl_0_95 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_4966 wrom1_rom_base_one_cell_5115/D_r64 wrom1_rom_base_one_cell_4966/D wl_0_96 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_4582 wrom1_rom_base_one_cell_4966/D_r65 wrom1_rom_base_one_cell_4582/D wl_0_99 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_4464 wrom1_rom_base_one_cell_4582/D_r66 wrom1_rom_base_one_cell_4464/D wl_0_100 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_4046 wrom1_rom_base_one_cell_4464/D_r67 wrom1_rom_base_one_cell_4046/D wl_0_103 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_3915 wrom1_rom_base_one_cell_4046/D_r68 wrom1_rom_base_one_cell_3915/D wl_0_104 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_3807 wrom1_rom_base_one_cell_3915/D_r69 wrom1_rom_base_one_cell_3807/D wl_0_105 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_3536 wrom1_rom_base_one_cell_3807/D_r70 wrom1_rom_base_one_cell_3536/D wl_0_107 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_3281 wrom1_rom_base_one_cell_3536/D_r71 wrom1_rom_base_one_cell_3281/D wl_0_109 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_3143 wrom1_rom_base_one_cell_3281/D_r72 wrom1_rom_base_one_cell_3143/D wl_0_110 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_2880 wrom1_rom_base_one_cell_3143/D_r73 wrom1_rom_base_one_cell_2880/D wl_0_112 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_2731 wrom1_rom_base_one_cell_2880/D_r74 wrom1_rom_base_one_cell_2731/D wl_0_113 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_2479 wrom1_rom_base_one_cell_2731/D_r75 wrom1_rom_base_one_cell_2479/D wl_0_115 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_2341 wrom1_rom_base_one_cell_2479/D_r76 wrom1_rom_base_one_cell_2341/D wl_0_116 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_2235 wrom1_rom_base_one_cell_2341/D_r77 wrom1_rom_base_one_cell_2235/D wl_0_117 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_1959 wrom1_rom_base_one_cell_2235/D_r78 wrom1_rom_base_one_cell_1959/D wl_0_119 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_1846 wrom1_rom_base_one_cell_1959/D_r79 wrom1_rom_base_one_cell_1846/D wl_0_120 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_1718 wrom1_rom_base_one_cell_1846/D_r80 wrom1_rom_base_one_cell_1718/D wl_0_121 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_1581 wrom1_rom_base_one_cell_1718/D_r81 wrom1_rom_base_one_cell_1581/D wl_0_122 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_1449 wrom1_rom_base_one_cell_1581/D_r82 wrom1_rom_base_one_cell_1449/D wl_0_123 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_1214 wrom1_rom_base_one_cell_1449/D_r83 wrom1_rom_base_one_cell_1214/D wl_0_125 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_1078 wrom1_rom_base_one_cell_1214/D_r84 wrom1_rom_base_one_cell_652/S wl_0_126 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_652 wrom1_rom_base_one_cell_652/S_r85 wrom1_rom_base_one_cell_652/D wl_0_129 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_274 wrom1_rom_base_one_cell_652/D_r86 wrom1_rom_base_one_cell_41/S wl_0_132 gnd wrom1_rom_base_one_cell
+Xwrom1_rom_base_one_cell_41 wrom1_rom_base_one_cell_41/S_r87 gnd_uq0 precharge gnd wrom1_rom_base_one_cell
 Xwrom1_rom_base_zero_cell_16588 bl_0_214 wl_0_1 gnd wrom1_rom_base_zero_cell
 Xwrom1_rom_base_zero_cell_16709 bl_0_214 wl_0_0 gnd wrom1_rom_base_zero_cell
 Xwrom1_rom_base_zero_cell_16454 bl_0_214 wl_0_2 gnd wrom1_rom_base_zero_cell
@@ -281,6 +293,94 @@ Xwrom1_rom_base_zero_cell_519 wrom1_rom_base_one_cell_652/S wl_0_128 gnd wrom1_r
 Xwrom1_rom_base_zero_cell_642 wrom1_rom_base_one_cell_652/S wl_0_127 gnd wrom1_rom_base_zero_cell
 Xwrom1_rom_base_zero_cell_144 wrom1_rom_base_one_cell_652/D wl_0_131 gnd wrom1_rom_base_zero_cell
 Xwrom1_rom_base_zero_cell_277 wrom1_rom_base_one_cell_652/D wl_0_130 gnd wrom1_rom_base_zero_cell
+Rw0 bl_0_214 bl_0_214_r 505.3714
+Rw1 wrom1_rom_base_one_cell_16988/D wrom1_rom_base_one_cell_16988/D_r1 505.3714
+Rw2 wrom1_rom_base_one_cell_16848/D wrom1_rom_base_one_cell_16848/D_r2 505.3714
+Rw3 wrom1_rom_base_one_cell_16597/D wrom1_rom_base_one_cell_16597/D_r3 505.3714
+Rw4 wrom1_rom_base_one_cell_16351/D wrom1_rom_base_one_cell_16351/D_r4 505.3714
+Rw5 wrom1_rom_base_one_cell_16089/D wrom1_rom_base_one_cell_16089/D_r5 505.3714
+Rw6 wrom1_rom_base_one_cell_15964/D wrom1_rom_base_one_cell_15964/D_r6 505.3714
+Rw7 wrom1_rom_base_one_cell_15692/D wrom1_rom_base_one_cell_15692/D_r7 505.3714
+Rw8 wrom1_rom_base_one_cell_15550/D wrom1_rom_base_one_cell_15550/D_r8 505.3714
+Rw9 wrom1_rom_base_one_cell_15279/D wrom1_rom_base_one_cell_15279/D_r9 505.3714
+Rw10 wrom1_rom_base_one_cell_15147/D wrom1_rom_base_one_cell_15147/D_r10 505.3714
+Rw11 wrom1_rom_base_one_cell_15011/D wrom1_rom_base_one_cell_15011/D_r11 505.3714
+Rw12 wrom1_rom_base_one_cell_14872/D wrom1_rom_base_one_cell_14872/D_r12 505.3714
+Rw13 wrom1_rom_base_one_cell_14600/D wrom1_rom_base_one_cell_14600/D_r13 505.3714
+Rw14 wrom1_rom_base_one_cell_14363/D wrom1_rom_base_one_cell_14363/D_r14 505.3714
+Rw15 wrom1_rom_base_one_cell_14223/D wrom1_rom_base_one_cell_14223/D_r15 505.3714
+Rw16 wrom1_rom_base_one_cell_13963/D wrom1_rom_base_one_cell_13963/D_r16 505.3714
+Rw17 wrom1_rom_base_one_cell_13730/D wrom1_rom_base_one_cell_13730/D_r17 505.3714
+Rw18 wrom1_rom_base_one_cell_13591/D wrom1_rom_base_one_cell_13591/D_r18 505.3714
+Rw19 wrom1_rom_base_one_cell_13468/D wrom1_rom_base_one_cell_13468/D_r19 505.3714
+Rw20 wrom1_rom_base_one_cell_13345/D wrom1_rom_base_one_cell_13345/D_r20 505.3714
+Rw21 wrom1_rom_base_one_cell_13213/D wrom1_rom_base_one_cell_13213/D_r21 505.3714
+Rw22 wrom1_rom_base_one_cell_13072/D wrom1_rom_base_one_cell_13072/D_r22 505.3714
+Rw23 wrom1_rom_base_one_cell_12936/D wrom1_rom_base_one_cell_12936/D_r23 505.3714
+Rw24 wrom1_rom_base_one_cell_12829/D wrom1_rom_base_one_cell_12829/D_r24 505.3714
+Rw25 wrom1_rom_base_one_cell_12718/D wrom1_rom_base_one_cell_12718/D_r25 505.3714
+Rw26 wrom1_rom_base_one_cell_12478/D wrom1_rom_base_one_cell_12478/D_r26 505.3714
+Rw27 wrom1_rom_base_one_cell_12347/D wrom1_rom_base_one_cell_12347/D_r27 505.3714
+Rw28 wrom1_rom_base_one_cell_12245/D wrom1_rom_base_one_cell_12245/D_r28 505.3714
+Rw29 wrom1_rom_base_one_cell_12105/D wrom1_rom_base_one_cell_12105/D_r29 505.3714
+Rw30 wrom1_rom_base_one_cell_11980/D wrom1_rom_base_one_cell_11980/D_r30 505.3714
+Rw31 wrom1_rom_base_one_cell_11861/D wrom1_rom_base_one_cell_11861/D_r31 505.3714
+Rw32 wrom1_rom_base_one_cell_11736/D wrom1_rom_base_one_cell_11736/D_r32 505.3714
+Rw33 wrom1_rom_base_one_cell_11612/D wrom1_rom_base_one_cell_11612/D_r33 505.3714
+Rw34 wrom1_rom_base_one_cell_11342/D wrom1_rom_base_one_cell_11342/D_r34 505.3714
+Rw35 wrom1_rom_base_one_cell_11078/D wrom1_rom_base_one_cell_11078/D_r35 505.3714
+Rw36 wrom1_rom_base_one_cell_10954/D wrom1_rom_base_one_cell_10954/D_r36 505.3714
+Rw37 wrom1_rom_base_zero_cell_9962/S wrom1_rom_base_zero_cell_9962/S_r37 505.3714
+Rw38 wrom1_rom_base_one_cell_10439/D wrom1_rom_base_one_cell_10439/D_r38 505.3714
+Rw39 wrom1_rom_base_one_cell_10302/D wrom1_rom_base_one_cell_10302/D_r39 505.3714
+Rw40 wrom1_rom_base_one_cell_9932/S wrom1_rom_base_one_cell_9932/S_r40 505.3714
+Rw41 wrom1_rom_base_one_cell_9932/D wrom1_rom_base_one_cell_9932/D_r41 505.3714
+Rw42 wrom1_rom_base_one_cell_9833/D wrom1_rom_base_one_cell_9833/D_r42 505.3714
+Rw43 wrom1_rom_base_one_cell_9712/D wrom1_rom_base_one_cell_9712/D_r43 505.3714
+Rw44 wrom1_rom_base_one_cell_9570/D wrom1_rom_base_one_cell_9570/D_r44 505.3714
+Rw45 wrom1_rom_base_one_cell_9325/D wrom1_rom_base_one_cell_9325/D_r45 505.3714
+Rw46 wrom1_rom_base_one_cell_9071/D wrom1_rom_base_one_cell_9071/D_r46 505.3714
+Rw47 wrom1_rom_base_one_cell_8947/D wrom1_rom_base_one_cell_8947/D_r47 505.3714
+Rw48 wrom1_rom_base_one_cell_8819/D wrom1_rom_base_one_cell_8819/D_r48 505.3714
+Rw49 wrom1_rom_base_one_cell_8555/D wrom1_rom_base_one_cell_8555/D_r49 505.3714
+Rw50 wrom1_rom_base_one_cell_8436/D wrom1_rom_base_one_cell_8436/D_r50 505.3714
+Rw51 wrom1_rom_base_one_cell_8300/D wrom1_rom_base_one_cell_8300/D_r51 505.3714
+Rw52 wrom1_rom_base_one_cell_8149/D wrom1_rom_base_one_cell_8149/D_r52 505.3714
+Rw53 wrom1_rom_base_one_cell_8017/D wrom1_rom_base_one_cell_8017/D_r53 505.3714
+Rw54 wrom1_rom_base_one_cell_7743/D wrom1_rom_base_one_cell_7743/D_r54 505.3714
+Rw55 wrom1_rom_base_one_cell_7091/D wrom1_rom_base_one_cell_7091/D_r55 505.3714
+Rw56 wrom1_rom_base_one_cell_6827/D wrom1_rom_base_one_cell_6827/D_r56 505.3714
+Rw57 wrom1_rom_base_one_cell_6283/D wrom1_rom_base_one_cell_6283/D_r57 505.3714
+Rw58 wrom1_rom_base_one_cell_6146/D wrom1_rom_base_one_cell_6146/D_r58 505.3714
+Rw59 wrom1_rom_base_one_cell_6034/D wrom1_rom_base_one_cell_6034/D_r59 505.3714
+Rw60 wrom1_rom_base_one_cell_5901/D wrom1_rom_base_one_cell_5901/D_r60 505.3714
+Rw61 wrom1_rom_base_one_cell_5769/D wrom1_rom_base_one_cell_5769/D_r61 505.3714
+Rw62 wrom1_rom_base_one_cell_5515/D wrom1_rom_base_one_cell_5515/D_r62 505.3714
+Rw63 wrom1_rom_base_one_cell_5377/D wrom1_rom_base_one_cell_5377/D_r63 505.3714
+Rw64 wrom1_rom_base_one_cell_5115/D wrom1_rom_base_one_cell_5115/D_r64 505.3714
+Rw65 wrom1_rom_base_one_cell_4966/D wrom1_rom_base_one_cell_4966/D_r65 505.3714
+Rw66 wrom1_rom_base_one_cell_4582/D wrom1_rom_base_one_cell_4582/D_r66 505.3714
+Rw67 wrom1_rom_base_one_cell_4464/D wrom1_rom_base_one_cell_4464/D_r67 505.3714
+Rw68 wrom1_rom_base_one_cell_4046/D wrom1_rom_base_one_cell_4046/D_r68 505.3714
+Rw69 wrom1_rom_base_one_cell_3915/D wrom1_rom_base_one_cell_3915/D_r69 505.3714
+Rw70 wrom1_rom_base_one_cell_3807/D wrom1_rom_base_one_cell_3807/D_r70 505.3714
+Rw71 wrom1_rom_base_one_cell_3536/D wrom1_rom_base_one_cell_3536/D_r71 505.3714
+Rw72 wrom1_rom_base_one_cell_3281/D wrom1_rom_base_one_cell_3281/D_r72 505.3714
+Rw73 wrom1_rom_base_one_cell_3143/D wrom1_rom_base_one_cell_3143/D_r73 505.3714
+Rw74 wrom1_rom_base_one_cell_2880/D wrom1_rom_base_one_cell_2880/D_r74 505.3714
+Rw75 wrom1_rom_base_one_cell_2731/D wrom1_rom_base_one_cell_2731/D_r75 505.3714
+Rw76 wrom1_rom_base_one_cell_2479/D wrom1_rom_base_one_cell_2479/D_r76 505.3714
+Rw77 wrom1_rom_base_one_cell_2341/D wrom1_rom_base_one_cell_2341/D_r77 505.3714
+Rw78 wrom1_rom_base_one_cell_2235/D wrom1_rom_base_one_cell_2235/D_r78 505.3714
+Rw79 wrom1_rom_base_one_cell_1959/D wrom1_rom_base_one_cell_1959/D_r79 505.3714
+Rw80 wrom1_rom_base_one_cell_1846/D wrom1_rom_base_one_cell_1846/D_r80 505.3714
+Rw81 wrom1_rom_base_one_cell_1718/D wrom1_rom_base_one_cell_1718/D_r81 505.3714
+Rw82 wrom1_rom_base_one_cell_1581/D wrom1_rom_base_one_cell_1581/D_r82 505.3714
+Rw83 wrom1_rom_base_one_cell_1449/D wrom1_rom_base_one_cell_1449/D_r83 505.3714
+Rw84 wrom1_rom_base_one_cell_1214/D wrom1_rom_base_one_cell_1214/D_r84 505.3714
+Rw85 wrom1_rom_base_one_cell_652/S wrom1_rom_base_one_cell_652/S_r85 505.3714
+Rw86 wrom1_rom_base_one_cell_652/D wrom1_rom_base_one_cell_652/D_r86 505.3714
+Rw87 wrom1_rom_base_one_cell_41/S wrom1_rom_base_one_cell_41/S_r87 505.3714
 .subckt wrom1_rom_base_one_cell S D G gnd
 X0 D G S gnd sky130_fd_pr__special_nfet_01v8 ad=0.108u pd=1.32 as=0.108u ps=1.32 w=0.36 l=0.15
 C0 S G 0.00394f
@@ -319,20 +419,51 @@ C7 Z gnd 0.35042f
 C8 A gnd 0.23452f
 C9 w_692_n79# gnd 1.35078f
 .ends
+* THE FIRST CYCLE IS NOT A MEASUREMENT (found 2026-09-20 from a waveform).
+* `.ic` sets the bitline only; with `uic` the 88 internal chain nodes start at
+* 0 V and jump within picoseconds to a capacitive-divider level set by each
+* cell's parasitic C to vdd and to gnd. That level is HIGHER than the state
+* conduction produces, and the nodes cannot come back down: the foot
+* transistor is off during precharge, so they can only be charged, never
+* discharged. A longer first precharge therefore does not wash it out --
+* wrom0 cycle 1 gives 16.5035 ns whether the first precharge phase is 25 ns,
+* 100 ns or 1 us, against 14.8495 ns settled at the same 1 us phase.
+* Probed at the end of the precharge phase (wrom0, TT):
+*     node          cycle 1   settled
+*     bitline       1.8000 V  1.7990 V
+*     chain node 1  1.2623 V  1.0696 V
+*     chain node 41 1.1171 V  0.8426 V
+*     chain node 81 1.1082 V  0.8201 V
+* Cycle 1 is nearly flat -- a capacitive divider; the settled state is a
+* gradient built by conduction. So every measurement below sits on a LATE
+* cycle, the same rule the energy decks already follow (q_c2 vs q_c3).
+*
+* t_dis_50_prev is the previous cycle and exists to PROVE the settling: if it
+* differs from t_dis_50, the deck has not settled and the number must not be
+* used. On these macros the two agree to four decimals.
+* t_pre_50: the bitline crosses the bitline-inverter trip point on the way
+* back up -- this is the moment dout0 STOPS being valid after clk0 falls.
+* It feeds the falling_edge arc of the .lib (gen_rom_lib.py --t-invalid).
+* t_pre_90/t_pre_99 are the recharge-complete times and are much later, so
+* they must NOT be used for that arc.
+* These sit on the falling edge that ENDS cycle 2, i.e. after two discharges.
+* 200 ps: the step is not a sensitivity here -- 100 ps against 200 ps moves
+* t_dis_50 by 0.007% -- and at a 1 us phase it keeps the run under a few
+* minutes.
 
-* gmin: ngspice'in yakinsama icin HER DUGUME ekledigi yapay iletkenlik.
-* Cok buyuk secilirse sizinti olcumune KARISIR. 2026-09-05 taramasi:
-*   gmin=1e-12 -> 0.656 nA   (%79 yapay!)
+* gmin: the artificial conductance ngspice adds to EVERY node to converge.
+* Set too high it CONTAMINATES the leakage measurement. Sweep of 2026-09-05:
+*   gmin=1e-12 -> 0.656 nA   (79% artificial!)
 *   gmin=1e-15 -> 0.366 nA
-*   gmin=1e-18 -> 0.366 nA   (ayni -> yakinsadi)
-* 1e-15 yeterli ve guvenli.
+*   gmin=1e-18 -> 0.366 nA   (same -> converged)
+* 1e-15 is sufficient and safe.
 .options gmin=1e-15 abstol=1e-15 reltol=1e-3 itl1=500
-* .op KULLANILIYOR (transient DEGIL): "uic"li transient'te tum dugumler
-* 0'dan baslayip 85 transistorluk direncli zincirden yavasca doluyor;
-* 600 ns'de bile oturmuyordu (65->19->8.7 nA hala azaliyordu) ve sarj
-* akimi sizinti sanilarak ~100x YUKSEK olculuyordu. .op bu kolonda
-* (136 cihaz) yakinsiyor -- tam makroda (34k) yakinsamiyordu.
-* Sonuc log'da "vvdd#branch" satirindan okunur (.measure op ngspice'te
-* sayisal cikti uretmiyor).
+* .op IS USED (NOT a transient): in a transient with "uic" every node starts
+* at 0 and charges slowly through a resistive chain of dozens of transistors;
+* even at 600 ns it had not settled (65 -> 19 -> 8.7 nA, still falling) and the
+* charging current was mistaken for leakage, ~100x too high. .op converges on
+* this column (136 devices) where it did not on the full macro (34k).
+* The result is read from the "vvdd#branch" line of the log (`.measure op`
+* produces no numeric output in ngspice).
 .op
 .end

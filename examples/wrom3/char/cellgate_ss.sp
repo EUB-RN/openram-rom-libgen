@@ -1,7 +1,7 @@
-* wrom3 -- hucre ESDEGER KAPI KAPASITANSI (ss)
-* C_esd = Q(VDD)/VDD  -- cevrim enerjisini koruyan kucultme.
-* Kaynak/govde toprakta: wordline yukselirken hucrenin gordugu durum.
-* Hucre ici parazitik C'ler BURADA YOK (periphery betigi ayrica ekler).
+* wrom3 -- cell EQUIVALENT GATE CAPACITANCE (ss)
+* C_eq = Q(VDD)/VDD -- the reduction that preserves cycle energy.
+* Source/body grounded: what the cell sees while the wordline rises.
+* The cell's internal parasitic Cs are NOT here (the periphery script adds them).
 
 .lib /home/hpw/OpenLane/pdks/sky130A/libs.tech/ngspice/sky130.lib.spice ss
 .temp 100

@@ -2,7 +2,7 @@
 Note: No compatibility mode selected!
 
 
-Circuit: * wrom1 -- cevre birimi cevrim enerjisi -- aktif (cs0=1)
+Circuit: * wrom1 -- periphery energy per cycle -- active (cs0=1)
 
 Doing analysis at TEMP = 100.000000 and TNOM = 27.000000
 
@@ -10,7 +10,7 @@ Using SPARSE 1.3 as Direct Linear Solver
 Operating point simulation skipped by 'uic',
   now using transient initial conditions.
 
-No. of Data Rows : 2117
+No. of Data Rows : 2460
 
   Measurements for Transient Analysis
 
@@ -70,26 +70,26 @@ Error: measure  t_clk2wl7  trig(TARG) : out of interval
 Error: measure  t_wlfall7  trig(TARG) : out of interval
  .measure tran t_wlfall7 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.190000e-06 targ v(wrom1_rom_row_decode_0/wl_7) val=    8.000000000000000e-01     fall=1 td=1.200000e-06 failed!
 
-q_c2                =   -3.09154e-12 from=  1.00000e-06 to=  1.20000e-06
-q_c3                =   -3.14235e-12 from=  1.20000e-06 to=  1.40000e-06
-e_periph_pj         =  5.02777e+00
-t_clk2int           =  6.335517e-10 targ=  1.300884e-06 trig=  1.300250e-06
-t_clk2wl0           =  -9.877706e-08 targ=  1.201473e-06 trig=  1.300250e-06
-t_wlfall0           =  3.763576e-09 targ=  1.304014e-06 trig=  1.300250e-06
-t_clk2pre           =  1.466845e-09 targ=  1.301717e-06 trig=  1.300250e-06
+q_c2                =   -3.11632e-12 from=  1.00000e-06 to=  1.20000e-06
+q_c3                =   -3.12123e-12 from=  1.20000e-06 to=  1.40000e-06
+e_periph_pj         =  4.99397e+00
+t_clk2int           =  5.914186e-10 targ=  1.300841e-06 trig=  1.300250e-06
+t_clk2wl0           =  -9.880289e-08 targ=  1.201447e-06 trig=  1.300250e-06
+t_wlfall0           =  3.697134e-09 targ=  1.303947e-06 trig=  1.300250e-06
+t_clk2pre           =  1.402340e-09 targ=  1.301652e-06 trig=  1.300250e-06
 
 
-Total analysis time (seconds) = 132.111
+Total analysis time (seconds) = 251.125
 
-Total elapsed time (seconds) = 541.222 
+Total elapsed time (seconds) = 803.311 
 
-Total DRAM available = 31789.582 MB.
-DRAM currently available = 10830.488 MB.
-Maximum ngspice program size = 2777.285 MB.
-Current ngspice program size = 2710.484 MB.
+Total DRAM available = 31789.578 MB.
+DRAM currently available = 15688.523 MB.
+Maximum ngspice program size = 2777.293 MB.
+Current ngspice program size = 2609.656 MB.
 
-Shared ngspice pages =   11.484 MB.
+Shared ngspice pages =   10.789 MB.
 Text (code) pages =    6.520 MB.
 Stack = 0 bytes.
-Library pages = 2755.121 MB.
+Library pages = 2755.129 MB.
 

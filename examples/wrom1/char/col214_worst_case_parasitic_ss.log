@@ -2,7 +2,7 @@
 Note: No compatibility mode selected!
 
 
-Circuit: * wrom1 -- gercek parazitik c ile kolon 214 izole olcum
+Circuit: * wrom1 -- isolated measurement of column 214 with real parasitic c
 
 Doing analysis at TEMP = 100.000000 and TNOM = 27.000000
 
@@ -152,92 +152,180 @@ wl_0_132                                   1.6
 bl_0_214                                   1.6
 bl_b                               3.46871e-07
 wrom1_rom_base_one_cell_16988/d          1.0253
+bl_0_214_r                                 1.6
 wrom1_rom_base_one_cell_16848/d        0.982824
+wrom1_rom_base_one_cell_16988/d_r1          1.0253
 wrom1_rom_base_one_cell_16597/d        0.962685
-wrom1_rom_base_one_cell_16351/d        0.949467
-wrom1_rom_base_one_cell_16089/d        0.939677
+wrom1_rom_base_one_cell_16848/d_r2        0.982824
+wrom1_rom_base_one_cell_16351/d        0.949466
+wrom1_rom_base_one_cell_16597/d_r3        0.962684
+wrom1_rom_base_one_cell_16089/d        0.939676
+wrom1_rom_base_one_cell_16351/d_r4        0.949466
 wrom1_rom_base_one_cell_15964/d        0.931866
+wrom1_rom_base_one_cell_16089/d_r5        0.939676
 wrom1_rom_base_one_cell_15692/d        0.925437
+wrom1_rom_base_one_cell_15964/d_r6        0.931865
 wrom1_rom_base_one_cell_15550/d        0.919939
-wrom1_rom_base_one_cell_15279/d        0.915187
-wrom1_rom_base_one_cell_15147/d        0.910972
-wrom1_rom_base_one_cell_15011/d        0.907187
-wrom1_rom_base_one_cell_14872/d        0.903755
-wrom1_rom_base_one_cell_14600/d         0.90065
-wrom1_rom_base_one_cell_14363/d         0.89782
-wrom1_rom_base_one_cell_14223/d        0.895197
-wrom1_rom_base_one_cell_13963/d        0.892781
-wrom1_rom_base_one_cell_13730/d        0.890545
-wrom1_rom_base_one_cell_13591/d        0.888444
-wrom1_rom_base_one_cell_13468/d        0.886465
-wrom1_rom_base_one_cell_13345/d        0.884594
-wrom1_rom_base_one_cell_13213/d        0.882821
-wrom1_rom_base_one_cell_13072/d        0.881138
-wrom1_rom_base_one_cell_12936/d        0.879536
-wrom1_rom_base_one_cell_12829/d        0.878009
-wrom1_rom_base_one_cell_12718/d         0.87655
-wrom1_rom_base_one_cell_12478/d        0.875172
-wrom1_rom_base_one_cell_12347/d        0.873851
-wrom1_rom_base_one_cell_12245/d        0.872583
-wrom1_rom_base_one_cell_12105/d        0.871366
-wrom1_rom_base_one_cell_11980/d        0.870195
-wrom1_rom_base_one_cell_11861/d        0.869068
-wrom1_rom_base_one_cell_11736/d        0.867982
-wrom1_rom_base_one_cell_11612/d        0.866934
-wrom1_rom_base_one_cell_11342/d        0.865936
-wrom1_rom_base_one_cell_11078/d        0.864985
-wrom1_rom_base_one_cell_10954/d        0.864065
-wrom1_rom_base_zero_cell_9962/s        0.863175
-wrom1_rom_base_one_cell_10439/d        0.862338
-wrom1_rom_base_one_cell_10302/d        0.861526
-wrom1_rom_base_one_cell_9932/s        0.860739
-wrom1_rom_base_one_cell_9932/d        0.859988
-wrom1_rom_base_one_cell_9833/d        0.859259
-wrom1_rom_base_one_cell_9712/d        0.858551
-wrom1_rom_base_one_cell_9570/d        0.857863
-wrom1_rom_base_one_cell_9325/d        0.857206
-wrom1_rom_base_one_cell_9071/d        0.856577
-wrom1_rom_base_one_cell_8947/d        0.855967
-wrom1_rom_base_one_cell_8819/d        0.855373
-wrom1_rom_base_one_cell_8555/d        0.854805
-wrom1_rom_base_one_cell_8436/d        0.854253
-wrom1_rom_base_one_cell_8300/d        0.853716
-wrom1_rom_base_one_cell_8149/d        0.853194
-wrom1_rom_base_one_cell_8017/d        0.852685
-wrom1_rom_base_one_cell_7743/d        0.852199
-wrom1_rom_base_one_cell_7091/d        0.851764
-wrom1_rom_base_one_cell_6827/d        0.851351
-wrom1_rom_base_one_cell_6283/d        0.850976
-wrom1_rom_base_one_cell_6146/d        0.850612
-wrom1_rom_base_one_cell_6034/d        0.850258
-wrom1_rom_base_one_cell_5901/d        0.849914
-wrom1_rom_base_one_cell_5769/d         0.84958
-wrom1_rom_base_one_cell_5515/d        0.849265
-wrom1_rom_base_one_cell_5377/d        0.848958
-wrom1_rom_base_one_cell_5115/d         0.84867
-wrom1_rom_base_one_cell_4966/d         0.84839
-wrom1_rom_base_one_cell_4582/d        0.848136
-wrom1_rom_base_one_cell_4464/d        0.847891
-wrom1_rom_base_one_cell_4046/d         0.84767
-wrom1_rom_base_one_cell_3915/d        0.847458
-wrom1_rom_base_one_cell_3807/d        0.847253
-wrom1_rom_base_one_cell_3536/d        0.847064
-wrom1_rom_base_one_cell_3281/d        0.846891
-wrom1_rom_base_one_cell_3143/d        0.846725
-wrom1_rom_base_one_cell_2880/d        0.846575
-wrom1_rom_base_one_cell_2731/d        0.846432
-wrom1_rom_base_one_cell_2479/d        0.846304
-wrom1_rom_base_one_cell_2341/d        0.846182
-wrom1_rom_base_one_cell_2235/d        0.846068
-wrom1_rom_base_one_cell_1959/d        0.845969
-wrom1_rom_base_one_cell_1846/d        0.845876
-wrom1_rom_base_one_cell_1718/d         0.84579
-wrom1_rom_base_one_cell_1581/d         0.84571
-wrom1_rom_base_one_cell_1449/d        0.845637
-wrom1_rom_base_one_cell_1214/d        0.845578
-wrom1_rom_base_one_cell_652/s         0.845526
-wrom1_rom_base_one_cell_652/d         0.845497
-wrom1_rom_base_one_cell_41/s           0.84549
+wrom1_rom_base_one_cell_15692/d_r7        0.925436
+wrom1_rom_base_one_cell_15279/d        0.915186
+wrom1_rom_base_one_cell_15550/d_r8        0.919939
+wrom1_rom_base_one_cell_15147/d        0.910971
+wrom1_rom_base_one_cell_15279/d_r9        0.915186
+wrom1_rom_base_one_cell_15011/d        0.907186
+wrom1_rom_base_one_cell_15147/d_r10        0.910971
+wrom1_rom_base_one_cell_14872/d        0.903754
+wrom1_rom_base_one_cell_15011/d_r11        0.907186
+wrom1_rom_base_one_cell_14600/d        0.900649
+wrom1_rom_base_one_cell_14872/d_r12        0.903754
+wrom1_rom_base_one_cell_14363/d        0.897819
+wrom1_rom_base_one_cell_14600/d_r13        0.900649
+wrom1_rom_base_one_cell_14223/d        0.895196
+wrom1_rom_base_one_cell_14363/d_r14        0.897818
+wrom1_rom_base_one_cell_13963/d         0.89278
+wrom1_rom_base_one_cell_14223/d_r15        0.895196
+wrom1_rom_base_one_cell_13730/d        0.890544
+wrom1_rom_base_one_cell_13963/d_r16        0.892779
+wrom1_rom_base_one_cell_13591/d        0.888443
+wrom1_rom_base_one_cell_13730/d_r17        0.890543
+wrom1_rom_base_one_cell_13468/d        0.886463
+wrom1_rom_base_one_cell_13591/d_r18        0.888443
+wrom1_rom_base_one_cell_13345/d        0.884592
+wrom1_rom_base_one_cell_13468/d_r19        0.886463
+wrom1_rom_base_one_cell_13213/d         0.88282
+wrom1_rom_base_one_cell_13345/d_r20        0.884592
+wrom1_rom_base_one_cell_13072/d        0.881136
+wrom1_rom_base_one_cell_13213/d_r21        0.882819
+wrom1_rom_base_one_cell_12936/d        0.879534
+wrom1_rom_base_one_cell_13072/d_r22        0.881136
+wrom1_rom_base_one_cell_12829/d        0.878007
+wrom1_rom_base_one_cell_12936/d_r23        0.879534
+wrom1_rom_base_one_cell_12718/d        0.876548
+wrom1_rom_base_one_cell_12829/d_r24        0.878007
+wrom1_rom_base_one_cell_12478/d        0.875169
+wrom1_rom_base_one_cell_12718/d_r25        0.876548
+wrom1_rom_base_one_cell_12347/d        0.873848
+wrom1_rom_base_one_cell_12478/d_r26        0.875169
+wrom1_rom_base_one_cell_12245/d        0.872581
+wrom1_rom_base_one_cell_12347/d_r27        0.873848
+wrom1_rom_base_one_cell_12105/d        0.871363
+wrom1_rom_base_one_cell_12245/d_r28        0.872581
+wrom1_rom_base_one_cell_11980/d        0.870192
+wrom1_rom_base_one_cell_12105/d_r29        0.871363
+wrom1_rom_base_one_cell_11861/d        0.869065
+wrom1_rom_base_one_cell_11980/d_r30        0.870192
+wrom1_rom_base_one_cell_11736/d        0.867979
+wrom1_rom_base_one_cell_11861/d_r31        0.869065
+wrom1_rom_base_one_cell_11612/d        0.866931
+wrom1_rom_base_one_cell_11736/d_r32        0.867979
+wrom1_rom_base_one_cell_11342/d        0.865933
+wrom1_rom_base_one_cell_11612/d_r33        0.866931
+wrom1_rom_base_one_cell_11078/d        0.864982
+wrom1_rom_base_one_cell_11342/d_r34        0.865933
+wrom1_rom_base_one_cell_10954/d        0.864062
+wrom1_rom_base_one_cell_11078/d_r35        0.864982
+wrom1_rom_base_zero_cell_9962/s        0.863172
+wrom1_rom_base_one_cell_10954/d_r36        0.864062
+wrom1_rom_base_one_cell_10439/d        0.862334
+wrom1_rom_base_zero_cell_9962/s_r37        0.863172
+wrom1_rom_base_one_cell_10302/d        0.861523
+wrom1_rom_base_one_cell_10439/d_r38        0.862334
+wrom1_rom_base_one_cell_9932/s        0.860736
+wrom1_rom_base_one_cell_10302/d_r39        0.861523
+wrom1_rom_base_one_cell_9932/d        0.859985
+wrom1_rom_base_one_cell_9932/s_r40        0.860736
+wrom1_rom_base_one_cell_9833/d        0.859255
+wrom1_rom_base_one_cell_9932/d_r41        0.859985
+wrom1_rom_base_one_cell_9712/d        0.858547
+wrom1_rom_base_one_cell_9833/d_r42        0.859255
+wrom1_rom_base_one_cell_9570/d        0.857859
+wrom1_rom_base_one_cell_9712/d_r43        0.858547
+wrom1_rom_base_one_cell_9325/d        0.857202
+wrom1_rom_base_one_cell_9570/d_r44        0.857859
+wrom1_rom_base_one_cell_9071/d        0.856574
+wrom1_rom_base_one_cell_9325/d_r45        0.857202
+wrom1_rom_base_one_cell_8947/d        0.855963
+wrom1_rom_base_one_cell_9071/d_r46        0.856574
+wrom1_rom_base_one_cell_8819/d        0.855369
+wrom1_rom_base_one_cell_8947/d_r47        0.855963
+wrom1_rom_base_one_cell_8555/d        0.854802
+wrom1_rom_base_one_cell_8819/d_r48        0.855369
+wrom1_rom_base_one_cell_8436/d        0.854249
+wrom1_rom_base_one_cell_8555/d_r49        0.854801
+wrom1_rom_base_one_cell_8300/d        0.853712
+wrom1_rom_base_one_cell_8436/d_r50        0.854249
+wrom1_rom_base_one_cell_8149/d         0.85319
+wrom1_rom_base_one_cell_8300/d_r51        0.853712
+wrom1_rom_base_one_cell_8017/d        0.852681
+wrom1_rom_base_one_cell_8149/d_r52        0.853189
+wrom1_rom_base_one_cell_7743/d        0.852195
+wrom1_rom_base_one_cell_8017/d_r53        0.852681
+wrom1_rom_base_one_cell_7091/d         0.85176
+wrom1_rom_base_one_cell_7743/d_r54        0.852195
+wrom1_rom_base_one_cell_6827/d        0.851346
+wrom1_rom_base_one_cell_7091/d_r55         0.85176
+wrom1_rom_base_one_cell_6283/d        0.850972
+wrom1_rom_base_one_cell_6827/d_r56        0.851346
+wrom1_rom_base_one_cell_6146/d        0.850608
+wrom1_rom_base_one_cell_6283/d_r57        0.850972
+wrom1_rom_base_one_cell_6034/d        0.850254
+wrom1_rom_base_one_cell_6146/d_r58        0.850608
+wrom1_rom_base_one_cell_5901/d         0.84991
+wrom1_rom_base_one_cell_6034/d_r59        0.850254
+wrom1_rom_base_one_cell_5769/d        0.849576
+wrom1_rom_base_one_cell_5901/d_r60         0.84991
+wrom1_rom_base_one_cell_5515/d         0.84926
+wrom1_rom_base_one_cell_5769/d_r61        0.849576
+wrom1_rom_base_one_cell_5377/d        0.848954
+wrom1_rom_base_one_cell_5515/d_r62         0.84926
+wrom1_rom_base_one_cell_5115/d        0.848665
+wrom1_rom_base_one_cell_5377/d_r63        0.848954
+wrom1_rom_base_one_cell_4966/d        0.848385
+wrom1_rom_base_one_cell_5115/d_r64        0.848665
+wrom1_rom_base_one_cell_4582/d        0.848132
+wrom1_rom_base_one_cell_4966/d_r65        0.848385
+wrom1_rom_base_one_cell_4464/d        0.847886
+wrom1_rom_base_one_cell_4582/d_r66        0.848132
+wrom1_rom_base_one_cell_4046/d        0.847666
+wrom1_rom_base_one_cell_4464/d_r67        0.847886
+wrom1_rom_base_one_cell_3915/d        0.847453
+wrom1_rom_base_one_cell_4046/d_r68        0.847666
+wrom1_rom_base_one_cell_3807/d        0.847248
+wrom1_rom_base_one_cell_3915/d_r69        0.847453
+wrom1_rom_base_one_cell_3536/d        0.847059
+wrom1_rom_base_one_cell_3807/d_r70        0.847248
+wrom1_rom_base_one_cell_3281/d        0.846886
+wrom1_rom_base_one_cell_3536/d_r71        0.847059
+wrom1_rom_base_one_cell_3143/d         0.84672
+wrom1_rom_base_one_cell_3281/d_r72        0.846886
+wrom1_rom_base_one_cell_2880/d         0.84657
+wrom1_rom_base_one_cell_3143/d_r73         0.84672
+wrom1_rom_base_one_cell_2731/d        0.846427
+wrom1_rom_base_one_cell_2880/d_r74         0.84657
+wrom1_rom_base_one_cell_2479/d        0.846299
+wrom1_rom_base_one_cell_2731/d_r75        0.846427
+wrom1_rom_base_one_cell_2341/d        0.846178
+wrom1_rom_base_one_cell_2479/d_r76        0.846299
+wrom1_rom_base_one_cell_2235/d        0.846063
+wrom1_rom_base_one_cell_2341/d_r77        0.846178
+wrom1_rom_base_one_cell_1959/d        0.845964
+wrom1_rom_base_one_cell_2235/d_r78        0.846063
+wrom1_rom_base_one_cell_1846/d        0.845871
+wrom1_rom_base_one_cell_1959/d_r79        0.845964
+wrom1_rom_base_one_cell_1718/d        0.845785
+wrom1_rom_base_one_cell_1846/d_r80        0.845871
+wrom1_rom_base_one_cell_1581/d        0.845705
+wrom1_rom_base_one_cell_1718/d_r81        0.845785
+wrom1_rom_base_one_cell_1449/d        0.845632
+wrom1_rom_base_one_cell_1581/d_r82        0.845705
+wrom1_rom_base_one_cell_1214/d        0.845573
+wrom1_rom_base_one_cell_1449/d_r83        0.845632
+wrom1_rom_base_one_cell_652/s         0.845521
+wrom1_rom_base_one_cell_1214/d_r84        0.845573
+wrom1_rom_base_one_cell_652/d         0.845492
+wrom1_rom_base_one_cell_652/s_r85        0.845521
+wrom1_rom_base_one_cell_41/s          0.845485
+wrom1_rom_base_one_cell_652/d_r86        0.845492
+wrom1_rom_base_one_cell_41/s_r87        0.845485
 vwl132#branch                                0
 vwl131#branch                                0
 vwl130#branch                                0
@@ -372,31 +460,33 @@ vwl2#branch                                  0
 vwl1#branch                                  0
 vwl0#branch                                  0
 vprecharge#branch                            0
-vgndgnd_uq0#branch                 1.74476e-13
+vgndgnd_uq0#branch                 1.74475e-13
 vvdd#branch                       -5.03704e-10
 
 
-No. of Data Rows : 4026
+No. of Data Rows : 30048
 
   Measurements for Transient Analysis
 
-t_dis_50            =  4.154017e-08 targ=  1.415902e-07 trig=  1.000500e-07
-t_dis_10            =  7.491730e-08 targ=  1.749673e-07 trig=  1.000500e-07
-t_pre_90            =  8.446677e-10 targ=  2.008947e-07 trig=  2.000500e-07
-t_pre_99            =  1.154653e-08 targ=  2.115965e-07 trig=  2.000500e-07
+t_dis_50            =  3.834487e-08 targ=  5.038395e-06 trig=  5.000050e-06
+t_dis_10            =  7.539375e-08 targ=  5.075444e-06 trig=  5.000050e-06
+t_dis_50_prev       =  3.834487e-08 targ=  3.038395e-06 trig=  3.000050e-06
+t_pre_50            =  4.253626e-10 targ=  4.000475e-06 trig=  4.000050e-06
+t_pre_90            =  8.869084e-10 targ=  4.000937e-06 trig=  4.000050e-06
+t_pre_99            =  1.237825e-08 targ=  4.012428e-06 trig=  4.000050e-06
 
 
-Total analysis time (seconds) = 5.52913
+Total analysis time (seconds) = 9.37869
 
-Total elapsed time (seconds) = 150.470 
+Total elapsed time (seconds) = 49.701 
 
-Total DRAM available = 31789.582 MB.
-DRAM currently available =  297.152 MB.
-Maximum ngspice program size =  420.031 MB.
-Current ngspice program size =  353.238 MB.
+Total DRAM available = 31789.559 MB.
+DRAM currently available = 19845.715 MB.
+Maximum ngspice program size =  421.305 MB.
+Current ngspice program size =  354.695 MB.
 
-Shared ngspice pages =   11.344 MB.
+Shared ngspice pages =   11.527 MB.
 Text (code) pages =    6.520 MB.
 Stack = 0 bytes.
-Library pages =  397.867 MB.
+Library pages =  399.141 MB.
 
