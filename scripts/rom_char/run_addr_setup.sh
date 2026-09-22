@@ -27,8 +27,8 @@
 #
 # WORST-CASE ADDRESS: 0 -> all address bits high (derived from the number of
 # addr0[] pins in the LEF). Every buffer switches at once, supply droop
-# included. This used to be a literal 2047 (11 bits), which silently became a
-# weaker stimulus whenever the address width changed.
+# included; deriving the width keeps the stimulus worst-case for any ROM
+# size.
 #
 # Usage: scripts/rom_char/run_addr_setup.sh [macro ...]
 # Output: <macro>/char/periph_setup_<corner>.log plus a summary table;

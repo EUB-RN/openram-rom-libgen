@@ -1,10 +1,10 @@
 #!/bin/sh
 # FRONT-END DELAY vs clk0 INPUT SLEW -- the .lib's index_1 axis.
 #
-# WHY THIS EXISTS: the CELL_TABLE has two axes and only one of them was ever
-# measured. index_2 (output load) came from run_backend_delay.sh; index_1
-# (input_net_transition) was three copies of the same number, so every timing
-# tool saw a macro whose delay does not care how fast its clock arrives.
+# WHY THIS EXISTS: the CELL_TABLE has two axes. index_2 (output load) comes
+# from run_backend_delay.sh; index_1 (input_net_transition) comes from here.
+# Without it the axis is three copies of one number and every timing tool sees
+# a macro whose delay does not care how fast its clock arrives.
 #
 # WHICH TERM ACTUALLY DEPENDS ON IT: access is the sum of three terms and only
 # the FIRST one is driven by clk0.

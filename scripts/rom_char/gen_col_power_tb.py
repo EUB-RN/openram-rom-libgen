@@ -50,9 +50,8 @@ args = ap.parse_args()
 
 SRC = os.path.join(rom_paths.char_dir(args.macro, args.macros_dir),
                    f"col{args.col}_worst_case_parasitic.sp")
-# The column count comes from the netlist -- the "total = N x this value" line
-# in the deck header used to be a hard-coded 264, which became misleading as
-# soon as the macro was regenerated.
+# The column count comes from the netlist, so the "total = N x this value"
+# line in the deck header follows the macro it was generated for.
 NCOL = rom_paths.geometry(args.macro, args.macros_dir)["cols"]
 if not os.path.exists(SRC):
     sys.exit(f"ERROR: {SRC} does not exist -- run gen_col_tb_parasitic.py first")
@@ -60,6 +59,11 @@ if not os.path.exists(SRC):
 # Read the existing (validated) column testbench and reuse its circuit body
 # verbatim, changing only stimuli and measurements. Same circuit as timing.
 body, in_defs = [], False
+# `dropped` tracks whether the last non-continuation line was skipped, so its
+# "+" continuations go with it. Keying this off the previous line being blank
+# would pull the continuation lines of a dropped .measure into the circuit
+# body as soon as a comment sat there instead.
+dropped = False
 for line in open(SRC):
     s = line.rstrip("\n")
     ls = s.lstrip().lower()
@@ -67,10 +71,15 @@ for line in open(SRC):
     # CAREFUL: ".ends" also starts with ".end" -- sub-circuit terminators must
     # NOT be dropped, or ngspice reports "Mismatch of .subckt ... .ends".
     first = ls.split()[0] if ls.split() else ""
-    if first in (".lib", ".temp", ".param", ".tran", ".measure", ".ic", ".end"):
+    if s.startswith("+"):
+        if dropped:
+            continue
+    elif first in (".lib", ".temp", ".param", ".tran", ".measure", ".ic",
+                   ".end"):
+        dropped = True
         continue
-    if s.startswith("+") and body and body[-1] == "":   # .measure continuation
-        continue
+    elif not s.startswith("*"):
+        dropped = False
     if re.match(r"^V(vdd|precharge|wl\d+|gndgnd_uq\d+)\b", s):
         continue
     body.append(s)

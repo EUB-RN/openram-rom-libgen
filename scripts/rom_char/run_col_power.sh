@@ -8,9 +8,8 @@
 # charging current was being mistaken for leakage, ~100x too high (confirmed
 # 2026-09-05).
 #
-# The worst column and the column COUNT come from the netlist (rom_paths.py);
-# both used to be literals in this file ("wrom0:236", multiplier 256) that went
-# silently stale whenever the ROM was regenerated.
+# The worst column and the column COUNT come from the netlist (rom_paths.py),
+# so regenerating the ROM cannot leave them stale.
 #
 # Usage: scripts/rom_char/run_col_power.sh [macro ...]
 

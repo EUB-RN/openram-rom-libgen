@@ -1,12 +1,12 @@
 #!/bin/sh
 # EARLY PATH: the fastest a bitline can discharge -- the .lib's retain times.
 #
-# WHY THIS EXISTS: the .lib carried only late data. Every number in it came
-# from the WORST column (the longest series chain), which bounds setup but
-# says nothing about how SOON dout0 can start moving. A hold check against the
-# capture flop then has nothing to fail on: the tool believes the previous
-# cycle's data is held right up to the access time, and a race that eats the
-# old value before it is captured passes silently.
+# WHY THIS EXISTS: every other number in the .lib comes from the WORST column
+# (the longest series chain), which bounds setup but says nothing about how
+# SOON dout0 can start moving. Without an early bound a hold check against the
+# capture flop has nothing to fail on: the tool believes the previous cycle's
+# data is held right up to the access time, and a race that eats the old value
+# before it is captured passes silently.
 #
 # Liberty's construct for this is retain_rise/retain_fall inside the same
 # timing() group as cell_rise/cell_fall -- the time the output RETAINS its
@@ -23,7 +23,7 @@
 # overwrite the other.
 #
 # PREREQUISITE: <macro>_cap_only.spice (run_cap_extract.sh)
-# Set NO_RESISTANCE=1 to reproduce the old capacitance-only decks.
+# Set NO_RESISTANCE=1 to build the capacitance-only decks instead.
 #
 # Usage: scripts/rom_char/run_early_path.sh [macro ...]
 
@@ -47,7 +47,7 @@ FAST=fastest_array
 # but electrically fine, because the FOOT TRANSISTOR (the last element of the
 # walked path, gated by precharge rather than a wordline) stays in series
 # whatever is stored. It is never converted; doing so ties the chain to
-# ground for good and was what made an early version look 5x too fast.
+# ground for good and makes the column look 5x too fast.
 #
 # At that limit the bound is set by the fixed circuitry rather than by the
 # array: on wrom0 at tt, 0 cells 0.5080 ns against 1 cell 0.5738 ns, but 47

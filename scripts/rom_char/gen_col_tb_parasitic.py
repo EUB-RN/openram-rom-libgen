@@ -35,7 +35,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rom_paths
 
 # Wire resistance is ON by default (see the note below); --no-resistance
-# reproduces the old capacitance-only deck for comparison.
+# builds the capacitance-only deck instead, for comparison.
 ARGV = [a for a in sys.argv[1:] if not a.startswith("--")]
 WITH_R = "--no-resistance" not in sys.argv
 # --tag names the deck. The default keeps every existing file name, and the
@@ -50,8 +50,14 @@ TAG = "worst_case_parasitic"
 # capacitance. See the note next to the conversion below for why this is the
 # only way to reach the macro's fastest possible array.
 ONES = None
+# Cycle period. TCLK/2 is the precharge phase, and the answer depends on it --
+# see the note next to `.param TCLK` in the deck. 2 us (a 1 us phase) is the
+# saturated, idle-then-read worst case.
+TCLK = "2u"
 for _a in sys.argv[1:]:
-    if _a.startswith("--tag="):
+    if _a.startswith("--tclk="):
+        TCLK = _a.split("=", 1)[1]
+    elif _a.startswith("--tag="):
         TAG = _a.split("=", 1)[1]
     elif _a.startswith("--ones="):
         ONES = int(_a.split("=", 1)[1])
@@ -142,11 +148,11 @@ print(f"{MACRO} column {COL}: {n_one} series NMOS + {n_zero} dead cells "
       f"(by graph walk)", file=sys.stderr)
 
 # --- synthetic chain: the FASTEST array this geometry can hold --------------
-# The .lib's retain times are an EARLY bound, and the early bound the flow had
-# was the best column of THIS macro's contents (wrom0: column 10, 48 series
-# NMOS). That is not the fastest array -- it is the fastest array that happens
-# to be programmed. A ROM's contents are per instance: reprogram it and the
-# same geometry discharges faster.
+# The .lib's retain times are an EARLY bound, so they have to hold for any
+# contents this geometry can be programmed with -- not only for the fastest
+# column of the contents at hand (wrom0: column 10, 48 series NMOS). A ROM's
+# contents are per instance: reprogram it and the same geometry discharges
+# faster.
 #
 # How fast can it get? A stored 0 is a metal1 strap across the cell, so it
 # collapses two bitline segments into one node and leaves the series path
@@ -158,9 +164,7 @@ print(f"{MACRO} column {COL}: {n_one} series NMOS + {n_zero} dead cells "
 # address -- useless, but legal and electrically fine, because the FOOT
 # TRANSISTOR stays in series whatever the contents are: it is gated by the
 # precharge net, not by a wordline, and it is what isolates the chain from
-# ground while the bitline charges. (An early version of this converted the
-# foot along with the data cells, which tied the column to ground for good and
-# made it look 5x too fast. That is how the foot was found.)
+# ground while the bitline charges.
 #
 # Measured on wrom0 column 10 at tt: 0 data cells 0.5080 ns, 1 cell 0.5738 ns,
 # all 47 cells 10.0972 ns. The floor is 13% below the one-cell case but 20x
@@ -194,8 +198,7 @@ if ONES is not None and ONES < len(path_insts):
     # its gate is the precharge net, not a wordline, and it is what isolates
     # the chain from ground while the bitline charges. Converting it to a
     # strap ties the column to ground for good -- the bitline then only
-    # reaches 1.76 V instead of 1.80 V and "discharges" 5x faster, which is
-    # how this was found (2026-09-19).
+    # reaches 1.76 V instead of 1.80 V and "discharges" 5x faster.
     #
     # The foot is identified by its gate net rather than by its position, so
     # a macro that orders the chain differently still works.
@@ -306,7 +309,18 @@ tb = f"""* {MACRO} -- isolated measurement of column {COL} with REAL PARASITIC C
 .lib {rom_paths.sky130_lib()} tt
 
 .param VDD=1.8
-.param TCLK=200n
+* TCLK/2 is the PRECHARGE PHASE, and it is a real parameter of the answer --
+* not a formality. The internal chain nodes never reach VDD (every cell is a
+* pass transistor, so each one loses a Vth and the deeper nodes settle lower
+* still), so the longer the precharge lasts the more charge the next read has
+* to remove and the slower it is. Measured on wrom0 column 236 at TT:
+*     precharge phase   25n     50n     100n    200n    1u
+*     settled t_dis_50  6.9642  9.5409  11.5907 12.9614 14.8495 ns
+* Monotonic and saturating, so the WORST CASE is the longest precharge: a ROM
+* that has been idle with clk0 parked low, whose chain has filled
+* asymptotically, and whose next read is the slowest read it can perform.
+* That is what a .lib has to cover, so the phase is 1 us here.
+.param TCLK={TCLK}
 
 Vvdd vdd 0 DC {{VDD}}
 {gnd_src}
@@ -322,23 +336,52 @@ Xbl_inv gnd vdd vdd {START} bl_b {MACRO}_pinv_dec_3
 {defs}
 
 .ic v({START})={{VDD}}
-.measure tran t_dis_50 TRIG v(precharge) VAL='VDD/2' RISE=1
-+                      TARG v({START})   VAL='VDD/2' FALL=1
-.measure tran t_dis_10 TRIG v(precharge) VAL='VDD/2' RISE=1
-+                      TARG v({START})   VAL='0.1*VDD' FALL=1
+* THE FIRST CYCLE IS NOT A MEASUREMENT.
+* `.ic` sets the bitline only; with `uic` the {n_one} internal chain nodes start at
+* 0 V and jump within picoseconds to a capacitive-divider level set by each
+* cell's parasitic C to vdd and to gnd. That level is HIGHER than the state
+* conduction produces, and the nodes cannot come back down: the foot
+* transistor is off during precharge, so they can only be charged, never
+* discharged. A longer first precharge therefore does not wash it out --
+* wrom0 cycle 1 gives 16.5035 ns whether the first precharge phase is 25 ns,
+* 100 ns or 1 us, against 14.8495 ns settled at the same 1 us phase.
+* Probed at the end of the precharge phase (wrom0, TT):
+*     node          cycle 1   settled
+*     bitline       1.8000 V  1.7990 V
+*     chain node 1  1.2623 V  1.0696 V
+*     chain node 41 1.1171 V  0.8426 V
+*     chain node 81 1.1082 V  0.8201 V
+* Cycle 1 is nearly flat -- a capacitive divider; the settled state is a
+* gradient built by conduction. So every measurement below sits on a LATE
+* cycle, the same rule the energy decks already follow (q_c2 vs q_c3).
+*
+* t_dis_50_prev is the previous cycle and exists to PROVE the settling: if it
+* differs from t_dis_50, the deck has not settled and the number must not be
+* used. On these macros the two agree to four decimals.
+.measure tran t_dis_50 TRIG v(precharge) VAL='VDD/2' RISE=1 TD='2.5*TCLK'
++                      TARG v({START})   VAL='VDD/2' FALL=1 TD='2.5*TCLK'
+.measure tran t_dis_10 TRIG v(precharge) VAL='VDD/2' RISE=1 TD='2.5*TCLK'
++                      TARG v({START})   VAL='0.1*VDD' FALL=1 TD='2.5*TCLK'
+.measure tran t_dis_50_prev TRIG v(precharge) VAL='VDD/2' RISE=1 TD='1.5*TCLK'
++                           TARG v({START})   VAL='VDD/2' FALL=1 TD='1.5*TCLK'
+
 * t_pre_50: the bitline crosses the bitline-inverter trip point on the way
 * back up -- this is the moment dout0 STOPS being valid after clk0 falls.
 * It feeds the falling_edge arc of the .lib (gen_rom_lib.py --t-invalid).
 * t_pre_90/t_pre_99 are the recharge-complete times and are much later, so
 * they must NOT be used for that arc.
-.measure tran t_pre_50 TRIG v(precharge) VAL='VDD/2' FALL=1
-+                      TARG v({START})   VAL='VDD/2' RISE=1
-.measure tran t_pre_90 TRIG v(precharge) VAL='VDD/2' FALL=1
-+                      TARG v({START})   VAL='0.9*VDD' RISE=1
-.measure tran t_pre_99 TRIG v(precharge) VAL='VDD/2' FALL=1
-+                      TARG v({START})   VAL='0.99*VDD' RISE=1
+* These sit on the falling edge that ENDS cycle 2, i.e. after two discharges.
+.measure tran t_pre_50 TRIG v(precharge) VAL='VDD/2' FALL=1 TD='1.9*TCLK'
++                      TARG v({START})   VAL='VDD/2' RISE=1 TD='1.9*TCLK'
+.measure tran t_pre_90 TRIG v(precharge) VAL='VDD/2' FALL=1 TD='1.9*TCLK'
++                      TARG v({START})   VAL='0.9*VDD' RISE=1 TD='1.9*TCLK'
+.measure tran t_pre_99 TRIG v(precharge) VAL='VDD/2' FALL=1 TD='1.9*TCLK'
++                      TARG v({START})   VAL='0.99*VDD' RISE=1 TD='1.9*TCLK'
 
-.tran 100p '2*TCLK'
+* 200 ps: the step is not a sensitivity here -- 100 ps against 200 ps moves
+* t_dis_50 by 0.007% -- and at a 1 us phase it keeps the run under a few
+* minutes.
+.tran 200p '3*TCLK'
 .end
 """
 # The file name does NOT change with --no-resistance: make_corner_variant.py,
@@ -350,8 +393,7 @@ open(outp, "w").write(tb)
 print(f"written: {outp}", file=sys.stderr)
 
 logp = outp.replace(".sp", ".log")
-# ngspice path from the environment (NGSPICE_BIN); it used to be a hard-coded
-# nix store path.
+# ngspice path from the environment (NGSPICE_BIN)
 NG = os.environ.get("NGSPICE_BIN", "ngspice")
 try:
     subprocess.run([NG, "-b", "-o", logp, outp], capture_output=True, text=True)
@@ -360,9 +402,27 @@ except FileNotFoundError:
              f"       The deck was written: {outp}")
 log = open(logp).read()
 import re as re2
-for pat in ("t_dis_50", "t_dis_10", "t_pre_50", "t_pre_90", "t_pre_99"):
-    m = re2.search(pat + r"\s*=\s*([0-9.eE+-]+)", log)
-    print(f"{MACRO} {pat} = {m.group(1) if m else 'NOT FOUND'}")
+vals = {}
+for pat in ("t_dis_50", "t_dis_10", "t_pre_50", "t_pre_90", "t_pre_99",
+            "t_dis_50_prev"):
+    m = re2.search(r"^" + pat + r"\s*=\s*([0-9.eE+-]+)", log, re2.M)
+    vals[pat] = float(m.group(1)) if m else None
+    if pat != "t_dis_50_prev":
+        print(f"{MACRO} {pat} = {m.group(1) if m else 'NOT FOUND'}")
+# The settling proof: the measured cycle against the one before it. Without
+# this the deck cannot tell a settled answer from a startup transient.
+_d, _p = vals["t_dis_50"], vals["t_dis_50_prev"]
+if _d and _p:
+    _gap = abs(_d - _p) / _d * 100.0
+    if _gap > 1.0:
+        print(f"{MACRO} WARNING: NOT SETTLED -- t_dis_50 {_d*1e9:.4f} ns "
+              f"against the previous cycle {_p*1e9:.4f} ns ({_gap:.1f}%). "
+              f"Raise TCLK or the cycle count; do not use this number.")
+    else:
+        print(f"{MACRO} settled: t_dis_50 within {_gap:.2f}% of the "
+              f"previous cycle")
+elif _d:
+    print(f"{MACRO} WARNING: no previous-cycle measurement -- settling unproven")
 errs = [l for l in log.splitlines() if "error" in l.lower() or "shorted" in l.lower() or "modelname" in l.lower()]
 if errs:
     print(f"{MACRO} ERRORS:")

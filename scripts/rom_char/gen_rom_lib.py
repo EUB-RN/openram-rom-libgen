@@ -48,9 +48,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import rom_paths                                        # noqa: E402
 
-# Without --lef the FIRST macro in the tree is used; this used to be a
-# hard-coded "rom_17kbyte", which silently produced the wrong pin list for any
-# other macro.
+# Without --lef the FIRST macro in the tree is used.
 _found = rom_paths.discover()
 DEFAULT_LEF = rom_paths.lef(_found[0]) if _found else None
 
@@ -81,13 +79,10 @@ CORNERS = OrderedDict([
 # CAP_INDEX came from OpenRAM's SRAM libs and IS measured -- run_backend_delay.sh
 # sweeps exactly these three loads.
 CAP_INDEX = [0.0017224999999999999, 0.006889999999999999, 0.027559999999999998]
-# SLEW_INDEX used to be [0.00125, 0.005, 0.04], inherited from the same SRAM
-# libs and never measured: all three rows of every table carried one number, so
-# the macro appeared not to care how fast its clock arrived. It is now the axis
-# run_slew_sweep.sh actually drives (--slew-index), and max_transition on the
-# input pins is its top point, so the library cannot declare a slew it was
-# never characterised at. The default below is the fallback for a call that
-# passes no axis.
+# SLEW_INDEX is the axis run_slew_sweep.sh actually drives (--slew-index), and
+# max_transition on the input pins is its top point, so the library cannot
+# declare a slew it was never characterised at. The default below is the
+# fallback for a call that passes no axis.
 SLEW_INDEX = [0.05, 0.2, 0.5]
 # Output driver pinv_dec_4 (wp=5.0 wn=1.68); the load sensitivity was taken
 # from an OpenRAM SRAM lib using the same class of driver.
@@ -199,7 +194,7 @@ def gen_lib(name, area, buses, scalars, corner, args):
     # --measured: access/t_pre/hold ALREADY belong to this corner (measured in
     # ngspice with that corner's own sky130 models) -> scaling them again would
     # be DOUBLE COUNTING.
-    # SETUP is now measured too (run_addr_setup.sh); when no measurement exists
+    # SETUP is measured too (run_addr_setup.sh); when no measurement exists
     # the caller passes a pessimistic bound of 3 x t_clk2pre instead. Either
     # way the value is already per-corner, so scaling it with cscale again
     # would double count -> sscale = 1 under --measured. The margins (the
@@ -221,8 +216,8 @@ def gen_lib(name, area, buses, scalars, corner, args):
     #   2) access  : precharge -> bitline 50%  (col*_worst_case_parasitic)
     #   3) backend : bitline -> dout0          (gen_backend_delay_tb.py)
     #                bitline inverter + column mux + output buffer
-    # Without 1 and 3 the old (INCOMPLETE) behaviour is kept, and the .lib
-    # header says so explicitly.
+    # Without 1 and 3 only the middle term is written, and the .lib header
+    # says so explicitly.
     # --- the slew axis, and what varies along it --------------------------
     slew_index = ([float(x) for x in args.slew_index.split(",")]
                   if args.slew_index else list(SLEW_INDEX))
@@ -231,16 +226,13 @@ def gen_lib(name, area, buses, scalars, corner, args):
     if any(b <= a for a, b in zip(slew_index, slew_index[1:])):
         sys.exit("--slew-index must be strictly increasing: %s" % slew_index)
     # An input may not be declared faster or slower than the axis it was
-    # characterised on. This used to be a fixed 0.04 ns while every front-end
-    # measurement ran at 0.5 ns -- the library declared a limit no measurement
-    # had ever touched.
+    # characterised on.
     max_transition = max(slew_index)
 
     # t_front is the ONLY term of access that depends on the clk0 edge (the
     # bitline measurement triggers off the internal precharge net and the back
     # end is driven by the bitline), so one value per slew point is the whole
-    # index_1 dependence. One value is still accepted and means "flat", which
-    # is what every run before run_slew_sweep.sh existed produced.
+    # index_1 dependence. One value is still accepted and means "flat".
     t_front_list = _three(args.t_front, "--t-front")
     dsc = 1.0 if args.measured else dscale
     t_front_list = [v * dsc for v in t_front_list]
@@ -255,12 +247,10 @@ def gen_lib(name, area, buses, scalars, corner, args):
         sl = [float(x) for x in args.out_slew_ns.split(",")]
         if len(sl) != 3:
             sys.exit("--out-slew-ns needs exactly 3 values")
-    # the windows and hold use the FULL access at the worst output load --
-    # the data is not valid before that.
+    # the windows and hold use the COMPLETE access (front end + bitline +
+    # back end, at the worst output load) -- the data is not valid before that.
     access_eff = (t_front + access + max(be)) if be else (access + max(LOAD_DELTA))
 
-    # NOTE: the windows and hold use the COMPLETE access (front end + bitline
-    # + back end, at the worst output load) -- data is not valid before that.
     pw_high = access_eff + 0.5 * dscale  # degerlendirme + pay (pay analitik)
     pw_low = t_pre + 0.2 * dscale        # on-sarj + pay (pay analitik)
     period = pw_high + pw_low
@@ -269,10 +259,8 @@ def gen_lib(name, area, buses, scalars, corner, args):
     mux_ratio = ("%d:%d" % (args.cols, _dbits) if args.cols and _dbits
                  else "column")
 
-    leak = args.leakage_mw  # measured directly -- now passed per corner and
-                             # NOT scaled by an inverse dscale (that old
-                             # assumption could be as wrong as the SS/FF timing
-                             # factors turned out to be)
+    leak = args.leakage_mw  # measured per corner -- NOT scaled by an
+                            # inverse dscale
 
     # A REAL 2-D table at last: index_1 (clk0 slew) moves t_front, index_2
     # (output load) moves the back-end term. Both axes are measured; the
@@ -333,17 +321,17 @@ def gen_lib(name, area, buses, scalars, corner, args):
                  if args.t_invalid else None)
     invalid_rows = [[t_invalid] * 3] * 3 if t_invalid else None
     if be:
-        # addr0/cs0 must stay stable through evaluate; that window is now the
+        # addr0/cs0 must stay stable through evaluate; that window is the
         # FULL access (front end + bitline + back end).
         hold = access_eff
     setup_rows = [[setup] * 3] * 3
     hold_rows = [[hold] * 3] * 3
 
     # --- power/ground pins, and the rails they belong to -------------------
-    # These names USED TO BE the literal pair vccd1/vssd1. They come out of the
-    # LEF now (USE POWER / USE GROUND), for the same reason the macro list and
-    # the geometry do: a ROM built on another PDK, or with renamed supplies,
-    # otherwise got a .lib whose pg_pins named nets it does not have.
+    # The names come out of the LEF (USE POWER / USE GROUND), for the same
+    # reason the macro list and the geometry do: a ROM built on another PDK,
+    # or with renamed supplies, otherwise gets a .lib whose pg_pins name nets
+    # it does not have.
     pwr_pins = [n for n, i in scalars.items() if i["use"] == "power"]
     gnd_pins = [n for n, i in scalars.items() if i["use"] == "ground"]
     if not pwr_pins or not gnd_pins:
@@ -360,8 +348,8 @@ def gen_lib(name, area, buses, scalars, corner, args):
     # voltage_map ties a rail NAME to a voltage; pg_pin's voltage_name points
     # at it, and related_power_pin on each signal pin points at the pg_pin.
     # All three links have to exist or a multi-voltage power tool cannot walk
-    # from a pin to its supply -- the library used to declare the rails and
-    # then never reference them.
+    # from a pin to its supply: declaring the rails without referencing them
+    # leaves the analysis unattributed.
     rails = [(r.upper(), volt) for r in pwr_pins] + [(r.upper(), 0.0)
                                                      for r in gnd_pins]
 
@@ -423,10 +411,9 @@ def gen_lib(name, area, buses, scalars, corner, args):
         w(" *   bitline -> dout0           : %.4f .. %.4f ns (vs output load)"
           % (min(be), max(be)))
         w(" *   TOTAL (worst load)         : %.4f ns" % access_eff)
-        w(" * Earlier versions had only the MIDDLE term; the front end and the")
-        w(" * back end (bitline inverter + %s column mux + output buffer) were"
+        w(" * The back-end term covers the bitline inverter, the %s column"
           % mux_ratio)
-        w(" * MISSING.")
+        w(" * mux and the output buffer.")
     else:
         w(" * WARNING: access covers only the bitline term. clk0 ->")
         w(" * precharge/wordline and bitline -> dout0 (inverter + mux + output")
@@ -441,12 +428,11 @@ def gen_lib(name, area, buses, scalars, corner, args):
           % (min(t_front_list), max(t_front_list)))
         w(" *     at clk0 transitions %s ns"
           % ", ".join("%g" % x for x in slew_index))
-        w(" * index_1 used to be three copies of one number, so the macro")
-        w(" * appeared not to care how fast its clock arrived. t_front is the")
-        w(" * only term that depends on it: the bitline measurement triggers")
-        w(" * off the internal precharge net and the back end is driven by the")
-        w(" * bitline, so neither can see clk0. That is also why the output")
-        w(" * transition table stays flat along index_1.")
+        w(" * t_front is the only term that depends on the clk0 edge: the")
+        w(" * bitline measurement triggers off the internal precharge net and")
+        w(" * the back end is driven by the bitline, so neither can see clk0.")
+        w(" * That is also why the output transition table stays flat along")
+        w(" * index_1.")
         w(" * max_transition on the inputs is %g ns, the top of that axis --"
           % max_transition)
         w(" * the library cannot declare a slew it was never measured at.")
@@ -543,9 +529,9 @@ def gen_lib(name, area, buses, scalars, corner, args):
     w("    default_inout_pin_cap    : 1.0;")
     w("    default_output_pin_cap   : 0.0;")
     # default_max_transition MUST COVER the measured output slew: at SS the
-    # dout0 transition reaches 5.35 ns (the bitline falls very slowly), and the
-    # old fixed 0.5 ns left the library SELF-INCONSISTENT -- tools flagged the
-    # macro's own output as a max_transition violation.
+    # dout0 transition reaches 5.35 ns (the bitline falls very slowly), so a
+    # fixed limit below that leaves the library SELF-INCONSISTENT -- tools
+    # flag the macro's own output as a max_transition violation.
     w("    default_max_transition   : %.4f;"
       % (max(sl) * 1.2 if sl else 0.5))
     w("    default_fanout_load      : 1.0;")
@@ -587,8 +573,8 @@ def gen_lib(name, area, buses, scalars, corner, args):
     w("")
     w("cell (%s) {" % name)
     w("    memory() {")
-    # Liberty also knows the "rom" type; the default is "ram" because some old
-    # parsers only accept that (switch with --memory-type rom).
+    # Liberty also knows the "rom" type; the default is "ram" because some
+    # parsers accept only that (switch with --memory-type rom).
     w("        type : %s;" % args.memory_type)
     w("        address_width : %d;" % addr_bits)
     w("        word_width : %d;" % data_bits)

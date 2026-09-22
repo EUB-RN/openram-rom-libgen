@@ -16,7 +16,7 @@
 #      circuit, only the models/VDD/temperature change)
 #
 # PREREQUISITE: <macro>_cap_only.spice (run_cap_extract.sh)
-# Set NO_RESISTANCE=1 to reproduce the old capacitance-only decks.
+# Set NO_RESISTANCE=1 to build the capacitance-only decks instead.
 #
 # Usage: scripts/rom_char/run_col_timing.sh [macro ...]
 

@@ -47,6 +47,7 @@ export OPENRAM_TECH=$HOME/OpenRAM/technology
 ./scripts/rom_char/run_col_power.sh
 ./scripts/rom_char/run_col_energy.sh
 ./scripts/rom_char/regen_rom_libs.sh
+./tests/run_tests.sh
 python3 scripts/rom_char/gen_macro_behavioral_v.py
 ```
 
@@ -111,6 +112,124 @@ $ python3 scripts/rom_char/rom_explore.py wrom0 --col 236
 The column with the most `one_cell`s is the slowest one, and characterization
 runs on it. That choice is made by the tools, never by hand.
 
+### The precharge phase, and why it is part of the answer
+
+Nothing ever drives a bitline high in this macro. A read is a question about
+charge that was put there in the previous half cycle, which is what makes the
+array *precharged*, and it makes the length of that half cycle part of the
+access time rather than a detail of the testbench.
+
+One cycle has two phases, and the `precharge` net is what separates them. It
+gates two devices at once:
+
+| `clk0` | `precharge` net | precharge PMOS (top of the column) | foot NMOS (bottom of the chain) | the bitline |
+|---|---|---|---|---|
+| low | low | **on** -- pulls the bitline to VDD | **off** -- the chain is cut from ground | charges |
+| high | high | off | **on** -- the chain reaches ground | discharges, or does not: that is the bit |
+
+Both devices are driven by the same net on purpose: the foot transistor is
+what keeps a short from VDD to ground through the chain while the bitline is
+being charged. It is also why the foot is never one of the programmable cells
+-- its gate is the `precharge` net, not a wordline, and
+`gen_col_tb_parasitic.py` identifies it by that gate rather than by its
+position.
+
+**The chain's internal nodes never reach VDD.** They are charged from the
+bitline *through the cells*, and every cell is an NMOS pass transistor, so
+each one loses a threshold; the deeper the node, the lower it settles.
+Measured at the end of a settled 100 ns precharge phase on wrom0 column 236 at
+TT: bitline 1.799 V, first chain node 1.070 V, node 41 0.843 V, node 81
+0.821 V -- and they keep creeping up as the phase is made longer, which is the
+next paragraph.
+There is no steady state in which the chain is simply "full".
+
+So the longer the precharge phase lasts, the more charge the next read has to
+remove, and the slower that read is:
+
+| precharge phase | settled `t_dis_50` (wrom0, TT) |
+|---|---|
+| 25 ns | 6.96 ns |
+| 50 ns | 9.54 ns |
+| 100 ns | 11.59 ns |
+| 200 ns | 12.96 ns |
+| 1 us | 14.85 ns |
+
+Monotonic and saturating. The worst case is therefore the **longest** precharge
+-- a ROM that has been sitting idle with `clk0` parked low, whose chain has
+filled asymptotically, and whose next read is the slowest read the macro can
+perform. That is a real operating condition and it is the one the `.lib` has
+to cover, so the column deck runs at `TCLK=2u`: a 1 us precharge phase, far
+into the saturated region.
+
+**And the first cycle is not a measurement.** The deck sets `.ic` on the
+bitline only; with `uic` every internal chain node starts at 0 V and jumps
+within picoseconds to a capacitive-divider level set by each cell's parasitic
+C to vdd and to gnd. That level is *higher* than what conduction produces, and
+the nodes cannot come back down -- during precharge the foot is off, so they
+can only be charged, never discharged. A longer first precharge does not wash
+it out: wrom0 reads 16.5035 ns on cycle 1 whether the first phase is 25 ns,
+100 ns or 1 us, against 14.8495 ns settled at that same 1 us phase.
+
+| | cycle 1 (capacitive divider) | settled |
+|---|---|---|
+| bitline | 1.8000 V | 1.7990 V |
+| chain node 1 | 1.2623 V | 1.0696 V |
+| chain node 41 | 1.1171 V | 0.8426 V |
+| chain node 81 | 1.1082 V | 0.8201 V |
+
+Cycle 1 is nearly flat; the settled state is a gradient built by conduction.
+Every measurement in the column deck therefore sits on the third cycle, and
+the deck also emits `t_dis_50_prev` -- the same measurement one cycle earlier
+-- so that settling is *proven* rather than assumed. If the two differ by more
+than 1% the generator says so and the number must not be used. This is the
+same rule the energy decks apply with `q_c2` against `q_c3`; the timing deck
+did not have it until 2026-09-20, and measured its first cycle. The effect on
+the numbers it produces:
+
+| corner | cycle 1 | settled, 1 us phase |
+|---|---|---|
+| tt | 16.5035 ns | 14.8495 ns |
+| ss | 41.9709 ns | 36.0231 ns |
+| ff | 8.9101 ns | 8.2893 ns |
+
+The old values were pessimistic for `access`, which is the safe direction, but
+they reached that margin through a state the circuit never occupies -- and for
+`retain_rise`/`retain_fall`, which come from the same deck, the artefact
+pointed the other way: retain is an *early* bound, and an unphysically slow
+discharge makes the output look like it holds its previous value longer than
+it really does, which is exactly what lets a hold violation pass unnoticed.
+
+#### Does a chain that never reaches VDD cost noise margin?
+
+It is the obvious next question, and the deck cannot answer it: every wordline
+is held at DC VDD, so the only case it simulates is a read of **0**. On a read
+of **1** the selected cell breaks the chain and the bitline has to *stay* high
+while every still-conducting node above the break shares charge with it -- and
+the deeper the selected row, the more nodes hang on the bitline. Measured by
+hand on wrom0 column 236 at TT, pulsing one wordline low during evaluate:
+
+| | selected row at the top | selected row at the bottom (81 cells still conducting) |
+|---|---|---|
+| `v(bl)` at 20 ns | 1.8163 V | 1.8415 V |
+| `v(bl)` at 200 ns | 1.8141 V | 1.8230 V |
+| `v(bl)` min over a 1 us evaluate | 1.8000 V | 1.7336 V |
+| `v(bl_b)` max (inverter output) | 0.0000 V | 0.0000 V |
+
+The 1 level holds. Two mechanisms protect it: each pass transistor cuts itself
+off once its node is within a threshold of the bitline, so the chain cannot
+drag the bitline down to its own level; and 41 kohm of chain resistance makes
+the redistribution far slower than the access time. The partially charged
+chain costs **speed on a read of 0, not level on a read of 1** -- and the
+bitline itself is driven by the precharge PMOS directly, with no pass
+transistor in the way, so its high level is full rail to begin with.
+
+(The readings above VDD at 20 ns are the precharge edge coupling into the
+bitline through the cell capacitances. It is the small bump visible at the
+start of every discharge if you plot the deck.)
+
+What this does *not* cover is neighbour-column coupling, which the column deck
+does not carry at all -- see limitation 1 below.
+
 ---
 
 ## What is measured, and how
@@ -140,6 +259,16 @@ own deck:
 | 1 | front end | `clk0` -> `precharge` | periphery | `periph_active_<corner>.log` (`t_clk2pre`) |
 | 2 | bitline | precharge -> bitline 50% | column | `col<N>_worst_case_parasitic*.log` (`t_dis_50`) |
 | 3 | back end | bitline -> `dout0` | back end | `backend_<corner>_<load>.log` (`t_bl2dout`) |
+
+The same path run backwards gives the **falling-edge arc**: when clk0 falls
+the precharge PMOS pulls the bitline back to VDD and every dout0 bit returns
+to 1, so the data is gone. The `.lib` carries that as a second `timing()`
+group on `dout0` with `timing_type : falling_edge`, built from the *minimum*
+of the same three terms (`t_clk2pre + t_pre_50 + t_bl2dout` at the smallest
+load). The earliest invalidation is the number that matters -- what has to be
+proven is that the consumer captured before the data went away. Without this
+group STA reads an unlatched ROM as if it held its output and reports a false
+pass.
 
 ![Bitline discharge and precharge](docs/img/05-col-discharge.png)
 
@@ -206,6 +335,7 @@ When a ROM is regenerated (different `word_size`, `words_per_row` or `.bin`)
 | address / data width | LEF pins (`PIN addr0[..]`, `PIN dout0[..]`) |
 | word count | size of `rom_configs/<macro>.bin` |
 | `word_size` / `words_per_row` | `config/<macro>.py` (cross-check) |
+| power / ground pin names | LEF pins (`USE POWER`, `USE GROUND`) |
 
 The single source of truth is
 [`scripts/rom_char/rom_paths.py`](scripts/rom_char/rom_paths.py). The netlist
@@ -318,6 +448,10 @@ JOBS=4 ./scripts/rom_char/run_periphery_power.sh   #  -> periph_{active,idle}_<c
 # 7) write the .lib files (reads every log; nothing is entered by hand)
 ./scripts/rom_char/regen_rom_libs.sh               #  -> output/lib/<macro>_<CORNER>.lib
 
+# 7b) validate what was just written (regen_rom_libs.sh already runs the
+#     structural pass; this adds the ROM semantics and OpenSTA if installed)
+./tests/run_tests.sh
+
 # 8) behavioural Verilog
 python3 scripts/rom_char/gen_macro_behavioral_v.py #  -> output/verilog/<macro>.v
 ```
@@ -369,6 +503,7 @@ per corner, the rest are seconds.
 | `gen_rom_lib.py` | LEF + measured values -> Liberty |
 | `gen_macro_behavioral_v.py` | behavioural `.v` that reports timing violations |
 | `regen_rom_libs.sh` | the top-level script that ties the flow together |
+| `tests/` | validation of the generated `.lib` -- see [`tests/README.md`](tests/README.md) |
 
 Figures live in `docs/img/`; see [`docs/img/README.md`](docs/img/README.md) for
 what each one must show and how to capture it.
@@ -390,27 +525,86 @@ Ordered by how much they can move a number:
 2. **`rom_column_decode` is never measured.** The mux select is an ideal source
    in the back-end deck. The margin is large (14-43 ns of bitline against maybe
    1 ns for an 8-way precharged decoder) but it is unproven.
-3. **Wire resistance is measured but not yet switched on by default.** Magic
+3. **Wire resistance is modelled per cell, not extracted whole.** Magic
    segfaults extracting resistance for the whole macro, so
    `gen_resistance_model.py` extracts it per cell (where Magic is happy) and
    computes it from the .mag geometry plus the PDK sheet resistances where it
    is not. On the example macros: 505 ohm per `one_cell`, 0.24 ohm per
-   `zero_cell` strap, 41.5 kohm over the worst chain. Feeding that into the
-   column deck (`gen_col_tb_parasitic.py --with-resistance`) moves the bitline
-   term by **+15% at TT, +6.6% at SS, +28% at FF** -- so the committed .lib
-   files are optimistic by that much. The wordline is not affected: the array
-   straps it to metal every 8 columns (33 polycont per row, 8.16 um apart), so
-   only ~1.3 kohm of poly is ever in series and its RC is in the tens of
-   picoseconds.
-4. **The `index_1` (input slew) axis is flat** -- all three rows of the
-   CELL_TABLE carry the same value. Only the load axis is measured.
+   `zero_cell` strap, 41.5 kohm over the worst chain. It is **included by
+   default** in the column deck and moves the bitline term by **+15% at TT,
+   +6.6% at SS, +28% at FF**; `NO_RESISTANCE=1` (or
+   `gen_col_tb_parasitic.py --no-resistance`) builds the capacitance-only deck
+   for comparison. The wordline is not affected: the array straps it to metal
+   every 8 columns (33 polycont per row, 8.16 um apart), so only ~1.3 kohm of
+   poly is ever in series and its RC is in the tens of picoseconds.
+4. **The `index_1` (input slew) axis stops at 0.5 ns.** `run_slew_sweep.sh`
+   measures it, but only the front-end term (`t_clk2pre`) depends on the clk0
+   edge, so the bitline and back-end terms are reused across the axis and the
+   output transition table stays flat along it. The axis cannot be raised
+   without first making the front-end measurement robust: above ~1 ns the
+   precharge net bumps across VDD/2 before its real transition and
+   `.measure ... RISE=1 TD=` latches the bump -- at 1.5 ns, TT, wrom0 that put
+   `t_clk2pre` (0.1527 ns) *ahead* of `t_clk2int` (0.1544 ns), which is
+   impossible since one drives the other through a NAND. `max_transition` on
+   the inputs is the top of the axis, so the library never declares a slew it
+   was not characterised at.
 5. **Input pin capacitances are analytic estimates** from gate widths
-   (`PIN_CAP` in `gen_rom_lib.py`), not measurements.
+   (`PIN_CAP` in `gen_rom_lib.py`), not measurements. `MAX_CAP`, `MIN_CAP` and
+   `MAX_TRANSITION` in the same file are fixed constants too -- they are the
+   remaining part of the `.lib` that is not read out of a log.
 6. **Energy assumes every column discharges every cycle** (all wordlines held
    high), which is pessimistic by roughly 2x against random data.
 7. **Periphery leakage is not counted** -- `cell_leakage_power` covers the
    column array only.
 8. **One column and one dout bit** are measured and applied to every bit.
+9. **The falling-edge arc needs `t_pre_50` from the column deck.** `bus(dout0)`
+   carries a `timing_type : falling_edge` group giving the earliest time dout0
+   leaves its valid level after clk0 falls (`t_clk2pre + t_pre_50 + t_bl2dout`
+   at the smallest load). Against a log that predates `t_pre_50`,
+   `regen_rom_libs.sh` warns and leaves that term out -- which makes the arc
+   earlier, i.e. safe; re-running `run_col_timing.sh` picks it up.
+
+---
+
+## Power and ground in the `.lib`
+
+The library declares its rails and then actually points at them:
+
+```
+voltage_map ( VCCD1, 1.80 )      rail name -> voltage
+  pg_pin(vccd1) voltage_name : VCCD1;       pin -> rail
+    related_power_pin : vccd1;              signal pin -> pg_pin
+    related_pg_pin    : vccd1;              internal_power / leakage -> pg_pin
+```
+
+All four links have to exist for a multi-voltage power tool to walk from a
+signal pin to its supply. Declaring `voltage_map` and never referencing it is not an error anywhere in
+the toolchain: the analysis just comes out unattributed. `tests/check_lib.py` now refuses a reference that
+does not resolve, and `tests/test_rom_lib.py` refuses a pin that carries none.
+
+The pin names are read from the LEF (`USE POWER` / `USE GROUND`) rather than
+being fixed to `vccd1`/`vssd1`, which would name nets a differently-built
+macro does not have. The first power/ground pin in
+the LEF becomes the primary rail and any others are written as backup rails.
+
+---
+
+## Validating the output
+
+Without a reader of its own, a syntax error or a table with the wrong number
+of rows only surfaces in someone else's tool. `tests/` closes that:
+
+```sh
+tests/run_tests.sh
+```
+
+Four layers: the checker's own fixtures (11 deliberately broken Liberty files,
+so a green run means something), the generic Liberty structure, the ROM
+semantics (both `dout0` arcs, the constraints, both power states, FF < TT < SS
+ordering), and OpenSTA's own `read_liberty` where it is installed.
+`regen_rom_libs.sh` runs the structural pass by itself at the end of every run,
+so a file that does not parse never leaves the generator. Details in
+[`tests/README.md`](tests/README.md).
 
 ---
 

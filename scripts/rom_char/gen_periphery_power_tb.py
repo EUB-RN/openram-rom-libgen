@@ -103,6 +103,14 @@ ap.add_argument("--steps", type=int, default=200,
 ap.add_argument("--cycles", type=int, default=8,
                 help="number of cycles to run (at least 4). The last two full "
                      "cycles are measured; equal values prove settling.")
+ap.add_argument("--with-coldec", action="store_true",
+                help="also keep rom_column_decode and measure the COLUMN "
+                     "SELECT path (precharge -> word_sel_k). The column "
+                     "decoder is clocked by the precharge net itself, so it "
+                     "runs in PARALLEL with the bitline discharge rather than "
+                     "in series with it; what this proves is that the "
+                     "unselected selects have FALLEN before the bitline data "
+                     "develops.")
 ap.add_argument("--macros-dir", default=None,
                 help="macro tree (default: ROM_MACROS_DIR / <repo>/examples)")
 args = ap.parse_args()
@@ -171,11 +179,20 @@ top_caps  = [l for l in top_lines if l.startswith("C")]
 
 # --- instances to keep / delete -------------------------------------------
 KEEP_SUB = {f"{M}_rom_control_logic", f"{M}_rom_row_decode"}
+# The column decoder is a THIRD periphery block. It is kept only on demand
+# because it changes what the deck measures, not what it burns: including it
+# would move e_periph_pj, and the committed energy numbers are taken WITHOUT
+# it (the .lib counts the column array separately). --with-coldec is
+# therefore a timing run: only its t_pre2sel* measurements are usable.
+COLDEC = f"{M}_rom_column_decode"
+MUX = f"{M}_rom_column_mux_array"
+if args.with_coldec:
+    KEEP_SUB.add(COLDEC)
 keep = [l for l in top_insts if l.split()[-1] in KEEP_SUB]
 drop = [l for l in top_insts if l.split()[-1] not in KEEP_SUB]
-if len(keep) != 2:
-    sys.exit(f"ERROR: periphery instances not found (found: "
-             f"{[l.split()[-1] for l in top_insts]})")
+if len(keep) != len(KEEP_SUB):
+    sys.exit(f"ERROR: periphery instances not found (want {sorted(KEEP_SUB)}, "
+             f"found: {[l.split()[-1] for l in top_insts]})")
 
 SUPPLY_HI, SUPPLY_LO = "vccd1", "vssd1"
 alive = set([SUPPLY_HI, SUPPLY_LO, "0"])
@@ -201,6 +218,28 @@ def gate_index(sub):
 
 gate_cnt = collections.Counter()      # (subckt, arr_port) -> adet
 wire_c   = collections.Counter()      # arr_port -> toplam parazitik C (F)
+dev_cnt  = collections.Counter()      # (model, arr_port) -> adet  (raw devices)
+dev_line = {}                         # (model, arr_port) -> the X line to copy
+
+# A device can reach `collect` in two shapes. The cell array wraps its
+# transistors in sub-circuits (rom_base_one_cell, with named G/S/D ports), but
+# the column mux instantiates the PDK model directly:
+#     X0 bl_out sel bl gnd sky130_fd_pr__nfet_01v8 ad=... w=2.88u l=0.15u
+# i.e. an X line whose "sub-circuit" is a model name and whose tail is
+# parameters. Those were skipped outright, which for --with-coldec meant the
+# eight column selects were left carrying nothing but coupling C -- 32 pass
+# gates each, the entire load the decoder drives.
+DEV_RE = re.compile(r"(nfet|pfet|nmos|pmos)", re.I)
+
+def device_nodes(tokens):
+    """(nodes, model) of a raw device X line, or (None, None) if it is not one."""
+    pi = next((j for j, tok in enumerate(tokens) if "=" in tok), len(tokens))
+    if pi < 2:
+        return None, None
+    model = tokens[pi - 1]
+    if not DEV_RE.search(model):
+        return None, None
+    return tokens[1:pi - 1], model
 
 def collect(sub, xlate, mult=1, depth=0):
     """xlate: sub-circuit local node name -> array port (only the ones we want)"""
@@ -211,6 +250,13 @@ def collect(sub, xlate, mult=1, depth=0):
         if l.startswith("X"):
             child, nets = t[-1], t[1:-1]
             if child not in B:
+                # raw PDK device: standard MOS node order D G S B -> gate is #2
+                dn, model = device_nodes(t)
+                if dn and len(dn) >= 2:
+                    g = xlate.get(dn[1])
+                    if g:
+                        dev_cnt[(model, g)] += mult
+                        dev_line[(model, g)] = l
                 continue
             gi = gate_index(child)
             if gi is not None:
@@ -230,8 +276,6 @@ def collect(sub, xlate, mult=1, depth=0):
             for n in (t[1], t[2]):
                 if n in xlate:
                     wire_c[xlate[n]] += v * mult
-
-collect(ARRAY, {p: p for p in p2n})
 
 # The load on the GATE side of a cell: the device itself (m=<count>) plus the
 # cell's internal gate parasitics (lumped). A SUB-CIRCUIT call with m=<count>
@@ -253,45 +297,91 @@ def cell_gate_model(sub):
                 pass
     return dev, B[sub][0].split()[2:], cg
 
-# only load the nodes that are STILL ALIVE at top level
-load_lines, load_report = [], []
-for i, (port, net) in enumerate(sorted(p2n.items())):
-    if net not in alive or net in (SUPPLY_HI, SUPPLY_LO, "0"):
-        continue
-    subs = [(sb, c) for (sb, pp), c in gate_cnt.items() if pp == port]
-    cw = max(wire_c.get(port, 0.0), 0.0)   # dizi ici tel parazitigi
-    ncell = 0
-    for sb, c in sorted(subs):
-        dev, _, cg = cell_gate_model(sb)
-        if dev is None:
+def rebuild_load(sub, tag):
+    """Put back the load a DELETED block leaves on the nets that are still alive.
+
+    Same 'slice x count' reduction for any block: descend into it, count the
+    gates each of its ports drives, lump the internal wire parasitics, and emit
+    one device with m=<count> plus one C per alive net. Called for the cell
+    array (the wordline load) and, with --with-coldec, for the column mux array
+    -- without the second call the eight column selects would drive nothing but
+    their own wire C, and a decoder measured into no load is not a measurement.
+
+    Returns (spice lines, [(port, cell count, lumped C)]).
+    """
+    inst = [l for l in drop if l.split()[-1] == sub]
+    if not inst:
+        sys.exit(f"ERROR: no {sub} instance at top level")
+    ports = dict(zip(B[sub][0].split()[2:], inst[0].split()[1:-1]))
+    gate_cnt.clear()
+    wire_c.clear()
+    dev_cnt.clear()
+    dev_line.clear()
+    collect(sub, {p: p for p in ports})
+    load_lines, load_report = [], []
+    # only load the nodes that are STILL ALIVE at top level
+    for i, (port, net) in enumerate(sorted(ports.items())):
+        if net not in alive or net in (SUPPLY_HI, SUPPLY_LO, "0"):
             continue
-        cw += cg * c
-        ncell += c
-        if args.gate_cap_ff is not None:
-            # The gate load is modelled as a LINEAR C. That is the correct
-            # reduction for energy: the charge drawn from VDD to pull a node to
-            # VDD is Q(VDD), so using C_eq = Q(VDD)/VDD preserves the ENERGY
-            # exactly. Placing the device with m=<count> gives the same energy
-            # but creates a capacitance hundreds of times wider and strongly
-            # NON-LINEAR, which kept ngspice from converging (2026-09-06:
-            # "Timestep too small" in three separate attempts).
-            cw += args.gate_cap_ff * 1e-15 * c
-            continue
-        t = dev.split()
-        # The device nodes are written with sub-circuit port names. G -> the
-        # measured net; the rest go to their own supply rail (tying a PMOS body
-        # or source to ground gives the WRONG gate capacitance), and the
-        # bitline side sits at ground -- bitlines are static in this run.
-        nets = [net if n == "G"
-                else (SUPPLY_HI if n.startswith("vdd") else SUPPLY_LO)
-                for n in t[1:5]]
-        load_lines.append(fix_units(
-            "X_wl%d_%d " % (i, len(load_lines)) + " ".join(nets) + " "
-            + " ".join(t[5:]) + " m=%d" % c))
-    if cw > 0:
-        load_lines.append(f"C_wl{i} {net} {SUPPLY_LO} {cw*1e15:.5f}f")
-    if ncell or cw > 0:
-        load_report.append((port, ncell, cw))
+        subs = [(sb, c) for (sb, pp), c in gate_cnt.items() if pp == port]
+        cw = max(wire_c.get(port, 0.0), 0.0)   # dizi ici tel parazitigi
+        ncell = 0
+        for sb, c in sorted(subs):
+            dev, _, cg = cell_gate_model(sb)
+            if dev is None:
+                continue
+            cw += cg * c
+            ncell += c
+            if args.gate_cap_ff is not None:
+                # The gate load is modelled as a LINEAR C. That is the correct
+                # reduction for energy: the charge drawn from VDD to pull a node to
+                # VDD is Q(VDD), so using C_eq = Q(VDD)/VDD preserves the ENERGY
+                # exactly. Placing the device with m=<count> gives the same energy
+                # but creates a capacitance hundreds of times wider and strongly
+                # NON-LINEAR, which kept ngspice from converging (2026-09-06:
+                # "Timestep too small" in three separate attempts).
+                cw += args.gate_cap_ff * 1e-15 * c
+                continue
+            t = dev.split()
+            # The device nodes are written with sub-circuit port names. G -> the
+            # measured net; the rest go to their own supply rail (tying a PMOS body
+            # or source to ground gives the WRONG gate capacitance), and the
+            # bitline side sits at ground -- bitlines are static in this run.
+            nets = [net if n == "G"
+                    else (SUPPLY_HI if n.startswith("vdd") else SUPPLY_LO)
+                    for n in t[1:5]]
+            load_lines.append(fix_units(
+                "X_%s%d_%d " % (tag, i, len(load_lines)) + " ".join(nets) + " "
+                + " ".join(t[5:]) + " m=%d" % c))
+        # raw PDK devices whose gate sits on this net (the column mux)
+        for (mdl, pp), c in sorted(dev_cnt.items()):
+            if pp != port:
+                continue
+            t = dev_line[(mdl, pp)].split()
+            dn, _ = device_nodes(t)
+            pi = t.index(mdl)
+            # gate -> the measured net; source/drain/body -> ground. The mux
+            # passes a BITLINE, which is static in this run, so tying it low is
+            # the strong-inversion (largest, pessimistic) gate capacitance.
+            nets = [net if j == 1 else SUPPLY_LO for j in range(len(dn))]
+            load_lines.append(fix_units(
+                "X_%s%d_%d " % (tag, i, len(load_lines)) + " ".join(nets)
+                + " " + " ".join(t[pi:]) + " m=%d" % c))
+            ncell += c
+        if cw > 0:
+            load_lines.append(f"C_{tag}{i} {net} {SUPPLY_LO} {cw*1e15:.5f}f")
+        if ncell or cw > 0:
+            load_report.append((port, ncell, cw))
+    return load_lines, load_report
+
+load_lines, load_report = rebuild_load(ARRAY, "wl")
+if args.with_coldec:
+    # The eight column selects drive 256 mux pass transistors between them.
+    # Without this the decoder would be measured driving its own wire C alone
+    # and would come out far too fast.
+    mux_lines, mux_report = rebuild_load(MUX, "sel")
+    load_lines += mux_lines
+    load_report += mux_report
 
 # --- top-level C elements: the alive/dead rule ----------------------------
 kept_c, retarget = [], collections.Counter()
@@ -376,11 +466,16 @@ keep_fixed = "\n".join(fix_units(l) for l in keep)
 # --- initial condition for the precharged DECODER chain nodes ------------
 # The row decoder is a NAND-chain structure too; its internal chain nodes have
 # no DC path to ground. Starting them all at 0 with uic made ngspice shrink the
-# time step until it gave up ("Timestep too small ... rom_base_one_cell_53/s",
-# 2026-09-06). While clk_int is low the physically correct state is PRECHARGED
+# time step until it gave up ("Timestep too small ... rom_base_one_cell_53/s").
+# While clk_int is low the physically correct state is PRECHARGED
 # -- the same trick as `.ic v(bl)={VDD}` in the column measurement.
+# The column decoder (--with-coldec) is the same structure and needs the same
+# treatment: its decode array is built from the very same rom_base_one_cell /
+# rom_base_zero_cell chain as the bit array, so its internal nodes have no DC
+# path either.
 ic_nodes = [n for n in
-            (l.split()[1:-1] for l in keep if l.split()[-1].endswith("row_decode"))
+            (l.split()[1:-1] for l in keep
+             if l.split()[-1].endswith(("row_decode", "column_decode")))
             for n in n
             if re.search(r"rom_base_(one|zero)_cell_\d+/[SD]$", n)
             or re.search(r"/bl_\d+_\d+$", n)]
@@ -389,7 +484,7 @@ ic_txt = "\n".join(f".ic v({n})={{VDD}}" for n in sorted(set(ic_nodes)))
 # --- FRONT END DELAY: clk0 -> precharge / wordline -----------------------
 # `access` in the .lib runs from the rising edge of clk0 until dout0 is valid.
 # The column measurement (t_dis_50) triggers off the internal `precharge` net,
-# so the piece from clk0 to precharge/wordline was never counted.
+# so the piece from clk0 to precharge/wordline is not in it.
 # It is measured here; total: access = max(t_clk2pre, t_clk2wl) + t_dis_50
 #                                    + t_bl2dout (gen_backend_delay_tb.py)
 ctl = set(next(l for l in keep if l.split()[-1].endswith("control_logic"))
@@ -404,8 +499,8 @@ wl_meas = [n for k in range(8)
            for n in rowd if re.search(r"/wl_%d$" % k, n)]
 # RISE=N cannot be used: ngspice counts each signal's transitions SEPARATELY
 # from t=0, so when internal nodes glitch at start-up, clk0's 2nd rise and the
-# target's 2nd rise no longer belong to the same cycle (negative delays,
-# 2026-09-06). Instead we use a TIME WINDOW (TD) starting just before the
+# target's 2nd rise no longer belong to the same cycle (negative delays).
+# Instead we use a TIME WINDOW (TD) starting just before the
 # measured clock edge; both trig and targ then catch the first crossing after
 # it. A late cycle is used so the circuit has settled.
 _tclk = to_float(args.tclk)
@@ -413,8 +508,8 @@ _edge = (args.cycles - 2) * _tclk        # olculecek clk0 yukselen kenari
 _td_trig = _edge - _tclk / 20.0
 # The TARG window starts EXACTLY at the edge: because the decoder is
 # precharged, the wordlines also rise on clk0's FALLING edge (the precharge
-# phase). Giving TARG a TD before the edge made the measurement catch that
-# falling-edge rise and produce a NEGATIVE delay (2026-09-06: t_clk2wl = -99 ns).
+# phase). Giving TARG a TD before the edge makes the measurement catch that
+# falling-edge rise and produce a NEGATIVE delay (t_clk2wl = -99 ns).
 _td_targ = _edge
 fe = []
 def _m(name, node):
@@ -445,9 +540,61 @@ if pre_net and args.cs:
     # with cs0=0 precharge never rises -- the measurement only means something at cs0=1
     fe += _m("t_clk2pre", pre_net[0])
 
+# --- COLUMN DECODE: precharge -> column select ---------------------------
+# README limitation 2 until 2026-09-22: the column decoder was the one block
+# the flow never simulated. The back-end deck drives the eight selects with
+# ideal DC sources, so nothing proved they are where they must be when the
+# bitline data arrives.
+#
+# What the netlist says (top level of <macro>.sp):
+#     Xrom_column_decoder  addr0[0] addr0[1] addr0[2]
+#   +   word_sel_0 .. word_sel_7  precharge precharge  vccd1 vssd1
+# Its `clk` and its `precharge` port are BOTH tied to the internal precharge
+# net -- the same net t_dis_50 triggers off. So the column decoder does NOT
+# sit in series with the bitline: the two start together and RACE. access is
+# therefore
+#     t_clk2pre + max(t_dis_50, t_pre2sel) + t_bl2dout
+# and not a sum of four terms.
+#
+# And like the row decoder it is PRECHARGED, so every select is HIGH during
+# the precharge phase and the seven UNSELECTED ones FALL during evaluate.
+# During precharge the mux shorts all 256 bitlines onto the 32 outputs, which
+# is harmless because they are all at VDD; what matters is that the wrong
+# selects are GONE before the bitline separates from VDD. The binding check is
+# therefore the FALL, not the rise:
+#     t_pre2sel_fall (worst of the seven)  <  t_dis_50
+# Both directions are measured on all eight so the conclusion is evidence and
+# not an assumption -- the selected one reports "failed" on the fall, which is
+# how the log identifies it.
+if args.with_coldec:
+    cold = set(next(l for l in keep if l.split()[-1] == COLDEC).split()[1:-1])
+    # the select nets: the decoder's wl_k, which are the mux's sel_k
+    mux_inst = [l for l in drop if l.split()[-1] == MUX]
+    if not mux_inst:
+        sys.exit(f"ERROR: no {MUX} instance at top level")
+    mp2n = dict(zip(B[MUX][0].split()[2:], mux_inst[0].split()[1:-1]))
+    sel_nets = [mp2n[q] for q in sorted(
+        (q for q in mp2n if re.match(r"^sel_\d+$", q)),
+        key=lambda q: int(q.split("_")[1]))]
+    missing = [n for n in sel_nets if n not in cold]
+    if missing:
+        sys.exit(f"ERROR: the column mux selects are not driven by "
+                 f"{COLDEC}: {missing[:3]}")
+    if not pre_net:
+        sys.exit("ERROR: --with-coldec needs the precharge net, which is only "
+                 "alive at cs0=1")
+    _pre = pre_net[0]
+    for k, n in enumerate(sel_nets):
+        for direc in ("RISE", "FALL"):
+            nm = f"t_pre2sel{k}_{direc.lower()}"
+            pad = " " * len(nm)
+            fe += [f".measure tran {nm} TRIG v({_pre}) VAL='VDD/2' RISE=1 "
+                   f"TD={_td_trig:.6e}",
+                   f"+                {pad}TARG v({n}) VAL='VDD/2' {direc}=1 "
+                   f"TD={_td_targ:.6e}"]
+
 # --- address bits and switching instant (used by both stimulus and measure) -
-# The bit count is derived from top_ports (i.e. from the LEF pin list); it used
-# to be a hard-coded 13.
+# The bit count is derived from top_ports (i.e. from the LEF pin list).
 _abits = sorted(int(mm.group(1))
                 for p_ in top_ports
                 for mm in [re.match(r"addr0\[(\d+)\]$", p_)] if mm)
@@ -461,8 +608,8 @@ _t_sw = _edge + _tclk / 4.0
 # UNSELECTED ones fall during evaluate. So the address must be settled at the
 # decoder INPUTS when clk0 rises, and that is exactly the path measured here:
 #     addr0 -> inv_array_mod (address buffer) -> the clocked decoder NAND
-# This is the physical counterpart of setup_rising in the .lib. Before it was
-# measured, the analytic 0.15 ns guess in BASE was used (see gen_rom_lib.py).
+# This is the physical counterpart of setup_rising in the .lib; without it
+# gen_rom_lib.py falls back to the analytic guess in BASE.
 if args.addr_alt is not None:
     _sw_bits = [i for i in _abits
                 if ((args.addr >> i) & 1) != ((args.addr_alt >> i) & 1)]
@@ -526,11 +673,21 @@ cells = sum(c for p, c, w in load_report if re.match(r"^wl_", p))
 # time literal ("50p", "0.5n", "1.5e-9").
 slew = args.clk_slew
 
+coldec_txt = (
+    "*          rom_column_decode (--with-coldec: the 3->8 column decoder,\n"
+    "*                             clocked by the precharge net itself)\n"
+    if args.with_coldec else "")
+coldec_note = (
+    "* --with-coldec: this is a TIMING run. Keeping the column decoder adds its\n"
+    "* switching to i(Vvdd), so e_periph_pj from this deck is NOT the number the\n"
+    "* .lib uses -- only the t_pre2sel* measurements from it are usable.\n"
+    if args.with_coldec else "")
+
 tb = f"""* {M} -- PERIPHERY energy per cycle -- {mode}
 * Kept:    rom_control_logic (clock driver + control_nand + prechg driver)
 *          rom_row_decode    (address buffers + decoder + wl drivers)
-* Deleted: cell array / column mux / column decoder / bitline and output
-*          inverters. The array's LOAD was put back:
+{coldec_txt}{coldec_note}* Deleted: cell array / column mux / bitline and output
+*          inverters. The deleted blocks' LOAD was put back:
 *            {wl_n} wordlines, {cells} cell gates total (one instance + m=<count>)
 *            + the array's internal parasitic wire C (lumped)
 * Top-level C: {len(kept_c)} kept/merged, {n_drop} dropped (both ends dead),

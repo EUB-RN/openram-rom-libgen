@@ -9,10 +9,10 @@
 #   load_geom   -- sets G_COLS / G_WORST_COL / G_CHAIN / G_CHAR / ...
 #   meas        -- pull a value out of an ngspice .measure line
 #
-# WHY: the macro list, the worst-column table, the column count (256) and the
-# repository path used to be repeated by hand in every script; if they were
-# not all updated together after a ROM was regenerated, the measurements went
-# silently wrong. See rom_paths.py.
+# WHY: the macro list, the worst-column table, the column count and the
+# repository path are derived here once instead of being repeated in every
+# script, so regenerating a ROM cannot leave one of them stale. See
+# rom_paths.py.
 
 ROM_CHAR_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$ROM_CHAR_DIR/../.." && pwd)"
@@ -29,29 +29,17 @@ CORNERS="${ROM_CORNERS:-tt:1.8:25:38.2 ss:1.6:100:19.1 ff:1.95:-40:60.7}"
 LOADS="${LOADS:-1.7225 6.89 27.56}"
 # .lib CELL_TABLE index_1 points (clk0 input transition, ns).
 #
-# This axis USED TO BE 0.00125 / 0.005 / 0.04 ns, inherited from an OpenRAM
-# SRAM lib and never measured -- all three rows of every table carried the same
-# number. Two things were wrong with it: a 1.25 ps edge is not something any
-# driver produces, and the periphery deck (whose own note says a 100 ps step
-# already made convergence hard on a network this size) cannot be run there.
-# Worse, every t_clk2pre ever measured used a 500 ps edge, which was not even
-# on the declared axis.
+# The axis spans what a real on-chip clock delivers into a 2.5 fF pin. Its top
+# point becomes max_transition on clk0, so the library stays self-consistent.
 #
-# The axis spans what a real on-chip clock delivers into a 2.5 fF pin, and its
-# TOP POINT IS EXACTLY THE OLD 0.5 ns, so a sweep has to reproduce the
-# previously committed t_clk2pre or something is wrong. The top of the axis
-# becomes max_transition on clk0, so the library stays self-consistent.
-#
-# WHY IT STOPS AT 0.5 ns. A first axis reached 1.5 ns and the measurement
-# broke there (2026-09-19, wrom0): at tt, t_clk2pre came out 0.1527 ns against
-# t_clk2int 0.1544 ns -- the precharge net crossing VDD/2 at the same instant
-# as clk_int, which drives it THROUGH a NAND and cannot happen. On a 1.5 ns
-# ramp the precharge net bumps across VDD/2 before its real transition, and
-# `.measure ... RISE=1 TD=` takes the first crossing after the window opens,
-# so it latches the bump. It is the same glitch class the front-end
-# measurement comments already document. Both 0.05 and 0.5 are clean and
-# monotonic at all three corners, so the axis stays inside the regime where
-# this deck's technique is trustworthy. Raising it means making the
+# WHY IT STOPS AT 0.5 ns: above ~1 ns the front-end measurement breaks. On a
+# slow ramp the precharge net bumps across VDD/2 before its real transition,
+# and `.measure ... RISE=1 TD=` takes the first crossing after the window
+# opens, so it latches the bump -- at 1.5 ns, tt, wrom0 that put t_clk2pre
+# (0.1527 ns) ahead of t_clk2int (0.1544 ns), i.e. the precharge net crossing
+# before the signal that drives it through a NAND. It is the same glitch class
+# the front-end measurement comments document. 0.05-0.5 ns is clean and
+# monotonic at all three corners. Raising the axis means making the
 # measurement robust first, not just changing this line.
 SLEWS="${SLEWS:-0.05 0.2 0.5}"
 

@@ -230,8 +230,8 @@ for i, (n, v) in enumerate(sorted(retarget.items())):
 
 # Nodes DRIVEN by a source: only the array bitlines (bl_0_*) and the column
 # selects. The inverter OUTPUTS (bl_*) are not driven -- treating them as
-# "driven" as well skipped the negative-net-capacitance fix and the solver blew
-# up at the very first time point (2026-09-06).
+# "driven" as well skips the negative-net-capacitance fix and the solver blows
+# up at the very first time point.
 bl_in_nets = {n for n in ip2n.values()
               if re.match(r"^bl_0_\d+$", n.split("/")[-1])}
 sel_nets_all = {mp2n[q] for q in mux_ports

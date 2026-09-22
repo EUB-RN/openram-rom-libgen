@@ -1,8 +1,8 @@
 #!/bin/sh
 # PERIPHERY switching energy per cycle, three corners.
 #
-# WHY: the clk0 internal_power blocks in the .lib were missing `when : "!cs0"`.
-# cs0 only gates the precharge path (precharge = ~NAND(cs0, clk_int)); the
+# WHY: the clk0 internal_power blocks in the .lib need a `when : "!cs0"`
+# value as well. cs0 only gates the precharge path (precharge = ~NAND(cs0, clk_int)); the
 # clock driver and the row decoder run off clk_int, INDEPENDENT of cs0. So even
 # when the macro is deselected, every cycle still switches the clock tree, the
 # address buffers, the decoder and all the wordlines. A missing block produces

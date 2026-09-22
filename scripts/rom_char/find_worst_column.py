@@ -145,9 +145,8 @@ def main():
         rows_out.append((name, wcol, chain))
 
     if rows_out:
-        # NOTE: these values no longer need to be copied anywhere by hand --
-        # rom_paths.py runs the same analysis and feeds run_*.sh and
-        # regen_rom_libs.sh automatically. This output is for inspection.
+        # This output is for inspection only: rom_paths.py runs the same
+        # analysis and feeds run_*.sh and regen_rom_libs.sh automatically.
         print("\nNext (the column argument is optional -- it comes from here):")
         for name, _wcol, _ in rows_out:
             print("  python3 gen_col_tb_parasitic.py %s" % name)

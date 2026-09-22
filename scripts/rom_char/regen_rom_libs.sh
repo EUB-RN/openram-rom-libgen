@@ -20,19 +20,13 @@
 #   idle   (when "!cs0")            : char/periph_idle_<corner>.log  e_periph_pj
 # SETUP  : char/periph_setup_<corner>.log  t_addr2dec* (worst of them)
 #
-# Terms 1 and 3, the periphery energy and the output slew were added on
-# 2026-09-06; before that `access` covered only the MIDDLE term, the slew was
-# a fixed guess, and because idle power was never written OpenSTA silently
-# treated it as zero.
-#
-# EVERY NUMBER IS READ FROM A LOG -- nothing is copied by hand. An earlier
-# version kept the macro names, the worst column/chain and the
-# access/t_pre/leakage values in a TABLE inside this file; regenerating the
-# ROM (new word_size / words_per_row / .bin) silently invalidated it. Now:
+# EVERY NUMBER IS READ FROM A LOG -- nothing is copied by hand, so
+# regenerating the ROM (new word_size / words_per_row / .bin) cannot leave a
+# stale value behind:
 #   * macro list       <- <macro>/<macro>.sp directories in the tree
 #   * worst column     <- netlist scan (rom_paths.py / find_worst_column)
 #   * chain length     <- same scan
-#   * column count     <- same scan (energy/leakage multiplier; was a literal 256)
+#   * column count     <- same scan (energy/leakage multiplier)
 #   * access / t_pre   <- col<N>_worst_case_parasitic*.log (t_dis_50/t_pre_99)
 #   * leakage          <- col<N>_leak_<corner>.log
 #
@@ -164,8 +158,7 @@ for m in $(macro_list "$@"); do
 
     # The falling arc wants the EARLIEST bitline trip point, so take the
     # smaller of whichever columns have been measured. The best-column deck
-    # (run_early_path.sh) carries t_pre_50 as a by-product, which is how this
-    # term became available before run_col_timing.sh was re-run.
+    # (run_early_path.sh) carries t_pre_50 as a by-product.
     tp50=$(for f in "$PAR" "$EARLY"; do
              meas "$f" t_pre_50 | awk '{printf "%.4f\n", $1*1e9}'
            done | sort -n | head -1)
@@ -198,16 +191,16 @@ for m in $(macro_list "$@"); do
       continue
     fi
 
-    # setup: MEASURED DIRECTLY since 2026-09-08.
+    # setup: MEASURED DIRECTLY.
     # run_addr_setup.sh switches addr0 during the precharge phase and measures
     #   addr0 -> inv_array_mod/Z  (= the A input of the decoder NAND)
     # taking the WORST of the per-address-bit buffers. The decoder is a CLOCKED
     # NAND, so that net is exactly where the address has to be stable.
     #
-    # It used to be an analytic upper bound of 3 x t_clk2pre (~4.93 ns at SS);
-    # the measured value at SS is 0.053 ns, i.e. the bound was ~90x pessimistic.
-    # With no measurement we FALL BACK to that pessimistic bound -- writing a
-    # large number is the safe side, writing a small one silently is not.
+    # With no measurement we FALL BACK to an analytic upper bound of
+    # 3 x t_clk2pre (~4.93 ns at SS against 0.053 ns measured, i.e. ~90x
+    # pessimistic) -- writing a large number is the safe side, writing a
+    # small one silently is not.
     stl="$G_CHAR/periph_setup_${c}.log"
     stp=$(awk '/^t_addr2dec[0-9]+/ { if ($3 ~ /^[0-9.eE+-]+$/ && $3+0 > mx) mx = $3+0 }
                END { if (mx > 0) printf "%.4f", mx*1e9 }' "$stl" 2>/dev/null)

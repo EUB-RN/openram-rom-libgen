@@ -174,9 +174,9 @@ def geometry(macro, explicit=None, use_cache=True, quiet=False):
         raise SystemExit("ERROR: no netlist at %s\n"
                          "       (is ROM_MACROS_DIR correct?)" % sp)
     st = os.stat(sp)
-    # v2 added best_col/best_chain. The stamp carries a schema version so an
-    # old cache from before that is refreshed instead of silently answering
-    # without the new keys.
+    # The stamp carries a schema version, so a cache written by an earlier
+    # key set is refreshed instead of silently answering without the keys the
+    # caller expects.
     stamp = "v2:%d:%d" % (st.st_mtime_ns, st.st_size)
 
     cache = _cache_path(macro, explicit)

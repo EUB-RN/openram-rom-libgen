@@ -1,21 +1,20 @@
 #!/bin/sh
 # BACK END delay (bitline -> dout0), three corners x three output loads.
 #
-# WHY: `access` in the .lib is clk0 -> dout0, but the only thing being measured
-# was the bitline discharge (t_dis_50, triggered off the internal `precharge`
+# WHY: `access` in the .lib is clk0 -> dout0, while the column deck measures
+# only the bitline discharge (t_dis_50, triggered off the internal `precharge`
 # net). The three stages in between -- bitline inverter, column mux and output
-# buffer -- were never measured. The bitline falls so slowly (~52 mV/ns for
+# buffer -- are measured here. The bitline falls so slowly (~52 mV/ns for
 # wrom0 at TT) that this term cannot be guessed.
 #
-# It also makes the index_2 (output load) axis of the .lib CELL_TABLE REAL;
-# previously all three load points carried the same number.
+# Running it once per load also makes the index_2 (output load) axis of the
+# .lib CELL_TABLE a real measurement.
 #
 # Total:  access = max(t_clk2wl, t_clk2pre)   [run_periphery_power.sh]
 #                + t_dis_50                   [col*_worst_case_parasitic]
 #                + t_bl2dout                  [THIS script]
 #
-# The worst column comes from the netlist (rom_paths.py); it used to be a
-# "wrom0:236" table in this file.
+# The worst column comes from the netlist (rom_paths.py).
 #
 # Usage: scripts/rom_char/run_backend_delay.sh [macro ...]
 
