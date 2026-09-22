@@ -36,8 +36,28 @@ BREAKS="${BREAKS:-0 2 4 6 8 10 12 13 14 15 16 18 22}"
 
 MACROS=$(macro_list "$@")
 
+# The wordline edge that cuts the chain. Measured by run_wl_slew.sh out of the
+# periphery deck (real buffer, real row load); the 100 ps fallback is an ideal
+# step, which is the PESSIMISTIC end -- a real edge keeps the chain partly
+# conducting while it falls, so the bitline goes on discharging. Whatever it
+# is, --break-ns names the wordline's 50% crossing, so the axis does not move.
+wl_slew_for() {   # $1 = corner tag -> prints "<ns> <where it came from>"
+  if [ -n "${WL_SLEW:-}" ]; then
+    echo "$WL_SLEW WL_SLEW"
+    return
+  fi
+  _s=$(meas "$G_CHAR/wlslew_${1}.log" t_wl1090_0 |
+       awk '{printf "%.4f", $1*1e9/0.8}')
+  if [ -n "$_s" ]; then
+    echo "$_s measured"
+  else
+    echo "0.1 ideal-step-NOT-MEASURED"
+  fi
+}
+
 echo "== address hold: when may addr0 move after clk0 rises? =="
 echo "   cut points: $BREAKS ns"
+echo "   the NUMBER comes from run_hold_bisect.sh; this sweep is the picture"
 echo
 
 n=0
@@ -47,6 +67,8 @@ for m in $MACROS; do
   mkdir -p "$OUT"
   for ck in $CORNERS; do
     c=$(echo "$ck" | cut -d: -f1)
+    set -- $(wl_slew_for "$c"); slew="$1"; slewsrc="$2"
+    echo "   $m $c: wordline fall $slew ns ($slewsrc)"
     # the reference: no cut at all -- it must reproduce the committed t_dis_50,
     # which is what proves the patched deck is still the same circuit.
     python3 "$GEN" "$m" "$OUT/ref_${c}.sp" --corner "$c" >/dev/null
@@ -55,7 +77,7 @@ for m in $MACROS; do
     for b in $BREAKS; do
       tag=$(echo "$b" | tr '.' 'p')
       python3 "$GEN" "$m" "$OUT/cut${tag}_${c}.sp" --corner "$c" \
-              --break-ns "$b" >/dev/null
+              --break-ns "$b" --wl-slew-ns "$slew" >/dev/null
       ( $NG -b -o "$OUT/cut${tag}_${c}.log" "$OUT/cut${tag}_${c}.sp" \
           >/dev/null 2>&1 || true ) &
       n=$((n+1)); [ $((n % JOBS)) -eq 0 ] && wait

@@ -25,6 +25,21 @@ taken from the netlist -- the same trick the array already uses:
                                              precharge net
   cdec     one column-decode column   x<n>   same structure, 3->8 decoder
   cwlbuf   <col dec driver cell>      x<n>
+  binv     one bitline inverter       x<n>   one per COLUMN, input precharged
+  mux      one column mux pass tx     x<n>   off in idle; the ammeter on the
+                                             node it drives says how much it
+                                             actually passes
+  obuf     one output buffer          x<n>   one per DATA BIT
+
+THE READ BACK END IS PART OF THE PERIPHERY. It was left out of the first
+version of this deck and therefore scored as ZERO: 256 bitline inverters, 256
+mux transistors and 32 output buffers on the example macros. Its idle state is
+not a choice, it follows from the precharge phase: every bitline is high, so
+every bitline inverter holds its output at 0; all eight column selects are low
+(measured -- see run_coldec_delay.sh), so every mux transistor is off with its
+source at 0 and the node it drives leaks down to 0 as well; the output buffer
+therefore sits with its input at 0. Each of those levels is driven explicitly
+here rather than left floating, which is also what keeps `.op` non-singular.
 
 Every slice gets its OWN supply source, so a single `.op` yields every block's
 current on a separate branch and one run covers the whole periphery.
@@ -149,6 +164,21 @@ N_ABUF = len(instances(ABUF_ARR))
 N_WLBUF = len(instances(WLBUF_ARR))
 
 # The column decoder is optional: a macro with one word per row has none.
+# --- the read back end: bitline inverter -> column mux -> output buffer ---
+BINV_ARR = find("_rom_bitline_inverter")
+BINV = repeated_cell(BINV_ARR)
+N_BINV = len(instances(BINV_ARR))
+
+OBUF_ARR = find("_rom_output_buffer")
+OBUF = repeated_cell(OBUF_ARR)
+N_OBUF = len(instances(OBUF_ARR))
+
+# The mux is optional for the same reason the column decoder is: a macro with
+# one word per row has no column mux at all.
+MUX_ARR = next((n for n in B if n.endswith("_rom_column_mux_array")), None)
+MUX = repeated_cell(MUX_ARR) if MUX_ARR else None
+N_MUX = len(instances(MUX_ARR)) if MUX_ARR else 0
+
 CDEC_ARR = next((n for n in B if n.endswith("_rom_column_decode_array")), None)
 CWLBUF_ARR = next((n for n in B
                    if n.endswith("_rom_column_decode_wordline_buffer")), None)
@@ -220,8 +250,9 @@ def emit_defs(names):
 
 
 leaf_subs = {l.split()[-1] for l in DEC_CELLS + CDEC_CELLS}
-DEFS = emit_defs(closure({CTL, ABUF, WLBUF, PRE_CELL} |
+DEFS = emit_defs(closure({CTL, ABUF, WLBUF, PRE_CELL, BINV, OBUF} |
                          ({CWLBUF} if CWLBUF else set()) |
+                         ({MUX} if MUX else set()) |
                          leaf_subs))
 
 
@@ -253,7 +284,8 @@ def fallback(p):
 
 
 VDD_OF = {"ctl": "vdd_ctl", "abuf": "vdd_abuf", "wlbuf": "vdd_wlbuf",
-          "dec": "vdd_dec", "cdec": "vdd_cdec", "cwlbuf": "vdd_cwlbuf"}
+          "dec": "vdd_dec", "cdec": "vdd_cdec", "cwlbuf": "vdd_cwlbuf",
+          "binv": "vdd_binv", "obuf": "vdd_obuf"}
 
 ctl_nets = by_role(CTL, {
     r"clk_in|clk": "clk0", r"cs|cs0|csb": "cs0",
@@ -317,6 +349,37 @@ if CDEC_ARR:
     }, fallback)
     lines.append(inst("Xcwlbuf", CWLBUF, cwl_nets))
 
+# --- the read back end ------------------------------------------------------
+# binv: input is the PRECHARGED bitline, i.e. VDD -- the same bitline state the
+# array term is measured in. Its output therefore sits at 0, and that output is
+# the node the mux hangs off, so it is wired through rather than re-asserted.
+binv_nets = by_role(BINV, {
+    r"a|in|in_0": "vhi", r"z|out|out_0": "binv_out",
+    r"vdd|vccd\d*|vpwr": VDD_OF["binv"], r"gnd|vssd\d*|vgnd": "gnd",
+}, fallback)
+lines.append(inst("Xbinv", BINV, binv_nets))
+
+# obuf: input is the mux output node, which the idle state leaves at 0.
+obuf_nets = by_role(OBUF, {
+    r"a|in|in_0": "mux_out", r"z|out|out_0": "dout",
+    r"vdd|vccd\d*|vpwr": VDD_OF["obuf"], r"gnd|vssd\d*|vgnd": "gnd",
+}, fallback)
+lines.append(inst("Xobuf", OBUF, obuf_nets))
+
+if MUX:
+    # The mux transistor has no supply of its own: it is a pass device between
+    # the bitline inverter's output and the output buffer's input. What it
+    # leaks is therefore whatever the node it drives has to supply, and Vmux
+    # (a 0 V source, i.e. an ammeter holding that node at its idle level) is
+    # what reads it. sel is LOW in the precharge phase -- measured, not
+    # assumed -- so this is the off device, which is the state 255 of the 256
+    # are in during a read as well.
+    mux_nets = by_role(MUX, {
+        r"bl": "binv_out", r"bl_out": "mux_out", r"sel": "sel_lo",
+        r"gnd|vssd\d*|vgnd": "gnd",
+    }, fallback)
+    lines.append(inst("Xmux", MUX, mux_nets))
+
 if unresolved:
     print(f"{M}: WARNING: unmapped ports left floating: "
           f"{sorted(set(unresolved))}", file=sys.stderr)
@@ -328,6 +391,10 @@ counts = [("ctl", "rom_control_logic", 1),
 if CDEC_ARR:
     counts += [("cdec", "column-decode column %d" % CDEC_COL, N_CDEC),
                ("cwlbuf", "column-decode driver", N_CWLBUF)]
+counts += [("binv", "bitline inverter", N_BINV),
+           ("obuf", "output buffer", N_OBUF)]
+if MUX:
+    counts += [("mux", "column mux pass transistor", N_MUX)]
 
 hdr = "\n".join(
     "* %-7s %-32s x %-5d -> i(V%s)" % (tag, what, n, tag)
@@ -342,7 +409,9 @@ deck = f"""* {M} -- PERIPHERY LEAKAGE -- cs0={args.cs0}, clk0=0 (precharge/idle)
 *
 * The total is sum(slice x count). The cell array is NOT in here -- it is
 * measured separately (gen_col_power_tb.py) and both halves are taken in the
-* same state, clk0 = 0, so that they can be added.
+* same state, clk0 = 0, so that they can be added. Everything else in the
+* macro IS here: the read back end (bitline inverter, column mux, output
+* buffer) used to be missing and was therefore scored as zero.
 *
 * Built from the SCHEMATIC netlist: leakage is a DC quantity, so parasitic
 * capacitance has no effect on it, and the deck stays small enough for .op
@@ -368,6 +437,14 @@ Vwlbuf  {VDD_OF["wlbuf"]}  0 DC {{VDD}}
 Vdec    {VDD_OF["dec"]}    0 DC {{VDD}}
 {f'Vcdec   {VDD_OF["cdec"]}   0 DC {{VDD}}' if CDEC_ARR else ''}
 {f'Vcwlbuf {VDD_OF["cwlbuf"]} 0 DC {{VDD}}' if CDEC_ARR else ''}
+Vbinv   {VDD_OF["binv"]}   0 DC {{VDD}}
+Vobuf   {VDD_OF["obuf"]}   0 DC {{VDD}}
+{'''* The mux has no supply of its own -- it is a pass device. Vmux is a 0 V
+* source, i.e. an AMMETER, holding the node the mux drives at the level the
+* idle state leaves it (0 V, every bitline inverter output being 0) and
+* reading what that node has to supply. The sign convention is the same as
+* the supply branches: positive means current drawn.
+Vmux    mux_out 0 DC 0''' if MUX else ''}
 * no ground source: ngspice aliases the name `gnd` to node 0, so one here
 * would be a shorted VSRC. The supply branches are the measurement anyway.
 
@@ -380,6 +457,8 @@ Vclk  clk0 0 DC 0
 Vcs   cs0  0 DC {{{args.vdd if args.cs0 else 0.0}}}
 Vhi   vhi  0 DC {{VDD}}
 Vain  a_in 0 DC 0
+{'* every column select is LOW in the precharge phase (run_coldec_delay.sh)' if MUX else ''}
+{'Vsel  sel_lo 0 DC 0' if MUX else ''}
 
 {chr(10).join(lines)}
 

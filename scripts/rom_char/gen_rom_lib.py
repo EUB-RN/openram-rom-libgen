@@ -335,9 +335,20 @@ def gen_lib(name, area, buses, scalars, corner, args):
     t_invalid = ((args.t_invalid or 0.0) * (1.0 if args.measured else dscale)
                  if args.t_invalid else None)
     invalid_rows = [[t_invalid] * 3] * 3 if t_invalid else None
-    if be:
-        # addr0/cs0 must stay stable through evaluate; that window is the
-        # FULL access (front end + bitline + back end).
+    if args.hold_measured:
+        # MEASURED (run_hold_bisect.sh): the deck cuts the series chain in
+        # mid-evaluate -- exactly what a moving address does to a CLOCKED row
+        # decoder -- and bisects the cut time until the read still lands within
+        # 10% of the rail. It comes out SHORTER than access, because the read
+        # is finished once the bitline has driven bl_b to a real logic level;
+        # the back-end delay after that point no longer depends on the address.
+        # This value is per-corner and never derated.
+        hold = args.hold_measured
+    elif be:
+        # NOT measured: addr0/cs0 must stay stable through evaluate, and that
+        # window is bounded by the FULL access (front end + bitline + back
+        # end). Safe, and it was the only available answer until the hold
+        # experiment existed -- but it overstates the requirement.
         hold = access_eff
     setup_rows = [[setup] * 3] * 3
     hold_rows = [[hold] * 3] * 3
@@ -465,6 +476,26 @@ def gen_lib(name, area, buses, scalars, corner, args):
         w(" * The back-end term covers the bitline inverter, the %s column"
           % mux_ratio)
         w(" * mux and the output buffer.")
+        w(" *")
+        if args.hold_measured:
+            w(" * HOLD IS MEASURED, NOT ASSUMED: %.4f ns (scripts/rom_char/"
+              % hold)
+            w(" * run_hold_bisect.sh). The deck cuts the series chain in")
+            w(" * mid-evaluate -- what a moving address does to a CLOCKED row")
+            w(" * decoder -- and bisects the cut time until the read still")
+            w(" * lands within 10% of the rail. It is SHORTER than access")
+            w(" * (%.4f ns): once the bitline has driven bl_b to a real logic"
+              % access_eff)
+            w(" * level the read is decided, and the back-end delay after that")
+            w(" * point no longer depends on the address.")
+        else:
+            w(" * HOLD IS NOT MEASURED. It is declared equal to access")
+            w(" * (%.4f ns) because the row decoder is clocked: an address"
+              % access_eff)
+            w(" * that moves during evaluate drops a second wordline and that")
+            w(" * wordline does not come back inside the cycle. Safe, and")
+            w(" * pessimistic -- scripts/rom_char/run_hold_bisect.sh measures")
+            w(" * where the real limit is.")
         w(" *")
         if t_coldec is None:
             w(" * THE COLUMN DECODER WAS NEVER SIMULATED. rom_column_decode")
@@ -616,6 +647,16 @@ def gen_lib(name, area, buses, scalars, corner, args):
         w(" *   when \"!cs0\" = %.6f mW" % args.leakage_idle_mw)
         w(" *   cell_leakage_power = %.6f mW, the worse of the two."
           % max(args.leakage_mw, args.leakage_idle_mw))
+        _hi = max(args.leakage_mw, args.leakage_idle_mw)
+        _lo = min(args.leakage_mw, args.leakage_idle_mw)
+        if _hi > 0 and (_hi - _lo) / _hi < 1e-3:
+            w(" *   THE TWO STATES AGREE, and that is a measurement rather")
+            w(" *   than a copy: both were run, every block the macro")
+            w(" *   instantiates was in both decks, and they came out equal")
+            w(" *   to the digits printed here. cs0 gates the precharge PATH,")
+            w(" *   so it changes what the macro does on a clock edge -- it")
+            w(" *   does not change the static state the idle macro sits in,")
+            w(" *   which is what a leakage number describes.")
         w(" * The periphery half is one slice per block times a count from")
         w(" * the netlist (run_periphery_leak.sh), gmin-swept: gmin is added")
         w(" * in parallel with the leakage and at the pA level it becomes the")
@@ -623,10 +664,11 @@ def gen_lib(name, area, buses, scalars, corner, args):
     else:
         w(" * WARNING: cell_leakage_power covers the CELL ARRAY ONLY. The")
         w(" * clock driver, control NAND, precharge driver, address buffers,")
-        w(" * row and column decoders and %s wordline drivers are scored as"
+        w(" * row and column decoders, %s wordline drivers and the whole read"
           % (args.rows if args.rows else "the"))
-        w(" * ZERO. Run scripts/rom_char/run_periphery_leak.sh and pass")
-        w(" * --leakage-idle-mw.")
+        w(" * back end (bitline inverters, column mux, output buffers) are")
+        w(" * scored as ZERO. Run scripts/rom_char/run_periphery_leak.sh and")
+        w(" * pass --leakage-idle-mw.")
     w(" * ----------------------------------------------------------------- */")
     w("library (%s_%s) {" % (name, corner))
     w('    delay_model : "table_lookup";')
@@ -1022,6 +1064,13 @@ def main():
                          "the CORNERS table are NOT applied. Since all three "
                          "corners are measured separately, this is the correct "
                          "usage for sign-off.")
+    ap.add_argument("--hold-measured", type=float, default=None,
+                    help="hold time in ns MEASURED for this corner by "
+                         "run_hold_bisect.sh. It wins over the hold = access "
+                         "rule and is never derated -- pass it only together "
+                         "with --corner and --measured. Without it the .lib "
+                         "keeps declaring hold = access, which is safe and "
+                         "says so in the header.")
     for key, val in BASE.items():
         ap.add_argument("--" + key.replace("_", "-"), dest=key, type=float,
                         default=val, help="default %s" % val)

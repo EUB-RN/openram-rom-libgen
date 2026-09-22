@@ -69,6 +69,20 @@ def main():
                         "ngspice runs them one after another and draws every "
                         "trace in one window. Implies --break-ns and ignores "
                         "--csv. Open it with plain `ngspice <deck>`.")
+    p.add_argument("--wl-slew-ns", type=float, default=0.1,
+                   help="FALL TIME of the wordline that cuts the chain, full "
+                        "VDD->0. The deck used a fixed 100 ps edge until this "
+                        "became a parameter, and 100 ps is not what the macro "
+                        "produces: the real wordline is driven by one "
+                        "rom_row_decode_wordline_buffer into the array's wire "
+                        "C plus one cell gate per column (~290 fF on wrom0). "
+                        "Measure it with run_wl_slew.sh. The ideal step is "
+                        "the PESSIMISTIC end -- a real edge keeps the chain "
+                        "partly conducting while it falls, so the bitline goes "
+                        "on discharging and the read survives an EARLIER "
+                        "address move. --break-ns always names the wordline's "
+                        "50%% crossing, whatever the slew, so two slews stay "
+                        "comparable on one axis.")
     p.add_argument("--macros-dir")
     args = p.parse_args()
 
@@ -117,22 +131,29 @@ def main():
     if args.break_ns is None:
         head.append("* REFERENCE RUN: no cut, the address is stable all cycle")
     else:
-        head.append("* the address moves %.3f ns after the evaluate edge"
-                    % args.break_ns)
+        head.append("* the address moves %.4f ns after the evaluate edge "
+                    "(50%% crossing of a %.4f ns wordline fall)"
+                    % (args.break_ns, args.wl_slew_ns))
     s = "\n".join(head) + "\n" + s
 
     if args.break_ns is not None:
         # One fall, then low for the rest of the run: a clocked decoder cannot
         # raise a wordline again inside the same evaluate phase.
+        # The edge is centred on TBREAK -- half of it before, half after --
+        # so that --break-ns is the wordline's 50% CROSSING and not the
+        # instant it starts to move. Without that the axis would shift under
+        # itself whenever the slew changed and two slews could not be compared.
         s = s.replace(src_line.group(0),
-                      "%s %s 0 PWL(0 {VDD} '{TBREAK}' {VDD} "
-                      "'{TBREAK}+100p' 0)" % (src_line.group(1), wl))
+                      "%s %s 0 PWL(0 {VDD} '{TBREAK}-{TWLSLEW}/2' {VDD} "
+                      "'{TBREAK}+{TWLSLEW}/2' 0)" % (src_line.group(1), wl))
         # The measured cycle's evaluate edge is at 2.5*TCLK (the precharge
         # source rises at TCLK/2 + k*TCLK and the third cycle is the one the
         # column deck measures).
         s = re.sub(r"^(\.param TCLK=[^\n]*)$",
                    r"\1\n.param TBRK_NS=%.6f\n"
-                   r".param TBREAK='2.5*TCLK + TBRK_NS*1n'" % args.break_ns,
+                   r".param TWLSLEW=%.6fn\n"
+                   r".param TBREAK='2.5*TCLK + TBRK_NS*1n'"
+                   % (args.break_ns, args.wl_slew_ns),
                    s, count=1, flags=re.M)
 
     if args.retention_us:
@@ -230,7 +251,8 @@ plot %s xlimit 4.999u 5.03u title 'the address: each fall is one sweep point'
     print("written: %s  (%s %s, cut at %s, %s)"
           % (args.out, args.macro, args.corner, wl,
              "no cut" if args.break_ns is None
-             else "%.3f ns into evaluate" % args.break_ns))
+             else "%.4f ns into evaluate, wl slew %.4f ns"
+                  % (args.break_ns, args.wl_slew_ns)))
 
 
 if __name__ == "__main__":

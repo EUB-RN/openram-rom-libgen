@@ -4,7 +4,13 @@
 # `cell_leakage_power` covered the cell array only: one column measured with
 # .op times the column count. The periphery -- clock driver, control NAND,
 # precharge driver, address buffers, the row and column decode chains and
-# their wordline drivers -- leaks too, and was scored as zero.
+# their wordline drivers, and the read back end (bitline inverters, column
+# mux, output buffers) -- leaks too, and was scored as zero.
+#
+# The read back end was missing from the first version of this deck as well.
+# It is not a rounding term: one bitline inverter leaks 0.3655 nA at TT and
+# there are 256 of them, which is about as much as the entire rest of the
+# periphery put together.
 #
 # METHOD: one slice per block times a count from the netlist, every slice on
 # its own supply source, one .op per state (gen_periphery_leak_tb.py). The
@@ -41,6 +47,12 @@ GMINS="${GMINS:-1e-12 1e-15 1e-18 1e-21}"
 CS_STATES="${CS_STATES:-0 1}"
 # a slice is converged when two neighbouring gmin values agree this closely
 TOL="${TOL:-1.0}"
+# ... unless it is ZERO, where a RELATIVE tolerance means nothing. The column
+# mux is the case: in the idle state both of its terminals sit at 0 V, so it
+# passes ~1e-10 nA and the last two gmin points differ by whatever rounding
+# ngspice did. A slice under this floor counts as a converged zero -- at 1e-6
+# nA even the 256-wide mux array contributes under a pA to the total.
+ZERO="${ZERO:-1e-6}"
 
 for m in $(macro_list "$@"); do
   load_geom "$m" || { echo "$m: cannot read geometry, skipped"; continue; }
@@ -86,9 +98,11 @@ for m in $(macro_list "$@"); do
         # agreeing is the PROOF that it converged (the same rule the column
         # deck uses). Also report the first gmin that already lands within
         # TOL of it -- that is the "1e-15 is enough for this slice" fact.
-        conv=$(echo "$vals" | awk -v tol="$TOL" '{
+        conv=$(echo "$vals" | awk -v tol="$TOL" -v zero="$ZERO" '{
             last = $NF; prev = $(NF-1)
             if (last == "NA" || prev == "NA") { print "NOTCONV", 0; exit }
+            a = (last < 0) ? -last : last
+            if (a < zero) { print last, -1; exit }
             d = (last == 0) ? 0 : (last - prev) / last * 100
             if (d < 0) d = -d
             if (d > tol) { print "NOTCONV", 0; exit }
@@ -107,8 +121,15 @@ for m in $(macro_list "$@"); do
         if [ "$cval" = NOTCONV ]; then
           printf " %14s %s\n" "NOT CONVERGED" "-- widen GMINS"
         else
+          if [ "$cidx" = "-1" ]; then
+            # under the ZERO floor: the slice passes nothing, and saying
+            # "clean from gmin=..." about a 1e-19 A number would be a
+            # convergence claim the sweep never made.
+            printf " %14.6g %s\n" "$cval" "ZERO (under ${ZERO} nA floor)"
+          else
           gsel=$(echo "$GMINS" | cut -d' ' -f"$cidx")
           printf " %14.6g %s\n" "$cval" "clean from gmin=$gsel"
+          fi
           total=$(awk -v s="${total:-0}" -v a="$cval" -v n="$cnt" \
                       'BEGIN{printf "%.6f", s + a*n}')
         fi

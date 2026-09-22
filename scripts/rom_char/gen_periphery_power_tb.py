@@ -123,6 +123,19 @@ ap.add_argument("--pin-tr", default="1n",
                      "slow enough that the charge is the pin's own and not a "
                      "displacement spike through the first gate, and fast "
                      "enough to stay in the regime a real driver works in.")
+ap.add_argument("--keep-all", action="store_true",
+                help="--pin-cap: delete NOTHING. Keeps every top-level "
+                     "instance -- the cell array included -- so no block is "
+                     "replaced by a lumped load. This is the GOLDEN REFERENCE "
+                     "the reduced deck is checked against: every other "
+                     "cross-check on the pin capacitances is a self-consistency "
+                     "check and cannot see an error common to all variants. "
+                     "It is very slow; use --pin-only to measure a few pins.")
+ap.add_argument("--pin-only", default=None,
+                help="--pin-cap: comma-separated pin names to measure instead "
+                     "of all of them. The run time is set by the number of "
+                     "pins (each gets its own slot), so this is how a "
+                     "--keep-all reference run is made affordable.")
 ap.add_argument("--macros-dir", default=None,
                 help="macro tree (default: ROM_MACROS_DIR / <repo>/examples)")
 args = ap.parse_args()
@@ -198,7 +211,11 @@ KEEP_SUB = {f"{M}_rom_control_logic", f"{M}_rom_row_decode"}
 # therefore a timing run: only its t_pre2sel* measurements are usable.
 COLDEC = f"{M}_rom_column_decode"
 MUX = f"{M}_rom_column_mux_array"
-if args.with_coldec or args.pin_cap:
+if args.keep_all:
+    if not args.pin_cap:
+        sys.exit("--keep-all only makes sense with --pin-cap")
+    KEEP_SUB = {l.split()[-1] for l in top_insts}
+elif args.with_coldec or args.pin_cap:
     # --pin-cap needs it too: addr0[0:2] go to the COLUMN decoder and
     # addr0[3:] to the row decoder, so without it three address pins would be
     # measured driving nothing at all.
@@ -218,7 +235,11 @@ alive.update(p for p in top_ports if re.match(r"^(clk0|cs0|addr0\[)", p))
 # --- put back the load of the deleted cell array --------------------------
 arr = B[ARRAY]
 arr_ports = arr[0].split()[2:]
-arr_inst = [l for l in drop if l.split()[-1] == ARRAY]
+# with --keep-all nothing is dropped, so the array instance is found
+# among the kept ones; it is still needed for `arrn` (the nets the
+# front-end measurement uses to identify the precharge net).
+arr_inst = [l for l in (top_insts if args.keep_all else drop)
+            if l.split()[-1] == ARRAY]
 if not arr_inst:
     sys.exit(f"ERROR: no {ARRAY} instance at top level")
 p2n = dict(zip(arr_ports, arr_inst[0].split()[1:-1]))
@@ -389,8 +410,13 @@ def rebuild_load(sub, tag):
             load_report.append((port, ncell, cw))
     return load_lines, load_report
 
-load_lines, load_report = rebuild_load(ARRAY, "wl")
-if COLDEC in KEEP_SUB:
+if args.keep_all:
+    # nothing was deleted, so there is nothing to put back -- and asking
+    # rebuild_load for the array would double the load that is already there.
+    load_lines, load_report = [], []
+else:
+    load_lines, load_report = rebuild_load(ARRAY, "wl")
+if COLDEC in KEEP_SUB and not args.keep_all:
     # The eight column selects drive 256 mux pass transistors between them.
     # Without this the decoder would be measured driving its own wire C alone
     # and would come out far too fast.
@@ -469,7 +495,9 @@ while need - seen:
                 need.add(sub)
 defs = []
 for name in sorted(seen):   # sorted: deterministic output file
-    if name in (TOP, ARRAY):
+    # ARRAY is normally skipped because it is deleted and replaced by lumped
+    # load; under --keep-all it IS the point of the run and must be emitted.
+    if name == TOP or (name == ARRAY and not args.keep_all):
         continue
     ls = B[name]
     defs.append("\n".join(fix_units(l) if l.startswith("X") else l for l in ls))
@@ -551,6 +579,22 @@ for k, n in enumerate(wl_meas):
            f"TD={_td_trig:.6e}",
            f"+                {pad}TARG v({n}) VAL='VDD/2' FALL=1 "
            f"TD={_td_targ:.6e}"]
+    # THE WORDLINE'S OWN EDGE RATE, not its delay. gen_addr_hold_tb.py cuts
+    # the series chain by dropping a wordline, and until this was measured it
+    # did so with an ideal 100 ps step -- a number nobody had checked against
+    # the real driver. Here the driver is the real
+    # rom_row_decode_wordline_buffer and the load is the real one (the put-back
+    # gate count plus the array's own wire C), so this IS the edge the macro
+    # produces. Both conventions are written out: 20-80% is what the sky130
+    # Liberty files use, 10-90% is closer to the full transition a SPICE PULSE
+    # tf describes (tf ~ t_wl1090 / 0.8).
+    for lo, hi, nm in ((0.8, 0.2, f"t_wlslew{k}"),
+                       (0.9, 0.1, f"t_wl1090_{k}")):
+        pad = " " * len(nm)
+        fe += [f".measure tran {nm} TRIG v({n}) VAL='{lo}*VDD' FALL=1 "
+               f"TD={_td_targ:.6e}",
+               f"+                {pad}TARG v({n}) VAL='{hi}*VDD' FALL=1 "
+               f"TD={_td_targ:.6e}"]
 if pre_net and args.cs:
     # with cs0=0 precharge never rises -- the measurement only means something at cs0=1
     fe += _m("t_clk2pre", pre_net[0])
@@ -711,6 +755,13 @@ loads_txt = "\n".join(load_lines)
 if args.pin_cap:
     pin_names = [p_ for p_ in top_ports
                  if re.match(r"^(clk0|cs0|addr0\[\d+\])$", p_)]
+    if args.pin_only:
+        want = [x.strip() for x in args.pin_only.split(",") if x.strip()]
+        missing = [x for x in want if x not in pin_names]
+        if missing:
+            sys.exit(f"ERROR: --pin-only names pins that are not inputs of "
+                     f"{M}: {missing}")
+        pin_names = [p_ for p_ in pin_names if p_ in want]
     if not pin_names:
         sys.exit("ERROR: --pin-cap found no input pins at top level")
     _tr = to_float(args.pin_tr)

@@ -224,6 +224,19 @@ for m in $(macro_list "$@"); do
       echo "        contents do not change; run run_early_path.sh."
       e_dis="$e_prog"
     fi
+    # ADDRESS HOLD, measured rather than declared equal to access. Without
+    # the log the .lib keeps hold = access, which is safe and says so in its
+    # own header -- the same rule every other optional measurement follows.
+    hold_meas=$(meas "$G_CHAR/hold_${c}.log" hold |
+                awk '{printf "%.4f", $1*1e9}')
+    hold_arg=""
+    if [ -n "$hold_meas" ]; then
+      hold_arg="--hold-measured $hold_meas"
+    else
+      echo "  $m $c: no hold log -> hold = access (pessimistic in STA);"
+      echo "        run run_wl_slew.sh then run_hold_bisect.sh to measure it"
+    fi
+
     retain_arg=""
     if [ -z "$e_dis" ]; then
       echo "  $m $c: no early-path log -> NO retain_* in the .lib; a hold"
@@ -297,11 +310,12 @@ front end + periphery power char/periph_{active,idle}_${c}.log, \
 bitline char/${G_COLTAG}_worst_case_parasitic${sfx}.log, \
 back end + slew char/backend_${c}_*.log, \
 leakage char/${G_COLTAG}_leak_${c}.log${leak_idle:+ + char/periph_leak_cs*_${c}.total}, \
-column energy char/${G_COLTAG}_energy_${c}.log"
+column energy char/${G_COLTAG}_energy_${c}.log\
+${hold_meas:+, address hold char/hold_${c}.log}"
 
     python3 "$GEN" --lef "$LEF" --memory-type rom --measured \
       --outdir "$LIB_DIR" \
-      --corner "$corner" --access "$acc" --hold "$acc" --t-pre "$pre" \
+      --corner "$corner" --access "$acc" --hold "$acc" $hold_arg --t-pre "$pre" \
       --setup "$stp" \
       --leakage-mw "$leak" ${leak_idle:+--leakage-idle-mw "$leak_idle"} \
       --energy-pj "$e_act" --energy-idle-pj "$e_idle" \
