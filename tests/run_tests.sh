@@ -18,6 +18,11 @@
 #   4. OpenSTA       -- our parser checking our writer is a closed loop;
 #                       this opens it, using the parser a consumer really
 #                       uses. Skipped with a notice when sta is not installed.
+#   5. test_pin_cap  -- the pin-capacitance deck against a GOLDEN reference
+#                       run that deletes nothing. WARNS, never fails: it is a
+#                       modelling cross-check with error bars, not a yes/no,
+#                       and its reference is expensive enough to be absent
+#                       most of the time. See the script's own header.
 
 set -e
 
@@ -47,6 +52,10 @@ python3 "$HERE/check_lib.py" -v $LIBS || rc=1
 echo
 echo "== ROM semantics =="
 python3 "$HERE/test_rom_lib.py" $LIBS || rc=1
+
+echo
+echo "== input pin capacitance vs the golden reference (warn only) =="
+python3 "$HERE/test_pin_cap.py" || true
 
 echo
 echo "== OpenSTA =="

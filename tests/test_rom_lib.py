@@ -370,6 +370,22 @@ def check_macro_attrs(cell):
     elif float(leak) <= 0:
         bad.append("cell_leakage_power is %s; a 34k-transistor array does not "
                    "leak zero" % leak)
+    # cell_leakage_power is what a tool reads when it ignores the per-state
+    # groups, so it has to be the WORST of them -- a smaller number there
+    # would silently under-report the state the groups describe.
+    groups = [(lp.attr("when"), lp.attr("value")) for lp in
+              cell.find("leakage_power")]
+    vals = [(w, float(v)) for w, v in groups if v is not None]
+    if leak is not None and vals:
+        worst = max(v for _, v in vals)
+        if float(leak) < worst - 1e-12:
+            bad.append("cell_leakage_power is %s but a leakage_power group "
+                       "carries %g -- the single number must be the worst "
+                       "state, not the first one" % (leak, worst))
+    if len(vals) > 1 and any(w is None for w, _ in vals):
+        bad.append("several leakage_power groups and one of them has no "
+                   "when condition -- a tool cannot tell which state it is")
+
     kinds = {pg.attr("pg_type") for pg in cell.find("pg_pin")}
     for want in ("primary_power", "primary_ground"):
         if want not in kinds:
