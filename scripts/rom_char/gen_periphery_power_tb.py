@@ -556,16 +556,25 @@ if pre_net and args.cs:
 #     t_clk2pre + max(t_dis_50, t_pre2sel) + t_bl2dout
 # and not a sum of four terms.
 #
-# And like the row decoder it is PRECHARGED, so every select is HIGH during
-# the precharge phase and the seven UNSELECTED ones FALL during evaluate.
-# During precharge the mux shorts all 256 bitlines onto the 32 outputs, which
-# is harmless because they are all at VDD; what matters is that the wrong
-# selects are GONE before the bitline separates from VDD. The binding check is
-# therefore the FALL, not the rise:
-#     t_pre2sel_fall (worst of the seven)  <  t_dis_50
-# Both directions are measured on all eight so the conclusion is evidence and
-# not an assumption -- the selected one reports "failed" on the fall, which is
-# how the log identifies it.
+# POLARITY, measured 2026-09-22 and not assumed. The decode array is the same
+# precharged NAND chain as the bit array, but rom_column_decode_wordline_buffer
+# INVERTS it, so the selects behave the opposite way to the row decoder's
+# wordlines: during precharge ALL EIGHT ARE LOW (the mux is fully off and the
+# 32 outputs float), and during evaluate only the SELECTED one rises. The first
+# run of this deck showed exactly that -- sel_0 rose 0.574 ns after precharge
+# and sel_1..7 never crossed VDD/2 at all ("out of interval"), with --addr 0.
+#
+# So the binding check is the RISE of the selected select:
+#     t_pre2sel_rise  <  t_dis_50
+# i.e. the mux has to be open before the bitline has separated from VDD. It is
+# a RACE, not a sum, which is why the column decoder never entered access.
+#
+# Both directions are measured on all eight so this stays evidence rather than
+# assumption: the seven unselected ones report "failed", and that failure is
+# the measurement. The FALL is taken from the precharge FALLING edge (the end
+# of evaluate) -- the select lingering past it is what the falling-edge arc
+# cares about, and triggering it off the rising edge just caught the previous
+# cycle's deselect and reported -99 ns.
 if args.with_coldec:
     cold = set(next(l for l in keep if l.split()[-1] == COLDEC).split()[1:-1])
     # the select nets: the decoder's wl_k, which are the mux's sel_k
@@ -584,14 +593,22 @@ if args.with_coldec:
         sys.exit("ERROR: --with-coldec needs the precharge net, which is only "
                  "alive at cs0=1")
     _pre = pre_net[0]
+    # evaluate is [clk0 rise, clk0 fall] = [_edge + TCLK/2, _edge + TCLK];
+    # precharge follows clk0 by t_clk2pre at both ends.
+    _t_eval_end = _edge + _tclk
     for k, n in enumerate(sel_nets):
-        for direc in ("RISE", "FALL"):
-            nm = f"t_pre2sel{k}_{direc.lower()}"
-            pad = " " * len(nm)
-            fe += [f".measure tran {nm} TRIG v({_pre}) VAL='VDD/2' RISE=1 "
-                   f"TD={_td_trig:.6e}",
-                   f"+                {pad}TARG v({n}) VAL='VDD/2' {direc}=1 "
-                   f"TD={_td_targ:.6e}"]
+        nm = f"t_pre2sel{k}_rise"
+        pad = " " * len(nm)
+        fe += [f".measure tran {nm} TRIG v({_pre}) VAL='VDD/2' RISE=1 "
+               f"TD={_td_trig:.6e}",
+               f"+                {pad}TARG v({n}) VAL='VDD/2' RISE=1 "
+               f"TD={_td_targ:.6e}"]
+        nm = f"t_pre2sel{k}_fall"
+        pad = " " * len(nm)
+        fe += [f".measure tran {nm} TRIG v({_pre}) VAL='VDD/2' FALL=1 "
+               f"TD={_t_eval_end - _tclk / 20.0:.6e}",
+               f"+                {pad}TARG v({n}) VAL='VDD/2' FALL=1 "
+               f"TD={_t_eval_end:.6e}"]
 
 # --- address bits and switching instant (used by both stimulus and measure) -
 # The bit count is derived from top_ports (i.e. from the LEF pin list).

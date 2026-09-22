@@ -522,9 +522,24 @@ Ordered by how much they can move a number:
    optimistic. The back-end and periphery decks already handle this with an
    explicit alive/dead + negative-net-capacitance rule; porting that rule into
    `gen_col_tb_parasitic.py` is the obvious next fix.
-2. **`rom_column_decode` is never measured.** The mux select is an ideal source
-   in the back-end deck. The margin is large (14-43 ns of bitline against maybe
-   1 ns for an 8-way precharged decoder) but it is unproven.
+2. **`rom_column_decode` is measured only at the worst address.**
+   `run_coldec_delay.sh` (2026-09-22) closed the old gap -- the mux select used
+   to be an ideal source in the back-end deck and the margin was an estimate.
+   It is now measured, with the decoder driven by the *real* precharge edge and
+   loading the *real* mux gates, and the outcome changes how access is written
+   down: the decoder's `clk` and its `precharge` port are **both** tied to the
+   internal precharge net, the same net `t_dis_50` triggers off, so it **races**
+   the bitline instead of adding to it --
+   `access = t_clk2pre + max(t_dis_50, t_coldec) + t_bl2dout`.
+   It loses that race by 23-35x at every corner (0.35 ns at FF, 0.58 ns at TT,
+   1.13 ns at SS, against 8-39 ns of bitline), so access is unchanged and the
+   `.lib` header now records the margin. What is *not* covered: the full
+   8-address sweep was run on wrom0 at TT only (each address drives exactly one
+   select, `addr k -> sel_k`, 0.4454-0.5753 ns, ordered by the 44-79 fF of
+   select wire load), and the other macros and corners were run at address 0,
+   the slowest select. The periphery is the same circuit in all four macros and
+   the numbers agree to four digits across them, so this is cheap rather than
+   risky -- but a macro whose column decoder differs would need the full sweep.
 3. **Wire resistance is modelled per cell, not extracted whole.** Magic
    segfaults extracting resistance for the whole macro, so
    `gen_resistance_model.py` extracts it per cell (where Magic is happy) and
@@ -540,9 +555,29 @@ Ordered by how much they can move a number:
 4. **The `index_1` (input slew) axis stops at 0.5 ns.** `run_slew_sweep.sh`
    measures it, but only the front-end term (`t_clk2pre`) depends on the clk0
    edge, so the bitline and back-end terms are reused across the axis and the
-   output transition table stays flat along it. The axis cannot be raised
-   without first making the front-end measurement robust: above ~1 ns the
-   precharge net bumps across VDD/2 before its real transition and
+   output transition table stays flat along it.
+
+   The axis is measured and monotonic -- it is also nearly flat, and that is a
+   property of the macro rather than a gap in the data. `t_clk2pre` over the
+   0.05 / 0.2 / 0.5 ns axis, identical in all four macros to within a few ps:
+
+   | corner | 0.05 ns | 0.2 ns | 0.5 ns | spread |
+   |---|---|---|---|---|
+   | tt | 0.7227 | 0.7406 | 0.7642 | 5.7% |
+   | ss | 1.3398 | 1.3555 | 1.4023 | 4.7% |
+   | ff | 0.4603 | 0.4679 | 0.4725 | 2.7% |
+
+   A 10x change in the clock edge stretches the front-end term by 5.7% at TT
+   -- and `access` by 0.24%, from 17.3084 to 17.3499 ns, because 14.85 ns of
+   that sum is a bitline discharge that cannot see clk0 at all. So a consumer
+   reading three near-identical rows is seeing the measurement, not a
+   placeholder: this macro genuinely does not care how fast its clock arrives.
+   (Earlier runs did show a non-monotonic dip at TT; it came from the
+   unsettled first cycle in the column deck and is gone since that fix.)
+
+   The axis cannot be raised without first making the front-end measurement
+   robust: above ~1 ns the precharge net bumps across VDD/2 before its real
+   transition and
    `.measure ... RISE=1 TD=` latches the bump -- at 1.5 ns, TT, wrom0 that put
    `t_clk2pre` (0.1527 ns) *ahead* of `t_clk2int` (0.1544 ns), which is
    impossible since one drives the other through a NAND. `max_transition` on

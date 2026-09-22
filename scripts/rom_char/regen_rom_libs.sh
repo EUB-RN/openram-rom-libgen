@@ -8,6 +8,9 @@
 # TIMING (access = three terms, all measured):
 #   1) front end   clk0 -> precharge : char/periph_active_<corner>.log t_clk2pre
 #   2) bitline     precharge -> bl 50%: char/col<N>_worst_case_parasitic*.log
+#      IN PARALLEL: the column decoder, char/coldec_a<addr>_<corner>.log
+#      t_pre2sel* -- it hangs off the SAME precharge net, so the middle term
+#      is max(bitline, column decode) and not their sum.
 #   3) back end    bitline -> dout0  : char/backend_<corner>_<load>.log t_bl2dout
 #   output slew                      : same file, t_dout_slew
 # INVALIDATION (falling_edge arc on dout0, clk0 falls -> data gone):
@@ -110,6 +113,29 @@ for m in $(macro_list "$@"); do
     else
       slew_arg="--slew-index $(echo "$SLEWS" | tr ' ' ',')"
     fi
+    # 2b) the column decoder, which RACES the bitline instead of adding to it
+    #     (its clk and its precharge port are both on the internal precharge
+    #     net -- the same net t_dis_50 triggers off). run_coldec_delay.sh
+    #     writes one log per column address; the WORST of them is what the
+    #     library has to survive. Absent logs are reported, not silently
+    #     skipped: the .lib then says the block was never simulated.
+    cd_ns=""
+    for a in 0 1 2 3 4 5 6 7; do
+      v=$(awk '/^t_pre2sel[0-9]+_rise /{ if ($3+0 > 0) print $3 }' \
+            "$G_CHAR/coldec_a${a}_${c}.log" 2>/dev/null | head -1)
+      [ -z "$v" ] && continue
+      cd_ns=$(awk -v old="$cd_ns" -v new="$v" \
+                'BEGIN{ n = new*1e9; if (old == "" || n > old) printf "%.4f", n
+                        else printf "%s", old }')
+    done
+    if [ -n "$cd_ns" ]; then
+      coldec_arg="--t-coldec $cd_ns"
+    else
+      echo "  $m $c: no column-decode logs -> the .lib will say the column" \
+           "decoder was never simulated (run run_coldec_delay.sh)"
+      coldec_arg=""
+    fi
+
     # 3) back end: bitline -> dout0 plus output slew, at three load points
     be=$(be_list "$G_CHAR" "$c" t_bl2dout)
     sl=$(be_list "$G_CHAR" "$c" t_dout_slew)
@@ -222,7 +248,7 @@ column energy char/${G_COLTAG}_energy_${c}.log"
       --corner "$corner" --access "$acc" --hold "$acc" --t-pre "$pre" \
       --setup "$stp" \
       --leakage-mw "$leak" --energy-pj "$e_act" --energy-idle-pj "$e_idle" \
-      --t-front "$tf_list" $slew_arg $retain_arg \
+      --t-front "$tf_list" $slew_arg $retain_arg $coldec_arg \
       --backend-ns "$be" --out-slew-ns "$sl" \
       --t-invalid "$tinv" \
       --chain-len "$G_CHAIN" --worst-col "$col" \

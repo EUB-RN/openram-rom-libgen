@@ -1,0 +1,227 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 980" width="1280" height="980" font-family="DejaVu Sans, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#44506b"/>
+    </marker>
+    <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#b25c00"/>
+    </marker>
+    <style>
+      .t   { font-size: 14px; fill: #12141a; }
+      .tb  { font-size: 14px; fill: #12141a; font-weight: 700; }
+      .s   { font-size: 12px; fill: #4a5163; }
+      .m   { font-size: 12px; fill: #12141a; font-family: "DejaVu Sans Mono", Consolas, monospace; }
+      .mb  { font-size: 12px; fill: #b25c00; font-family: "DejaVu Sans Mono", Consolas, monospace; font-weight: 700; }
+      .hdr { font-size: 16px; fill: #12141a; font-weight: 700; }
+      .cap { font-size: 12px; fill: #6b7280; }
+      .box { fill: #ffffff; stroke: #44506b; stroke-width: 1.4; }
+      .in  { fill: #eef1f7; stroke: #8b93a7; stroke-width: 1.2; }
+      .deck{ fill: #fdf6ec; stroke: #b25c00; stroke-width: 1.4; }
+      .out { fill: #edf7ee; stroke: #2f7d32; stroke-width: 1.6; }
+      .band{ fill: #f7f8fb; stroke: #d7dbe4; stroke-width: 1; }
+      .ln  { stroke: #44506b; stroke-width: 1.4; fill: none; marker-end: url(#a); }
+      .lo  { stroke: #b25c00; stroke-width: 1.4; fill: none; marker-end: url(#ao); }
+      .wv  { stroke: #2b5fb8; stroke-width: 2; fill: none; }
+      .thr { stroke: #9aa2b4; stroke-width: 1; stroke-dasharray: 4 3; fill: none; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1280" height="980" fill="#ffffff"/>
+
+  <text x="32" y="40" class="hdr">How this flow characterizes a ROM macro</text>
+  <text x="32" y="60" class="cap">Every number in the .lib is read back out of an ngspice measurement log. Nothing is typed in by hand.</text>
+
+  <!-- ============ BAND 1 : what the macro gives us ============ -->
+  <rect class="band" x="24" y="78" width="1232" height="116" rx="6"/>
+  <text x="40" y="98" class="tb">1 · what the macro already contains</text>
+
+  <rect class="in" x="40" y="108" width="126" height="64" rx="4"/>
+  <text x="103" y="130" class="m" text-anchor="middle">&lt;macro&gt;.sp</text>
+  <text x="103" y="150" class="s" text-anchor="middle">schematic</text>
+  <text x="103" y="165" class="s" text-anchor="middle">netlist</text>
+
+  <rect class="in" x="180" y="108" width="126" height="64" rx="4"/>
+  <text x="243" y="130" class="m" text-anchor="middle">&lt;macro&gt;.gds</text>
+  <text x="243" y="150" class="s" text-anchor="middle">layout</text>
+
+  <rect class="in" x="320" y="108" width="126" height="64" rx="4"/>
+  <text x="383" y="130" class="m" text-anchor="middle">&lt;macro&gt;.lef</text>
+  <text x="383" y="150" class="s" text-anchor="middle">pins, bus widths,</text>
+  <text x="383" y="165" class="s" text-anchor="middle">area, POWER/GROUND</text>
+
+  <rect class="in" x="460" y="108" width="150" height="64" rx="4"/>
+  <text x="535" y="130" class="m" text-anchor="middle">config/*.py</text>
+  <text x="535" y="150" class="m" text-anchor="middle">rom_configs/*.bin</text>
+  <text x="535" y="165" class="s" text-anchor="middle">cross-check only</text>
+
+  <path class="ln" d="M166,140 L176,140"/>
+  <path class="ln" d="M306,140 L316,140"/>
+  <path class="ln" d="M446,140 L456,140"/>
+  <path class="ln" d="M610,140 L646,140"/>
+
+  <rect class="box" x="650" y="100" width="266" height="80" rx="4"/>
+  <text x="783" y="122" class="m" text-anchor="middle">rom_paths.py</text>
+  <text x="783" y="142" class="s" text-anchor="middle">rows × columns, address/data width,</text>
+  <text x="783" y="157" class="s" text-anchor="middle">worst column + chain length, best column,</text>
+  <text x="783" y="172" class="s" text-anchor="middle">rail names — all derived, nothing hand-kept</text>
+
+  <rect class="box" x="936" y="100" width="150" height="80" rx="4"/>
+  <text x="1011" y="122" class="m" text-anchor="middle">run_cap_extract</text>
+  <text x="1011" y="140" class="s" text-anchor="middle">Magic, C only</text>
+  <text x="1011" y="158" class="m" text-anchor="middle">_cap_only.spice</text>
+  <text x="1011" y="174" class="s" text-anchor="middle">(rthresh infinite)</text>
+
+  <rect class="box" x="1100" y="100" width="150" height="80" rx="4"/>
+  <text x="1175" y="122" class="m" text-anchor="middle">gen_resistance</text>
+  <text x="1175" y="140" class="s" text-anchor="middle">per-cell wire R</text>
+  <text x="1175" y="158" class="m" text-anchor="middle">resistance_model</text>
+  <text x="1175" y="174" class="s" text-anchor="middle">.json</text>
+
+  <!-- ============ BAND 2 : the three slices ============ -->
+  <rect class="band" x="24" y="206" width="1232" height="330" rx="6"/>
+  <text x="40" y="226" class="tb">2 · the macro is never simulated whole — it is cut into slices, each carrying one term</text>
+  <text x="40" y="244" class="cap">34 000 transistors do not converge and would not finish. Each deck keeps the part that sets its term and replaces the rest with what was measured of it.</text>
+
+  <!-- access equation strip -->
+  <rect x="40" y="258" width="1200" height="40" rx="4" fill="#fdf6ec" stroke="#b25c00" stroke-width="1.2"/>
+  <text x="56" y="284" class="mb">access(clk0 → dout0)  =  t_clk2pre  +  t_dis_50  +  t_bl2dout</text>
+  <text x="640" y="284" class="s">← three measured terms, three different decks, one per slice below</text>
+
+  <!-- deck 1: periphery -->
+  <rect class="deck" x="40" y="312" width="286" height="208" rx="5"/>
+  <text x="56" y="334" class="tb">FRONT END · periphery deck</text>
+  <text x="56" y="352" class="m">gen_periphery_power_tb.py</text>
+  <text x="56" y="374" class="s">the cell array is DELETED and put back as</text>
+  <text x="56" y="389" class="s">one lumped C = cell gate count ×</text>
+  <text x="56" y="404" class="s">measured gate cap + parasitic wire C</text>
+  <text x="56" y="426" class="s">keeps: control logic, row decode,</text>
+  <text x="56" y="441" class="s">address buffers, 134 wordline drivers</text>
+  <text x="56" y="468" class="mb">t_clk2pre</text><text x="140" y="468" class="s">front-end term, 3 clk0 slews</text>
+  <text x="56" y="486" class="mb">e_periph_pj</text><text x="140" y="486" class="s">energy, cs0 = 1 and 0</text>
+  <text x="56" y="504" class="mb">t_addr2dec</text><text x="140" y="504" class="s">setup at the decoder NAND</text>
+
+  <!-- deck 2: column -->
+  <rect class="deck" x="342" y="312" width="286" height="208" rx="5"/>
+  <text x="358" y="334" class="tb">BITLINE · column deck</text>
+  <text x="358" y="352" class="m">gen_col_tb_parasitic.py</text>
+  <text x="358" y="374" class="s">ONE column is isolated out of the extracted</text>
+  <text x="358" y="389" class="s">netlist by walking the graph from the bitline</text>
+  <text x="358" y="404" class="s">to ground — names never matched</text>
+  <text x="358" y="426" class="s">real Magic parasitic C + per-cell wire R,</text>
+  <text x="358" y="441" class="s">all wordlines held at VDD (the selected</text>
+  <text x="358" y="456" class="s">one falls — proven in the front-end deck)</text>
+  <text x="358" y="482" class="mb">t_dis_50/10</text><text x="452" y="482" class="s">the dominant term</text>
+  <text x="358" y="500" class="mb">t_pre_50/99</text><text x="452" y="500" class="s">recharge → falling arc</text>
+
+  <!-- deck 3: back end -->
+  <rect class="deck" x="644" y="312" width="286" height="208" rx="5"/>
+  <text x="660" y="334" class="tb">BACK END · output deck</text>
+  <text x="660" y="352" class="m">gen_backend_delay_tb.py</text>
+  <text x="660" y="374" class="s">bitline inverter + 256:32 column mux +</text>
+  <text x="660" y="389" class="s">output buffer, driven by an edge whose</text>
+  <text x="660" y="404" class="s">slope comes from the measured</text>
+  <text x="660" y="419" class="m">t_dis_50 / t_dis_10</text>
+  <text x="660" y="441" class="s">run once per output load →</text>
+  <text x="660" y="456" class="s">index_2 of the table is a real sweep</text>
+  <text x="660" y="482" class="mb">t_bl2dout</text><text x="754" y="482" class="s">3 loads: 1.7 / 6.9 / 27.6 fF</text>
+  <text x="660" y="500" class="mb">t_dout_slew</text><text x="754" y="500" class="s">output transition</text>
+
+  <!-- deck 4: extras -->
+  <rect class="deck" x="946" y="312" width="294" height="208" rx="5"/>
+  <text x="962" y="334" class="tb">EARLY PATH &amp; POWER</text>
+  <text x="962" y="352" class="m">run_early_path.sh · gen_col_power_tb</text>
+  <text x="962" y="374" class="s">same column deck, different column:</text>
+  <text x="962" y="389" class="s">the FASTEST array this geometry can hold</text>
+  <text x="962" y="404" class="s">(every data cell strapped out, foot kept)</text>
+  <text x="962" y="419" class="s">→ retain_rise/fall, the early bound a</text>
+  <text x="962" y="434" class="s">hold check needs</text>
+  <text x="962" y="460" class="mb">t_dis_50</text><text x="1050" y="460" class="s">early path</text>
+  <text x="962" y="478" class="mb">vvdd#branch</text><text x="1050" y="478" class="s">leakage, from .op</text>
+  <text x="962" y="496" class="mb">e_col_pj</text><text x="1050" y="496" class="s">per-column energy</text>
+  <text x="962" y="514" class="s">column results × column count</text>
+
+  <!-- ============ BAND 3 : corners ============ -->
+  <rect class="band" x="24" y="548" width="1232" height="96" rx="6"/>
+  <text x="40" y="568" class="tb">3 · every deck is run three times, against that corner's OWN models</text>
+  <text x="40" y="586" class="cap">No fixed derating factor is ever applied. A corner's numbers are simulated, not scaled from TT — which is why regen_rom_libs.sh passes --measured and refuses to scale again.</text>
+
+  <rect class="box" x="40" y="596" width="240" height="34" rx="4"/>
+  <text x="160" y="618" class="m" text-anchor="middle">tt · 1.80 V · 25 °C</text>
+  <rect class="box" x="296" y="596" width="240" height="34" rx="4"/>
+  <text x="416" y="618" class="m" text-anchor="middle">ss · 1.60 V · 100 °C</text>
+  <rect class="box" x="552" y="596" width="240" height="34" rx="4"/>
+  <text x="672" y="618" class="m" text-anchor="middle">ff · 1.95 V · −40 °C</text>
+  <text x="812" y="612" class="s">sky130.lib.spice, one section per corner · make_corner_variant.py</text>
+  <text x="812" y="628" class="s">rebuilds the identical circuit at the new VDD / temperature</text>
+
+  <!-- ============ BAND 4 : logs -> lib ============ -->
+  <rect class="band" x="24" y="656" width="1232" height="300" rx="6"/>
+  <text x="40" y="676" class="tb">4 · the logs are the only source the generator reads</text>
+
+  <rect class="box" x="40" y="690" width="300" height="160" rx="4"/>
+  <text x="56" y="712" class="m">examples/&lt;macro&gt;/char/*.log</text>
+  <text x="56" y="734" class="s">col&lt;N&gt;_worst_case_parasitic[_ss|_ff].log</text>
+  <text x="56" y="750" class="s">col&lt;N&gt;_best_case_parasitic*.log</text>
+  <text x="56" y="766" class="s">col&lt;N&gt;_fastest_array*.log</text>
+  <text x="56" y="782" class="s">backend_&lt;corner&gt;_&lt;load&gt;.log</text>
+  <text x="56" y="798" class="s">periph_active|idle|setup_&lt;corner&gt;.log</text>
+  <text x="56" y="814" class="s">periph_slew0|1|2_&lt;corner&gt;.log</text>
+  <text x="56" y="830" class="s">col&lt;N&gt;_leak|energy_&lt;corner&gt;.log</text>
+
+  <path class="ln" d="M340,770 L392,770"/>
+
+  <rect class="box" x="396" y="690" width="300" height="160" rx="4"/>
+  <text x="412" y="712" class="m">regen_rom_libs.sh</text>
+  <text x="412" y="732" class="s">pulls every term out with one grep per</text>
+  <text x="412" y="747" class="s">measurement, multiplies the column result</text>
+  <text x="412" y="762" class="s">by the column count, sums the three access</text>
+  <text x="412" y="777" class="s">terms, and names the term in the error when</text>
+  <text x="412" y="792" class="s">one is missing instead of writing a zero</text>
+  <text x="412" y="818" class="m">gen_rom_lib.py</text>
+  <text x="412" y="836" class="s">LEF pins + measured values → Liberty</text>
+
+  <path class="ln" d="M696,770 L748,770"/>
+
+  <rect class="out" x="752" y="690" width="240" height="72" rx="4"/>
+  <text x="768" y="714" class="m" font-size="11px">output/lib/&lt;macro&gt;_&lt;CORNER&gt;.lib</text>
+  <text x="768" y="734" class="s">2-D CELL_TABLE (slew × load),</text>
+  <text x="768" y="750" class="s">falling_edge arc, retain_*, power, rails</text>
+
+  <rect class="out" x="752" y="778" width="240" height="72" rx="4"/>
+  <text x="768" y="802" class="m">output/verilog/&lt;macro&gt;.v</text>
+  <text x="768" y="822" class="s">behavioural model carrying the</text>
+  <text x="768" y="838" class="s">measured timing, reports violations</text>
+
+  <path class="ln" d="M992,726 L1036,726"/>
+  <path class="ln" d="M992,814 L1036,814"/>
+
+  <rect class="box" x="1040" y="690" width="200" height="160" rx="4"/>
+  <text x="1056" y="712" class="m">tests/run_tests.sh</text>
+  <text x="1056" y="734" class="s">1 · 15 broken fixtures</text>
+  <text x="1056" y="750" class="s">   (so a green run means</text>
+  <text x="1056" y="765" class="s">   something)</text>
+  <text x="1056" y="784" class="s">2 · Liberty structure</text>
+  <text x="1056" y="800" class="s">3 · ROM semantics: both</text>
+  <text x="1056" y="815" class="s">   arcs, FF &lt; TT &lt; SS</text>
+  <text x="1056" y="831" class="s">4 · OpenSTA read_liberty</text>
+
+  <!-- waveform inset -->
+  <rect x="40" y="866" width="1200" height="78" rx="4" fill="#ffffff" stroke="#d7dbe4"/>
+  <text x="56" y="886" class="s">what the three terms look like in one cycle (the shape you see when you open the decks in ngspice):</text>
+
+  <text x="56" y="922" class="m">clk0</text>
+  <path class="wv" d="M96,936 L136,936 L136,906 L236,906 L236,936 L296,936"/>
+
+  <text x="312" y="922" class="m">precharge</text>
+  <path class="wv" d="M388,936 L448,936 L448,906 L548,906 L548,936 L596,936"/>
+
+  <text x="612" y="922" class="m">bl</text>
+  <path class="wv" d="M640,906 L700,906 C760,906 780,936 860,936 L884,936 C892,906 900,906 928,906"/>
+
+  <text x="944" y="922" class="m">dout0</text>
+  <path class="wv" d="M996,906 L1076,906 C1100,906 1104,936 1128,936 L1180,936 C1196,936 1200,906 1224,906"/>
+
+  <path class="thr" d="M136,900 L136,944"/>
+  <path class="thr" d="M448,900 L448,944"/>
+  <path class="thr" d="M860,900 L860,944"/>
+</svg>

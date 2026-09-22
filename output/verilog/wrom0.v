@@ -74,9 +74,9 @@ module wrom0 (
   parameter INIT_FILE = "rom_configs/wrom0.bin";
 
   // MEASURED values -- wrom0_SS_1p6V_100C.lib
-  parameter real ACCESS_NS = 42.9053;   // clk0 rising -> dout0 valid
-  parameter real T_PRE_NS  = 14.0193;   // minimum clk0 low phase
-  parameter real SETUP_NS  = 0.0519;   // addr0/cs0 stable before clk0 rises
+  parameter real ACCESS_NS = 39.3694;   // clk0 rising -> dout0 valid
+  parameter real T_PRE_NS  = 14.4572;   // minimum clk0 low phase
+  parameter real SETUP_NS  = 0.0480;   // addr0/cs0 stable before clk0 rises
 
   // 1 = report violations with $display. The corruption is applied either way
   // -- that is what silicon does; the test is expected to catch the bad result.

@@ -207,6 +207,21 @@ def gen_lib(name, area, buses, scalars, corner, args):
     t_pre = args.t_pre * mscale
     setup = args.setup * sscale
     hold = args.hold * hscale
+    # --- the COLUMN DECODER: a race with the bitline, not a fourth term ---
+    # rom_column_decode takes addr0[0:2] and drives the eight column mux
+    # selects. Its clk AND its precharge port are both tied to the internal
+    # precharge net -- the same net the bitline measurement triggers off -- so
+    # the decoder and the discharge start on the same edge and run in
+    # PARALLEL. The mux output is valid when the LATER of the two is done:
+    #     middle term = max(t_dis_50, t_coldec)
+    # Measured by run_coldec_delay.sh. On the example macros the decoder wins
+    # by more than an order of magnitude and access is unchanged -- but that
+    # is now a measured fact instead of the assumption it used to be, and a
+    # macro with a short chain and a wide mux could flip it.
+    t_coldec = args.t_coldec * mscale if args.t_coldec is not None else None
+    coldec_wins = t_coldec is not None and t_coldec > access
+    if coldec_wins:
+        access = t_coldec
     # --- the THREE TERMS of access ---------------------------------------
     # `access` in the .lib runs from clk0's rising edge until dout0 is valid.
     # The column measurement (t_dis_50) is only the MIDDLE term -- it triggers
@@ -414,6 +429,29 @@ def gen_lib(name, area, buses, scalars, corner, args):
         w(" * The back-end term covers the bitline inverter, the %s column"
           % mux_ratio)
         w(" * mux and the output buffer.")
+        w(" *")
+        if t_coldec is None:
+            w(" * THE COLUMN DECODER WAS NEVER SIMULATED. rom_column_decode")
+            w(" * drives the mux selects off the same precharge net as the")
+            w(" * bitline, so it RACES the middle term. Nothing here proves")
+            w(" * it loses that race -- run run_coldec_delay.sh and pass")
+            w(" * --t-coldec.")
+        elif coldec_wins:
+            w(" * THE COLUMN DECODER WINS THE RACE: precharge -> column")
+            w(" *   select is %.4f ns against %.4f ns of bitline, so the"
+              % (t_coldec, args.access * mscale))
+            w(" *   middle term above IS the decoder, not the discharge.")
+            w(" *   That is unusual for this topology -- a short chain and a")
+            w(" *   wide mux -- and worth confirming before sign-off.")
+        else:
+            w(" * COLUMN DECODER (measured, run_coldec_delay.sh): precharge ->")
+            w(" *   column select takes %.4f ns against %.4f ns for the"
+              % (t_coldec, access))
+            w(" *   bitline, i.e. the mux is open %.0fx earlier than the data"
+              % (access / t_coldec if t_coldec else 0))
+            w(" *   needs it. It shares the precharge edge with the discharge")
+            w(" *   rather than following it, so it adds NOTHING to access.")
+            w(" *   This used to be an estimate; it is now a measurement.")
     else:
         w(" * WARNING: access covers only the bitline term. clk0 ->")
         w(" * precharge/wordline and bitline -> dout0 (inverter + mux + output")
@@ -805,6 +843,15 @@ def main():
                          "Because the column measurement triggers off the "
                          "internal precharge net, this term was MISSING from "
                          "access.")
+    ap.add_argument("--t-coldec", type=float, default=None,
+                    help="measured precharge -> column select, ns (worst "
+                         "address/corner, run_coldec_delay.sh). The column "
+                         "decoder is clocked by the precharge net itself, so "
+                         "it RACES the bitline rather than adding to it: the "
+                         "middle term of access is max(t_dis_50, t_coldec). "
+                         "Pass it and the header records which one won and by "
+                         "how much; leave it out and the library says the "
+                         "block was never simulated.")
     ap.add_argument("--slew-index", default=None,
                     help="3 comma-separated ns values: the CELL_TABLE index_1 "
                          "(clk0 input transition) axis. Must match what "

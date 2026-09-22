@@ -37,6 +37,13 @@
  * The back-end term covers the bitline inverter, the 256:32 column
  * mux and the output buffer.
  *
+ * COLUMN DECODER (measured, run_coldec_delay.sh): precharge ->
+ *   column select takes 0.5753 ns against 16.1908 ns for the
+ *   bitline, i.e. the mux is open 28x earlier than the data
+ *   needs it. It shares the precharge edge with the discharge
+ *   rather than following it, so it adds NOTHING to access.
+ *   This used to be an estimate; it is now a measurement.
+ *
  * BOTH AXES OF THE TABLE ARE MEASURED.
  *   index_2 (output load)  : the back-end term, 1.5655 .. 1.8079 ns
  *   index_1 (clk0 slew)    : the front-end term, 0.7227 .. 0.7586 ns
