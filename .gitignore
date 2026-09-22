@@ -14,3 +14,17 @@ __pycache__/
 # reads it; the human-readable verdict stays in <macro>.lvs.report.gz and
 # <macro>_lvs.log.
 *.lvs.json
+
+# ngspice testbench decks under <macro>/char/. gen_*_tb.py rebuilds each deck
+# from <macro>.sp + <macro>_cap_only.spice + char/resistance_model.json, and
+# nothing in the flow ever reads a deck back -- the run's .log/.total is what
+# gen_rom_lib.py measures. 204 MB across the four example macros.
+**/char/*.sp
+
+# run_addr_hold.sh: an exploratory sweep whose verdict goes to stdout. The
+# per-point decks, logs, waveform .csv dumps and the .png are read by nothing.
+**/char/hold/
+
+# gmin sweep points of run_periphery_leak.sh. Only the converged value it
+# writes to periph_leak_cs<n>_<corner>.total is read back.
+**/char/periph_leak_*_g1e-*.log
