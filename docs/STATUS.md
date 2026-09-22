@@ -153,6 +153,224 @@ and mostly redundant; the two-phase invocation documented at the top of
 `run_coldec_delay.sh` gets the same evidence in about half an hour, and is
 what produced the tables above.
 
+### Input pin capacitances are measured at last
+
+They were the last purely ANALYTIC numbers in the `.lib` (README limitation
+5): `PIN_CAP = {"clk0": 0.0025, "cs0": 0.0030, "_default": 0.0060}`, computed
+from gate widths, with ONE value covering all eleven address bits. The
+extraction said that could not be right on its face -- the top-level wire C
+alone runs from 2.50 fF on `addr0[0]` to 4.92 fF on `addr0[9]`.
+
+They were also wrong by about a factor of two:
+
+| pin | analytic | measured (TT) | error |
+|---|---|---|---|
+| clk0  | 2.50 fF | 4.89 fF | -96% |
+| cs0   | 3.00 fF | 5.67 fF | -90% |
+| addr0 | 6.00 fF flat | 6.61 .. 9.49 fF | -58% at the worst bit |
+
+**Method.** `gen_periphery_power_tb.py --pin-cap` keeps every block an input
+pin touches -- control logic (`clk0`, `cs0`), row decoder (`addr0[3:]`) and
+column decoder (`addr0[0:2]`) -- ramps one pin at a time with the others
+parked, and integrates the charge that pin has to supply: `C = Q(VDD)/VDD`,
+the same reduction `gen_cell_gate_tb.py` uses for the cell gate. That is the
+right reduction for Liberty, whose `capacitance` is a single scalar a driver's
+delay calculation multiplies: the shape of the non-linear C-V curve does not
+enter, only the total charge does. It also captures what a gate-width formula
+structurally cannot -- the pin's wire C, and the Miller charge pushed back
+through the first stage as that stage switches.
+
+**Three measurement bugs had to be found first**, all of the kind that returns
+a plausible number rather than an error:
+
+1. *Tolerances.* Tightening `abstol` to 1e-15 aborted the deck at t = 5e-14,
+   before any pin had moved. It was also pointless: 10 fC over a 1 ns ramp is
+   ~10 uA, four orders above the 1e-12 the energy deck uses.
+2. *Timestep.* Asking for TR/200 (5 ps) and then TR/50 (20 ps) both collapsed
+   at start-up. That argument is the SUGGESTED step; ngspice's LTE control
+   refines it through the ramp, which is how the decks next door get
+   sub-nanosecond numbers out of a 1 ns step.
+3. *The integration window.* Integrating over the ramp alone was not ramp
+   independent -- doubling `--pin-tr` moved five of thirteen pins by 10-13%.
+   The stage the pin drives goes on switching after the pin has stopped, and
+   how much of that tail falls inside the window depends on the ramp time.
+
+Chasing (3) produced the finding that fixed the method. On `clk0` the two
+edges TRADED PLACES between ramp times -- rise 4.403 / fall 4.898 at 1 ns
+against rise 4.858 / fall 4.464 at 2 ns -- while the SUM held at 9.301 vs
+9.322, 0.2% apart. The charge is conserved; only the boundary between the two
+windows moves. So the shipped value is now the full cycle,
+`C = (|Q_rise| + |Q_fall|) / (2*VDD)`, which is immune to where that boundary
+falls, and the rise/fall split is kept as the settling proof: a gap over 5%
+means the tail has not died inside the window.
+
+**What is solid and what is not.** Eleven of the thirteen pins reproduce to
+0.45% across two ramp times and to four significant figures across all four
+macros. `addr0[0]` and `addr0[6]` do not: they move 4-5% with the ramp time,
+and they are exactly the two the rise/fall check flags -- 21 flags over the 12
+runs, always those two, in every macro and every corner. That is systematic,
+not noise, and it is in the README as a known limitation rather than smoothed
+over.
+
+**How much the deleted blocks matter -- measured, not argued.** The deck
+deletes the cell array and the column mux and puts their load back as lumped
+C. Two things bound the error that introduces:
+
+* The pins' top-level wire C does not touch the deleted blocks AT ALL. Of the
+  38.32 fF of C elements landing on the thirteen pins, 0.000 fF has its far
+  end inside a deleted block, so the alive/dead retarget rule never fires on
+  a measured net. There is no wire-C approximation here to be wrong about.
+* Doubling the entire array's gate load -- 34048 cells, a 100% perturbation --
+  moves twelve of the thirteen pins by less than 0.6%, most by less than 0.3%.
+  Since the lumped-C model errs by far less than 100%, its contribution to
+  those twelve is bounded well below that. The exception is `addr0[0]` at
+  -4.9%, i.e. the load model DOES matter on that pin at the 5% level -- the
+  same pin the other two checks flag.
+
+A third, independent sign points the same way: the four macros differ only in
+the contents of the array that was deleted, and eleven of thirteen pins agree
+to four significant figures across them.
+
+(The first attempt at this experiment was to remove the put-back load
+entirely. That deck does not converge at all -- "Timestep too small; initial
+timepoint" -- because the wordline drivers are left with essentially no
+capacitance against `.ic` nodes that start at VDD. There is no "no load"
+reference point to compare against; perturbing the load is the runnable test.)
+
+**In the .lib.** `gen_rom_lib.py --pin-cap` takes `<pin>=<fF>` pairs and
+`regen_rom_libs.sh` fills them from `pincap_<corner>.log`. A Liberty bus
+carries ONE capacitance on its ranged pin, so `addr0` ships the WORST bit
+(0.0095 pF at TT) and the header records the full per-bit spread: telling a
+driver it will find less load than it does is the unsafe direction. Without
+the logs the `.lib` now says outright that these numbers are analytic instead
+of letting a guess pass for a measurement.
+
+### The read back end was missing from the leakage deck
+
+`run_periphery_leak.sh` sliced the control path, the address buffers, the
+wordline drivers and both decode arrays -- and stopped there. The macro
+instantiates seven blocks at the top level; the deck covered four of them plus
+the separately-measured array, so `rom_bitline_inverter` (256 instances),
+`rom_column_mux_array` (256) and `rom_output_buffer` (32) were scored as ZERO
+in `cell_leakage_power`. Nothing reported this: a slice that is not in the
+list simply does not appear in the sum.
+
+**Effect.** The periphery term roughly doubles and the bitline inverters alone
+are the largest entry in it -- bigger than the 133 wordline drivers:
+
+| corner | periphery before | after | cell_leakage_power before -> after |
+|---|---|---|---|
+| tt | 109.66 nA | 203.24 nA | 0.000366 -> 0.000535 mW |
+| ss | 329.37 nA | 457.93 nA | 0.000824 -> 0.001029 mW |
+| ff |  45.19 nA |  84.02 nA | 0.000164 -> 0.000240 mW |
+
+**The idle state of the read path is derived, not chosen.** Every bitline is
+high during precharge, so every bitline inverter holds its output at 0; all
+eight column selects are low (measured in the column-decode work above), so
+each mux transistor is off with its source at 0 and the node it drives leaks
+down to 0 too; the output buffer therefore sits with its input at 0. Each of
+those levels is driven explicitly in the deck, which is also what keeps `.op`
+out of a singular matrix -- the floating-node failure this deck exists to
+avoid.
+
+**The mux measures ~0 and that is the answer, not a gap.** Both of its
+terminals sit at 0 V in this state, so it passes 5e-19 A. It has no supply of
+its own, so what it leaks is read with a 0 V source (an ammeter) on the node
+it drives. The convergence rule needed a floor for it: comparing two gmin
+points to 1% is meaningless at 1e-19 A, so a slice under 1e-6 nA is reported
+as `ZERO (under ... floor)` instead of `NOT CONVERGED`. At that floor even the
+256-wide mux array contributes under a pA.
+
+**cs0 still makes no difference -- now that is a measurement.** With every
+block in the deck, `cs0` = 0 and `cs0` = 1 agree to six decimals at all three
+corners on all four macros (tt 203.236507 vs 203.236611 nA). cs0 gates the
+precharge PATH: it changes what the macro does on a clock edge, not the static
+state it sits in between edges, and leakage describes the latter. The two
+`leakage_power` groups stay in the `.lib` with their `when` conditions and the
+header now says outright that they were both run and came out equal, rather
+than leaving a reader to wonder which one was copied.
+
+Full sweep: 4 macros x 3 corners x 2 cs0 states x 4 gmin points, ~80 s per
+state, no slice `NOT CONVERGED`. All twelve `.lib` files regenerated; the test
+suite passes.
+
+### The golden reference: STARTED, KILLED, NOT FINISHED -- pick this up first
+
+**This is the one open thread. Everything else below is done.**
+
+Why it exists: every check on the pin capacitances above -- ramp independence,
+agreement across the four macros, insensitivity to a 2x change in the array
+load, the corner ordering -- is a SELF-CONSISTENCY check. Each bounds how far
+the answer moves when a knob moves, and all of them are structurally blind to
+an error that every variant shares. The reduced deck deletes the cell array
+and the column mux and puts their load back as lumped C; nothing above can
+tell you what that reduction COST.
+
+`gen_periphery_power_tb.py --pin-cap --keep-all` deletes nothing. The deck
+goes from 2777 to 37883 device lines and from 19457 to 167539 capacitors --
+the whole 34305-cell array is in it -- so there is no reduction left to be
+wrong about, and the gap between it and the reduced deck IS the cost.
+
+**What happened (2026-09-22).** wrom0, TT, three pins
+(`clk0`, `addr0[0]`, `addr0[9]`). It ran for **2h37m at 100% CPU** and reached
+**16.4 GB RSS**, which was 63% of a 31 GB machine and had pushed it 3 GB into
+swap. It was still progressing -- CPU time tracked elapsed time exactly, so it
+was computing, not stalled -- but `ngspice -b` prints no progress, so there was
+no way to tell whether an hour or ten hours remained. It was killed to give the
+machine back. **No result.**
+
+**To resume:**
+
+    GOLDEN_PINS="addr0[9]" JOBS=1 scripts/rom_char/run_pin_cap.sh wrom0
+
+One pin instead of three cuts the transient from 126 ns to about 42 ns -- the
+run time is set by the pin count, each pin getting its own slot -- so expect
+roughly a third of 2h37m. Memory will NOT shrink with the pin count: it is set
+by the circuit, so budget ~17 GB and run nothing else. `addr0[9]` gives the
+TYPICAL reduction error; `addr0[0]` gives the WORST, since it is the pin the
+settling check flags, the pin that moves 4-5% with the ramp time, and the pin
+that moved -4.9% when the array load was doubled. Do `addr0[9]` first: if the
+typical error is large, the worst one hardly matters.
+
+Consider giving it a longer ramp as well. At `PIN_TR=2n` the transient doubles
+but the timestep doubles with it, so the step COUNT is unchanged -- and the
+reduced deck is known to be ramp independent on `addr0[9]`, so a 2 ns golden
+run stays comparable.
+
+**The infrastructure is in place and waiting for the log**, so resuming costs
+one command and nothing else:
+
+* `run_pin_cap.sh` runs it when `GOLDEN_PINS` is set (off by default), writes
+  `pincap_golden_<corner>.{sp,log}`, and prints a reduced-vs-golden table.
+* `tests/test_pin_cap.py` is the 5th layer of `tests/run_tests.sh`. It matches
+  the two logs BY PIN NAME through their `*PINCAP` markers -- the golden run
+  measures a subset and so has its own index numbering; matching by index
+  would silently compare the wrong pins. Right now it prints a SKIP saying how
+  to produce the reference.
+* Both WARN outside `GOLDEN_BAND` (default 10%) and neither fails. The band is
+  set from both sides: below ~5% it would fire on `addr0[0]` and `addr0[6]`,
+  whose few-percent ramp sensitivity is already documented; a real reduction
+  error is not a few percent, since the analytic estimate this work replaced
+  was off by 58-96%. Revisit the band once there is a real number to set it
+  against.
+
+**What we have without it**, and what it is worth: an independent hand
+calculation from OUTSIDE the simulation entirely -- Magic's extracted wire C
+plus the PDK's `Cox*W*L` over the first-stage gate area:
+
+| group | measured / hand calculation |
+|---|---|
+| the 11 address pins | 0.94 .. 0.99x |
+| clk0, cs0 | 1.35 .. 1.50x |
+
+The address pins landing just BELOW the hand figure is the right sign: a gate
+is not at full inversion-Cox across a 0 -> VDD swing, it passes through
+accumulation and depletion, so a charge-based measurement should come in under
+`W*L*Cox`. clk0 and cs0 landing above is also expected -- their first stage is
+a large driver into a heavy load and the hand calculation has no Miller term.
+That bounds the magnitude and it is genuinely independent, but it does not
+test the DELETION, which is what the golden run is for.
+
 ### `examples/` cleaned out: 752 MB -> 383 MB
 
 (427 MB as it stands, the difference being the 20 new column-decode decks and
@@ -216,33 +434,46 @@ circuit in all four macros, yet TT read 4.56 / 5.19 / 6.38 / 7.44 pJ.
 
 **7. Dead files from an older worst-column choice.** Deleted today, see above.
 
+**3. The column energy deck never got the `method=gear` fix.** FIXED.
+`gen_col_power_tb.py` now writes an `.options` line in the energy branch too
+(`gmin=1e-12 abstol=1e-12 reltol=1e-3 itl1=500 itl4=100 method=gear`), and
+`--steps` / `--integrator` were added so the sweep that proves it can be
+re-run. Re-measured on wrom0 column 236 at TT over 200/400/800/1600 steps:
+trapezoidal 0.4956 / 0.4823 / 0.4849 / 0.4917 pJ (2.8%, not monotonic)
+against gear 0.4805 / 0.4851 / 0.4858 / 0.4860 pJ (monotonic, 0.18% from the
+second point on). Every macro and corner was re-run and the .lib files
+regenerated; the old numbers were off by ~0.6% (up at TT, down at FF).
+
+It also explained a second symptom: the cycle-2/cycle-3 settling gap the
+energy deck prints. On trapezoidal wrom0 at TT read -2.757e-13 and -2.679e-13
+C, a 2.8% gap that looked like a chain still filling; with gear the two agree
+to five digits and the whole summary column now reads 0.0-0.6%. The gap was
+the integrator, not the circuit.
+
+**8. `gen_macro_behavioral_v.py` parses the `.lib` header comment.** FIXED.
+`access` now comes from the DATA -- the largest entry of the `cell_rise`
+table on the `rising_edge` arc of `dout0`, which is what the access time is.
+The banner line is still read, but only as a cross-check: if it disagrees
+with the table the script says so and uses the table, and if the banner is
+reworded or dropped nothing changes (verified by rewording it in a copy of
+`wrom0_SS_1p6V_100C.lib` -- same 39.3694 ns out). The regenerated `.v` files
+carry the same numbers as before.
+
 **9. Leftover Turkish comments** in `gen_rom_lib.py` and
-`gen_periphery_power_tb.py`. Gone -- no Turkish characters remain in any
-script.
+`gen_periphery_power_tb.py`. Gone. The first pass only caught the ones with
+non-ASCII characters, so six ASCII-only Turkish lines survived it (`olculen
+buyuklukler`, `degerlendirme + pay`, `On-sarjli dizi ...`, `olculecek clk0
+yukselen kenari` and two more); they were translated 2026-09-22. The check
+that holds now is a word scan, not a character scan -- `grep -P "[^\x00-\x7F]"`
+comes back clean either way and proves nothing.
 
 ### STILL OPEN
-
-**3. The column energy deck never got the `method=gear` fix.**
-`gen_col_power_tb.py` writes its `.options` line only in the idle (leakage)
-branch, so the energy integral still runs on ngspice defaults with the
-trapezoidal integrator. Measured on wrom0 column 236 at TT: trapezoidal gives
-0.4956 / 0.4823 / 0.4849 / 0.4917 over a 200/400/800/1600 step sweep -- 2.8%
-and not monotonic -- against 0.4851 / 0.4860 for gear, 0.18%. The committed
-value is ~0.6% low. Same defect class as item 2, two orders of magnitude
-smaller. The fix is one line, already proven in the sister deck.
 
 **2b. Nothing gates on the settling check.** `run_periphery_power.sh` prints
 the last-two-cycle gap in a summary table and that is all. It stood at 24-40%
 on the bad TT runs and nobody acted on it. It should fail the run, or at least
 be re-read by `regen_rom_libs.sh` before the number is used. (The column deck
 got exactly this treatment in the item-1 fix; the periphery deck did not.)
-
-**8. `gen_macro_behavioral_v.py` parses the `.lib` header comment.** `access`
-is recovered with a regex over the text `TOTAL \(worst load\)\s*:\s*([\d.]+)`
--- out of the human-readable banner rather than out of the Liberty data.
-Reword the banner in `gen_rom_lib.py` and the model silently loses its timing.
-This is now a little more pressing than it was, since the column-decode work
-added lines to that same banner (it did not touch the matched line).
 
 ### NOT DEFECTS -- measurement artefacts that are understood
 
@@ -293,16 +524,30 @@ periphery decks already have the alive/dead + negative-net-capacitance rule
 that fixes it; porting it into `gen_col_tb_parasitic.py` is the obvious next
 piece of work.
 
-The rest: analytic input pin capacitances, energy assuming every column
-discharges, periphery leakage not counted, one column/one bit generalised, and
-the `index_1` axis stopping at 0.5 ns.
+The rest: the ~5% of ramp-time sensitivity left on `addr0[0]` and
+`addr0[6]` after the pin-cap work, energy assuming every column
+discharges, one column/one bit generalised, and the `index_1` axis stopping at
+0.5 ns. Periphery leakage IS counted now (`run_periphery_leak.sh`: one slice
+per block x a count, gmin-swept, `.op` in the idle state) and the slice list
+covers every block the top-level cell instantiates since the read back end was
+added -- it roughly TRIPLES `cell_leakage_power` (0.000169 -> 0.000535 mW at
+TT). What is left open there is that only the idle state (clk0 low) is
+characterised; the evaluate phase, with one wordline low and the chain feet
+conducting, is not.
 
 ## Housekeeping
 
-Everything since the 2026-09-20 09:31 commit is still in the working tree:
-the whole re-characterisation run (`char/` decks and logs, `output/lib/*`,
-`output/verilog/*`), today's column-decode work
-(`scripts/rom_char/run_coldec_delay.sh` and the `coldec_a*` decks and logs are
-untracked; `gen_periphery_power_tb.py`, `gen_rom_lib.py` and
-`regen_rom_libs.sh` are modified), today's deletions, the `.gitignore` update,
-and `docs/img/*` (diagrams, not yet referenced from the README).
+The cleanup, the re-characterisation and the column-decode work are committed
+(4b1cb95..156b342 on main). `main` is ahead of `origin/main` and has not been
+pushed.
+
+Uncommitted:
+
+* the periphery-leakage work (`run_periphery_leak.sh`, `periph_leak_*`, the
+  `--leakage-idle-mw` path in `regen_rom_libs.sh` and `common.sh`) -- a
+  separate line of work, left for its own commit
+* `docs/img/*` (diagrams, not yet referenced from the README)
+
+WHERE TO PICK UP: the golden reference, above. It is the only thing started
+and not finished; one command resumes it and the test layer is already waiting
+for its log.

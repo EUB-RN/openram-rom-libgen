@@ -1,0 +1,97 @@
+
+Note: No compatibility mode selected!
+
+
+Circuit: * wrom0 -- input pin capacitance (tt)
+
+Doing analysis at TEMP = 25.000000 and TNOM = 27.000000
+
+Using SPARSE 1.3 as Direct Linear Solver
+Operating point simulation skipped by 'uic',
+  now using transient initial conditions.
+
+No. of Data Rows : 798
+
+  Measurements for Transient Analysis
+
+q_rise0             =   -1.01565e-14 from=  2.00000e-08 to=  3.10000e-08
+q_fall0             =   1.02383e-14 from=  3.10000e-08 to=  4.20000e-08
+c_rise0_ff          =  5.64250e+00
+c_fall0_ff          =  5.68795e+00
+c_cyc0_ff           =  5.66523e+00
+q_rise1             =   -8.78399e-15 from=  5.20000e-08 to=  6.30000e-08
+q_fall1             =   8.81827e-15 from=  6.30000e-08 to=  7.40000e-08
+c_rise1_ff          =  4.87999e+00
+c_fall1_ff          =  4.89904e+00
+c_cyc1_ff           =  4.88952e+00
+q_rise2             =   -1.27605e-14 from=  8.40000e-08 to=  9.50000e-08
+q_fall2             =   1.29672e-14 from=  9.50000e-08 to=  1.06000e-07
+c_rise2_ff          =  7.08916e+00
+c_fall2_ff          =  7.20400e+00
+c_cyc2_ff           =  7.14658e+00
+q_rise3             =   -1.21155e-14 from=  1.16000e-07 to=  1.27000e-07
+q_fall3             =   1.22332e-14 from=  1.27000e-07 to=  1.38000e-07
+c_rise3_ff          =  6.73084e+00
+c_fall3_ff          =  6.79621e+00
+c_cyc3_ff           =  6.76352e+00
+q_rise4             =   -1.18541e-14 from=  1.48000e-07 to=  1.59000e-07
+q_fall4             =   1.19495e-14 from=  1.59000e-07 to=  1.70000e-07
+c_rise4_ff          =  6.58564e+00
+c_fall4_ff          =  6.63862e+00
+c_cyc4_ff           =  6.61213e+00
+q_rise5             =   -1.24993e-14 from=  1.80000e-07 to=  1.91000e-07
+q_fall5             =   1.26223e-14 from=  1.91000e-07 to=  2.02000e-07
+c_rise5_ff          =  6.94405e+00
+c_fall5_ff          =  7.01239e+00
+c_cyc5_ff           =  6.97822e+00
+q_rise6             =   -1.33474e-14 from=  2.12000e-07 to=  2.23000e-07
+q_fall6             =   1.34644e-14 from=  2.23000e-07 to=  2.34000e-07
+c_rise6_ff          =  7.41521e+00
+c_fall6_ff          =  7.48024e+00
+c_cyc6_ff           =  7.44773e+00
+q_rise7             =   -1.39782e-14 from=  2.44000e-07 to=  2.55000e-07
+q_fall7             =   1.40652e-14 from=  2.55000e-07 to=  2.66000e-07
+c_rise7_ff          =  7.76565e+00
+c_fall7_ff          =  7.81400e+00
+c_cyc7_ff           =  7.78982e+00
+q_rise8             =   -1.47901e-14 from=  2.76000e-07 to=  2.87000e-07
+q_fall8             =   1.36704e-14 from=  2.87000e-07 to=  2.98000e-07
+c_rise8_ff          =  8.21673e+00
+c_fall8_ff          =  7.59466e+00
+c_cyc8_ff           =  7.90570e+00
+q_rise9             =   -1.54917e-14 from=  3.08000e-07 to=  3.19000e-07
+q_fall9             =   1.56078e-14 from=  3.19000e-07 to=  3.30000e-07
+c_rise9_ff          =  8.60648e+00
+c_fall9_ff          =  8.67100e+00
+c_cyc9_ff           =  8.63874e+00
+q_rise10            =   -1.41806e-14 from=  3.40000e-07 to=  3.51000e-07
+q_fall10            =   1.43047e-14 from=  3.51000e-07 to=  3.62000e-07
+c_rise10_ff         =  7.87812e+00
+c_fall10_ff         =  7.94703e+00
+c_cyc10_ff          =  7.91258e+00
+q_rise11            =   -1.69836e-14 from=  3.72000e-07 to=  3.83000e-07
+q_fall11            =   1.71655e-14 from=  3.83000e-07 to=  3.94000e-07
+c_rise11_ff         =  9.43535e+00
+c_fall11_ff         =  9.53641e+00
+c_cyc11_ff          =  9.48588e+00
+q_rise12            =   -1.60502e-14 from=  4.04000e-07 to=  4.15000e-07
+q_fall12            =   1.59874e-14 from=  4.15000e-07 to=  4.26000e-07
+c_rise12_ff         =  8.91676e+00
+c_fall12_ff         =  8.88187e+00
+c_cyc12_ff          =  8.89932e+00
+
+
+Total analysis time (seconds) = 45.52
+
+Total elapsed time (seconds) = 512.910 
+
+Total DRAM available = 31789.582 MB.
+DRAM currently available = 14244.504 MB.
+Maximum ngspice program size = 2871.223 MB.
+Current ngspice program size = 2804.121 MB.
+
+Shared ngspice pages =   11.199 MB.
+Text (code) pages =    6.520 MB.
+Stack = 0 bytes.
+Library pages = 2849.059 MB.
+

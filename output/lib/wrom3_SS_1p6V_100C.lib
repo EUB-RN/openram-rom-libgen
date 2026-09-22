@@ -20,7 +20,7 @@
  *   t_bl2dout at the smallest load -- because what must be proven
  *   is that the consumer captured BEFORE the data went away.
  *
- * SOURCE: access/t_pre come from ngspice measurements on real Magic parasitic C + that corner's OWN sky130 models; 134x256 array, worst column 10 (series NMOS 77); front end + periphery power char/periph_{active,idle}_ss.log, bitline char/col10_worst_case_parasitic_ss.log, back end + slew char/backend_ss_*.log, leakage char/col10_leak_ss.log, column energy char/col10_energy_ss.log
+ * SOURCE: access/t_pre come from ngspice measurements on real Magic parasitic C + that corner's OWN sky130 models; 134x256 array, worst column 10 (series NMOS 77); front end + periphery power char/periph_{active,idle}_ss.log, bitline char/col10_worst_case_parasitic_ss.log, back end + slew char/backend_ss_*.log, leakage char/col10_leak_ss.log + char/periph_leak_cs*_ss.total, column energy char/col10_energy_ss.log
  * -- THIS corner (SS_1p6V_100C) was simulated separately with its own
  * sky130 model files (tt/ss/ff); no fixed scaling factor was used.
  * Measurement showed that this matters: the old SS x1.85 assumption was
@@ -43,6 +43,18 @@
  *   needs it. It shares the precharge edge with the discharge
  *   rather than following it, so it adds NOTHING to access.
  *   This used to be an estimate; it is now a measurement.
+ *
+ * INPUT PIN CAPACITANCES ARE MEASURED (run_pin_cap.sh):
+ *   C = Q(VDD)/VDD, the charge the pin itself supplies over a full
+ *   swing -- its wire C, the gate C of the first stage it drives,
+ *   and the Miller charge pushed back as that stage switches.
+ *   addr0    0.0099 pF  (worst of 11 bits, 0.0070 .. 0.0099)
+ *   clk0     0.0050 pF
+ *   cs0      0.0057 pF
+ *   A bus carries ONE Liberty capacitance, so the ranged pin
+ *   takes the WORST bit: telling a driver it will find less
+ *   load than it does is the unsafe direction. The per-bit
+ *   spread is above; it is real, not measurement noise.
  *
  * BOTH AXES OF THE TABLE ARE MEASURED.
  *   index_2 (output load)  : the back-end term, 0.2787 .. 0.9790 ns
@@ -78,11 +90,28 @@
  *
  * POWER MODEL: internal_power on clk0 is ENERGY PER CYCLE (pJ);
  * the power tool applies the frequency (P = E*f*activity).
- *   when "cs0"  = 89.9937 pJ  (read: column array + periphery)
+ *   when "cs0"  = 90.2269 pJ  (read: column array + periphery)
  *   when "!cs0" = 2.8019 pJ  (IDLE: cs0 only gates the
  *     precharge; the clk_int tree, the address buffers, the row
  *     decoder and 134 wordlines switch even when deselected.
  *     Leave this block out and OpenSTA silently scores it 0.)
+ *
+ * LEAKAGE covers the ARRAY AND THE PERIPHERY, both measured with
+ * .op in the same idle state (clk0 low):
+ *   when "cs0"  = 0.001031 mW
+ *   when "!cs0" = 0.001031 mW
+ *   cell_leakage_power = 0.001031 mW, the worse of the two.
+ *   THE TWO STATES AGREE, and that is a measurement rather
+ *   than a copy: both were run, every block the macro
+ *   instantiates was in both decks, and they came out equal
+ *   to the digits printed here. cs0 gates the precharge PATH,
+ *   so it changes what the macro does on a clock edge -- it
+ *   does not change the static state the idle macro sits in,
+ *   which is what a leakage number describes.
+ * The periphery half is one slice per block times a count from
+ * the netlist (run_periphery_leak.sh), gmin-swept: gmin is added
+ * in parallel with the leakage and at the pA level it becomes the
+ * answer, so each slice is taken where the sweep stops moving.
  * ----------------------------------------------------------------- */
 library (wrom3_SS_1p6V_100C) {
     delay_model : "table_lookup";
@@ -178,10 +207,16 @@ cell (wrom3) {
     }
 
     leakage_power () {
+        when : "cs0";
         related_pg_pin : vccd1;
-        value : 0.000298;
+        value : 0.001031;
     }
-    cell_leakage_power : 0.000298;
+    leakage_power () {
+        when : "!cs0";
+        related_pg_pin : vccd1;
+        value : 0.001031;
+    }
+    cell_leakage_power : 0.001031;
 
     bus(dout0) {
         bus_type : rom_data;
@@ -270,7 +305,7 @@ cell (wrom3) {
     bus(addr0) {
         bus_type : rom_addr;
         direction : input;
-        capacitance : 0.006;
+        capacitance : 0.009855800000000001;
         max_transition : 0.5;
         pin(addr0[10:0]) {
         related_power_pin  : vccd1;
@@ -308,7 +343,7 @@ cell (wrom3) {
 
     pin(cs0) {
         direction : input;
-        capacitance : 0.003;
+        capacitance : 0.0057333;
         max_transition : 0.5;
         related_power_pin  : vccd1;
         related_ground_pin : vssd1;
@@ -345,7 +380,7 @@ cell (wrom3) {
     pin(clk0) {
         clock : true;
         direction : input;
-        capacitance : 0.0025;
+        capacitance : 0.0050005;
         max_transition : 0.5;
         related_power_pin  : vccd1;
         related_ground_pin : vssd1;
@@ -364,8 +399,8 @@ cell (wrom3) {
         internal_power() {
             related_pg_pin : vccd1;
             when : "cs0";
-            rise_power(scalar) { values("89.9937"); }
-            fall_power(scalar) { values("89.9937"); }
+            rise_power(scalar) { values("90.2269"); }
+            fall_power(scalar) { values("90.2269"); }
         }
         internal_power() {
             related_pg_pin : vccd1;

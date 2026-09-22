@@ -20,6 +20,13 @@ measurement log.
 
 Override the root with `ROM_OUT_DIR`.
 
+![How the flow characterizes a ROM macro](docs/img/00-flow.svg)
+
+The macro is never simulated whole -- 34 000 transistors do not converge and
+would not finish. It is cut into slices, each deck carrying one term of the
+answer, and the terms are added back together in the `.lib`. The diagram is
+the map of that; the sections below are the detail.
+
 ---
 
 ## Quick start
@@ -46,10 +53,33 @@ export OPENRAM_TECH=$HOME/OpenRAM/technology
 ./scripts/rom_char/run_addr_setup.sh
 ./scripts/rom_char/run_col_power.sh
 ./scripts/rom_char/run_col_energy.sh
+./scripts/rom_char/run_periphery_leak.sh
+./scripts/rom_char/run_coldec_delay.sh
+./scripts/rom_char/run_pin_cap.sh
 ./scripts/rom_char/regen_rom_libs.sh
 ./tests/run_tests.sh
 python3 scripts/rom_char/gen_macro_behavioral_v.py
 ```
+
+Two further runs are not in that list because they are cross-checks rather
+than steps that produce a number the `.lib` needs, and both are expensive:
+
+```sh
+# ramp independence of the pin capacitances -- the charge over a full swing
+# must not depend on how fast the pin is driven
+PIN_TR=2n ./scripts/rom_char/run_pin_cap.sh wrom0
+
+# the GOLDEN REFERENCE: the same measurement with NOTHING deleted, no lumped
+# load anywhere. Hours, and ~15 GB. tests/run_tests.sh picks up its logs and
+# reports the deviation -- as a warning, never as a failure.
+GOLDEN_PINS="clk0,addr0[0],addr0[9]" ./scripts/rom_char/run_pin_cap.sh wrom0
+```
+
+Every other check on the reduced decks -- ramp independence, agreement across
+the four macros, insensitivity to a 2x change in the array load -- is a
+*self-consistency* check: it bounds how far an answer moves when a knob moves,
+and it is structurally blind to an error that every variant shares. The golden
+run is the only one that is not.
 
 If you only want to look around without a simulator, everything in
 [Understanding the macro](#understanding-the-macro) works on the netlist alone.
@@ -71,7 +101,9 @@ one_cell   : X0 D G S gnd    -> drain and source are DIFFERENT nets = a real tra
 zero_cell  : X0 S G S gnd    -> drain and source are the SAME net   = a permanent short
 ```
 
-![One cell next to a zero cell](docs/img/03-cell-one-vs-zero.png)
+| `rom_base_one_cell` | `rom_base_zero_cell` |
+|---|---|
+| ![one cell](docs/img/03a-one-cell.png) | ![zero cell](docs/img/03b-zero-cell.png) |
 
 Every cell position holds a physical transistor. What programs the bit is
 whether a metal strap shorts its source to its drain. **That strap is the
@@ -270,19 +302,19 @@ proven is that the consumer captured before the data went away. Without this
 group STA reads an unlatched ROM as if it held its output and reports a false
 pass.
 
-![Bitline discharge and precharge](docs/img/05-col-discharge.png)
+![Bitline discharge and precharge](docs/img/05-col-discharge.svg)
 
 Term 2 dominates. The figure shows the same column at all three corners, with
 the 50% crossing that defines `t_dis_50` and the 99% recharge that defines
 `t_pre`.
 
-![Front-end waveforms](docs/img/06-front-end.png)
+![Front-end waveforms](docs/img/06-front-end.svg)
 
 The front-end deck also settles the decoder polarity by measurement rather than
 assumption: after clk0 rises, the selected wordline **falls**. That is what
 justifies holding every wordline at VDD in the column deck.
 
-![Back-end delay at three output loads](docs/img/07-backend-loads.png)
+![Back-end delay at three output loads](docs/img/07-backend-loads.svg)
 
 The back-end deck is run once per output load, so the `index_2`
 (`total_output_net_capacitance`) axis of the CELL_TABLE is a real measurement
@@ -291,6 +323,56 @@ either -- it uses the slope implied by the measured `t_dis_50`/`t_dis_10`.
 
 Also measured: setup (`t_addr2dec*`), leakage (`.op`), per-column energy and
 periphery energy, active and idle.
+
+### The frequency window this ROM may be driven in
+
+There is an upper bound, it is in the `.lib`, and it should be preferred to
+any number written in prose. There is **also a lower bound**, it is not in the
+`.lib`, and Liberty has no way to express it.
+
+**Upper bound -- it is `minimum_period` on `clk0`.** `min_pulse_width(rise)`
+is the full evaluate window the data needs, `min_pulse_width(fall)` is the
+recharge the bitline needs, and their sum is the period. On the example
+macros:
+
+| macro | corner | `min_pulse_width` rise / fall | `minimum_period` | f_max |
+|---|---|---|---|---|
+| wrom0 | TT | 17.83 / 11.52 ns | 29.35 ns | 34.1 MHz |
+| wrom0 | SS | -- | 54.75 ns | 18.3 MHz |
+| wrom0 | FF | -- | 20.74 ns | 48.2 MHz |
+| wrom3 | TT | -- | 28.82 ns | 34.7 MHz |
+
+Prefer these to any number written in prose: STA enforces what is in the
+`.lib`, and nothing enforces a sentence in a README. (The `fmax` field of
+`ROM_CORNERS` is **not** this bound -- it only scales the `P = E x f` column
+of a summary table.)
+
+**Lower bound -- this is a precharged ROM, so one exists.** Two separate
+things happen as the clock slows down, and they must not be confused.
+
+*The access time saturates, and that costs nothing.* The chain's internal
+nodes never reach VDD, so the longer clk0 is parked low the more charge the
+next read has to remove. On wrom0 column 236 at TT the settled `t_dis_50`
+runs 6.96 ns at a 25 ns precharge phase, 11.59 ns at 100 ns and 14.85 ns at
+1 us, monotonic and saturating. The column deck measures at the saturated
+1 us point -- the ROM that has been idle indefinitely and is about to perform
+the slowest read it can -- so an arbitrarily long LOW phase is already
+covered by the number the library ships.
+
+*The stored level does not saturate, and that is the real bound.* The bitline
+is a **dynamic node**: during evaluate the precharge PMOS is off and nothing
+refreshes it. On a read of 1 the selected cell breaks the series chain and
+the bitline is left floating high, holding its value on its own capacitance
+against subthreshold leakage through the cell that broke the chain, and
+against charge sharing with the partially charged cells still hanging on it.
+Hold clk0 high long enough and that 1 decays through the bitline inverter's
+trip point and is read as a 0 -- the classic retention limit of any
+precharged logic, and the reason dynamic logic has a minimum clock frequency
+at all. The bound is worst at SS, where subthreshold leakage is largest.
+
+`min_pulse_width(rise)` is a *minimum*; Liberty has no maximum-pulse-width
+constraint that a normal STA flow enforces, so this one genuinely cannot be
+carried in the `.lib` and has to be stated here instead.
 
 Every measurement uses **real Magic parasitic capacitance** and runs each
 corner against its own sky130 models -- no fixed derating factor.
@@ -303,22 +385,140 @@ The 34k-transistor array is never simulated whole:
   netlist graph, measured, and the result multiplied by the column count
   (leakage, energy);
 * **periphery slice** -- the array is deleted and its load (cell gate count x
-  measured gate capacitance + parasitic wire C) is put back as a lump.
+  measured gate capacitance + parasitic wire C) is put back as a lump;
+* **block slices, for leakage** -- the periphery is cut into one instance of
+  each repeated block (control logic, address buffer, wordline driver, one
+  row-decode column, one column-decode column and its driver, one bitline
+  inverter, one column mux transistor and one output buffer), each on its
+  own supply source, so a single `.op` reports every block's current on a
+  separate branch and each is multiplied by a count from the netlist. Every
+  block the macro instantiates is in that list: a block left out is scored as
+  zero, silently, which is what happened to the read back end until
+  2026-09-22.
 
 So runtime does not explode as the macro grows.
 
-![Energy settling over cycles](docs/img/08-energy-settling.png)
+The leakage deck is built from the **schematic** netlist rather than the Magic
+extraction: leakage is a DC quantity, so parasitic capacitance cannot change
+it, and the deck stays at a few hundred devices. That matters, because `.op`
+does **not** converge on the full periphery netlist -- the row decoder is a
+precharged NAND chain whose internal nodes have no DC path, the matrix is
+singular there, and dynamic gmin, true gmin and source stepping all fail after
+eight minutes and 2.7 GB. Cut into static-CMOS blocks plus one decode column,
+every slice converges in seconds.
+
+#### gmin has to be swept, not chosen
+
+`gmin` is the artificial conductance ngspice puts on every node to help it
+converge, and it sits in **parallel with the leakage being measured**: at the
+pA level it simply becomes the answer. It is not one value for the whole deck
+either -- the blocks differ by five orders of magnitude. Measured on wrom0 at
+TT:
+
+| slice | gmin=1e-12 | 1e-15 | 1e-18 | 1e-21 |
+|---|---|---|---|---|
+| control logic | 14.3293 nA | 14.2232 | 14.2231 | 14.2231 |
+| wordline driver | 0.692543 nA | 0.688946 | 0.688943 | 0.688943 |
+| address buffer | 0.00562414 nA | 0.000229725 | 0.000224123 | 0.000224107 |
+| row-decode column | 0.0421749 nA | 0.0000825065 | 0.0000352684 | 0.0000352347 |
+
+At 1e-12 the address buffer is **96% artificial** and the decode column 1200x
+too high; 1e-15, the value the column deck settled on, is still 2.3x too high
+for the decode column. So `run_periphery_leak.sh` runs the whole axis and, per
+slice, takes the smallest gmin with the point above it agreeing -- the same
+"two values agree, therefore converged" rule the energy and timing decks use.
+A slice that never settles is printed as NOT CONVERGED and is not used.
+
+What the periphery actually leaks (wrom0, TT, converged values):
+
+| block | count | per slice | total |
+|---|---|---|---|
+| bitline inverter | 256 | 0.365519 nA | 93.57 nA |
+| wordline driver | 133 | 0.688943 nA | 91.63 nA |
+| control logic (clock driver + NAND + precharge driver) | 1 | 14.2231 nA | 14.22 nA |
+| column-decode driver | 8 | 0.474726 nA | 3.80 nA |
+| output buffer | 32 | 0.000209 nA | 0.007 nA |
+| row-decode column | 133 | 0.0000352 nA | 0.005 nA |
+| address buffer | 8 | 0.000224 nA | 0.002 nA |
+| column-decode column | 8 | 0.0000321 nA | 0.000 nA |
+| column mux pass transistor | 256 | ~0 (5e-10 nA) | 0.000 nA |
+| **periphery** | | | **203.24 nA** |
+| cell array (256 x the worst column) | 256 | 0.366003 nA | 93.70 nA |
+
+The bitline inverters are the largest single entry and they were **missing**
+until 2026-09-22: the deck sliced the control path and the decoders and
+stopped there, so the read back end -- 256 bitline inverters, 256 mux
+transistors, 32 output buffers -- was scored as zero. Adding it took the
+periphery from 109.66 to 203.24 nA at TT, +85%. A block left out of this deck
+does not announce itself; it just lowers the answer, which is the unsafe
+direction. The check that catches it is comparing the slice list against the
+instances of the top-level cell.
+
+The column mux is in the list and measures ~0, which is the right answer
+rather than a missing one: during precharge every bitline is high, so every
+bitline inverter output is 0, every column select is low (measured, see
+`run_coldec_delay.sh`) and the node the mux drives leaks down to 0 as well --
+the transistor is off with 0 V across it. It is measured rather than argued
+away, and `run_periphery_leak.sh` prints it as `ZERO (under ... floor)`,
+because a 1 % *relative* convergence test means nothing at 1e-19 A.
+
+Every one of the four example macros gives the same periphery number: the
+periphery is the same circuit in all of them, only the stored bits differ, and
+in this state the decode chain is cut by its foot transistor rather than by
+its contents. The array half is the part that moves with the `.bin`.
+
+The decode chains leak in picoamps -- they are cut by a foot transistor with
+sixteen devices stacked above it -- and the whole periphery term is really the
+256 bitline inverters plus the 133 wordline drivers plus the clock tree. It is
+**more than twice the array**, so `cell_leakage_power` roughly triples:
+0.000169 mW to 0.000535 mW at TT, 0.000297 to 0.001029 mW at SS, 0.000076 to
+0.000240 mW at FF.
+
+Both chip-select states are measured (`cs0` = 0 and 1) and they come out equal
+to six decimals at every corner. That is a result, not a copy: `cs0` gates the
+precharge *path*, so it changes what the macro does on a clock edge, and a
+leakage number describes the static state it sits in between edges. The `.lib`
+carries both `leakage_power` groups with their `when` conditions and says so
+in the header.
 
 Energy is measured as the charge drawn from the supply over a cycle, and the
 last two cycles are compared: equal values are the proof that the circuit has
 settled.
 
+Both energy decks run ngspice with `method=gear` rather than its default
+trapezoidal integrator, and that is not a preference. Trapezoidal rings on the
+extracted body nodes and the ringing lands straight in the `i(vdd)` charge
+integral, so the answer depends on the time step -- on the column deck a
+200/400/800/1600 step sweep gives 0.4956 / 0.4823 / 0.4849 / 0.4917 pJ, 2.8%
+and not even monotonic, against 0.4805 / 0.4851 / 0.4858 / 0.4860 with gear
+(0.18% from the second point on). The periphery deck is the same story an
+order of magnitude larger: 17% spread and an outright abort at the finest
+step. A charge integral has to be step converged before it means anything.
+
+It shows up in the settling check too: on trapezoidal, cycles 2 and 3 of the
+column deck differed by 2.8% at TT, which reads as a chain that has not
+filled yet. With gear they agree to five digits. The gap was the integrator,
+not the circuit.
+
 ### Predicting a geometry change
 
-![Access time vs chain length](docs/img/09-chain-vs-access.png)
+Two different scaling questions live here, and the measurements answer only
+one of them.
 
-Access scales with the square of the chain length, so changing `words_per_row`
-has a predictable cost before anything is simulated.
+**At a fixed array height**, which is what the four example macros are (all
+134x256 -- only the stored pattern differs), changing the data changes how
+many of the 134 cells in the worst column are real transistors rather than
+straps. The bitline, its capacitance and the number of cells it runs past do
+not move. That costs about **125 ps per extra series device at TT** (72 ps at
+FF, 281 ps at SS), on top of a line that is already ~5 ns of fixed delay --
+measured, and close to linear, which is what adding resistors to a fixed RC
+line should look like.
+
+**Growing the array**, by contrast, lengthens the bitline and adds series
+devices at the same time, so R and C both rise and the delay grows roughly
+with the square of the row count. That is the law worth knowing before
+changing `words_per_row`, and it is the one the repository cannot show: it
+needs macros of different row counts, and every example here is 134x256.
 
 ---
 
@@ -415,7 +615,7 @@ the precharged-NAND behaviour described above.
 | `SKY130_LIB` | `$PDK_ROOT/sky130A/libs.tech/ngspice/sky130.lib.spice` | model file |
 | `JOBS` | `4` | parallel ngspice runs |
 | `LOADS` | `1.7225 6.89 27.56` | `.lib` CELL_TABLE output load points (fF) |
-| `ROM_CORNERS` | `tt:1.8:25:38.2 ss:1.6:100:19.1 ff:1.95:-40:60.7` | corner:VDD:temp:fmax(MHz) |
+| `ROM_CORNERS` | `tt:1.8:25:34.1 ss:1.6:100:18.3 ff:1.95:-40:48.2` | corner:VDD:temp:fmax(MHz). `fmax` only scales the `P = E x f` summary column -- the real bound is `minimum_period` in the `.lib` |
 
 ---
 
@@ -445,6 +645,9 @@ JOBS=4 ./scripts/rom_char/run_periphery_power.sh   #  -> periph_{active,idle}_<c
 ./scripts/rom_char/run_col_power.sh                #  -> col<N>_leak_<corner>.log
 ./scripts/rom_char/run_col_energy.sh               #  -> col<N>_energy_<corner>.log
 
+# 6b) periphery leakage (one slice per block x a count, gmin-swept)
+./scripts/rom_char/run_periphery_leak.sh           #  -> periph_leak_cs<n>_<corner>.total
+
 # 7) write the .lib files (reads every log; nothing is entered by hand)
 ./scripts/rom_char/regen_rom_libs.sh               #  -> output/lib/<macro>_<CORNER>.lib
 
@@ -454,6 +657,9 @@ JOBS=4 ./scripts/rom_char/run_periphery_power.sh   #  -> periph_{active,idle}_<c
 
 # 8) behavioural Verilog
 python3 scripts/rom_char/gen_macro_behavioral_v.py #  -> output/verilog/<macro>.v
+
+# 9) optional: redraw the waveform figures from what was just measured
+./scripts/rom_char/run_waveform_capture.sh   # ngspice hardcopy -> docs/img/*.svg
 ```
 
 Every script takes macro names as arguments; with none, **every macro in the
@@ -476,6 +682,8 @@ per corner, the rest are seconds.
 | `no setup measurement -> using pessimistic bound` | step 5 was skipped; the `.lib` is safe but pessimistic |
 | `ERROR: ... _cap_only.spice does not exist` | step 1 has not been run for that macro |
 | `no cellgate log (run run_periphery_power.sh first)` | step 5 was run before step 4 |
+| `no periphery leakage log -> cell_leakage_power covers the ARRAY ONLY` | step 6b has not been run; the clock tree, decoders, wordline drivers and the read back end are scored as zero |
+| a slice prints `NOT CONVERGED` in `run_periphery_leak.sh` | the gmin axis does not reach far enough down -- widen `GMINS` |
 | `WARNING: config says ... columns, netlist has ...` | the config and the layout disagree; the netlist is used |
 | a measurement is `FAILED` in a summary table | the ngspice run did not converge -- look at the `.log` in `char/` |
 
@@ -499,14 +707,20 @@ per corner, the rest are seconds.
 | `gen_periphery_power_tb.py` / `run_periphery_power.sh` | periphery energy (cs0=0/1), front-end delay, setup |
 | `run_addr_setup.sh` | `addr0` -> decoder NAND input setup measurement |
 | `gen_col_power_tb.py` / `run_col_power.sh` / `run_col_energy.sh` | column leakage (`.op`) and column energy |
+| `gen_periphery_leak_tb.py` / `run_periphery_leak.sh` | periphery leakage: one slice per block x a count, with a gmin sweep |
 | `gen_power_tb.py` | brute-force full-macro deck, for cross-checks only |
 | `gen_rom_lib.py` | LEF + measured values -> Liberty |
 | `gen_macro_behavioral_v.py` | behavioural `.v` that reports timing violations |
 | `regen_rom_libs.sh` | the top-level script that ties the flow together |
+| `run_waveform_capture.sh` | re-runs a measured deck with the waveform kept; ngspice's own `hardcopy` writes the figure |
 | `tests/` | validation of the generated `.lib` -- see [`tests/README.md`](tests/README.md) |
 
-Figures live in `docs/img/`; see [`docs/img/README.md`](docs/img/README.md) for
-what each one must show and how to capture it.
+Figures live in `docs/img/`. The waveforms are ngspice's own `hardcopy` of
+its own runs -- no plotting tool sits between the simulation and the picture
+-- and `run_waveform_capture.sh` redraws them from the decks that were just
+measured. The layout screenshots are yours to take.
+[`docs/img/README.md`](docs/img/README.md) says exactly what each figure has
+to show and which command produces it.
 
 ---
 
@@ -583,21 +797,68 @@ Ordered by how much they can move a number:
    impossible since one drives the other through a NAND. `max_transition` on
    the inputs is the top of the axis, so the library never declares a slew it
    was not characterised at.
-5. **Input pin capacitances are analytic estimates** from gate widths
-   (`PIN_CAP` in `gen_rom_lib.py`), not measurements. `MAX_CAP`, `MIN_CAP` and
-   `MAX_TRANSITION` in the same file are fixed constants too -- they are the
-   remaining part of the `.lib` that is not read out of a log.
-6. **Energy assumes every column discharges every cycle** (all wordlines held
+5. **Input pin capacitances are measured, but two of the thirteen pins carry
+   ~5% of uncertainty.** `run_pin_cap.sh` (2026-09-22) replaced the analytic
+   `PIN_CAP` estimate; the old numbers were low by 58-96% (clk0 2.5 -> 4.9 fF,
+   cs0 3.0 -> 5.7 fF, addr0 one flat 6.0 -> a measured 6.6..9.5 fF across the
+   eleven bits). The measurement integrates the charge the pin itself supplies
+   over a full swing, `C = Q(VDD)/VDD`, so it covers the pin's wire C, the gate
+   C of the first stage, and the Miller charge pushed back as that stage
+   switches -- none of which a gate-width formula sees.
+   What is *not* settled: `addr0[0]` and `addr0[6]` are flagged by the deck's
+   own rise-vs-fall settling check in every macro and every corner, they move
+   4-5% when the ramp time is doubled, and `addr0[0]` also moves -4.9% when the
+   deleted array's gate load is doubled (every other pin moves <0.6% under that
+   same 2x perturbation). The other eleven pins reproduce to 0.45% across ramp
+   times and to four significant figures across all four macros. A Liberty bus
+   carries ONE capacitance, so `addr0` ships the worst bit.
+6. **`MAX_CAP`, `MIN_CAP` and `MAX_TRANSITION` are fixed constants**
+   (`gen_rom_lib.py`). The first two are the endpoints of the characterised
+   output-load axis, so they are at least tied to something measured; the
+   transition limit is the top of the slew axis. They are the remaining part
+   of the `.lib` that is not read out of a log.
+7. **The setup/hold tables are scalar in all but shape.** Both constraints
+   sit in a 3x3 `CONSTRAINT_TABLE`, but all nine cells of each carry the same
+   value: the slew dependence of a constraint was not modelled, because it was
+   predicted to move the number by an amount too small to matter. For **hold**
+   that prediction rests on a measurement: hold is set to the full access
+   window, and access moves only 0.24% across the whole `index_1` axis (see
+   limitation 4), so a slew-resolved hold table would be three copies of one
+   number anyway. `run_addr_hold.sh` puts a number on how much is being given
+   away there: it cuts the chain at the cell nearest the bitline -- the worst
+   place to cut -- at a sweep of times after the evaluate edge, and asks
+   whether the read still lands.
+
+   On wrom0 at TT the read survives from 15 ns onward, against the 17.33 ns
+   the `.lib` declares, and the crossing sits on the bitline's own `t_dis_50`
+   -- once the bitline is past the trip point the address no longer matters.
+   The shipped constraint is conservative by ~2.3 ns and stays that way until
+   the sweep is run at every corner. For **setup** it is an expectation and not yet a
+   measurement: `t_addr2dec*` is measured at one clk0 slew, and the address
+   buffer's own dependence on the addr0 edge has never been swept. The window
+   it has to fit inside is large enough (0.05 ns measured against a ~4.9 ns
+   analytic bound at SS) that the effect is not expected to change any
+   conclusion -- but it is an argument, not data.
+8. **Energy assumes every column discharges every cycle** (all wordlines held
    high), which is pessimistic by roughly 2x against random data.
-7. **Periphery leakage is not counted** -- `cell_leakage_power` covers the
-   column array only.
-8. **One column and one dout bit** are measured and applied to every bit.
-9. **The falling-edge arc needs `t_pre_50` from the column deck.** `bus(dout0)`
-   carries a `timing_type : falling_edge` group giving the earliest time dout0
-   leaves its valid level after clk0 falls (`t_clk2pre + t_pre_50 + t_bl2dout`
-   at the smallest load). Against a log that predates `t_pre_50`,
-   `regen_rom_libs.sh` warns and leaves that term out -- which makes the arc
-   earlier, i.e. safe; re-running `run_col_timing.sh` picks it up.
+9. **Leakage is measured in the idle state only.** `cell_leakage_power` covers
+   the array *and* the periphery, but both halves are taken with `.op` at
+   clk0 = 0 -- the precharge phase, chain feet off, every wordline high. That
+   is the state a static leakage number describes, and both halves have to
+   share it to be addable, but it means the evaluate phase (clk0 high, one
+   wordline low, feet conducting) is not characterised. The two `cs0` states
+   *are* both measured, and on the example macros they come out equal: while
+   clk0 is low the control NAND's output does not depend on cs0. What is no
+   longer missing is any BLOCK: since 2026-09-22 the slice list covers every
+   instance of the top-level cell, the read back end included.
+10. **One column and one dout bit** are measured and applied to every bit.
+11. **The falling-edge arc needs `t_pre_50` from the column deck.**
+    `bus(dout0)` carries a `timing_type : falling_edge` group giving the
+    earliest time dout0 leaves its valid level after clk0 falls
+    (`t_clk2pre + t_pre_50 + t_bl2dout` at the smallest load). Against a log
+    that predates `t_pre_50`, `regen_rom_libs.sh` warns and leaves that term
+    out -- which makes the arc earlier, i.e. safe; re-running
+    `run_col_timing.sh` picks it up.
 
 ---
 
