@@ -56,16 +56,50 @@ SIGNATURE = "REAL BEHAVIOURAL MODEL -- gen_macro_behavioral_v.py"
 DEFAULT_CORNER = "SS_1p6V_100C"
 
 
+def _cell_rise_max(txt):
+    """Worst cell_rise on the rising_edge arc of dout0, in ns.
+
+    That IS the access time: the largest entry of the CELL_TABLE (slowest
+    clk0 edge, heaviest output load). It is read from the DATA the tool
+    reads, not from the banner comment above it -- the banner is prose and
+    rewording it must not change this model.
+    """
+    best = None
+    for m in re.finditer(r"timing_type\s*:\s*rising_edge\s*;", txt):
+        tail = txt[m.end():m.end() + 4000]
+        vm = re.search(r"cell_rise\s*\([^)]*\)\s*\{(.*?)\);", tail, re.S)
+        if not vm:
+            continue
+        vals = [float(x) for x in
+                re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", vm.group(1))]
+        if vals:
+            best = max(vals) if best is None else max(best, max(vals))
+    return best
+
+
 def read_lib_timing(lib_path):
     """Return (access, t_pre, setup) in ns; None for anything not found."""
     if not os.path.exists(lib_path):
         return None, None, None
     txt = open(lib_path).read()
 
-    access = None
+    # access comes from the cell_rise table. The banner line the generator
+    # prints above it says the same number, but a comment is documentation:
+    # it is used only as a cross-check, and a disagreement is reported rather
+    # than silently preferred either way.
+    access = _cell_rise_max(txt)
     m = re.search(r"TOTAL \(worst load\)\s*:\s*([\d.]+)\s*ns", txt)
-    if m:
-        access = float(m.group(1))
+    banner = float(m.group(1)) if m else None
+    if access is None:
+        access = banner
+        if banner is not None:
+            print("WARNING: %s: no rising_edge cell_rise table -- access taken "
+                  "from the banner comment" % os.path.basename(lib_path),
+                  file=sys.stderr)
+    elif banner is not None and abs(banner - access) > 1e-3:
+        print("WARNING: %s: banner says access %.4f ns, the cell_rise table "
+              "says %.4f ns -- using the table"
+              % (os.path.basename(lib_path), banner, access), file=sys.stderr)
 
     t_pre = None
     m = re.search(r'timing_type\s*:\s*"min_pulse_width".*?'

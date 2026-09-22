@@ -23,8 +23,13 @@ VERILOG_DIR="$(python3 "$ROM_CHAR_DIR/rom_paths.py" --verilog-dir)"
 NG="${NGSPICE_BIN:-ngspice}"
 JOBS="${JOBS:-4}"
 
-# tag:vdd:temperature:fmax(MHz) -- fmax only feeds the P=E*f summary column
-CORNERS="${ROM_CORNERS:-tt:1.8:25:38.2 ss:1.6:100:19.1 ff:1.95:-40:60.7}"
+# tag:vdd:temperature:fmax(MHz) -- fmax only feeds the P=E*f summary column;
+# nothing in the .lib is derived from it. The values are 1/minimum_period as
+# the generated library declares it (wrom0: 29.35 / 54.75 / 20.74 ns), so the
+# power column is quoted at the fastest clock the library actually allows.
+# They are NOT a frequency bound in their own right -- min_pulse_width and
+# minimum_period on clk0 are, and STA reads those.
+CORNERS="${ROM_CORNERS:-tt:1.8:25:34.1 ss:1.6:100:18.3 ff:1.95:-40:48.2}"
 # .lib CELL_TABLE index_2 points (output load, fF)
 LOADS="${LOADS:-1.7225 6.89 27.56}"
 # .lib CELL_TABLE index_1 points (clk0 input transition, ns).

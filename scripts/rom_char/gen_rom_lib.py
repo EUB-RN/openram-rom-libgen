@@ -200,8 +200,8 @@ def gen_lib(name, area, buses, scalars, corner, args):
     # would double count -> sscale = 1 under --measured. The margins (the
     # 0.5/0.2 inside pw_high/pw_low) are analytic, so they keep being scaled by
     # the corner derating.
-    mscale = 1.0 if args.measured else dscale   # olculen buyuklukler
-    hscale = 1.0 if args.measured else cscale   # hold, olculen access'i izler
+    mscale = 1.0 if args.measured else dscale   # measured quantities
+    hscale = 1.0 if args.measured else cscale   # hold tracks the measured access
     sscale = 1.0 if args.measured else cscale   # setup arrives per corner
     access = args.access * mscale
     t_pre = args.t_pre * mscale
@@ -266,8 +266,8 @@ def gen_lib(name, area, buses, scalars, corner, args):
     # back end, at the worst output load) -- the data is not valid before that.
     access_eff = (t_front + access + max(be)) if be else (access + max(LOAD_DELTA))
 
-    pw_high = access_eff + 0.5 * dscale  # degerlendirme + pay (pay analitik)
-    pw_low = t_pre + 0.2 * dscale        # on-sarj + pay (pay analitik)
+    pw_high = access_eff + 0.5 * dscale  # evaluate + margin (margin analytic)
+    pw_low = t_pre + 0.2 * dscale        # precharge + margin (margin analytic)
     period = pw_high + pw_low
     # column mux ratio: <columns>:<data bits> -- for the .lib header
     _dbits = len(buses["dout0"]["bits"]) if "dout0" in buses else 0
@@ -368,6 +368,42 @@ def gen_lib(name, area, buses, scalars, corner, args):
     rails = [(r.upper(), volt) for r in pwr_pins] + [(r.upper(), 0.0)
                                                      for r in gnd_pins]
 
+    # --- MEASURED input pin capacitances ----------------------------------
+    # run_pin_cap.sh passes '<pin>=<fF>,...'; Liberty wants pF. Anything not
+    # measured keeps the analytic PIN_CAP estimate, and the header names those
+    # pins rather than letting a guess pass for a measurement.
+    meas_cap = {}
+    if args.pin_cap:
+        for item in args.pin_cap.split(","):
+            if not item.strip():
+                continue
+            k, _, v = item.partition("=")
+            try:
+                meas_cap[k.strip()] = float(v) * 1e-3   # fF -> pF
+            except ValueError:
+                sys.exit("--pin-cap wants '<pin>=<fF>' pairs, got %r" % item)
+
+    def pin_cap(name, bits=None):
+        """Measured capacitance in pF, else the analytic fallback.
+
+        For a BUS the worst bit wins. Liberty carries a single capacitance on
+        the ranged pin, so the alternative to the worst is telling a driver it
+        will find less load than it does.
+        """
+        if bits is not None:
+            vals = [meas_cap[k] for k in
+                    ("%s[%d]" % (name, b) for b in bits) if k in meas_cap]
+            if vals:
+                return max(vals)
+        if name in meas_cap:
+            return meas_cap[name]
+        return PIN_CAP.get(name, PIN_CAP["_default"])
+
+    def cap_is_measured(name, bits=None):
+        if bits is not None:
+            return any("%s[%d]" % (name, b) in meas_cap for b in bits)
+        return name in meas_cap
+
     addr_buses = [b for b, i in buses.items() if i["direction"] == "input"]
     data_buses = [b for b, i in buses.items() if i["direction"] == "output"]
     addr_bits = len(buses[addr_buses[0]]["bits"]) if addr_buses else 0
@@ -457,6 +493,47 @@ def gen_lib(name, area, buses, scalars, corner, args):
         w(" * precharge/wordline and bitline -> dout0 (inverter + mux + output")
         w(" * buffer) are MISSING. Pass the measured values with --t-front /")
         w(" * --backend-ns (scripts/rom_char/gen_backend_delay_tb.py).")
+    w(" *")
+    # clk0 is emitted as its own pin() group after the scalar loop skips it,
+    # so it has to be appended here -- but only if the LEF did not already
+    # list it among the scalars, or the header names it twice.
+    _scalar_names = [p_ for p_ in scalars
+                     if scalars[p_].get("use") not in ("power", "ground")]
+    if "clk0" not in _scalar_names:
+        _scalar_names.append("clk0")
+    _in_pins = ([(b, buses[b]["bits"]) for b in addr_buses]
+                + [(p_, None) for p_ in _scalar_names])
+    _unmeas = [p_ for p_, bits in _in_pins if not cap_is_measured(p_, bits)]
+    if not meas_cap:
+        w(" * INPUT PIN CAPACITANCES ARE ANALYTIC, NOT MEASURED. They come")
+        w(" * from gate widths in the netlist (PIN_CAP in gen_rom_lib.py) and")
+        w(" * one value covers every address bit, which the extraction says")
+        w(" * cannot be right -- the wire load alone varies several-fold")
+        w(" * across the bus. Run run_pin_cap.sh and pass --pin-cap.")
+    else:
+        w(" * INPUT PIN CAPACITANCES ARE MEASURED (run_pin_cap.sh):")
+        w(" *   C = Q(VDD)/VDD, the charge the pin itself supplies over a full")
+        w(" *   swing -- its wire C, the gate C of the first stage it drives,")
+        w(" *   and the Miller charge pushed back as that stage switches.")
+        for _p, _b in _in_pins:
+            if not cap_is_measured(_p, _b):
+                continue
+            _v = pin_cap(_p, _b)
+            if _b is not None:
+                _all = sorted(meas_cap["%s[%d]" % (_p, k)] for k in _b
+                              if "%s[%d]" % (_p, k) in meas_cap)
+                w(" *   %-8s %.4f pF  (worst of %d bits, %.4f .. %.4f)"
+                  % (_p, _v, len(_all), _all[0], _all[-1]))
+            else:
+                w(" *   %-8s %.4f pF" % (_p, _v))
+        if _in_pins and any(b is not None for _, b in _in_pins):
+            w(" *   A bus carries ONE Liberty capacitance, so the ranged pin")
+            w(" *   takes the WORST bit: telling a driver it will find less")
+            w(" *   load than it does is the unsafe direction. The per-bit")
+            w(" *   spread is above; it is real, not measurement noise.")
+        if _unmeas:
+            w(" *   STILL ANALYTIC (no measurement passed): %s"
+              % ", ".join(_unmeas))
     if be and len(set(t_front_list)) > 1:
         w(" *")
         w(" * BOTH AXES OF THE TABLE ARE MEASURED.")
@@ -531,6 +608,25 @@ def gen_lib(name, area, buses, scalars, corner, args):
             w(" *     ZERO, which is WRONG. Measure it with")
             w(" *     scripts/rom_char/gen_periphery_power_tb.py and pass")
             w(" *     --energy-idle-pj.")
+    w(" *")
+    if args.leakage_idle_mw is not None:
+        w(" * LEAKAGE covers the ARRAY AND THE PERIPHERY, both measured with")
+        w(" * .op in the same idle state (clk0 low):")
+        w(" *   when \"cs0\"  = %.6f mW" % args.leakage_mw)
+        w(" *   when \"!cs0\" = %.6f mW" % args.leakage_idle_mw)
+        w(" *   cell_leakage_power = %.6f mW, the worse of the two."
+          % max(args.leakage_mw, args.leakage_idle_mw))
+        w(" * The periphery half is one slice per block times a count from")
+        w(" * the netlist (run_periphery_leak.sh), gmin-swept: gmin is added")
+        w(" * in parallel with the leakage and at the pA level it becomes the")
+        w(" * answer, so each slice is taken where the sweep stops moving.")
+    else:
+        w(" * WARNING: cell_leakage_power covers the CELL ARRAY ONLY. The")
+        w(" * clock driver, control NAND, precharge driver, address buffers,")
+        w(" * row and column decoders and %s wordline drivers are scored as"
+          % (args.rows if args.rows else "the"))
+        w(" * ZERO. Run scripts/rom_char/run_periphery_leak.sh and pass")
+        w(" * --leakage-idle-mw.")
     w(" * ----------------------------------------------------------------- */")
     w("library (%s_%s) {" % (name, corner))
     w('    delay_model : "table_lookup";')
@@ -638,10 +734,25 @@ def gen_lib(name, area, buses, scalars, corner, args):
                                      else "backup_ground"))
         w("    }")
     w("")
-    w("    leakage_power () {")
-    w("        related_pg_pin : %s;" % pwr)
-    w("        value : %.6f;" % leak)
-    w("    }")
+    # One group per cs0 state when both were measured. cs0 gates only the
+    # precharge path -- the clock tree, the address buffers and the decoder
+    # leak whatever the macro is doing -- so the two states differ by the
+    # periphery term, not by the array. cell_leakage_power is the WORSE of
+    # them: it is the single number a tool reads when it ignores the groups.
+    leak_idle = args.leakage_idle_mw
+    if leak_idle is not None:
+        for cond, value in (('"cs0"', leak), ('"!cs0"', leak_idle)):
+            w("    leakage_power () {")
+            w("        when : %s;" % cond)
+            w("        related_pg_pin : %s;" % pwr)
+            w("        value : %.6f;" % value)
+            w("    }")
+        leak = max(leak, leak_idle)
+    else:
+        w("    leakage_power () {")
+        w("        related_pg_pin : %s;" % pwr)
+        w("        value : %.6f;" % leak)
+        w("    }")
     w("    cell_leakage_power : %.6f;" % leak)
     w("")
 
@@ -662,7 +773,7 @@ def gen_lib(name, area, buses, scalars, corner, args):
         w("        timing() {")
         w("            timing_sense : non_unate;")
         w('            related_pin : "clk0";')
-        # On-sarjli dizi clk YUKSELEN kenarda degerlendirmeye baslar.
+        # A precharged array starts evaluating on clk's RISING edge.
         w("            timing_type : rising_edge;")
         tables = [("cell_rise", delay_rows), ("cell_fall", delay_rows),
                   ("rise_transition", slew_rows),
@@ -706,7 +817,7 @@ def gen_lib(name, area, buses, scalars, corner, args):
         w("    bus(%s) {" % bname)
         w("        bus_type : rom_addr;")
         w("        direction : input;")
-        w("        capacitance : %s;" % PIN_CAP["_default"])
+        w("        capacitance : %s;" % pin_cap(bname, bits))
         w("        max_transition : %s;" % max_transition)
         w("        pin(%s[%d:%d]) {" % (bname, bits[-1], bits[0]))
         w("        related_power_pin  : %s;" % pwr)
@@ -721,7 +832,7 @@ def gen_lib(name, area, buses, scalars, corner, args):
             continue
         w("    pin(%s) {" % pname)
         w("        direction : input;")
-        w("        capacitance : %s;" % PIN_CAP.get(pname, PIN_CAP["_default"]))
+        w("        capacitance : %s;" % pin_cap(pname))
         w("        max_transition : %s;" % max_transition)
         w("        related_power_pin  : %s;" % pwr)
         w("        related_ground_pin : %s;" % gnd)
@@ -732,14 +843,14 @@ def gen_lib(name, area, buses, scalars, corner, args):
     w("    pin(clk0) {")
     w("        clock : true;")
     w("        direction : input;")
-    w("        capacitance : %s;" % PIN_CAP["clk0"])
+    w("        capacitance : %s;" % pin_cap("clk0"))
     w("        max_transition : %s;" % max_transition)
     w("        related_power_pin  : %s;" % pwr)
     w("        related_ground_pin : %s;" % gnd)
     w("        timing() {")
     w('            timing_type : "min_pulse_width";')
     w("            related_pin : clk0;")
-    # rise = YUKSEK faz (degerlendirme), fall = DUSUK faz (on-sarj).
+    # rise = HIGH phase (evaluate), fall = LOW phase (precharge).
     w('            rise_constraint(scalar) { values("%.4f"); }' % pw_high)
     w('            fall_constraint(scalar) { values("%.4f"); }' % pw_low)
     w("        }")
@@ -843,6 +954,16 @@ def main():
                          "Because the column measurement triggers off the "
                          "internal precharge net, this term was MISSING from "
                          "access.")
+    ap.add_argument("--pin-cap", default=None,
+                    help="measured input pin capacitances, "
+                         "'<pin>=<fF>,<pin>=<fF>,...' from run_pin_cap.sh "
+                         "(note: fF, while Liberty wants pF -- the conversion "
+                         "happens here). Anything not listed falls back to the "
+                         "analytic PIN_CAP estimate and the header says which "
+                         "pins those were. A bus takes the WORST of its bits: "
+                         "Liberty carries one capacitance for the ranged pin, "
+                         "and a driver told to expect less than it finds is "
+                         "the unsafe direction.")
     ap.add_argument("--t-coldec", type=float, default=None,
                     help="measured precharge -> column select, ns (worst "
                          "address/corner, run_coldec_delay.sh). The column "
@@ -887,6 +1008,13 @@ def main():
                          "clk0. cs0 only gates the precharge; the clock tree "
                          "and the row decoder keep running -- this value is "
                          "NOT ZERO.")
+    ap.add_argument("--leakage-idle-mw", type=float, default=None,
+                    help="total static leakage while the macro is DESELECTED "
+                         "(cs0=0) (mW, measured). With it the library carries "
+                         "one leakage_power group per cs0 state and "
+                         "cell_leakage_power becomes the worse of the two. "
+                         "cs0 only gates the precharge path, so the two "
+                         "states differ in the periphery, not in the array.")
     ap.add_argument("--measured", action="store_true",
                     help="the access/t_pre passed in ALREADY belong to the "
                          "corner given with --corner (that corner's own "

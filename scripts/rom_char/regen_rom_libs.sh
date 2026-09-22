@@ -17,7 +17,11 @@
 #   t_clk2pre + t_pre_50 + the SMALLEST-load t_bl2dout -- the earliest the
 #   output can leave its valid level. Without it STA assumes dout0 holds to
 #   the next capture edge, which is a false pass on an unlatched ROM.
-# LEAKAGE: char/col<N>_leak_<corner>.log   (vvdd#branch from the .op table)
+# LEAKAGE: array     char/col<N>_leak_<corner>.log  (vvdd#branch, x columns)
+#          periphery char/periph_leak_cs<n>_<corner>.total  (run_periphery_leak.sh:
+#          one slice per block x a count, gmin-swept). Both are taken in the
+#          SAME state (clk0 low) so that they can be added. Without the
+#          periphery files the .lib says ARRAY ONLY and warns.
 # ENERGY : column array <columns> x char/col<N>_energy_<corner>.log e_col_pj
 #          + periphery              char/periph_active_<corner>.log  e_periph_pj
 #   idle   (when "!cs0")            : char/periph_idle_<corner>.log  e_periph_pj
@@ -83,9 +87,30 @@ for m in $(macro_list "$@"); do
     pre=$(meas "$PAR" t_pre_99 | awk '{printf "%.4f", $1*1e9}')
 
     # Leakage is not a .measure: it is the supply current in the .op table.
-    # P = |I| x <column count> x VDD  -> mW
-    leak=$(grep -m1 "vvdd#branch" "$LK" 2>/dev/null | awk -v n="$G_COLS" -v v="$vdd" \
+    # P = |I| x <column count> x VDD  -> mW.  That is the ARRAY term.
+    leak_arr=$(grep -m1 "vvdd#branch" "$LK" 2>/dev/null | awk -v n="$G_COLS" -v v="$vdd" \
              '{ i = $2 < 0 ? -$2 : $2; printf "%.7f", i*n*v*1e3 }')
+
+    # The PERIPHERY term: run_periphery_leak.sh writes the converged total in
+    # nA, one file per cs0 state. cs0 gates the precharge path only, so the
+    # two states differ in the periphery and not in the array; both are
+    # written to the .lib and cell_leakage_power is the worse of them.
+    # Without these files the .lib falls back to the array alone, which
+    # scores the whole periphery as ZERO -- so say so rather than let it pass.
+    leak=""
+    leak_idle=""
+    pl1="$G_CHAR/periph_leak_cs1_${c}.total"
+    pl0="$G_CHAR/periph_leak_cs0_${c}.total"
+    if [ -n "$leak_arr" ] && [ -f "$pl1" ] && [ -f "$pl0" ]; then
+      leak=$(awk -v a="$leak_arr" -v v="$vdd" '{printf "%.7f", a + $1*1e-9*v*1e3}' "$pl1")
+      leak_idle=$(awk -v a="$leak_arr" -v v="$vdd" '{printf "%.7f", a + $1*1e-9*v*1e3}' "$pl0")
+    elif [ -n "$leak_arr" ]; then
+      echo "  $m $c: no periphery leakage log -> cell_leakage_power covers the"
+      echo "        ARRAY ONLY; the clock tree, address buffers, decoders and"
+      echo "        wordline drivers are scored as zero (run"
+      echo "        run_periphery_leak.sh)"
+      leak="$leak_arr"
+    fi
 
     # 1) front end: clk0 -> precharge. The column measurement triggers off the
     #    internal precharge net, so this term was MISSING from access. (Cross-
@@ -134,6 +159,37 @@ for m in $(macro_list "$@"); do
       echo "  $m $c: no column-decode logs -> the .lib will say the column" \
            "decoder was never simulated (run run_coldec_delay.sh)"
       coldec_arg=""
+    fi
+
+    # INPUT PIN CAPACITANCES. run_pin_cap.sh writes pincap_<corner>.log, and
+    # the pin index -> name mapping lives in the deck header it was built from
+    # (the generator writes it there, so the names are the netlist's own). For
+    # each pin what ships is c_cyc: the charge for one full 0 -> VDD -> 0
+    # round trip over two swings. Neither edge on its own is safe to use --
+    # on a pin with a deep fanout they trade charge across the window
+    # boundary (on clk0 the two swapped places between two ramp times while
+    # their SUM held to 0.2%). run_pin_cap.sh compares the edges as the
+    # settling proof and flags any pin where they disagree by over 5%.
+    # Absent logs are reported, not skipped -- the .lib then says outright
+    # that these numbers are analytic.
+    PCS="$G_CHAR/pincap_${c}.sp"
+    PCL="$G_CHAR/pincap_${c}.log"
+    pc_arg=""
+    if [ -f "$PCL" ] && [ -f "$PCS" ]; then
+      pc_list=$(sed -n 's/^\*PINCAP \([0-9][0-9]*\) \(.*\)$/\1 \2/p' "$PCS" \
+        | while read -r i p; do
+            cy=$(meas "$PCL" "c_cyc${i}_ff")
+            [ -z "$cy" ] && continue
+            echo "$p $cy" | awk '{printf "%s=%.4f,", $1, $2}'
+          done)
+      pc_list=${pc_list%,}
+      if [ -n "$pc_list" ]; then
+        pc_arg="--pin-cap $pc_list"
+      fi
+    fi
+    if [ -z "$pc_arg" ]; then
+      echo "  $m $c: no pin-cap log -> input capacitances stay ANALYTIC" \
+           "(run run_pin_cap.sh)"
     fi
 
     # 3) back end: bitline -> dout0 plus output slew, at three load points
@@ -240,15 +296,16 @@ ${G_ROWS}x${G_COLS} array, worst column ${col} (series NMOS ${G_CHAIN}); \
 front end + periphery power char/periph_{active,idle}_${c}.log, \
 bitline char/${G_COLTAG}_worst_case_parasitic${sfx}.log, \
 back end + slew char/backend_${c}_*.log, \
-leakage char/${G_COLTAG}_leak_${c}.log, \
+leakage char/${G_COLTAG}_leak_${c}.log${leak_idle:+ + char/periph_leak_cs*_${c}.total}, \
 column energy char/${G_COLTAG}_energy_${c}.log"
 
     python3 "$GEN" --lef "$LEF" --memory-type rom --measured \
       --outdir "$LIB_DIR" \
       --corner "$corner" --access "$acc" --hold "$acc" --t-pre "$pre" \
       --setup "$stp" \
-      --leakage-mw "$leak" --energy-pj "$e_act" --energy-idle-pj "$e_idle" \
-      --t-front "$tf_list" $slew_arg $retain_arg $coldec_arg \
+      --leakage-mw "$leak" ${leak_idle:+--leakage-idle-mw "$leak_idle"} \
+      --energy-pj "$e_act" --energy-idle-pj "$e_idle" \
+      --t-front "$tf_list" $slew_arg $retain_arg $coldec_arg $pc_arg \
       --backend-ns "$be" --out-slew-ns "$sl" \
       --t-invalid "$tinv" \
       --chain-len "$G_CHAIN" --worst-col "$col" \

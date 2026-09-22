@@ -44,6 +44,14 @@ ap.add_argument("--temp", default="25")
 ap.add_argument("--tclk", default="200n",
                 help="cycle period in active mode; the ENERGY should be "
                      "independent of it -- verify by running two values")
+ap.add_argument("--steps", type=int, default=400,
+                help="transient steps per cycle (TCLK/steps). The deck is "
+                     "step converged with method=gear, so this is not a knob "
+                     "that changes the answer -- it exists to PROVE that.")
+ap.add_argument("--integrator", default="gear", choices=["gear", "trap"],
+                help="ngspice integration method. gear is the default and the "
+                     "only one this deck is step converged with; trap "
+                     "reproduces the ngspice default for comparison.")
 ap.add_argument("--macros-dir", default=None,
                 help="macro tree (default: ROM_MACROS_DIR / <repo>/examples)")
 args = ap.parse_args()
@@ -140,7 +148,26 @@ Vprecharge precharge 0 PULSE(0 {{VDD}} {{TCLK/2}} 100p 100p {{TCLK/2-100p}} {{TC
 
 {circuit}
 
-.tran '{args.tclk}/400' '4*TCLK' uic
+* method=gear IS REQUIRED. On the ngspice DEFAULT (trapezoidal) this deck is
+* not step converged -- sweeping TCLK/200, /400, /800, /1600 on wrom0 column
+* 236 at TT gives
+*     trapezoidal  0.4956 / 0.4823 / 0.4849 / 0.4917 pJ   2.8%, NOT monotonic
+*     gear         0.4805 / 0.4851 / 0.4858 / 0.4860 pJ   monotonic, 0.18%
+*                                                         from /400 on
+* so the answer depended on a step nobody was choosing on purpose, and the
+* value this deck used to produce was 0.6% low. It is the same trapezoidal
+* ringing on the extracted body nodes that the periphery energy deck
+* documents, landing straight in the i(Vvdd) charge integral both decks
+* measure. --steps/--integrator exist to reproduce that sweep, not to tune.
+* It also cleared up the settling check: on trapezoidal, cycles 2 and 3 of
+* wrom0 at TT read -2.757e-13 and -2.679e-13 C, a 2.8% gap that looked like a
+* circuit still filling. With gear they agree to five digits (-2.69499e-13 vs
+* -2.69504e-13). The gap was the integrator, not the chain.
+* abstol: 1e-15 belongs to the LEAKAGE branch above, where the currents are
+* nanoamps. Here they are microamps and tightening it only makes convergence
+* harder (the same finding as next door).
+.options gmin=1e-12 abstol=1e-12 reltol=1e-3 itl1=500 itl4=100{" method=gear" if args.integrator == "gear" else ""}
+.tran '{args.tclk}/{args.steps}' '4*TCLK' uic
 * Cycles 2 AND 3 are measured separately: equal values prove the circuit has
 * SETTLED (with uic every node starts at 0 and the chain fills slowly).
 * Cycle 3 is the more settled one, so THAT is what goes into the .lib.

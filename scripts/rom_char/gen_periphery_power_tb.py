@@ -111,6 +111,18 @@ ap.add_argument("--with-coldec", action="store_true",
                      "in series with it; what this proves is that the "
                      "unselected selects have FALLEN before the bitline data "
                      "develops.")
+ap.add_argument("--pin-cap", action="store_true",
+                help="measure the INPUT PIN CAPACITANCES instead of energy. "
+                     "Keeps every block an input pin touches (control logic, "
+                     "row decoder, column decoder) and ramps one pin at a "
+                     "time, integrating the charge that pin has to supply: "
+                     "C = Q(VDD)/VDD, the same reduction gen_cell_gate_tb.py "
+                     "uses. See run_pin_cap.sh.")
+ap.add_argument("--pin-tr", default="1n",
+                help="--pin-cap: ramp time of the measured pin. It must be "
+                     "slow enough that the charge is the pin's own and not a "
+                     "displacement spike through the first gate, and fast "
+                     "enough to stay in the regime a real driver works in.")
 ap.add_argument("--macros-dir", default=None,
                 help="macro tree (default: ROM_MACROS_DIR / <repo>/examples)")
 args = ap.parse_args()
@@ -186,7 +198,10 @@ KEEP_SUB = {f"{M}_rom_control_logic", f"{M}_rom_row_decode"}
 # therefore a timing run: only its t_pre2sel* measurements are usable.
 COLDEC = f"{M}_rom_column_decode"
 MUX = f"{M}_rom_column_mux_array"
-if args.with_coldec:
+if args.with_coldec or args.pin_cap:
+    # --pin-cap needs it too: addr0[0:2] go to the COLUMN decoder and
+    # addr0[3:] to the row decoder, so without it three address pins would be
+    # measured driving nothing at all.
     KEEP_SUB.add(COLDEC)
 keep = [l for l in top_insts if l.split()[-1] in KEEP_SUB]
 drop = [l for l in top_insts if l.split()[-1] not in KEEP_SUB]
@@ -375,7 +390,7 @@ def rebuild_load(sub, tag):
     return load_lines, load_report
 
 load_lines, load_report = rebuild_load(ARRAY, "wl")
-if args.with_coldec:
+if COLDEC in KEEP_SUB:
     # The eight column selects drive 256 mux pass transistors between them.
     # Without this the decoder would be measured driving its own wire C alone
     # and would come out far too fast.
@@ -504,7 +519,7 @@ wl_meas = [n for k in range(8)
 # measured clock edge; both trig and targ then catch the first crossing after
 # it. A late cycle is used so the circuit has settled.
 _tclk = to_float(args.tclk)
-_edge = (args.cycles - 2) * _tclk        # olculecek clk0 yukselen kenari
+_edge = (args.cycles - 2) * _tclk        # the clk0 rising edge to measure
 _td_trig = _edge - _tclk / 20.0
 # The TARG window starts EXACTLY at the edge: because the decoder is
 # precharged, the wordlines also rise on clk0's FALLING edge (the precharge
@@ -661,6 +676,110 @@ fe_txt = "\n".join(fe)
 caps_txt = "\n".join(kept_c)
 loads_txt = "\n".join(load_lines)
 
+# --- PIN CAPACITANCE ------------------------------------------------------
+# README limitation 5 until 2026-09-22: `capacitance` on every input pin was
+# an analytic guess from gate widths -- PIN_CAP = {"clk0": 0.0025, "cs0":
+# 0.0030, "_default": 0.0060} in gen_rom_lib.py, i.e. ONE number for all
+# eleven address bits. The extraction says that cannot be right: the top-level
+# wire C alone runs from 6 C elements on addr0[0] to 41 on addr0[10].
+#
+# WHAT IS MEASURED. Each input pin is ramped 0 -> VDD on its own, with every
+# other pin parked, and the charge it has to supply is integrated:
+#
+#     C = Q(VDD) / VDD
+#
+# the same reduction gen_cell_gate_tb.py uses for the cell gate, and for the
+# same reason: Liberty `capacitance` is a single scalar a driver's delay
+# calculation multiplies, so what matters is the total charge over the swing,
+# not the shape of the non-linear C-V curve underneath it.
+#
+# This is the WHOLE load and not just a gate: the pin's top-level wire C, the
+# gate C of every first-stage device it drives, and the Miller charge pushed
+# back through that stage as it switches -- all of it comes out of the same
+# integral, because it all comes out of the same source.
+#
+# THE FALLING RAMP IS MEASURED TOO, and it is not redundant. An input cap that
+# differs between the two directions is a state-dependent one, and a single
+# Liberty scalar cannot represent it; the runner compares them and the larger
+# is what ships. Each pin also returns to 0 before the next one starts, so
+# every pin is measured from the same quiescent state.
+#
+# THE STATE IT IS MEASURED IN: all pins at 0, i.e. clk0 low (precharge phase,
+# the half of the cycle in which the address has to be stable anyway) and the
+# macro deselected. That is a choice, and the rise-vs-fall comparison is what
+# makes it a checkable one rather than an assumption.
+if args.pin_cap:
+    pin_names = [p_ for p_ in top_ports
+                 if re.match(r"^(clk0|cs0|addr0\[\d+\])$", p_)]
+    if not pin_names:
+        sys.exit("ERROR: --pin-cap found no input pins at top level")
+    _tr = to_float(args.pin_tr)
+    # THE HOLD IS PART OF THE MEASUREMENT, not padding between edges. See the
+    # window note below; it has to be long enough for the stage the pin drives
+    # to finish switching, so it is generous rather than tight.
+    _th = 10 * _tr
+    _t0 = 20e-9                   # let the precharged chain nodes settle first
+    # A QUIET GAP AFTER EACH PIN. Without it (2026-09-22) the slots touched,
+    # and ADJACENT pins moved by ~4% in OPPOSITE directions when --pin-tr was
+    # doubled -- addr0[0] +4.65% against addr0[1] -4.02%, addr0[4] -4.14%
+    # against addr0[5] +3.92% -- while each PAIR summed to within 0.3%. That
+    # is one pin's settling tail crossing the boundary into its neighbour's
+    # window, not a change in anyone's capacitance. The gap is dead time: no
+    # measurement window covers it.
+    _slot = 2 * _tr + 3 * _th
+    pin_src, pin_meas, pin_rows = [], [], []
+    for i, p_ in enumerate(pin_names):
+        t_r0 = _t0 + i * _slot
+        t_r1 = t_r0 + _tr
+        t_f0 = t_r1 + _th
+        t_f1 = t_f0 + _tr
+        pin_src.append(
+            f"Vpin{i} {p_} 0 PWL(0 0 {t_r0:.6e} 0 {t_r1:.6e} {{VDD}} "
+            f"{t_f0:.6e} {{VDD}} {t_f1:.6e} 0)")
+        # THE WINDOW RUNS TO THE END OF THE HOLD, NOT TO THE END OF THE RAMP.
+        # Integrating the ramp alone (2026-09-22) was not ramp independent:
+        # doubling --pin-tr moved five of the thirteen pins by 10-13% while the
+        # other eight stayed inside 0.3%. The reason is that the stage the pin
+        # drives goes on switching after the pin has finished moving, and its
+        # Miller current keeps coming back out of the pin. Cutting the integral
+        # at the end of the ramp keeps whatever fraction of that tail happened
+        # to fall inside, and that fraction depends on the ramp time -- which is
+        # exactly the arbitrary knob it must not depend on.
+        # Over ramp + hold the pin voltage ends flat and the tail has died, so
+        # the integral is the TOTAL charge for the transition, which is what
+        # C = Q/VDD means.
+        pin_meas.append(
+            f".measure tran q_rise{i} integ i(Vpin{i}) "
+            f"from={t_r0:.6e} to={t_f0:.6e}")
+        pin_meas.append(
+            f".measure tran q_fall{i} integ i(Vpin{i}) "
+            f"from={t_f0:.6e} to={t_f1 + _th:.6e}")
+        pin_meas.append(
+            f".measure tran c_rise{i}_ff param='abs(q_rise{i})/VDD*1e15'")
+        pin_meas.append(
+            f".measure tran c_fall{i}_ff param='abs(q_fall{i})/VDD*1e15'")
+        # THE SHIPPED VALUE IS THE FULL CYCLE, not either edge on its own.
+        # On clk0 the two edges TRADED PLACES when --pin-tr was doubled --
+        # rise 4.403 / fall 4.898 at 1 ns against rise 4.858 / fall 4.464 at
+        # 2 ns -- while the SUM held at 9.301 vs 9.322, 0.2% apart. The charge
+        # is conserved; only the boundary between the two windows moves,
+        # because a pin with a deep fanout is still settling when the fall
+        # begins. Averaging the two edges is immune to where that boundary
+        # falls, and it is the same quantity either way: the charge for one
+        # full 0 -> VDD -> 0 round trip, over two swings.
+        pin_meas.append(
+            f".measure tran c_cyc{i}_ff "
+            f"param='(abs(q_rise{i})+abs(q_fall{i}))/(2*VDD)*1e15'")
+        # A machine-readable marker, not prose: run_pin_cap.sh and
+        # regen_rom_libs.sh read this mapping back out of the deck. The first
+        # attempt formatted it as "*  <i>  <name>" and a header line reading
+        # "*   10 negative sums clamped" matched the same pattern, which put a
+        # pin called "negative" into the .lib command line.
+        pin_rows.append(f"*PINCAP {i} {p_}")
+    pin_src_txt = "\n".join(pin_src)
+    pin_meas_txt = "\n".join(pin_meas)
+    t_end = _t0 + len(pin_names) * _slot + _th
+
 # --- stimulus -------------------------------------------------------------
 if args.addr_alt is None:
     addr_src = "\n".join(
@@ -700,7 +819,86 @@ coldec_note = (
     "* .lib uses -- only the t_pre2sel* measurements from it are usable.\n"
     if args.with_coldec else "")
 
-tb = f"""* {M} -- PERIPHERY energy per cycle -- {mode}
+if args.pin_cap:
+    tb = f"""* {M} -- INPUT PIN CAPACITANCE ({args.corner})
+* C = Q(VDD)/VDD per pin -- the charge the pin itself has to supply over a
+* full swing. That is the whole load: top-level wire C, the gate C of the
+* first stage, and the Miller charge pushed back through it as that stage
+* switches, since all three come out of the same source.
+*
+* Kept: rom_control_logic (clk0, cs0), rom_row_decode (addr0[3:]),
+*       rom_column_decode (addr0[0:2]) -- every block an input pin touches.
+*       The deleted cell array and column mux are put back as load
+*       ({wl_n} wordlines, {cells} cell gates) so the decoders switch against
+*       what they really drive; that switching is what feeds Miller charge
+*       back into the address pins.
+* Top-level C: {len(kept_c)} kept/merged, {n_drop} dropped (both ends dead),
+*              {clamped} negative sums clamped (Magic substrate correction)
+* Negative NET capacitance fix: {n_fix} nodes, {c_fix_tot*1e15:.1f} fF total
+*
+* ONE PIN AT A TIME: pin i ramps up over {args.pin_tr}, holds, ramps back down
+* and stays down, so every pin is measured from the SAME quiescent state (all
+* pins at 0: clk0 low, i.e. the precharge phase, macro deselected).
+* BOTH EDGES ARE MEASURED. c_rise/c_fall differing means the pin cap is state
+* dependent and a single Liberty scalar cannot carry it -- run_pin_cap.sh
+* compares them and ships the larger.
+*
+* pin index -> name:
+{chr(10).join(pin_rows)}
+
+.lib {rom_paths.sky130_lib()} {args.corner}
+.temp {args.temp}
+.param VDD={args.vdd}
+
+Vvdd {SUPPLY_HI} 0 DC {{VDD}}
+Vgnd {SUPPLY_LO} 0 DC 0
+
+* --- one independent source per input pin (the ammeter IS the measurement) --
+{pin_src_txt}
+
+* --- periphery instances (with parasitics, verbatim from the extraction) ---
+{keep_fixed}
+
+* --- decoder chain nodes start precharged ({len(set(ic_nodes))} nodes) ---
+{ic_txt}
+
+* --- load of the deleted cell array and column mux ---
+{loads_txt}
+
+* --- top-level parasitic C ---
+{caps_txt}
+
+* --- sub-circuit definitions ---
+{defs}
+
+* These are EXACTLY the energy deck's options, and the tolerances are not a
+* copy-paste: tightening abstol to 1e-15 (2026-09-22) aborted this deck at
+* t = 5e-14 with "Timestep too small ... precharge_cell_132 ... pfet#body",
+* before any pin had moved -- the same start-up convergence trouble the energy
+* deck's comments document. It is also unnecessary. The integrals here look
+* small as CHARGE (~10 fC) but the current is not: 10 fC over a {args.pin_tr}
+* ramp is ~10 uA, four orders above abstol=1e-12.
+* method=gear is kept for the reason it was introduced next door -- trapezoidal
+* ringing on the extracted body nodes lands straight in a charge integral.
+.options gmin=1e-12 abstol=1e-12 reltol=1e-3 itl1=500 itl4=100 method=gear
+* uic: the precharged decoder chain nodes have no DC path, so .op does not
+* converge (see the energy deck). The first {_t0*1e9:.0f} ns are settling time
+* before the first pin is touched.
+*
+* THE STEP IS THE RAMP TIME, NOT A FRACTION OF IT. Asking for a fine step up
+* front is what kills this deck: TR/200 (5 ps) aborted at t = 5e-14 and TR/50
+* (20 ps) at t = 2e-13, both before any pin had moved, collapsing the timestep
+* to 1e-23 on an extracted body node. The working decks next door all run at
+* ~1 ns and get sub-nanosecond numbers out, because this argument is the
+* SUGGESTED step: ngspice's own LTE control refines it through the ramp, and
+* .measure interpolates on the internal timepoints rather than on this grid.
+.tran '{_tr:.6e}' '{t_end:.6e}' uic
+
+{pin_meas_txt}
+.end
+"""
+else:
+    tb = f"""* {M} -- PERIPHERY energy per cycle -- {mode}
 * Kept:    rom_control_logic (clock driver + control_nand + prechg driver)
 *          rom_row_decode    (address buffers + decoder + wl drivers)
 {coldec_txt}{coldec_note}* Deleted: cell array / column mux / bitline and output
