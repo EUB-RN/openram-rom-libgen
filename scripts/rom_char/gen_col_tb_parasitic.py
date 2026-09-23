@@ -68,17 +68,12 @@ for _a in sys.argv[1:]:
             sys.exit("--ones cannot be negative")
 if not ARGV:
     sys.exit("usage: gen_col_tb_parasitic.py <macro> [column] "
-             "[--no-resistance] [--tag=<name>]")
-MACRO = ARGV[0]
              "[--no-resistance] [--tag=<name>] [--macros-dir=<dir>]")
 MACRO_RAW = ARGV[0]
 MACRO, BASE = rom_paths.split_macro(MACRO_RAW, MACROS_DIR)
 # With no column given it is DERIVED from the netlist (the column with the most
 # series one_cells) -- no hand-kept table needed, see find_worst_column.py.
 COL = int(ARGV[1]) if len(ARGV) > 1 else \
-      rom_paths.geometry(MACRO)["worst_col"]
-BASE = rom_paths.macro_dir(MACRO)
-SP = rom_paths.cap_netlist(MACRO)
       rom_paths.geometry(MACRO_RAW, MACROS_DIR)["worst_col"]
 SP = rom_paths.cap_netlist(MACRO_RAW, MACROS_DIR)
 if not os.path.exists(SP):
@@ -265,7 +260,6 @@ for l in blocks.get(f"{MACRO}_rom_bitline_inverter", []):
 
 defs_raw = "\n".join(get_subckt(nm) for nm in
     [f"{MACRO}_rom_base_one_cell", f"{MACRO}_rom_base_zero_cell",
-     f"{MACRO}_precharge_cell", f"{MACRO}_pinv_dec_3"])
      f"{MACRO}_precharge_cell", inv_subckt])
 defs = "\n".join(fix_units(l) if l.startswith("X") else l for l in defs_raw.splitlines())
 
