@@ -37,12 +37,42 @@
  * The back-end term covers the bitline inverter, the 256:32 column
  * mux and the output buffer.
  *
+ * HOLD IS NOT MEASURED. It is declared equal to access
+ * (41.4863 ns) because the row decoder is clocked: an address
+ * that moves during evaluate drops a second wordline and that
+ * wordline does not come back inside the cycle. Safe, and
+ * pessimistic -- scripts/rom_char/run_hold_bisect.sh measures
+ * where the real limit is for the ADDRESS. cs0 is a separate
+ * question and keeps this window either way: it gates the
+ * precharge, so losing it mid-evaluate ends the read outright.
+ * cs0 also carries a CLOCK-GATING pair against clk0. It
+ * gates the array's internal clock, and the read lives only
+ * during the high phase, so the requirement is that cs0 may
+ * change only while clk0 is LOW. That is a phase, not a
+ * duration, and no setup/hold number can express it.
+ *
  * COLUMN DECODER (measured, run_coldec_delay.sh): precharge ->
  *   column select takes 1.1301 ns against 38.3449 ns for the
  *   bitline, i.e. the mux is open 34x earlier than the data
  *   needs it. It shares the precharge edge with the discharge
  *   rather than following it, so it adds NOTHING to access.
  *   This used to be an estimate; it is now a measurement.
+ *
+ *
+ * SETUP IS A PATH DELAY, AND IT WINS ITS RACE BY 0.5434 ns.
+ *   addr0 -> the clocked decoder NAND : 0.0480 ns (measured)
+ *   clk0  -> the same gate (clk_int)  : 0.5914 ns (measured)
+ *   so the requirement AT THE PIN is -0.5434 ns -- negative, i.e.
+ *   the address may arrive after clk0 rises and still be in time.
+ *   The library ships the positive path delay instead: it is the
+ *   conservative of the two, and a constraint is not relaxed as a
+ *   side effect of changing what is being counted.
+ *   cs0 CARRIES THE SAME NUMBER AND IS COVERED BY IT. Its path
+ *   has no stage to measure -- in the netlist cs0 goes straight
+ *   to the A gate of rom_control_nand and the extraction keeps it
+ *   as one node -- while the address path has an inverter that
+ *   cs0's does not. cs0's requirement is therefore strictly the
+ *   smaller, and the address's measurement bounds it.
  *
  * INPUT PIN CAPACITANCES ARE MEASURED (run_pin_cap.sh):
  *   C = Q(VDD)/VDD, the charge the pin itself supplies over a full
@@ -373,6 +403,34 @@ cell (wrom1) {
                 values("41.4863, 41.4863, 41.4863",\
                     "41.4863, 41.4863, 41.4863",\
                     "41.4863, 41.4863, 41.4863");
+            }
+        }
+        timing() {
+            timing_type : clock_gating_setup_rising;
+            related_pin : "clk0";
+            rise_constraint(CONSTRAINT_TABLE) {
+                values("0.0480, 0.0480, 0.0480",\
+                    "0.0480, 0.0480, 0.0480",\
+                    "0.0480, 0.0480, 0.0480");
+            }
+            fall_constraint(CONSTRAINT_TABLE) {
+                values("0.0480, 0.0480, 0.0480",\
+                    "0.0480, 0.0480, 0.0480",\
+                    "0.0480, 0.0480, 0.0480");
+            }
+        }
+        timing() {
+            timing_type : clock_gating_hold_falling;
+            related_pin : "clk0";
+            rise_constraint(CONSTRAINT_TABLE) {
+                values("0.0000, 0.0000, 0.0000",\
+                    "0.0000, 0.0000, 0.0000",\
+                    "0.0000, 0.0000, 0.0000");
+            }
+            fall_constraint(CONSTRAINT_TABLE) {
+                values("0.0000, 0.0000, 0.0000",\
+                    "0.0000, 0.0000, 0.0000",\
+                    "0.0000, 0.0000, 0.0000");
             }
         }
     }

@@ -310,6 +310,71 @@ def check_constraints(cell):
     return bad
 
 
+def check_control_hold(cell):
+    """cs0 must be held for the WHOLE access window, not the address's hold.
+
+    Prevents the defect this check was written for: the hold experiment cuts
+    the series chain, which is what a moving ADDRESS does to a clocked row
+    decoder. cs0 is not on that path -- it gates the precharge
+    (precharge = ~NAND(cs0, clk_int)), so losing it during evaluate turns the
+    precharge PMOS back on and kills the read at any point in the cycle,
+    including the late part where the address no longer matters. Copying the
+    address's measured hold onto cs0 relaxes a constraint nothing measured.
+    """
+    bad = []
+    pin = scalar_pin(cell, "cs0")
+    dout = bus_pin(cell, "dout0")
+    if pin is None or dout is None:
+        return []
+    rise = arcs(dout).get("rising_edge")
+    if not rise:
+        return []
+    delay = rows(rise[0].first("cell_rise"))
+    if not delay:
+        return []
+    access = max(v for r in delay for v in r)
+
+    # cs0 must ALSO be pinned to the CLOCK'S PHASE, not to a duration. No
+    # setup/hold number expresses "stable until clk0 falls": a hold reaches
+    # forward from the rise, a setup reaches back from the fall, and a high
+    # phase longer than their sum has a middle that neither covers -- while
+    # the requirement itself grows with the clock period. (hold_falling does
+    # not rescue it either: a hold bounds how EARLY a pin may change after a
+    # PAST edge, so a cs0 dropped mid-phase is measured against the previous
+    # falling edge and passes with room to spare.)
+    #
+    # cs0 gates the array's internal clock -- precharge = ~NAND(cs0, clk_int)
+    # -- so the construct that fits is the clock-gating check, whose anchors
+    # are the two EDGES: enable ready before the phase opens, held until it
+    # closes.
+    _a = arcs(pin)
+    for _want in ("clock_gating_setup_rising", "clock_gating_hold_falling"):
+        if _want not in _a:
+            bad.append("cs0 has no %s against clk0. It gates the internal "
+                       "clock, so the requirement is that it may only change "
+                       "while clk0 is LOW -- a phase, not a duration. No "
+                       "setup/hold number can state that, so without this "
+                       "pair a cs0 pulled in mid-phase is a silent wrong "
+                       "read that STA cannot see." % _want)
+
+    hold = arcs(pin).get("hold_rising")
+    if not hold:
+        return []           # check_constraints already reports a missing arc
+    for kind in ("rise_constraint", "fall_constraint"):
+        tbl = hold[0].first(kind)
+        if tbl is None:
+            continue
+        worst = min(v for r in rows(tbl) for v in r)
+        if worst < access - 1e-6:
+            bad.append("cs0 %s is %g ns, shorter than the access time "
+                       "(%g ns). cs0 gates the precharge, so the read dies "
+                       "the moment it goes away -- it has to be held for the "
+                       "whole window. Only the ADDRESS hold may be shorter, "
+                       "and only where run_hold_bisect.sh measured it."
+                       % (kind, worst, access))
+    return bad
+
+
 def check_clock(cell):
     """clk0 must declare its pulse widths, its period, and BOTH power states.
 
@@ -385,6 +450,18 @@ def check_macro_attrs(cell):
     if len(vals) > 1 and any(w is None for w, _ in vals):
         bad.append("several leakage_power groups and one of them has no "
                    "when condition -- a tool cannot tell which state it is")
+    # EITHER one unconditional group, OR both cs0 states. A file that carries
+    # a `when` group for one state and nothing for the other describes half a
+    # macro: the header says both were measured, and a reader has no way to
+    # tell that one of them went missing. This mirrors the rule check_clock
+    # applies to internal_power, and it was added because deleting one of the
+    # two groups passed every other check in this suite.
+    conds = {w.strip('"').replace(" ", "") for w, _ in vals if w is not None}
+    if conds and conds != {"cs0", "!cs0"}:
+        bad.append("leakage_power carries the state(s) %s -- a conditional "
+                   "leakage model has to give BOTH cs0 states or none at all, "
+                   "otherwise the file describes one state and is silent "
+                   "about the other" % ", ".join(sorted(conds)))
 
     kinds = {pg.attr("pg_type") for pg in cell.find("pg_pin")}
     for want in ("primary_power", "primary_ground"):
@@ -442,6 +519,7 @@ CHECKS = (
     ("index_1 slew axis", check_slew_axis),
     ("delay/slew grow with load", check_load_monotonic),
     ("addr0 + cs0 constrained", check_constraints),
+    ("cs0 held for the whole read", check_control_hold),
     ("clk0 widths, period, power", check_clock),
     ("macro attributes + leakage", check_macro_attrs),
 )

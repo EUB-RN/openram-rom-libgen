@@ -56,6 +56,12 @@ CONSTRAINT_TYPES = {
     "min_pulse_width", "minimum_period", "max_clock_tree_path",
     "min_clock_tree_path", "non_seq_setup_rising", "non_seq_hold_rising",
     "skew_rising", "skew_falling", "nochange_high_high", "nochange_low_low",
+    # An enable that gates a clock is not a data pin and its requirement is
+    # not a duration: it must be stable across the WHOLE active phase, whose
+    # length is set by the applied clock. These four anchor to the two EDGES
+    # instead, which is the only way to say that.
+    "clock_gating_setup_rising", "clock_gating_setup_falling",
+    "clock_gating_hold_rising", "clock_gating_hold_falling",
 }
 
 REQUIRED_LIBRARY_ATTRS = (

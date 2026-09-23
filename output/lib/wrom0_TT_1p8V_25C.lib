@@ -20,7 +20,7 @@
  *   t_bl2dout at the smallest load -- because what must be proven
  *   is that the consumer captured BEFORE the data went away.
  *
- * SOURCE: access/t_pre come from ngspice measurements on real Magic parasitic C + that corner's OWN sky130 models; 134x256 array, worst column 236 (series NMOS 82); front end + periphery power char/periph_{active,idle}_tt.log, bitline char/col236_worst_case_parasitic.log, back end + slew char/backend_tt_*.log, leakage char/col236_leak_tt.log + char/periph_leak_cs*_tt.total, column energy char/col236_energy_tt.log
+ * SOURCE: access/t_pre come from ngspice measurements on real Magic parasitic C + that corner's OWN sky130 models; 134x256 array, worst column 236 (series NMOS 82); front end + periphery power char/periph_{active,idle}_tt.log, bitline char/col236_worst_case_parasitic.log, back end + slew char/backend_tt_*.log, leakage char/col236_leak_tt.log + char/periph_leak_cs*_tt.total, column energy char/col236_energy_tt.log, address hold char/hold_tt.log
  * -- THIS corner (TT_1p8V_25C) was simulated separately with its own
  * sky130 model files (tt/ss/ff); no fixed scaling factor was used.
  * Measurement showed that this matters: the old SS x1.85 assumption was
@@ -37,12 +37,85 @@
  * The back-end term covers the bitline inverter, the 256:32 column
  * mux and the output buffer.
  *
+ * THE ADDRESS HOLD IS MEASURED: 15.2382 ns on addr0
+ * (scripts/rom_char/run_hold_bisect.sh). The deck cuts the
+ * series chain in mid-evaluate -- what a moving address does
+ * to a CLOCKED row decoder -- and bisects the cut time until
+ * the read still lands within 10% of the rail. It is SHORTER
+ * than access (17.3271 ns): once the bitline has driven bl_b to a
+ * real logic level the read is decided, and the back-end delay
+ * after that point no longer depends on the address.
+ *
+ *   REFERENCED TO THE clk0 PIN, which is what Liberty
+ *   means. The hold deck is the column deck: no clk0 in
+ *   it, so its answer is counted from the INTERNAL
+ *   evaluate edge. Two measured delays carry it across:
+ *     cut from the internal edge    15.6615 ns
+ *     + clk0 -> that edge            0.7642 ns
+ *     - addr0 -> the wordline        1.1875 ns
+ *       (run_addr2wl.sh, measured during evaluate when
+ *        the decoder is transparent)
+ *     = hold at the pin             15.2382 ns
+ *   The two corrections nearly cancel here; shipping the
+ *   raw cut time would have been right by coincidence.
+ *
+ * THE CONTROL INPUTS DO NOT GET THAT NUMBER. cs0 keeps the full
+ * access window, 17.3271 ns, because the experiment above never
+ * exercised it: cs0 is not on the decode path at all. It gates
+ * the precharge itself (precharge = ~NAND(cs0, clk_int)), so
+ * cs0 going away during evaluate turns the precharge PMOS back
+ * ON and the bitline is pulled to VDD -- the read dies at any
+ * point in the cycle, including the late part where the
+ * address no longer matters. Handing it the shorter number
+ * would relax a constraint no measurement covers.
+ *
+ *   THE SETUP/HOLD PAIR CANNOT STATE cs0'S REAL REQUIREMENT,
+ *   so it also carries a CLOCK-GATING pair. The window above
+ *   says cs0 must last until the data EXISTS. What has to be
+ *   said is that it lasts until the data is CAPTURED, on
+ *   clk0's FALL -- this macro has no latch, so the high phase
+ *   is the whole life of the read. A cs0 released at 17.3271 ns
+ *   satisfies hold_rising and still re-opens the precharge
+ *   0.5000 ns before the earliest legal capture edge, and with a
+ *   slower clock the gap only grows. No number fixes it: a
+ *   hold reaches FORWARD from the rise, a setup reaches BACK
+ *   from the fall, and a high phase longer than their sum has
+ *   a middle that neither covers. (hold_falling does not help
+ *   either -- a hold bounds how early a pin may change after a
+ *   PAST edge, so a mid-phase drop is measured against the
+ *   previous fall and passes with room to spare.)
+ *
+ *   cs0 IS A CLOCK GATE ENABLE: precharge = ~NAND(cs0,
+ *   clk_int), i.e. it switches off the array's internal clock.
+ *   clock_gating_setup_rising / clock_gating_hold_falling
+ *   anchor to the two EDGES instead of to a duration and say
+ *   what is actually required -- cs0 may only change while
+ *   clk0 is LOW -- for any clock period. The plain setup/hold
+ *   pair is kept alongside so a tool that ignores gating
+ *   checks still reads a meaningful number rather than none.
+ *
  * COLUMN DECODER (measured, run_coldec_delay.sh): precharge ->
  *   column select takes 0.5753 ns against 14.8495 ns for the
  *   bitline, i.e. the mux is open 26x earlier than the data
  *   needs it. It shares the precharge edge with the discharge
  *   rather than following it, so it adds NOTHING to access.
  *   This used to be an estimate; it is now a measurement.
+ *
+ *
+ * SETUP IS A PATH DELAY, AND IT WINS ITS RACE BY 0.2948 ns.
+ *   addr0 -> the clocked decoder NAND : 0.0307 ns (measured)
+ *   clk0  -> the same gate (clk_int)  : 0.3255 ns (measured)
+ *   so the requirement AT THE PIN is -0.2948 ns -- negative, i.e.
+ *   the address may arrive after clk0 rises and still be in time.
+ *   The library ships the positive path delay instead: it is the
+ *   conservative of the two, and a constraint is not relaxed as a
+ *   side effect of changing what is being counted.
+ *   cs0 CARRIES THE SAME NUMBER AND IS COVERED BY IT. Its path
+ *   has no stage to measure -- in the netlist cs0 goes straight
+ *   to the A gate of rom_control_nand and the extraction keeps it
+ *   as one node -- while the address path has an inverter that
+ *   cs0's does not. cs0's requirement is therefore strictly the
+ *   smaller, and the address's measurement bounds it.
  *
  * INPUT PIN CAPACITANCES ARE MEASURED (run_pin_cap.sh):
  *   C = Q(VDD)/VDD, the charge the pin itself supplies over a full
@@ -328,14 +401,14 @@ cell (wrom0) {
             timing_type : hold_rising;
             related_pin : "clk0";
             rise_constraint(CONSTRAINT_TABLE) {
-                values("17.3271, 17.3271, 17.3271",\
-                    "17.3271, 17.3271, 17.3271",\
-                    "17.3271, 17.3271, 17.3271");
+                values("15.2382, 15.2382, 15.2382",\
+                    "15.2382, 15.2382, 15.2382",\
+                    "15.2382, 15.2382, 15.2382");
             }
             fall_constraint(CONSTRAINT_TABLE) {
-                values("17.3271, 17.3271, 17.3271",\
-                    "17.3271, 17.3271, 17.3271",\
-                    "17.3271, 17.3271, 17.3271");
+                values("15.2382, 15.2382, 15.2382",\
+                    "15.2382, 15.2382, 15.2382",\
+                    "15.2382, 15.2382, 15.2382");
             }
         }
         }
@@ -373,6 +446,34 @@ cell (wrom0) {
                 values("17.3271, 17.3271, 17.3271",\
                     "17.3271, 17.3271, 17.3271",\
                     "17.3271, 17.3271, 17.3271");
+            }
+        }
+        timing() {
+            timing_type : clock_gating_setup_rising;
+            related_pin : "clk0";
+            rise_constraint(CONSTRAINT_TABLE) {
+                values("0.0307, 0.0307, 0.0307",\
+                    "0.0307, 0.0307, 0.0307",\
+                    "0.0307, 0.0307, 0.0307");
+            }
+            fall_constraint(CONSTRAINT_TABLE) {
+                values("0.0307, 0.0307, 0.0307",\
+                    "0.0307, 0.0307, 0.0307",\
+                    "0.0307, 0.0307, 0.0307");
+            }
+        }
+        timing() {
+            timing_type : clock_gating_hold_falling;
+            related_pin : "clk0";
+            rise_constraint(CONSTRAINT_TABLE) {
+                values("0.0000, 0.0000, 0.0000",\
+                    "0.0000, 0.0000, 0.0000",\
+                    "0.0000, 0.0000, 0.0000");
+            }
+            fall_constraint(CONSTRAINT_TABLE) {
+                values("0.0000, 0.0000, 0.0000",\
+                    "0.0000, 0.0000, 0.0000",\
+                    "0.0000, 0.0000, 0.0000");
             }
         }
     }

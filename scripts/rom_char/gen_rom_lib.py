@@ -48,9 +48,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import rom_paths                                        # noqa: E402
 
-# Without --lef the FIRST macro in the tree is used.
-_found = rom_paths.discover()
-DEFAULT_LEF = rom_paths.lef(_found[0]) if _found else None
+# Discovery happens in main(), NOT here: at import time --macros-dir has not
+# been parsed yet, so a module-level scan would always look in the default
+# tree and then be overridden -- and it would cost a directory walk on every
+# import of this module, including by scripts that only want its helpers.
 
 # ---------------------------------------------------------------------------
 # Timing knobs (ns / mW). TT is the base, the others are derating factors.
@@ -173,23 +174,33 @@ def table(rows, pad):
     return ",\\\n".join(out)
 
 
-def constraint_block(setup_rows, hold_rows, indent, hold_fall_rows=None):
-    """setup/hold against clk0, plus an optional hold against its FALL.
+def constraint_block(setup_rows, hold_rows, indent, gating_rows=None):
+    """setup/hold against clk0, plus the CLOCK-GATING pair for an enable.
 
-    hold_falling is how a "stay until the other edge" requirement is written.
-    A hold_rising says "stable for N ns after the rise", which is a DURATION,
-    and no duration expresses "until clk0 falls": stretch the applied clock and
-    the requirement stretches with it while N does not. cs0 is exactly that
-    case -- it gates the precharge, so the read needs it right up to the
-    capture edge -- and a value of 0 against the falling edge says so for any
-    clock period.
+    A setup/hold pair cannot say "stable for the whole active phase". Both are
+    DURATIONS measured from one edge: hold_rising reaches forward from the
+    rise, setup_falling reaches back from the fall, and when the applied high
+    phase is longer than their sum the middle of it is covered by neither. No
+    choice of numbers fixes that, because the requirement grows with the clock
+    period and a constant does not. hold_falling does not help either -- a hold
+    bounds how EARLY a pin may change after a PAST edge, so a pin that drops
+    in mid-phase is measured against the previous falling edge and passes with
+    room to spare.
+
+    An enable that gates a clock has exactly that requirement, and Liberty has
+    exactly that construct. The clock_gating_* checks anchor to the two EDGES
+    rather than to a duration: setup before the edge that starts the active
+    phase, hold after the edge that ends it. Together they say "this pin may
+    only change while the clock is inactive", for any period.
     """
     pad = " " * indent
     inner = pad + " " * 12
     lines = []
     arcs = [("setup_rising", setup_rows), ("hold_rising", hold_rows)]
-    if hold_fall_rows is not None:
-        arcs.append(("hold_falling", hold_fall_rows))
+    if gating_rows is not None:
+        _g_setup, _g_hold = gating_rows
+        arcs.append(("clock_gating_setup_rising", _g_setup))
+        arcs.append(("clock_gating_hold_falling", _g_hold))
     for ttype, rows in arcs:
         lines.append("%stiming() {" % pad)
         lines.append("%s    timing_type : %s;" % (pad, ttype))
@@ -432,13 +443,15 @@ def gen_lib(name, area, buses, scalars, corner, args):
     setup_rows = [[setup] * 3] * 3
     hold_rows = [[hold_addr] * 3] * 3        # the ADDRESS bus
     hold_ctrl_rows = [[hold_ctrl] * 3] * 3   # cs0 and any other control input
-    # AND the arc that actually pins cs0 down. hold_ctrl above says "at least
-    # until the data exists"; this says "and still there at the capture edge",
-    # which is the real requirement and the only form of it that survives a
-    # change of clock period. Zero is exact: dout0 is captured ON clk0's fall
-    # (the macro has no latch and the data is gone afterwards), so cs0 has to
-    # last up to that instant and not beyond it.
-    hold_fall_rows = [[0.0] * 3] * 3
+    # AND the pair that actually pins cs0 down, because the two above cannot.
+    # cs0 IS a clock gate enable -- precharge = ~NAND(cs0, clk_int), i.e. it
+    # switches off the array's internal clock -- so the requirement is "may
+    # only change while clk0 is low", not "stable for N ns". The gating pair
+    # anchors to the two edges: setup before the rise (the measured address
+    # setup covers it; cs0's own path has no stage, see the setup block) and
+    # hold 0 after the fall, meaning cs0 may move as soon as the phase ends
+    # and not one moment before.
+    gating_rows = ([[setup] * 3] * 3, [[0.0] * 3] * 3)
 
     # --- power/ground pins, and the rails they belong to -------------------
     # The names come out of the LEF (USE POWER / USE GROUND), for the same
@@ -613,19 +626,32 @@ def gen_lib(name, area, buses, scalars, corner, args):
             w(" * address no longer matters. Handing it the shorter number")
             w(" * would relax a constraint no measurement covers.")
             w(" *")
-            w(" *   AND IT CARRIES A SECOND ARC, hold_falling = 0. The window")
-            w(" *   above says cs0 must last until the data EXISTS. What it")
-            w(" *   cannot say is that cs0 must last until the data is")
-            w(" *   CAPTURED, which happens on clk0's FALL -- this macro has")
-            w(" *   no latch, so the high phase is the whole life of the")
-            w(" *   read. That is not a duration: stretch the applied clock")
-            w(" *   and the requirement stretches with it, while any fixed")
-            w(" *   hold_rising does not. A cs0 released at %.4f ns satisfies"
+            w(" *   THE SETUP/HOLD PAIR CANNOT STATE cs0'S REAL REQUIREMENT,")
+            w(" *   so it also carries a CLOCK-GATING pair. The window above")
+            w(" *   says cs0 must last until the data EXISTS. What has to be")
+            w(" *   said is that it lasts until the data is CAPTURED, on")
+            w(" *   clk0's FALL -- this macro has no latch, so the high phase")
+            w(" *   is the whole life of the read. A cs0 released at %.4f ns"
               % hold_ctrl)
-            w(" *   the arc above and still kills the read %.4f ns before the"
+            w(" *   satisfies hold_rising and still re-opens the precharge")
+            w(" *   %.4f ns before the earliest legal capture edge, and with a"
               % (pw_high - hold_ctrl))
-            w(" *   earliest legal capture edge. Referenced to the FALLING")
-            w(" *   edge instead, zero states it exactly and for any period.")
+            w(" *   slower clock the gap only grows. No number fixes it: a")
+            w(" *   hold reaches FORWARD from the rise, a setup reaches BACK")
+            w(" *   from the fall, and a high phase longer than their sum has")
+            w(" *   a middle that neither covers. (hold_falling does not help")
+            w(" *   either -- a hold bounds how early a pin may change after a")
+            w(" *   PAST edge, so a mid-phase drop is measured against the")
+            w(" *   previous fall and passes with room to spare.)")
+            w(" *")
+            w(" *   cs0 IS A CLOCK GATE ENABLE: precharge = ~NAND(cs0,")
+            w(" *   clk_int), i.e. it switches off the array's internal clock.")
+            w(" *   clock_gating_setup_rising / clock_gating_hold_falling")
+            w(" *   anchor to the two EDGES instead of to a duration and say")
+            w(" *   what is actually required -- cs0 may only change while")
+            w(" *   clk0 is LOW -- for any clock period. The plain setup/hold")
+            w(" *   pair is kept alongside so a tool that ignores gating")
+            w(" *   checks still reads a meaningful number rather than none.")
         else:
             w(" * HOLD IS NOT MEASURED. It is declared equal to access")
             w(" * (%.4f ns) because the row decoder is clocked: an address"
@@ -636,10 +662,11 @@ def gen_lib(name, area, buses, scalars, corner, args):
             w(" * where the real limit is for the ADDRESS. cs0 is a separate")
             w(" * question and keeps this window either way: it gates the")
             w(" * precharge, so losing it mid-evaluate ends the read outright.")
-            w(" * cs0 also carries hold_falling = 0 against clk0: the read")
-            w(" * lives only during the high phase, so cs0 has to reach the")
-            w(" * capture edge whatever the clock period is -- which no")
-            w(" * fixed hold_rising can express.")
+            w(" * cs0 also carries a CLOCK-GATING pair against clk0. It")
+            w(" * gates the array's internal clock, and the read lives only")
+            w(" * during the high phase, so the requirement is that cs0 may")
+            w(" * change only while clk0 is LOW. That is a phase, not a")
+            w(" * duration, and no setup/hold number can express it.")
         w(" *")
         if t_coldec is None:
             w(" * THE COLUMN DECODER WAS NEVER SIMULATED. rom_column_decode")
@@ -1084,7 +1111,7 @@ def gen_lib(name, area, buses, scalars, corner, args):
         # window even when the address hold has been measured, AND it carries
         # a hold against the FALLING edge. See the hold block above.
         w(constraint_block(setup_rows, hold_ctrl_rows, indent=8,
-                           hold_fall_rows=hold_fall_rows))
+                           gating_rows=gating_rows))
         w("    }")
         w("")
 
@@ -1172,7 +1199,6 @@ def main():
     ap = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--lef", default=DEFAULT_LEF)
     ap.add_argument("--lef", default=None, help="path to macro LEF file")
     ap.add_argument("--macro", default=None,
                     help="macro name -- its LEF is found in the tree (instead of --lef)")
@@ -1303,7 +1329,6 @@ def main():
 
     if args.macro:
         args.lef = rom_paths.lef(args.macro, args.macros_dir)
-    if not args.lef:
     elif not args.lef:
         _found = rom_paths.discover(args.macros_dir)
         if _found:
