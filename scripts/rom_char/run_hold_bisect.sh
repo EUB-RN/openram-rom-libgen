@@ -63,6 +63,7 @@
 set -e
 . "$(dirname "$0")/common.sh"
 need_ngspice
+ng_reset          # clear the failure ledger for this run
 GEN="$ROM_CHAR_DIR/gen_addr_hold_tb.py"
 
 TOL="${HOLD_TOL:-0.05}"          # ns; stop when the bracket is this narrow
@@ -81,7 +82,7 @@ try_point() {
   _lg="$_o/bis_${_tag}_${_c}.log"
   python3 "$GEN" "$_m" "$_sp" --corner "$_c" --break-ns "$_b" \
           --wl-slew-ns "$_s" >/dev/null
-  $NG -b -o "$_lg" "$_sp" >/dev/null 2>&1 || true
+  run_ng "hold-bisect" "$_sp" "$_lg" "$_m $_c break=$_b" || true   # a dead point is handled below as ERROR
   _e=$(meas "$_lg" bl_b_end)
   printf "%s " "$_e" >> "$_o/level_${_c}.txt"
   # no measurement at all means the run itself died -- not a hold failure,
@@ -207,3 +208,7 @@ for m in $MACROS; do
     [ -f "$OUT/bisect_${c}.txt" ] && cat "$OUT/bisect_${c}.txt" && echo
   done
 done
+
+# Non-zero if any deck died. The numbers those decks would have produced
+# are simply absent otherwise, and absent is indistinguishable from fine.
+ng_summary

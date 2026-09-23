@@ -34,6 +34,7 @@
 set -e
 . "$(dirname "$0")/common.sh"
 need_ngspice
+ng_reset          # clear the failure ledger for this run
 GENP="$ROM_CHAR_DIR/gen_periphery_power_tb.py"
 
 MACROS=$(macro_list "$@")
@@ -55,7 +56,7 @@ for m in $MACROS; do
     sp="$G_CHAR/wlslew_${c}.sp"
     python3 "$GENP" "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
             --gate-cap-ff "$cg" >/dev/null
-    ( $NG -b -o "$G_CHAR/wlslew_${c}.log" "$sp" >/dev/null 2>&1 || true ) &
+    run_ng "wordline-slew" "$sp" "$G_CHAR/wlslew_${c}.log" "$m $c" &
     n=$((n+1)); [ $((n % JOBS)) -eq 0 ] && wait
   done
 done
@@ -84,3 +85,7 @@ done
 echo "feed it to the hold experiment:"
 echo "  scripts/rom_char/run_hold_bisect.sh <macro>        (picks tf up itself)"
 echo "  ... --wl-slew-ns <tf>                              (by hand)"
+
+# Non-zero if any deck died. The numbers those decks would have produced
+# are simply absent otherwise, and absent is indistinguishable from fine.
+ng_summary

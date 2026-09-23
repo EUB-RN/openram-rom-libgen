@@ -62,6 +62,7 @@
 set -e
 . "$(dirname "$0")/common.sh"
 need_ngspice
+ng_reset          # clear the failure ledger for this run
 GENP="$ROM_CHAR_DIR/gen_periphery_power_tb.py"
 
 # The column decoder takes addr0[0:2]; each of the eight values selects one
@@ -96,7 +97,7 @@ for m in $MACROS; do
       python3 "$GENP" "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
               --gate-cap-ff "$cg" --with-coldec --addr "$a" \
               --cycles "$CYCLES" >/dev/null
-      ( $NG -b -o "$lg" "$sp" >/dev/null 2>&1 || true ) &
+      run_ng "column-decode" "$sp" "$lg" "$m $c addr$a" &
       n=$((n+1))
       [ $((n % JOBS)) -eq 0 ] && wait
     done
@@ -170,3 +171,7 @@ else
   echo "until that is done."
 fi
 exit $rc
+
+# Non-zero if any deck died. The numbers those decks would have produced
+# are simply absent otherwise, and absent is indistinguishable from fine.
+ng_summary

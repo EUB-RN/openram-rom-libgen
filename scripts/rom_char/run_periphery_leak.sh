@@ -38,6 +38,7 @@
 set -e
 . "$(dirname "$0")/common.sh"
 need_ngspice
+ng_reset          # clear the failure ledger for this run
 GEN="$ROM_CHAR_DIR/gen_periphery_leak_tb.py"
 
 # The axis reaches two decades past the value the array deck settled on: the
@@ -72,7 +73,7 @@ for m in $(macro_list "$@"); do
                 --temp "$t" --gmin "$g" >/dev/null 2>&1
         sp="$G_CHAR/periph_leak_cs${cs}_${c}_g${g}.sp"
         lg="$G_CHAR/periph_leak_cs${cs}_${c}_g${g}.log"
-        $NG -b -o "$lg" "$sp" >/dev/null 2>&1 &
+        run_ng "periphery-leak" "$sp" "$lg" "$m $c cs$cs gmin=$g" &
         n=$((n + 1))
         [ "$((n % JOBS))" -eq 0 ] && wait
       done
@@ -144,3 +145,5 @@ for m in $(macro_list "$@"); do
     done
   done
 done
+
+ng_summary

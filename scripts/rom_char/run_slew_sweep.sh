@@ -25,6 +25,7 @@
 set -e
 . "$(dirname "$0")/common.sh"
 need_ngspice
+ng_reset          # clear the failure ledger for this run
 GENP="$ROM_CHAR_DIR/gen_periphery_power_tb.py"
 
 MACROS=$(macro_list "$@")
@@ -50,7 +51,7 @@ for m in $MACROS; do
       lg="$G_CHAR/periph_slew${i}_${c}.log"
       python3 "$GENP" "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
               --gate-cap-ff "$cg" --clk-slew "${sl}n" >/dev/null
-      ( $NG -b -o "$lg" "$sp" >/dev/null 2>&1 || true ) &
+      run_ng "slew-sweep" "$sp" "$lg" "$m $c slew$i" &
       n=$((n+1))
       i=$((i+1))
       [ $((n % JOBS)) -eq 0 ] && wait
@@ -94,3 +95,7 @@ echo "The middle point of the default axis is 0.5 ns, the edge every earlier"
 echo "measurement used -- it must reproduce the committed t_clk2pre. A spread"
 echo "near 0% would mean the front end does not care about its clock edge,"
 echo "which would be worth understanding before trusting the axis."
+
+# Non-zero if any deck died. The numbers those decks would have produced
+# are simply absent otherwise, and absent is indistinguishable from fine.
+ng_summary

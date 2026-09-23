@@ -39,6 +39,7 @@
 set -e
 . "$(dirname "$0")/common.sh"
 need_ngspice
+ng_reset          # clear the failure ledger for this run
 GENP="$ROM_CHAR_DIR/gen_periphery_power_tb.py"
 JOBS="${JOBS:-6}"
 
@@ -66,7 +67,7 @@ for m in $MACROS; do
     lg="$G_CHAR/periph_setup_${c}.log"
     python3 "$GENP" "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
             --gate-cap-ff "$cg" --addr "$ADDR" --addr-alt "$ADDR_ALT" >/dev/null
-    ( $NG -b -o "$lg" "$sp" >/dev/null 2>&1 || true ) &
+    run_ng "addr-setup" "$sp" "$lg" "$m $c" &
     n=$((n+1))
     [ $((n % JOBS)) -eq 0 ] && wait
   done
@@ -88,3 +89,7 @@ for m in $MACROS; do
     printf "%-7s %-6s  %-8s   (%s measurements)\n" "$m" "$c" "${w:-NONE}" "$cnt"
   done
 done
+
+# Non-zero if any deck died. The numbers those decks would have produced
+# are simply absent otherwise, and absent is indistinguishable from fine.
+ng_summary

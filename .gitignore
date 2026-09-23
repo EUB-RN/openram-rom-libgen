@@ -39,3 +39,7 @@ user/*
 !user/README.md
 !user/.gitkeep
 
+# run_ng keeps ngspice's terminal output beside the log when a deck FAILS, so
+# the diagnosis survives for inspection. It is a transient artefact of a
+# broken run, never an input to anything.
+*.log.term

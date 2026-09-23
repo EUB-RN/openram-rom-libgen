@@ -26,6 +26,7 @@
 set -e
 . "$(dirname "$0")/common.sh"
 need_ngspice
+ng_reset          # clear the failure ledger for this run
 GEN="$ROM_CHAR_DIR/gen_backend_delay_tb.py"
 
 MACROS=$(macro_list "$@")
@@ -46,7 +47,7 @@ for m in $MACROS; do
       lg="$G_CHAR/backend_${c}_${tag}.log"
       python3 "$GEN" "$m" "$G_WORST_COL" "$sp" --t-dis-50 "$d50" --t-dis-10 "$d10" \
               --corner "$c" --vdd "$v" --temp "$t" --load-ff "$cl" >/dev/null
-      ( $NG -b -o "$lg" "$sp" >/dev/null 2>&1 || true ) &
+      run_ng "backend-delay" "$sp" "$lg" "$m $c load=$tag" &
       n=$((n+1))
       [ $((n % JOBS)) -eq 0 ] && wait
     done
@@ -75,3 +76,7 @@ for m in $MACROS; do
     done
   done
 done
+
+# Non-zero if any deck died. The numbers those decks would have produced
+# are simply absent otherwise, and absent is indistinguishable from fine.
+ng_summary

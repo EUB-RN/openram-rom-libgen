@@ -538,6 +538,69 @@ this from the pinout, and before the arc existed the STA tool had no way to
 know it either. A cs0 pulled at the wrong moment produced a silent wrong read
 that every check in the flow would have passed.
 
+### Simulation failures are no longer swallowed
+
+Every deck in the flow was run as
+
+    $NG -b -o "$log" "$deck" >/dev/null 2>&1 || true
+
+in the background as often as not -- 20 call sites. That throws away the
+exit status AND the diagnostics. A deck that died left no message, no
+non-zero exit and often no usable log, and the failure surfaced much later
+as a missing `.measure`, or not at all: several `.lib` terms have a
+documented fallback for "the log is not there", and a fallback is
+indistinguishable from a run that never happened.
+
+**THE EXIT CODE ALONE DOES NOT CATCH IT.** Measured on ngspice 11 rather
+than assumed:
+
+| deck | exit | log |
+|---|---|---|
+| unknown subckt | 1 | "Simulation interrupted due to error!" |
+| `.measure` on a node that does not exist, no circuit | **0** | "Error: no such vector as ..." |
+| empty netlist | 1 | "Error: incomplete or empty netlist" |
+
+The middle row is the dangerous one: ngspice reports success while the
+measurement it was asked for never happened. So `run_ng` judges a run by
+its status AND by its log.
+
+**The fatal list is calibrated, not guessed.** Scanning all 311 committed
+logs: each of the thirteen patterns appears in ZERO of them, while
+`Error: measure` and `failed!` appear in 93 and are EXPECTED -- an
+unselected wordline has no edge to measure, and the flow reads those
+failures as evidence. So the list separates a dead run from a healthy one
+with no false positive on the existing corpus.
+
+**What a failure now prints:** the STAGE that died, the macro/corner
+context, ngspice's own verdict, the root-cause line (the fatal signature is
+often ngspice's last word rather than its first -- "fatal error in ngspice,
+exit(1)" after "Could not find library file ..."), the exit code, and the
+paths to the deck and log, both kept for inspection.
+
+    !! FAILED stage=cell-gate-cap [wrom0 tt]
+       reason : ERROR: fatal error in ngspice, exit(1)
+       cause  : Error: Could not find library file /nonexistent/sky130.lib.spice
+       exit   : 1
+       deck   : examples/wrom0/char/cellgate_tt.sp
+       log    : /tmp/cg.log
+
+Backgrounded jobs report through a per-shell ledger file, since a subshell
+cannot set a variable in its parent. Every `run_*.sh` calls `ng_reset` at
+the start and `ng_summary` at the end, so the script exits non-zero and
+names every stage whose numbers are missing from the output.
+
+**Guarded two ways.** `tests/test_error_reporting.py` is a new suite layer:
+behaviourally it pins all four cases (exit non-zero, exit ZERO with a fatal
+log, healthy, and an EXPECTED `.measure` failure that must NOT be fatal),
+and statically it fails if any script in `scripts/rom_char/` calls `$NG`
+directly again. The static half earned its place immediately -- it found
+two call sites a grep for `|| true` had missed, because they swallowed with
+`&` and with `|| { ... }` instead.
+
+Verified end to end on the real flow: `run_col_power.sh` is unchanged on a
+healthy run, and with a sabotaged deck it reports the stage, keeps the
+artefacts and exits 1.
+
 ### Hold is now in Liberty's time frame, and cs0's setup is bounded
 
 Two loose ends from the hold work, both closed by measuring rather than

@@ -10,6 +10,12 @@
 #   1. test_checker  -- proves the checker still catches the 11 defects in
 #                       tests/fixtures/. A validator nobody validates turns
 #                       every run green and everyone stops looking.
+#   1b. test_error_reporting -- a deck that dies must say WHICH STAGE died
+#                       and WHY. The whole flow used to run ngspice as
+#                       `... >/dev/null 2>&1 || true`, so a dead deck left no
+#                       message, no log and a zero exit -- and several .lib
+#                       terms have a fallback for "the log is missing", which
+#                       is indistinguishable from a run that never happened.
 #   2. check_lib     -- is each generated file valid Liberty? (syntax, table
 #                       shapes against their templates, arc completeness)
 #   3. test_rom_lib  -- does it say what this macro actually does? (the
@@ -67,6 +73,10 @@ skipped=""
 
 echo "== the checker itself =="
 python3 "$HERE/test_checker.py" || rc=1
+
+echo
+echo "== a dead simulation is reported, not swallowed =="
+python3 "$HERE/test_error_reporting.py" || rc=1
 
 echo
 echo "== Liberty structure =="

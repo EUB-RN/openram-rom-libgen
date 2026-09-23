@@ -28,6 +28,7 @@
 set -e
 . "$(dirname "$0")/common.sh"
 need_ngspice
+ng_reset          # clear the failure ledger for this run
 GEN="$ROM_CHAR_DIR/gen_addr_hold_tb.py"
 
 # ns after the evaluate edge. The default brackets t_dis_50 (14.85 ns at TT on
@@ -72,14 +73,14 @@ for m in $MACROS; do
     # the reference: no cut at all -- it must reproduce the committed t_dis_50,
     # which is what proves the patched deck is still the same circuit.
     python3 "$GEN" "$m" "$OUT/ref_${c}.sp" --corner "$c" >/dev/null
-    ( $NG -b -o "$OUT/ref_${c}.log" "$OUT/ref_${c}.sp" >/dev/null 2>&1 || true ) &
+    run_ng "addr-hold-ref" "$OUT/ref_${c}.sp" "$OUT/ref_${c}.log" "$m $c" &
     n=$((n+1)); [ $((n % JOBS)) -eq 0 ] && wait
     for b in $BREAKS; do
       tag=$(echo "$b" | tr '.' 'p')
       python3 "$GEN" "$m" "$OUT/cut${tag}_${c}.sp" --corner "$c" \
               --break-ns "$b" --wl-slew-ns "$slew" >/dev/null
-      ( $NG -b -o "$OUT/cut${tag}_${c}.log" "$OUT/cut${tag}_${c}.sp" \
-          >/dev/null 2>&1 || true ) &
+      run_ng "addr-hold-sweep" "$OUT/cut${tag}_${c}.sp" \
+             "$OUT/cut${tag}_${c}.log" "$m $c break=$b" &
       n=$((n+1)); [ $((n % JOBS)) -eq 0 ] && wait
     done
   done
@@ -128,3 +129,7 @@ done
 echo "look at it in ngspice -- the waveforms, with the address edge on them:"
 echo "  python3 scripts/rom_char/gen_addr_hold_tb.py <macro> look.sp --sweep-ns 8,14,16,22"
 echo "  ngspice look.sp"
+
+# Non-zero if any deck died. The numbers those decks would have produced
+# are simply absent otherwise, and absent is indistinguishable from fine.
+ng_summary

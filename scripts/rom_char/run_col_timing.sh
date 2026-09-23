@@ -23,6 +23,7 @@
 set -e
 . "$(dirname "$0")/common.sh"
 need_ngspice
+ng_reset          # clear the failure ledger for this run
 export NGSPICE_BIN="$NG"
 
 for m in $(macro_list "$@"); do
@@ -42,8 +43,12 @@ for m in $(macro_list "$@"); do
     python3 "$ROM_CHAR_DIR/make_corner_variant.py" "$m" "$G_WORST_COL" "$c" >/dev/null
     sp="$G_CHAR/${G_COLTAG}_worst_case_parasitic_${c}.sp"
     lg="$G_CHAR/${G_COLTAG}_worst_case_parasitic_${c}.log"
-    $NG -b -o "$lg" "$sp" >/dev/null 2>&1 || true
+    run_ng "col-timing" "$sp" "$lg" "$m $c" || continue
     printf "%s %s t_dis_50 = %s   t_pre_99 = %s\n" "$m" "$c" \
       "$(meas "$lg" t_dis_50)" "$(meas "$lg" t_pre_99)"
   done
 done
+
+# Non-zero if any deck died. The numbers those decks would have produced
+# are simply absent otherwise, and absent is indistinguishable from fine.
+ng_summary

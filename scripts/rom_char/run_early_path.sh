@@ -30,6 +30,7 @@
 set -e
 . "$(dirname "$0")/common.sh"
 need_ngspice
+ng_reset          # clear the failure ledger for this run
 export NGSPICE_BIN="$NG"
 
 TAG=best_case_parasitic
@@ -78,7 +79,7 @@ for m in $(macro_list "$@"); do
               "--tag=$t" >/dev/null
       sp="$G_CHAR/${G_BESTTAG}_${t}_${c}.sp"
       lg="$G_CHAR/${G_BESTTAG}_${t}_${c}.log"
-      ( $NG -b -o "$lg" "$sp" >/dev/null 2>&1 || true ) &
+      run_ng "early-path" "$sp" "$lg" "$m $c" &
     done
   done
   wait
@@ -102,3 +103,7 @@ echo "limit of the geometry (every data cell strapped out), the second is of"
 echo "THIS .bin, the third is what access is measured on. If the ordering"
 echo "the decks disagree about the resistance model or the foot transistor"
 echo "was converted (see gen_col_tb_parasitic.py --ones)."
+
+# Non-zero if any deck died. The numbers those decks would have produced
+# are simply absent otherwise, and absent is indistinguishable from fine.
+ng_summary

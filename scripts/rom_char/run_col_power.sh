@@ -16,6 +16,7 @@
 set -e
 . "$(dirname "$0")/common.sh"
 need_ngspice
+ng_reset          # clear the failure ledger for this run
 GEN="$ROM_CHAR_DIR/gen_col_power_tb.py"
 
 printf "%-7s %-6s %14s %14s %14s\n" macro corner "I_column(nA)" "I_total(uA)" "P_total(uW)"
@@ -28,7 +29,7 @@ for m in $(macro_list "$@"); do
     sp="$G_CHAR/${G_COLTAG}_leak_${c}.sp"
     lg="$G_CHAR/${G_COLTAG}_leak_${c}.log"
     python3 "$GEN" "$m" "$G_WORST_COL" idle "$sp" --corner "$c" --vdd "$v" --temp "$t" >/dev/null
-    $NG -b -o "$lg" "$sp" >/dev/null 2>&1 || true
+    run_ng "col-leakage" "$sp" "$lg" "$m $c" || continue
     # `.measure op` produces no numeric output -> read the current from the .op table
     i=$(grep -m1 "vvdd#branch" "$lg" | awk '{print $2}')
     if [ -z "$i" ]; then
@@ -43,3 +44,7 @@ done
 echo
 echo "NOTE: I_total/P_total = per-column value x column count (from the netlist)."
 echo "      Periphery leakage is NOT included."
+
+# Non-zero if any deck died. The numbers those decks would have produced
+# are simply absent otherwise, and absent is indistinguishable from fine.
+ng_summary

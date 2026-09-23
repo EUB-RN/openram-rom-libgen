@@ -40,6 +40,7 @@
 set -e
 . "$(dirname "$0")/common.sh"
 need_ngspice
+ng_reset          # clear the failure ledger for this run
 GENP="$ROM_CHAR_DIR/gen_periphery_power_tb.py"
 
 # The charge over a full swing must NOT depend on how fast the pin is ramped;
@@ -99,7 +100,7 @@ for m in $MACROS; do
     lg="$G_CHAR/pincap_${c}.log"
     python3 "$GENP" "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
             --gate-cap-ff "$cg" --pin-cap --pin-tr "$PIN_TR" >/dev/null
-    ( $NG -b -o "$lg" "$sp" >/dev/null 2>&1 || true ) &
+    run_ng "pin-cap" "$sp" "$lg" "$m $c" &
     n=$((n+1))
     [ $((n % JOBS)) -eq 0 ] && wait
   done
@@ -121,7 +122,7 @@ if [ -n "$GOLDEN_PINS" ]; then
       python3 "$GENP" "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
               --pin-cap --pin-tr "$PIN_TR" --keep-all \
               --pin-only "$GOLDEN_PINS" >/dev/null
-      ( $NG -b -o "$lg" "$sp" >/dev/null 2>&1 || true ) &
+      run_ng "pin-cap-golden" "$sp" "$lg" "$m $c" &
       n=$((n+1))
       [ $((n % JOBS)) -eq 0 ] && wait
     done
@@ -237,3 +238,7 @@ echo "A deviation outside +-${GOLDEN_BAND}% is WARNED about and nothing more:"
 echo "it is a modelling cross-check, not a correctness gate."
 
 exit $rc
+
+# Non-zero if any deck died. The numbers those decks would have produced
+# are simply absent otherwise, and absent is indistinguishable from fine.
+ng_summary

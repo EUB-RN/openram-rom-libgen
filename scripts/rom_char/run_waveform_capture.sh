@@ -32,6 +32,7 @@
 set -e
 . "$(dirname "$0")/common.sh"
 need_ngspice
+ng_reset          # clear the failure ledger for this run
 IMG="$ROOT/docs/img"
 
 # node a .measure statement triggers on / targets: meas_node <deck> <name> TRIG|TARG
@@ -73,8 +74,10 @@ run_raw() {
                          print ".endc"; done = 1 }
     { print }' "$deck" > "$tmp"
   echo "   $(basename "$raw") <- $(basename "$deck")"
-  $NG -b -o "${raw%.raw}.log" "$tmp" >/dev/null 2>&1 || {
-    echo "   ngspice failed -- see ${raw%.raw}.log"; return 1; }
+  # Reports stage, context and ngspice's own reason; the caller decides
+  # whether a missing waveform stops the figure or only that one panel.
+  run_ng "raw-capture-$(basename "$raw" .raw)" "$tmp" "${raw%.raw}.log" "$m" \
+    || return 1
 }
 
 # hardcopy_svg <out.svg> <title> <xlabel> <raw list> <vector list> [t0 t1]
@@ -95,9 +98,15 @@ hardcopy_svg() {
     echo ".endc"
     echo ".end"
   } > "$tmp"
-  $NG -b -o "${tmp%.sp}.log" "$tmp" >/dev/null 2>&1 || true
-  [ -f "$out" ] && echo "   wrote docs/img/$(basename "$out")" \
-                || echo "   hardcopy failed -- see ${tmp%.sp}.log"
+  # A figure that silently does not appear is the same class of bug as a
+  # measurement that silently does not happen, so this reports too. It does
+  # NOT stop the script: a missing figure costs documentation, not a number.
+  run_ng "figure-$(basename "$out" .svg)" "$tmp" "${tmp%.sp}.log" "$m" || true
+  if [ -f "$out" ]; then
+    echo "   wrote docs/img/$(basename "$out")"
+  else
+    echo "   NO FIGURE: ngspice ran but wrote no hardcopy -- see ${tmp%.sp}.log" >&2
+  fi
 }
 
 for m in $(macro_list "$@"); do
@@ -174,3 +183,5 @@ for m in $(macro_list "$@"); do
     "$m back end at TT -- dout0 at $(echo $LOADS | tr ' ' '/') fF, and the bitline driving it" \
     "time" "$raws" "$vecs"
 done
+
+ng_summary

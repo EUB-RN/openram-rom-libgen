@@ -13,6 +13,7 @@
 set -e
 . "$(dirname "$0")/common.sh"
 need_ngspice
+ng_reset          # clear the failure ledger for this run
 GEN="$ROM_CHAR_DIR/gen_col_power_tb.py"
 
 printf "%-7s %-6s %12s %12s %10s %14s\n" \
@@ -25,7 +26,7 @@ for m in $(macro_list "$@"); do
     sp="$G_CHAR/${G_COLTAG}_energy_${c}.sp"
     lg="$G_CHAR/${G_COLTAG}_energy_${c}.log"
     python3 "$GEN" "$m" "$G_WORST_COL" active "$sp" --corner "$c" --vdd "$v" --temp "$t" >/dev/null
-    $NG -b -o "$lg" "$sp" >/dev/null 2>&1 || true
+    run_ng "col-energy" "$sp" "$lg" "$m $c" || continue
     q2=$(meas "$lg" q_c2)
     q3=$(meas "$lg" q_c3)
     if [ -z "$q3" ]; then
@@ -43,3 +44,7 @@ done
 echo
 echo "NOTE: these numbers cover the COLUMN ARRAY only. Decoder/buffer/mux/"
 echo "      control (periphery) energy is separate -- run_periphery_power.sh."
+
+# Non-zero if any deck died. The numbers those decks would have produced
+# are simply absent otherwise, and absent is indistinguishable from fine.
+ng_summary

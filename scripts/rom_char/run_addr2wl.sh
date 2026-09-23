@@ -39,6 +39,7 @@
 set -e
 . "$(dirname "$0")/common.sh"
 need_ngspice
+ng_reset          # clear the failure ledger for this run
 GENP="$ROM_CHAR_DIR/gen_periphery_power_tb.py"
 JOBS="${JOBS:-3}"
 
@@ -70,7 +71,7 @@ for m in $MACROS; do
     python3 "$GENP" "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
             --gate-cap-ff "$cg" --addr 0 --addr-alt "$ALT" \
             --addr-sw-eval >/dev/null
-    ( $NG -b -o "$lg" "$sp" >/dev/null 2>&1 || true ) &
+    run_ng "addr-to-wordline" "$sp" "$lg" "$m $c" &
     n=$((n+1))
     [ $((n % JOBS)) -eq 0 ] && wait
   done
@@ -114,3 +115,7 @@ echo "this conversion itself; the column here is so the two frames can be"
 echo "compared by eye. A conversion that comes out NEGATIVE means the address"
 echo "reaches the array later than the read is decided, i.e. there is no hold"
 echo "requirement left at the pin -- report it, do not ship a negative hold."
+
+# Non-zero if any deck died. The numbers those decks would have produced
+# are simply absent otherwise, and absent is indistinguishable from fine.
+ng_summary
