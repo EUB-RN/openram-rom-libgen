@@ -36,9 +36,24 @@ Ordered by how much they can move a number:
    the slowest select. The periphery is the same circuit in all four macros and
    the numbers agree to four digits across them, so this is cheap rather than
    risky -- but a macro whose column decoder differs would need the full sweep.
-3. **Wire resistance is modelled per cell, not extracted whole.** Magic
-   segfaults extracting resistance for the whole macro, so
-   `gen_resistance_model.py` extracts it per cell (where Magic is happy) and
+3. **Wire resistance is modelled per cell, not extracted whole (an intentional design choice).**
+   Magic (versions 8.3.628 / 8.3.629) segfaults when attempting resistance
+   extraction (`extresist all` / `ext2spice extresist on`) on the whole macro
+   due to the array size and degenerate shorted cells (`rom_base_zero_cell` source/drain short).
+   Running the extraction command directly on a macro confirms this:
+   ```bash
+   cd examples/wrom0
+   magic -dnull -noconsole << 'EOF'
+   load wrom0
+   extract style ngspice(si); extract all
+   extresist tolerance 1; extresist all
+   ext2spice hierarchy on; ext2spice format ngspice; ext2spice extresist on
+   ext2spice -o wrom0_rc.spice
+   quit -noprompt
+   EOF
+   # Fails with: Segmentation fault (core dumped)
+   ```
+   Because of this, `gen_resistance_model.py` extracts it per cell (where Magic is happy) and
    computes it from the .mag geometry plus the PDK sheet resistances where it
    is not. On the example macros: 505 ohm per `one_cell`, 0.24 ohm per
    `zero_cell` strap, 41.5 kohm over the worst chain. It is **included by

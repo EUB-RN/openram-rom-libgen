@@ -84,6 +84,39 @@ Each block gets its own reduced deck, and the terms are added back in the
 Every deck uses **real Magic parasitic capacitance** and runs each corner
 against its own sky130 models. No fixed derating factor.
 
+### Parasitic extraction & resistance modelling: an intentional design choice
+
+A common question is why full-macro RC extraction (extracting wire resistance and array-level parasitics together in a single pass) is not run directly in Magic. **Using capacitance-only extraction (`extresist off`) at the macro level combined with a per-cell series resistance model is an intentional architectural and design choice:**
+
+1. **Magic crashes on full-macro resistance extraction:** Magic (specifically versions 8.3.628 / 8.3.629) segfaults when attempting whole-macro resistance extraction (`extresist all` / `ext2spice extresist on`) on arrays containing tens of thousands of devices. Furthermore, ROM programming creates degenerate cell topologies: `rom_base_zero_cell` shorts its source and drain together with a metal1 strap (representing logic 0), which causes Magic's resistance network solver to crash immediately.
+2. **Reproducing the Magic segfault:** Anyone can reproduce this crash on an example macro (e.g. `wrom0`) to verify why whole-macro resistance extraction cannot be used:
+
+   ```bash
+   # Proof: attempting full-macro resistance extraction in Magic triggers a segfault
+   cd examples/wrom0
+   magic -dnull -noconsole << 'EOF'
+   load wrom0
+   extract style ngspice(si)
+   extract all
+   extresist tolerance 1
+   extresist all
+   ext2spice hierarchy on
+   ext2spice format ngspice
+   ext2spice cthresh 0
+   ext2spice rthresh 0
+   ext2spice extresist on
+   ext2spice -o wrom0_rc.spice
+   quit -noprompt
+   EOF
+   # Result: Segmentation fault (core dumped)
+   ```
+
+3. **How the flow solves this:**
+   * **Capacitance (`run_cap_extract.sh`):** Magic extracts real distributed parasitic capacitance with resistance extraction disabled (`ext2spice rthresh infinite`, `ext2spice extresist off`).
+   * **Series Resistance (`gen_resistance_model.py`):** Resistance is extracted on single isolated cells (where Magic runs without crashing) and computed analytically from `.mag` geometries + PDK sheet resistances for strapped degenerate cells.
+   * **Critical path injection:** The resulting resistances (~505 $\Omega$ per `one_cell`, ~41.5 $\text{k}\Omega$ over the worst column) are injected into the column deck (`--with-resistance`), moving access delay by **+15% at TT, +6.6% at SS, and +28% at FF**.
+   * **Array-level parasitics:** While inter-column coupling and top metal bitline capacitance (~+3 fF) are not bundled in a monolithic extraction due to these tool limits, access timing is bounded cleanly without simulation convergence failures or tool crashes (see [docs/limitations.md](docs/limitations.md)).
+
 ### The column: bitline discharge and precharge
 
 ```bash
@@ -371,7 +404,11 @@ The Verilog is **simulation only** -- not synthesizable; the ASIC flow reads
 
 ```bash
 iverilog -g2012 -o /tmp/rom.vvp output/verilog/wrom0.v && echo "syntax OK"
+# or run the full testsuite (tests all .lib files, OpenSTA, and all .v models):
+./tests/run_tests.sh
 ```
+
+All Liberty and Verilog validation checks are automated on every push/PR via GitHub Actions (`.github/workflows/ci.yml`).
 
 ---
 
