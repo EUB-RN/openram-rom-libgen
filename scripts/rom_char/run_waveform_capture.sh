@@ -138,10 +138,17 @@ for m in $(macro_list "$@"); do
   d="$G_CHAR/periph_active_tt.sp"
   ci=$(meas_node "$d" t_clk2int TARG 2>/dev/null)
   cp=$(meas_node "$d" t_clk2pre TARG 2>/dev/null)
-  cw=$(meas_node "$d" t_clk2wl0 TARG 2>/dev/null)
+  # the wordline node, taken from the measure that actually resolves it: the
+  # FALL. There is no clk0 -> wordline RISE arc in this circuit (see
+  # gen_periphery_power_tb.py), and the t_clk2wl0 this line used to read has
+  # been removed.
+  cw=$(meas_node "$d" t_wlfall0 TARG 2>/dev/null)
   if run_raw "$d" "$OUT/front_tt.raw" clk0 "$ci" "$cp" "$cw"; then
     ptclk=$(param "$d" TCLK)
-    pev=$(awk -v t="$ptclk" 'BEGIN{printf "%.12g", 6*t}')
+    # clk0 RISES at TCLK/2 + k*TCLK, so cycle 6's rising edge is at 6.5*TCLK.
+    # This used to say 6*TCLK, which is where clk0 FALLS -- the figure was
+    # drawn on the precharge edge while its own title said the opposite.
+    pev=$(awk -v t="$ptclk" 'BEGIN{printf "%.12g", 6.5*t}')
     hardcopy_svg "$IMG/06-front-end.svg" \
       "$m front end at TT -- clk0 rises, the selected wordline FALLS" \
       "time" "$OUT/front_tt.raw" \

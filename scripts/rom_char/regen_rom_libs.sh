@@ -113,10 +113,23 @@ for m in $(macro_list "$@"); do
     fi
 
     # 1) front end: clk0 -> precharge. The column measurement triggers off the
-    #    internal precharge net, so this term was MISSING from access. (Cross-
-    #    checked against the wordline path with t_clk2wl0: in all three
-    #    corners the wordline is FASTER than the precharge path, so precharge
-    #    is the critical one.)
+    #    internal precharge net, so this term was MISSING from access.
+    #
+    #    It is NOT raced against a wordline delay. This comment used to claim
+    #    a cross-check "against the wordline path with t_clk2wl0: the wordline
+    #    is FASTER than the precharge path" -- that rested on a broken
+    #    measurement (a TARG window opened half a cycle early, so t_clk2wl0
+    #    read -99 ns in every log, and the negative sign was mistaken for
+    #    speed; fixed 2026-09-23). No wordline RISES during evaluate at all:
+    #    the selected one FALLS, t_wlfall0 = 1.5692 ns at TT against
+    #    t_clk2pre = 0.7642, i.e. the wordline moves 0.8 ns LATER than the
+    #    precharge edge, not earlier.
+    #
+    #    That does not change this term, and the reason is the array rather
+    #    than a race. For the read of 0 the deck characterises, the selected
+    #    row's cell is a metal strap: the chain conducts whether its gate has
+    #    fallen or not, so the discharge starts on the precharge edge and the
+    #    wordline is not in series with it.
     tf=$(meas "$PA" t_clk2pre | awk '{printf "%.4f", $1*1e9}')
     # index_1 (clk0 slew): the front-end term at each point of the axis.
     # run_slew_sweep.sh writes periph_slew<i>_<corner>.log. Without them the
@@ -236,6 +249,34 @@ for m in $(macro_list "$@"); do
       echo "  $m $c: no hold log -> hold = access (pessimistic in STA);"
       echo "        run run_wl_slew.sh then run_hold_bisect.sh to measure it"
     fi
+    # THE FRAME CONVERSION for that hold. run_hold_bisect.sh answers in the
+    # column deck's frame -- that deck has no clk0 in it, so its cut time is
+    # counted from the internal evaluate edge -- while Liberty's hold_rising
+    # is referenced to the clk0 PIN. addr0 -> the wordline it drops is the
+    # missing term (run_addr2wl.sh, measured during evaluate when the clocked
+    # decoder is transparent); gen_rom_lib.py does the arithmetic. Exactly one
+    # probed wordline falls, so the worst of whatever resolved is the answer.
+    a2w=""
+    if [ -f "$G_CHAR/addr2wl_${c}.log" ]; then
+      a2w=$(awk '/^t_addr2wl[0-9]+ /{ if ($3 ~ /^[0-9.eE+-]+$/ && $3+0 > mx) mx = $3+0 }
+                 END { if (mx > 0) printf "%.4f", mx*1e9 }' \
+                "$G_CHAR/addr2wl_${c}.log" 2>/dev/null || true)
+    fi
+    a2w_arg=""
+    if [ -n "$a2w" ]; then
+      a2w_arg="--t-addr2wl $a2w"
+    elif [ -n "$hold_meas" ]; then
+      echo "  $m $c: no addr2wl log -> the hold stays in the COLUMN DECK'S"
+      echo "        frame and the .lib says so (run run_addr2wl.sh)"
+    fi
+    # SETUP is a path delay; the gate it feeds is clocked by clk_int, so what
+    # the address really has to beat is the CLOCK to the same gate. Passing
+    # t_clk2int lets the header state that race -- and it is what bounds cs0,
+    # whose own path has no stage to measure (it goes straight to the control
+    # NAND's gate and the extraction keeps it as one node).
+    ci=$(meas "$PA" t_clk2int | awk '{printf "%.4f", $1*1e9}')
+    ci_arg=""
+    [ -n "$ci" ] && ci_arg="--t-clk2int $ci"
 
     retain_arg=""
     if [ -z "$e_dis" ]; then
@@ -320,6 +361,7 @@ ${hold_meas:+, address hold char/hold_${c}.log}"
       --leakage-mw "$leak" ${leak_idle:+--leakage-idle-mw "$leak_idle"} \
       --energy-pj "$e_act" --energy-idle-pj "$e_idle" \
       --t-front "$tf_list" $slew_arg $retain_arg $coldec_arg $pc_arg \
+      $a2w_arg $ci_arg \
       --backend-ns "$be" --out-slew-ns "$sl" \
       --t-invalid "$tinv" \
       --chain-len "$G_CHAIN" --worst-col "$col" \

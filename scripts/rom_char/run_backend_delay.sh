@@ -10,7 +10,12 @@
 # Running it once per load also makes the index_2 (output load) axis of the
 # .lib CELL_TABLE a real measurement.
 #
-# Total:  access = max(t_clk2wl, t_clk2pre)   [run_periphery_power.sh]
+# Total:  access = t_clk2pre                  [run_periphery_power.sh]
+#                                             (not max(t_clk2wl, t_clk2pre):
+#                                              no wordline rises in evaluate,
+#                                              the selected one FALLS and the
+#                                              read-0 cell it gates is a
+#                                              strap, so it is not in series)
 #                + t_dis_50                   [col*_worst_case_parasitic]
 #                + t_bl2dout                  [THIS script]
 #

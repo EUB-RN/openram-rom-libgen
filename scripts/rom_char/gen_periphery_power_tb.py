@@ -84,6 +84,16 @@ ap.add_argument("--addr-alt", type=int, default=None,
                      "measured. Because the decoder is PRECHARGED the address "
                      "must be settled WHEN evaluate begins: if the wrong "
                      "wordline falls it does not come back, just like a bitline.")
+ap.add_argument("--addr-sw-eval", action="store_true",
+                help="with --addr-alt: switch the address in the middle of "
+                     "the EVALUATE phase instead of the precharge phase, and "
+                     "measure addr0 -> wordline FALL (t_addr2wl<k>). That is "
+                     "the delay the HOLD constraint needs: run_hold_bisect.sh "
+                     "answers in the deck's own frame (its cut time is "
+                     "counted from the internal precharge edge), while "
+                     "Liberty's hold_rising is referenced to the clk0 PIN. "
+                     "The conversion is hold = t_clk2pre + cut - t_addr2wl, "
+                     "and this is the last term.")
 ap.add_argument("--addr", type=int, default=0,
                 help="the address held constant (selects that row)")
 ap.add_argument("--gate-cap-ff", type=float, default=None,
@@ -547,13 +557,25 @@ wl_meas = [n for k in range(8)
 # measured clock edge; both trig and targ then catch the first crossing after
 # it. A late cycle is used so the circuit has settled.
 _tclk = to_float(args.tclk)
-_edge = (args.cycles - 2) * _tclk        # the clk0 rising edge to measure
-_td_trig = _edge - _tclk / 20.0
-# The TARG window starts EXACTLY at the edge: because the decoder is
-# precharged, the wordlines also rise on clk0's FALLING edge (the precharge
-# phase). Giving TARG a TD before the edge makes the measurement catch that
-# falling-edge rise and produce a NEGATIVE delay (t_clk2wl = -99 ns).
-_td_targ = _edge
+# Vclk below is PULSE(... TD={TCLK/2} ... PER={TCLK}), so clk0 RISES at
+# TCLK/2 + k*TCLK and FALLS at (k+1)*TCLK. _edge is therefore the start of a
+# PRECHARGE phase, not a rising edge -- the rising edge that closes it is half
+# a cycle later. Everything below derives its windows from _clk_rise, and the
+# other users of _edge (the evaluate window at ~line 655 and the address
+# switching instant at ~line 677) read it with this same meaning.
+_edge = (args.cycles - 2) * _tclk        # start of the measured PRECHARGE phase
+_clk_rise = _edge + _tclk / 2.0          # the clk0 RISING edge being measured
+_td_trig = _clk_rise - _tclk / 20.0
+# The TARG window starts EXACTLY at that rising edge. Because the decoder is
+# precharged, the wordlines also rise during the PRECHARGE phase, i.e. in
+# [_edge, _clk_rise]; a TARG window that reaches back into it latches that
+# rise instead of anything the measured edge caused, and the delay comes out
+# NEGATIVE -- t_clk2wl = -99 ns, an entire phase backwards. That defect was
+# in every committed log up to 2026-09-23: the window was opened at _edge,
+# which is half a cycle EARLY, and the negative result was then read as
+# "the wordline path is faster than the precharge path" and written into the
+# docs. A delay cannot be negative; the sign was the bug reporting itself.
+_td_targ = _clk_rise
 fe = []
 def _m(name, node):
     pad = " " * len(name)
@@ -564,16 +586,38 @@ def _m(name, node):
 if clk_int:
     fe += _m("t_clk2int", clk_int[0])
 # Which wordline is selected depends on the address encoding and cannot be
-# read off the names Magic generates; the first few wordlines are measured, and
-# whichever one moves after clk0's RISING edge is the selected one (the others
-# report "failed", which is expected and informative).
-# The decoder POLARITY is measured rather than assumed: if all wordlines rise
-# during the precharge phase (clk0 low), then in evaluate the UNSELECTED rows
-# fall. Both the rise and the fall are measured so this conclusion is EVIDENCE,
-# not an assumption -- and it is what justifies the column deck holding all
-# wordlines at DC VDD, with the front-end term being clk0 -> precharge only.
+# read off the names Magic generates; the first few wordlines are measured and
+# the log says which one moved.
+#
+# THERE IS NO clk0 -> WORDLINE RISE ARC, so none is measured. A `t_clk2wl*`
+# used to be emitted here and it never meant anything: no wordline rises
+# during evaluate at all, so the TARG simply found the nearest rise in some
+# OTHER phase. `.measure` takes a window START (TD) and has no end, so there
+# is no window that fixes it -- with TD half a cycle early it reported
+# -99 ns (the rise in the precharge phase BEFORE the edge) and with TD at the
+# edge it reports +100.75 ns (the recovery in the phase AFTER evaluate ends).
+# Both are the same artefact and neither is a delay. Measured on wrom0/TT
+# 2026-09-23; the -99 ns form had been in every committed log and had been
+# read as "the wordline path is faster than the precharge path", which is
+# backwards -- t_wlfall0 = 1.5692 ns against t_clk2pre = 0.7642 ns.
+#
+# What replaces it is a BOUNDED probe: the wordline's LEVEL at a fixed
+# instant inside the evaluate phase. `FIND ... AT=` cannot wander into a
+# neighbouring phase the way a trig/targ search can, so this states the
+# decoder polarity in a form that no window choice can corrupt:
+#     v_wl<k>_eval ~ 0     -> row k is the SELECTED one, driven low
+#     v_wl<k>_eval ~ VDD   -> row k is untouched, still high
+# Together with t_wlfall<k> (which succeeds for the selected row and fails
+# for every other) that is the polarity EVIDENCE, and it is what justifies
+# the column deck holding every wordline at DC VDD: not "the unselected rows
+# fall" -- they do not move at all -- but that the one row whose gate does
+# fall is strapped (zero_cell) in the read-0 case the deck characterises, so
+# the chain keeps conducting and the discharge starts on the precharge edge.
+# The front-end term is therefore clk0 -> precharge, with the wordline NOT in
+# series with it.
+_t_wl_probe = _clk_rise + 0.45 * _tclk     # inside evaluate, after the fall
 for k, n in enumerate(wl_meas):
-    fe += _m(f"t_clk2wl{k}", n)
+    fe += [f".measure tran v_wl{k}_eval FIND v({n}) AT={_t_wl_probe:.6e}"]
     pad = " " * len(f"t_wlfall{k}")
     fe += [f".measure tran t_wlfall{k} TRIG v(clk0) VAL='VDD/2' RISE=1 "
            f"TD={_td_trig:.6e}",
@@ -674,15 +718,25 @@ if args.with_coldec:
 _abits = sorted(int(mm.group(1))
                 for p_ in top_ports
                 for mm in [re.match(r"addr0\[(\d+)\]$", p_)] if mm)
-# The measured clk0 rising edge is at _edge + TCLK/2; the PRECHARGE phase
-# before it is [_edge, _edge+TCLK/2]. The address is switched in the middle of
-# that phase -> TCLK/4 before the edge, plenty of time for the decoder.
-_t_sw = _edge + _tclk / 4.0
+# _edge starts the PRECHARGE phase and _clk_rise = _edge + TCLK/2 closes it
+# (see the front-end block above).
+#
+# WHERE THE ADDRESS IS SWITCHED decides which question the deck answers:
+#   precharge (default) -- SETUP: the address moves well before the edge and
+#     what is measured is how long it takes to reach the decoder NAND.
+#   evaluate (--addr-sw-eval) -- the HOLD conversion: the address moves while
+#     the decoder is transparent, so the wordline of the newly selected row
+#     actually falls and addr0 -> that fall can be measured. The decoder is
+#     combinational during evaluate, so this delay does not depend on how far
+#     into the phase the switch happens.
+_t_sw = ((_clk_rise + _tclk / 4.0) if args.addr_sw_eval
+         else (_edge + _tclk / 4.0))
 
 # --- SETUP: addr0 -> decoder ----------------------------------------------
-# The decoder is PRECHARGED: every wordline rises during precharge and the
-# UNSELECTED ones fall during evaluate. So the address must be settled at the
-# decoder INPUTS when clk0 rises, and that is exactly the path measured here:
+# The decoder is PRECHARGED: every wordline is high when evaluate begins and
+# the SELECTED row is driven low (measured -- see the front-end block). So the
+# address must be settled at the decoder INPUTS when clk0 rises, and that is
+# exactly the path measured here:
 #     addr0 -> inv_array_mod (address buffer) -> the clocked decoder NAND
 # This is the physical counterpart of setup_rising in the .lib; without it
 # gen_rom_lib.py falls back to the analytic guess in BASE.
@@ -716,6 +770,35 @@ if args.addr_alt is not None:
         _samp = sorted(n for n in rowd if re.search(r"inv_array_mod_\d+/Z$", n))
         for _k, _n in enumerate(_samp):
             fe += _ms(f"t_addr2dec{_k}", _n)
+
+        # --- the HOLD conversion term: addr0 -> WORDLINE FALL --------------
+        # Only with --addr-sw-eval, because it is the only stimulus under
+        # which a wordline actually falls in response to the ADDRESS rather
+        # than the clock: during evaluate the decoder is transparent, so
+        # moving the row address drops the newly selected row's wordline.
+        #
+        # WHY THE .lib NEEDS IT. run_hold_bisect.sh answers in the COLUMN
+        # deck's frame: its cut time is counted from the internal precharge
+        # source's rising edge, and that deck has no clk0 in it at all.
+        # Liberty's hold_rising is referenced to the clk0 PIN. Two terms
+        # separate the frames:
+        #     hold(clk0 frame) = t_clk2pre + cut - t_addr2wl
+        # the first carrying the edge from the pin to the array, the second
+        # carrying the address from the pin to the wordline it drops. Shipping
+        # the raw cut time silently assumes those two cancel.
+        #
+        # The measurement is taken on whichever of the probed wordlines
+        # actually falls -- the row --addr-alt selects. Every other one
+        # reports "failed", which is the same evidence the polarity block
+        # above relies on.
+        if args.addr_sw_eval:
+            for _k, _n in enumerate(wl_meas):
+                _nm = f"t_addr2wl{_k}"
+                _pad = " " * len(_nm)
+                fe += [f".measure tran {_nm} TRIG v({_trig_pin}) VAL='VDD/2' "
+                       f"CROSS=1 TD={_td:.6e}",
+                       f"+                {_pad}TARG v({_n}) VAL='VDD/2' "
+                       f"FALL=1 TD={_td:.6e}"]
 fe_txt = "\n".join(fe)
 caps_txt = "\n".join(kept_c)
 loads_txt = "\n".join(load_lines)

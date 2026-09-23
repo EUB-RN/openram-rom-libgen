@@ -14,8 +14,10 @@
 # must be stable is inv_array_mod's Z, and what we measure is the addr0 -> that
 # net delay.
 #
-# WHY IT MATTERS: the decoder is PRECHARGED. During precharge every wordline
-# rises; during evaluate the UNSELECTED ones fall. If the address has not
+# WHY IT MATTERS: the decoder is PRECHARGED. Every wordline is high when
+# evaluate begins and the SELECTED one is driven low -- measured, not assumed:
+# in periph_active_<corner>.log exactly one t_wlfall* succeeds and every
+# t_clk2wl* fails, i.e. nothing rises during evaluate. If the address has not
 # settled when evaluate begins, the WRONG wordline falls -- and, like a
 # bitline, a decoder node does not come back until the next precharge. So a
 # setup violation is not metastability: it is a silent, persistent misread.
