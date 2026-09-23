@@ -173,11 +173,24 @@ def table(rows, pad):
     return ",\\\n".join(out)
 
 
-def constraint_block(setup_rows, hold_rows, indent):
+def constraint_block(setup_rows, hold_rows, indent, hold_fall_rows=None):
+    """setup/hold against clk0, plus an optional hold against its FALL.
+
+    hold_falling is how a "stay until the other edge" requirement is written.
+    A hold_rising says "stable for N ns after the rise", which is a DURATION,
+    and no duration expresses "until clk0 falls": stretch the applied clock and
+    the requirement stretches with it while N does not. cs0 is exactly that
+    case -- it gates the precharge, so the read needs it right up to the
+    capture edge -- and a value of 0 against the falling edge says so for any
+    clock period.
+    """
     pad = " " * indent
     inner = pad + " " * 12
     lines = []
-    for ttype, rows in (("setup_rising", setup_rows), ("hold_rising", hold_rows)):
+    arcs = [("setup_rising", setup_rows), ("hold_rising", hold_rows)]
+    if hold_fall_rows is not None:
+        arcs.append(("hold_falling", hold_fall_rows))
+    for ttype, rows in arcs:
         lines.append("%stiming() {" % pad)
         lines.append("%s    timing_type : %s;" % (pad, ttype))
         lines.append('%s    related_pin : "clk0";' % pad)
@@ -335,23 +348,97 @@ def gen_lib(name, area, buses, scalars, corner, args):
     t_invalid = ((args.t_invalid or 0.0) * (1.0 if args.measured else dscale)
                  if args.t_invalid else None)
     invalid_rows = [[t_invalid] * 3] * 3 if t_invalid else None
+    # --- hold: TWO different requirements, not one -------------------------
+    # THE ADDRESS and THE CHIP SELECT are held for different reasons, so one
+    # measurement cannot cover both. What the hold experiment does is drop a
+    # wordline in mid-evaluate, i.e. cut the series chain -- which is what a
+    # MOVING ADDRESS does to a clocked row decoder, and nothing else.
+    #
+    # cs0 is not on that path at all. It gates the precharge itself:
+    #     precharge = ~NAND(cs0, clk_int)
+    # so cs0 going away during evaluate turns the precharge PMOS back ON, the
+    # bitline is pulled to VDD and the read is destroyed outright -- at ANY
+    # point in the cycle, including one where the address no longer matters
+    # because the bitline is already through the trip point. The address
+    # experiment's whole finding (the read is decided early, so the tail of
+    # access does not constrain the address) is exactly what does NOT carry
+    # over to cs0.
+    #
+    # So cs0 keeps the full access window and the measurement applies to the
+    # address alone. Handing cs0 the shorter number would be relaxing a
+    # constraint on the strength of an experiment that never exercised it.
+    #
+    # WHY THE FLAG: `hold` starts life as BASE["hold"] = 3.00 ns, the analytic
+    # guess from before anything in this file was measured, and the override
+    # below is guarded by `be` -- the presence of the BACK-END load sweep --
+    # because access_eff cannot be formed without it. So the question "do I
+    # know the hold?" was being answered by "do I have the back-end sweep?",
+    # which is a different question. Worse, the header text that explains the
+    # hold sits inside the same `if be:` block, so the one case where hold is
+    # a guess was exactly the case where nothing said so: the fallback and its
+    # disclosure were hung off the same condition and cancelled each other.
+    # regen_rom_libs.sh never reaches it (it refuses to call this script with
+    # an empty back-end list), but a call by hand does. This flag is anchored
+    # to hold itself, and everything below reports off it.
+    hold_is_analytic = True
+    if be:
+        # addr0/cs0 must stay stable through evaluate, and that window is
+        # bounded by the FULL access (front end + bitline + back end).
+        hold = access_eff
+        hold_is_analytic = False
+    # every input that is neither an address bit nor the clock: the control
+    # pins, which is where the distinction above lands.
+    _ctrl_names = [p_ for p_, i_ in scalars.items()
+                   if i_.get("use") not in ("power", "ground") and p_ != "clk0"]
+    hold_ctrl = hold
+    hold_frame = None      # (cut, t_front, t_addr2wl) once converted
     if args.hold_measured:
         # MEASURED (run_hold_bisect.sh): the deck cuts the series chain in
-        # mid-evaluate -- exactly what a moving address does to a CLOCKED row
-        # decoder -- and bisects the cut time until the read still lands within
-        # 10% of the rail. It comes out SHORTER than access, because the read
-        # is finished once the bitline has driven bl_b to a real logic level;
-        # the back-end delay after that point no longer depends on the address.
-        # This value is per-corner and never derated.
-        hold = args.hold_measured
-    elif be:
-        # NOT measured: addr0/cs0 must stay stable through evaluate, and that
-        # window is bounded by the FULL access (front end + bitline + back
-        # end). Safe, and it was the only available answer until the hold
-        # experiment existed -- but it overstates the requirement.
-        hold = access_eff
+        # mid-evaluate and bisects the cut time until the read still lands
+        # within 10% of the rail. It comes out SHORTER than access, because
+        # the read is finished once the bitline has driven bl_b to a real
+        # logic level; the back-end delay after that point no longer depends
+        # on the address. This value is per-corner and never derated.
+        #
+        # IT IS ALSO IN THE WRONG TIME FRAME until it is converted. The hold
+        # deck is the COLUMN deck: driven by a synthetic precharge source,
+        # with no clk0 in it at all, so its cut time is counted from the
+        # INTERNAL evaluate edge. Liberty's hold_rising is referenced to the
+        # clk0 PIN. Two measured delays separate the frames:
+        #
+        #   hold(clk0) = t_front + cut - t_addr2wl
+        #                \______/         \________/
+        #            pin -> array edge   pin -> the wordline it drops
+        #
+        # t_front is taken at its LARGEST point on the slew axis, which makes
+        # the converted hold longer, i.e. stricter. Shipping the raw cut time
+        # instead is the same as asserting the two terms cancel -- on the
+        # example macros they nearly do, which is a coincidence and not a
+        # reason.
+        hold_addr = args.hold_measured
+        hold_is_analytic = False
+        if args.t_addr2wl is not None:
+            hold_addr = t_front + args.hold_measured - args.t_addr2wl
+            hold_frame = (args.hold_measured, t_front, args.t_addr2wl)
+            if hold_addr <= 0.0:
+                print("WARNING: %s %s: the hold converts to %.4f ns at the "
+                      "clk0 pin, i.e. the address reaches the array later "
+                      "than the read is decided and there is no hold "
+                      "requirement left. Shipping 0."
+                      % (name, corner, hold_addr), file=sys.stderr)
+                hold_addr = 0.0
+    else:
+        hold_addr = hold
     setup_rows = [[setup] * 3] * 3
-    hold_rows = [[hold] * 3] * 3
+    hold_rows = [[hold_addr] * 3] * 3        # the ADDRESS bus
+    hold_ctrl_rows = [[hold_ctrl] * 3] * 3   # cs0 and any other control input
+    # AND the arc that actually pins cs0 down. hold_ctrl above says "at least
+    # until the data exists"; this says "and still there at the capture edge",
+    # which is the real requirement and the only form of it that survives a
+    # change of clock period. Zero is exact: dout0 is captured ON clk0's fall
+    # (the macro has no latch and the data is gone afterwards), so cs0 has to
+    # last up to that instant and not beyond it.
+    hold_fall_rows = [[0.0] * 3] * 3
 
     # --- power/ground pins, and the rails they belong to -------------------
     # The names come out of the LEF (USE POWER / USE GROUND), for the same
@@ -478,16 +565,67 @@ def gen_lib(name, area, buses, scalars, corner, args):
         w(" * mux and the output buffer.")
         w(" *")
         if args.hold_measured:
-            w(" * HOLD IS MEASURED, NOT ASSUMED: %.4f ns (scripts/rom_char/"
-              % hold)
-            w(" * run_hold_bisect.sh). The deck cuts the series chain in")
-            w(" * mid-evaluate -- what a moving address does to a CLOCKED row")
-            w(" * decoder -- and bisects the cut time until the read still")
-            w(" * lands within 10% of the rail. It is SHORTER than access")
-            w(" * (%.4f ns): once the bitline has driven bl_b to a real logic"
+            w(" * THE ADDRESS HOLD IS MEASURED: %.4f ns on %s"
+              % (hold_addr, ", ".join(addr_buses) if addr_buses else "addr0"))
+            w(" * (scripts/rom_char/run_hold_bisect.sh). The deck cuts the")
+            w(" * series chain in mid-evaluate -- what a moving address does")
+            w(" * to a CLOCKED row decoder -- and bisects the cut time until")
+            w(" * the read still lands within 10% of the rail. It is SHORTER")
+            w(" * than access (%.4f ns): once the bitline has driven bl_b to a"
               % access_eff)
-            w(" * level the read is decided, and the back-end delay after that")
-            w(" * point no longer depends on the address.")
+            w(" * real logic level the read is decided, and the back-end delay")
+            w(" * after that point no longer depends on the address.")
+            if hold_frame:
+                _cut, _tf, _d = hold_frame
+                w(" *")
+                w(" *   REFERENCED TO THE clk0 PIN, which is what Liberty")
+                w(" *   means. The hold deck is the column deck: no clk0 in")
+                w(" *   it, so its answer is counted from the INTERNAL")
+                w(" *   evaluate edge. Two measured delays carry it across:")
+                w(" *     cut from the internal edge   %8.4f ns" % _cut)
+                w(" *     + clk0 -> that edge          %8.4f ns" % _tf)
+                w(" *     - addr0 -> the wordline      %8.4f ns" % _d)
+                w(" *       (run_addr2wl.sh, measured during evaluate when")
+                w(" *        the decoder is transparent)")
+                w(" *     = hold at the pin            %8.4f ns" % hold_addr)
+                w(" *   The two corrections nearly cancel here; shipping the")
+                w(" *   raw cut time would have been right by coincidence.")
+            else:
+                w(" *")
+                w(" *   WARNING: this number is in the COLUMN DECK'S TIME")
+                w(" *   FRAME, not Liberty's. The deck has no clk0 in it --")
+                w(" *   its cut time is counted from the internal evaluate")
+                w(" *   edge -- while hold_rising is referenced to the clk0")
+                w(" *   PIN. The conversion is + (clk0 -> evaluate edge)")
+                w(" *   - (addr0 -> the wordline it drops); run")
+                w(" *   scripts/rom_char/run_addr2wl.sh and pass --t-addr2wl")
+                w(" *   to apply it.")
+            w(" *")
+            w(" * THE CONTROL INPUTS DO NOT GET THAT NUMBER. %s keeps the full"
+              % (", ".join(_ctrl_names) if _ctrl_names else "cs0"))
+            w(" * access window, %.4f ns, because the experiment above never"
+              % hold_ctrl)
+            w(" * exercised it: cs0 is not on the decode path at all. It gates")
+            w(" * the precharge itself (precharge = ~NAND(cs0, clk_int)), so")
+            w(" * cs0 going away during evaluate turns the precharge PMOS back")
+            w(" * ON and the bitline is pulled to VDD -- the read dies at any")
+            w(" * point in the cycle, including the late part where the")
+            w(" * address no longer matters. Handing it the shorter number")
+            w(" * would relax a constraint no measurement covers.")
+            w(" *")
+            w(" *   AND IT CARRIES A SECOND ARC, hold_falling = 0. The window")
+            w(" *   above says cs0 must last until the data EXISTS. What it")
+            w(" *   cannot say is that cs0 must last until the data is")
+            w(" *   CAPTURED, which happens on clk0's FALL -- this macro has")
+            w(" *   no latch, so the high phase is the whole life of the")
+            w(" *   read. That is not a duration: stretch the applied clock")
+            w(" *   and the requirement stretches with it, while any fixed")
+            w(" *   hold_rising does not. A cs0 released at %.4f ns satisfies"
+              % hold_ctrl)
+            w(" *   the arc above and still kills the read %.4f ns before the"
+              % (pw_high - hold_ctrl))
+            w(" *   earliest legal capture edge. Referenced to the FALLING")
+            w(" *   edge instead, zero states it exactly and for any period.")
         else:
             w(" * HOLD IS NOT MEASURED. It is declared equal to access")
             w(" * (%.4f ns) because the row decoder is clocked: an address"
@@ -495,7 +633,13 @@ def gen_lib(name, area, buses, scalars, corner, args):
             w(" * that moves during evaluate drops a second wordline and that")
             w(" * wordline does not come back inside the cycle. Safe, and")
             w(" * pessimistic -- scripts/rom_char/run_hold_bisect.sh measures")
-            w(" * where the real limit is.")
+            w(" * where the real limit is for the ADDRESS. cs0 is a separate")
+            w(" * question and keeps this window either way: it gates the")
+            w(" * precharge, so losing it mid-evaluate ends the read outright.")
+            w(" * cs0 also carries hold_falling = 0 against clk0: the read")
+            w(" * lives only during the high phase, so cs0 has to reach the")
+            w(" * capture edge whatever the clock period is -- which no")
+            w(" * fixed hold_rising can express.")
         w(" *")
         if t_coldec is None:
             w(" * THE COLUMN DECODER WAS NEVER SIMULATED. rom_column_decode")
@@ -524,6 +668,25 @@ def gen_lib(name, area, buses, scalars, corner, args):
         w(" * precharge/wordline and bitline -> dout0 (inverter + mux + output")
         w(" * buffer) are MISSING. Pass the measured values with --t-front /")
         w(" * --backend-ns (scripts/rom_char/gen_backend_delay_tb.py).")
+    # Said OUTSIDE the `if be:` above on purpose: this is the branch that
+    # needs it, and for a long time it was the branch that could not print it.
+    if hold_is_analytic:
+        w(" *")
+        w(" * WARNING: HOLD IS AN ANALYTIC GUESS -- %.4f ns on every input,"
+          % hold)
+        w(" * from the BASE table in gen_rom_lib.py, not from any measurement.")
+        w(" * It is a LEFTOVER DEFAULT, roughly 5x shorter than the window the")
+        w(" * macro really needs, and a hold that is too short is the unsafe")
+        w(" * direction: STA will pass a design that loses its read. The value")
+        w(" * is only reachable when --backend-ns is absent, because the rule")
+        w(" * that replaces it (hold = the full access window) cannot be formed")
+        w(" * without the back-end term. Pass --backend-ns, or better run")
+        w(" * scripts/rom_char/regen_rom_libs.sh, which refuses to build a")
+        w(" * .lib with a term missing.")
+        print("WARNING: %s %s: hold is the analytic BASE guess (%.4f ns), not "
+              "a measurement -- pass --backend-ns (hold = access) or "
+              "--hold-measured. A short hold is the unsafe direction."
+              % (name, corner, hold), file=sys.stderr)
     w(" *")
     # clk0 is emitted as its own pin() group after the scalar loop skips it,
     # so it has to be appended here -- but only if the LEF did not already
@@ -535,6 +698,45 @@ def gen_lib(name, area, buses, scalars, corner, args):
     _in_pins = ([(b, buses[b]["bits"]) for b in addr_buses]
                 + [(p_, None) for p_ in _scalar_names])
     _unmeas = [p_ for p_, bits in _in_pins if not cap_is_measured(p_, bits)]
+    # --- SETUP: a delay, and the race it actually has to win --------------
+    # `setup` is measured as a PATH DELAY: addr0 -> the A input of the clocked
+    # decoder NAND (run_addr_setup.sh). That is not by itself the constraint.
+    # The gate it feeds is clocked by clk_int, which leaves clk0 and arrives
+    # t_clk2int later, so the data only has to beat the CLOCK to the same
+    # gate. The true requirement at the pin is (path delay - t_clk2int), and
+    # when that is negative the address may legally arrive AFTER clk0 rises.
+    #
+    # The library keeps the positive path delay rather than the negative race
+    # margin: it is the conservative of the two, and relaxing a constraint is
+    # not something to do as a side effect of a units argument.
+    #
+    # cs0 IS BOUNDED BY THE SAME ARGUMENT, which is why it does not need a
+    # measurement of its own. Its path has no stage in it at all -- from the
+    # netlist, cs0 goes straight to the A gate of rom_control_nand, and the
+    # extraction keeps it as a single node, so there is nothing between the
+    # pin and the gate to measure. The address path has one inverter
+    # (inv_array_mod) that cs0's does not, so cs0's requirement is strictly
+    # the smaller of the two and the address's number covers it.
+    if args.t_clk2int is not None:
+        w(" *")
+        w(" * SETUP IS A PATH DELAY, AND IT WINS ITS RACE BY %.4f ns."
+          % (args.t_clk2int - setup))
+        w(" *   addr0 -> the clocked decoder NAND : %.4f ns (measured)" % setup)
+        w(" *   clk0  -> the same gate (clk_int)  : %.4f ns (measured)"
+          % args.t_clk2int)
+        w(" *   so the requirement AT THE PIN is %.4f ns -- negative, i.e."
+          % (setup - args.t_clk2int))
+        w(" *   the address may arrive after clk0 rises and still be in time.")
+        w(" *   The library ships the positive path delay instead: it is the")
+        w(" *   conservative of the two, and a constraint is not relaxed as a")
+        w(" *   side effect of changing what is being counted.")
+        w(" *   cs0 CARRIES THE SAME NUMBER AND IS COVERED BY IT. Its path")
+        w(" *   has no stage to measure -- in the netlist cs0 goes straight")
+        w(" *   to the A gate of rom_control_nand and the extraction keeps it")
+        w(" *   as one node -- while the address path has an inverter that")
+        w(" *   cs0's does not. cs0's requirement is therefore strictly the")
+        w(" *   smaller, and the address's measurement bounds it.")
+        w(" *")
     if not meas_cap:
         w(" * INPUT PIN CAPACITANCES ARE ANALYTIC, NOT MEASURED. They come")
         w(" * from gate widths in the netlist (PIN_CAP in gen_rom_lib.py) and")
@@ -878,7 +1080,11 @@ def gen_lib(name, area, buses, scalars, corner, args):
         w("        max_transition : %s;" % max_transition)
         w("        related_power_pin  : %s;" % pwr)
         w("        related_ground_pin : %s;" % gnd)
-        w(constraint_block(setup_rows, hold_rows, indent=8))
+        # A control input, NOT an address bit: it keeps the full access
+        # window even when the address hold has been measured, AND it carries
+        # a hold against the FALLING edge. See the hold block above.
+        w(constraint_block(setup_rows, hold_ctrl_rows, indent=8,
+                           hold_fall_rows=hold_fall_rows))
         w("    }")
         w("")
 
@@ -967,6 +1173,7 @@ def main():
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--lef", default=DEFAULT_LEF)
+    ap.add_argument("--lef", default=None, help="path to macro LEF file")
     ap.add_argument("--macro", default=None,
                     help="macro name -- its LEF is found in the tree (instead of --lef)")
     ap.add_argument("--macros-dir", default=None,
@@ -1006,6 +1213,24 @@ def main():
                          "Liberty carries one capacitance for the ranged pin, "
                          "and a driver told to expect less than it finds is "
                          "the unsafe direction.")
+    ap.add_argument("--t-clk2int", type=float, default=None,
+                    help="ns: clk0 -> the internal clock that gates BOTH "
+                         "clocked NANDs (the row decoder's and the control "
+                         "block's), measured as t_clk2int. With it the header "
+                         "states the setup RACE rather than just the setup "
+                         "delay: --setup is a pin -> net delay, while the real "
+                         "requirement is that delay MINUS this one, because "
+                         "the clock has to cross the same distance. It also "
+                         "bounds cs0, whose own path has no stage to measure.")
+    ap.add_argument("--t-addr2wl", type=float, default=None,
+                    help="ns: addr0 -> the wordline it drops, measured during "
+                         "evaluate by run_addr2wl.sh. It converts "
+                         "--hold-measured out of the column deck's frame (its "
+                         "cut time is counted from the internal precharge "
+                         "edge) into Liberty's, which is referenced to the "
+                         "clk0 pin: hold = t_front + cut - t_addr2wl. Without "
+                         "it the .lib says outright that the hold it carries "
+                         "is in the deck's frame.")
     ap.add_argument("--t-coldec", type=float, default=None,
                     help="measured precharge -> column select, ns (worst "
                          "address/corner, run_coldec_delay.sh). The column "
@@ -1079,6 +1304,11 @@ def main():
     if args.macro:
         args.lef = rom_paths.lef(args.macro, args.macros_dir)
     if not args.lef:
+    elif not args.lef:
+        _found = rom_paths.discover(args.macros_dir)
+        if _found:
+            args.lef = rom_paths.lef(_found[0], args.macros_dir)
+    if not args.lef or not os.path.exists(args.lef):
         sys.exit("ERROR: no LEF. Pass --lef <path> or --macro <name> "
                  "(or set ROM_MACROS_DIR).")
 

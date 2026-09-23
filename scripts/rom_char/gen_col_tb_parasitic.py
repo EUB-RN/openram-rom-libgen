@@ -54,11 +54,14 @@ ONES = None
 # see the note next to `.param TCLK` in the deck. 2 us (a 1 us phase) is the
 # saturated, idle-then-read worst case.
 TCLK = "2u"
+MACROS_DIR = None
 for _a in sys.argv[1:]:
     if _a.startswith("--tclk="):
         TCLK = _a.split("=", 1)[1]
     elif _a.startswith("--tag="):
         TAG = _a.split("=", 1)[1]
+    elif _a.startswith("--macros-dir="):
+        MACROS_DIR = _a.split("=", 1)[1]
     elif _a.startswith("--ones="):
         ONES = int(_a.split("=", 1)[1])
         if ONES < 0:
@@ -67,12 +70,17 @@ if not ARGV:
     sys.exit("usage: gen_col_tb_parasitic.py <macro> [column] "
              "[--no-resistance] [--tag=<name>]")
 MACRO = ARGV[0]
+             "[--no-resistance] [--tag=<name>] [--macros-dir=<dir>]")
+MACRO_RAW = ARGV[0]
+MACRO, BASE = rom_paths.split_macro(MACRO_RAW, MACROS_DIR)
 # With no column given it is DERIVED from the netlist (the column with the most
 # series one_cells) -- no hand-kept table needed, see find_worst_column.py.
 COL = int(ARGV[1]) if len(ARGV) > 1 else \
       rom_paths.geometry(MACRO)["worst_col"]
 BASE = rom_paths.macro_dir(MACRO)
 SP = rom_paths.cap_netlist(MACRO)
+      rom_paths.geometry(MACRO_RAW, MACROS_DIR)["worst_col"]
+SP = rom_paths.cap_netlist(MACRO_RAW, MACROS_DIR)
 if not os.path.exists(SP):
     sys.exit(f"ERROR: {SP} does not exist -- run run_cap_extract.sh first")
 START = f"bl_0_{COL}"
@@ -246,9 +254,19 @@ def blocks_raw_lines(name):
         if f and s.lower().startswith(".ends"): break
     return out
 
+# Discover the inverter subcircuit from rom_bitline_inverter if present
+inv_subckt = f"{MACRO}_pinv_dec_3"
+for l in blocks.get(f"{MACRO}_rom_bitline_inverter", []):
+    if l.startswith("X"):
+        parts = l.split()
+        if len(parts) >= 2 and ("pinv" in parts[-1] or "inv" in parts[-1]):
+            inv_subckt = parts[-1]
+            break
+
 defs_raw = "\n".join(get_subckt(nm) for nm in
     [f"{MACRO}_rom_base_one_cell", f"{MACRO}_rom_base_zero_cell",
      f"{MACRO}_precharge_cell", f"{MACRO}_pinv_dec_3"])
+     f"{MACRO}_precharge_cell", inv_subckt])
 defs = "\n".join(fix_units(l) if l.startswith("X") else l for l in defs_raw.splitlines())
 
 # Series WIRE resistance, one resistor per chain cell (gen_resistance_model.py).
@@ -330,6 +348,7 @@ Vprecharge precharge 0 PULSE(0 {{VDD}} {{TCLK/2}} 100p 100p {{TCLK/2-100p}} {{TC
 
 Xprechg_pmos {START} precharge vdd gnd {MACRO}_precharge_cell
 Xbl_inv gnd vdd vdd {START} bl_b {MACRO}_pinv_dec_3
+Xbl_inv gnd vdd vdd {START} bl_b {inv_subckt}
 
 {chain}
 

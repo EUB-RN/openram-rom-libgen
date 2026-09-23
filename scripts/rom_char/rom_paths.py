@@ -58,6 +58,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))          # repository root
 DEFAULT_MACROS_DIR = os.path.join(ROOT, "examples")
+USER_MACROS_DIR = os.path.join(ROOT, "user")
 DEFAULT_OUT_DIR = os.path.join(ROOT, "output")
 
 sys.path.insert(0, HERE)
@@ -65,40 +66,105 @@ import find_worst_column                                # noqa: E402
 
 
 # ----------------------------------------------------------------- paths ---
+def default_macros_dir():
+    """Default macro tree: prefer user/ if user has placed macros, else examples/."""
+    if os.path.isdir(USER_MACROS_DIR):
+        for name in os.listdir(USER_MACROS_DIR):
+            if os.path.exists(os.path.join(USER_MACROS_DIR, name, name + ".sp")):
+                return USER_MACROS_DIR
+    return DEFAULT_MACROS_DIR
+
+
 def macros_dir(explicit=None):
     """Macro tree: --macros-dir > ROM_MACROS_DIR > <repo>/examples."""
+    """Macro tree: --macros-dir > ROM_MACROS_DIR > <repo>/user (if has macros) > <repo>/examples."""
     return os.path.abspath(explicit or os.environ.get("ROM_MACROS_DIR")
                            or DEFAULT_MACROS_DIR)
+                           or default_macros_dir())
+
+
+def split_macro(macro, explicit=None):
+    """Return (clean_name, resolved_macro_dir).
+
+    Handles:
+      - Trailing slashes: 'wrom0/' -> ('wrom0', '<dir>/wrom0')
+      - Direct directory paths: 'user/my_rom/' or '/tmp/my_rom' -> ('my_rom', '/tmp/my_rom')
+      - Direct netlist paths: 'user/my_rom/my_rom.sp' -> ('my_rom', 'user/my_rom')
+      - Bare macro names: 'my_rom' -> ('my_rom', '<macros_dir>/my_rom')
+    """
+    if macro.endswith(".sp"):
+        clean_name = os.path.basename(macro)[:-3]
+        return clean_name, os.path.dirname(os.path.abspath(macro))
+
+    stripped = macro.rstrip("/\\")
+    clean_name = os.path.basename(stripped)
+
+    # If macro is already a path or directory that exists
+    if ("/" in stripped or "\\" in stripped) or os.path.isdir(stripped):
+        return clean_name, os.path.abspath(stripped)
+
+    # Otherwise look up in macros_dir
+    base = macros_dir(explicit)
+    candidate = os.path.join(base, clean_name)
+    if not os.path.exists(candidate) and explicit is None:
+        user_c = os.path.join(USER_MACROS_DIR, clean_name)
+        ex_c = os.path.join(DEFAULT_MACROS_DIR, clean_name)
+        if os.path.exists(user_c):
+            return clean_name, user_c
+        elif os.path.exists(ex_c):
+            return clean_name, ex_c
+
+    return clean_name, candidate
+
+
+def macro_name(macro):
+    name, _ = split_macro(macro)
+    return name
 
 
 def macro_dir(macro, explicit=None):
     return os.path.join(macros_dir(explicit), macro)
+    _, d = split_macro(macro, explicit)
+    return d
 
 
 def char_dir(macro, explicit=None, create=True):
     """Where characterization decks and logs live: <macro>/char."""
     d = os.path.join(macro_dir(macro, explicit), "char")
+    _, d = split_macro(macro, explicit)
+    cd = os.path.join(d, "char")
     if create:
         os.makedirs(d, exist_ok=True)
     return d
+        os.makedirs(cd, exist_ok=True)
+    return cd
 
 
 def netlist(macro, explicit=None):
     return os.path.join(macro_dir(macro, explicit), macro + ".sp")
+    name, d = split_macro(macro, explicit)
+    return os.path.join(d, name + ".sp")
 
 
 def cap_netlist(macro, explicit=None):
     """Capacitance-only parasitic netlist from Magic (run_cap_extract.sh)."""
     return os.path.join(macro_dir(macro, explicit), macro + "_cap_only.spice")
+    name, d = split_macro(macro, explicit)
+    return os.path.join(d, name + "_cap_only.spice")
 
 
 def lef(macro, explicit=None):
     return os.path.join(macro_dir(macro, explicit), macro + ".lef")
+    name, d = split_macro(macro, explicit)
+    return os.path.join(d, name + ".lef")
 
 
 def out_dir(kind=None, create=True):
     """Deliverable directory: ROM_OUT_DIR (or <repo>/output) [+ kind]."""
     base = os.path.abspath(os.environ.get("ROM_OUT_DIR") or DEFAULT_OUT_DIR)
+def out_dir(kind=None, create=True, explicit=None):
+    """Deliverable directory: explicit > ROM_OUT_DIR (or <repo>/output) [+ kind]."""
+    base = os.path.abspath(explicit or os.environ.get("ROM_OUT_DIR") or DEFAULT_OUT_DIR)
     d = os.path.join(base, kind) if kind else base
     if create:
         os.makedirs(d, exist_ok=True)
@@ -106,13 +172,17 @@ def out_dir(kind=None, create=True):
 
 
 def lib_dir(create=True):
+def lib_dir(create=True, explicit=None):
     """Liberty (.lib) output directory."""
     return out_dir("lib", create)
+    return out_dir("lib", create, explicit)
 
 
 def verilog_dir(create=True):
+def verilog_dir(create=True, explicit=None):
     """Behavioural Verilog (.v) output directory."""
     return out_dir("verilog", create)
+    return out_dir("verilog", create, explicit)
 
 
 def discover(explicit=None):
@@ -130,12 +200,18 @@ def discover(explicit=None):
 # -------------------------------------------------------------- geometry ---
 def _config_sizes(macro, explicit=None):
     """(word_size, words_per_row) from config/<macro>.py, else (None, None).
+    """(word_size, words_per_row) from config/<macro>.py or <macro>.py, else (None, None).
 
     In an OpenRAM ROM config word_size is in BYTES (word_size=4 -> 32 bit),
     so the column count is word_size*8*words_per_row.
     """
     cfg = os.path.join(macro_dir(macro, explicit), "config", macro + ".py")
     if not os.path.exists(cfg):
+    name, md = split_macro(macro, explicit)
+    cfg1 = os.path.join(md, "config", name + ".py")
+    cfg2 = os.path.join(md, name + ".py")
+    cfg = cfg1 if os.path.exists(cfg1) else (cfg2 if os.path.exists(cfg2) else None)
+    if not cfg:
         return None, None
     txt = open(cfg).read()
 
@@ -169,6 +245,7 @@ def geometry(macro, explicit=None, use_cache=True, quiet=False):
     <macro>/char/.geometry.json and refreshes itself when the netlist changes
     (mtime + size).
     """
+    name, md = split_macro(macro, explicit)
     sp = netlist(macro, explicit)
     if not os.path.exists(sp):
         raise SystemExit("ERROR: no netlist at %s\n"
@@ -205,13 +282,18 @@ def geometry(macro, explicit=None, use_cache=True, quiet=False):
             print("WARNING %s: config says word_size=%d x 8 x words_per_row=%d "
                   "= %d columns, netlist has %d -- using the netlist."
                   % (macro, word_size, wpr, expect, cols), file=sys.stderr)
+                  % (name, word_size, wpr, expect, cols), file=sys.stderr)
     if wpr and wpr & (wpr - 1) and not quiet:
         print("WARNING %s: words_per_row=%d is not a power of two -- the "
               "address space will have holes (word index != address)."
               % (macro, wpr), file=sys.stderr)
+              % (name, wpr), file=sys.stderr)
 
     words = 0
     binf = os.path.join(macro_dir(macro, explicit), "rom_configs", macro + ".bin")
+    binf1 = os.path.join(md, "rom_configs", name + ".bin")
+    binf2 = os.path.join(md, name + ".bin")
+    binf = binf1 if os.path.exists(binf1) else (binf2 if os.path.exists(binf2) else binf1)
     if data_bits and os.path.exists(binf):
         words = os.path.getsize(binf) // (data_bits // 8)
 
@@ -219,6 +301,8 @@ def geometry(macro, explicit=None, use_cache=True, quiet=False):
         "_stamp": stamp,
         "macro": macro,
         "dir": macro_dir(macro, explicit),
+        "macro": name,
+        "dir": md,
         "char": char_dir(macro, explicit),
         "sp": sp,
         "lef": lef(macro, explicit),
@@ -248,10 +332,46 @@ def geometry(macro, explicit=None, use_cache=True, quiet=False):
 DEFAULT_SKY130_LIB = os.path.join(
     os.environ.get("PDK_ROOT", os.path.expanduser("~/OpenLane/pdks")),
     "sky130A", "libs.tech", "ngspice", "sky130.lib.spice")
+def find_pdk_root():
+    """Discover PDK_ROOT from environment or standard paths."""
+    if os.environ.get("PDK_ROOT"):
+        return os.environ.get("PDK_ROOT")
+
+    # 1. Volare default path
+    volare_base = os.path.expanduser("~/.volare/volare/sky130/versions")
+    if os.path.isdir(volare_base):
+        try:
+            versions = sorted(
+                [os.path.join(volare_base, d) for d in os.listdir(volare_base)],
+                key=os.path.getmtime,
+                reverse=True
+            )
+            for v in versions:
+                if os.path.isdir(os.path.join(v, "sky130A")):
+                    return v
+        except OSError:
+            pass
+
+    # 2. OpenLane default pdks
+    openlane_pdk = os.path.expanduser("~/OpenLane/pdks")
+    if os.path.isdir(os.path.join(openlane_pdk, "sky130A")):
+        return openlane_pdk
+
+    # 3. System pdk
+    sys_pdk = "/usr/local/share/pdk"
+    if os.path.isdir(os.path.join(sys_pdk, "sky130A")):
+        return sys_pdk
+
+    return openlane_pdk
 
 
 def sky130_lib():
     """ngspice model file: SKY130_LIB > PDK_ROOT/... > ~/OpenLane/pdks/...
+    """ngspice model file: SKY130_LIB > PDK_ROOT/... > Volare > OpenLane > /usr/local/share/pdk"""
+    if os.environ.get("SKY130_LIB"):
+        return os.environ.get("SKY130_LIB")
+    pdk = find_pdk_root()
+    return os.path.join(pdk, "sky130A", "libs.tech", "ngspice", "sky130.lib.spice")
 
     This path used to be hard-coded into every generated deck
     (/home/hpw/OpenLane/...), so no run worked on any other machine.
@@ -279,8 +399,18 @@ REQUIRED_SUBCKTS = [
 def check(macro, explicit=None):
     """Pre-flight: report what a macro directory is missing. Returns 0/1."""
     md = macro_dir(macro, explicit)
+    name, md = split_macro(macro, explicit)
+    print("macro           : %s" % name)
     print("macro directory : %s" % md)
     rc = 0
+
+    cfg_cand = os.path.join(md, "config", name + ".py")
+    if not os.path.exists(cfg_cand):
+        cfg_cand = os.path.join(md, name + ".py")
+
+    bin_cand = os.path.join(md, "rom_configs", name + ".bin")
+    if not os.path.exists(bin_cand):
+        bin_cand = os.path.join(md, name + ".bin")
 
     files = [
         (netlist(macro, explicit), True,
@@ -288,12 +418,15 @@ def check(macro, explicit=None):
         (lef(macro, explicit), True,
          "LEF -- pin list, bus widths and area for the .lib"),
         (os.path.join(md, macro + ".gds"), False,
+        (os.path.join(md, name + ".gds"), False,
          "GDS -- needed by run_cap_extract.sh"),
         (cap_netlist(macro, explicit), False,
          "parasitic netlist -- produced by run_cap_extract.sh"),
         (os.path.join(md, "config", macro + ".py"), False,
+        (cfg_cand, False,
          "OpenRAM config -- cross-check only"),
         (os.path.join(md, "rom_configs", macro + ".bin"), False,
+        (bin_cand, False,
          "ROM contents -- word count for the Verilog model"),
     ]
     print("\nfiles:")
@@ -312,8 +445,11 @@ def check(macro, explicit=None):
     for pattern, why in REQUIRED_SUBCKTS:
         name = pattern.format(m=macro)
         ok = re.search(r"^\.SUBCKT\s+%s\s" % re.escape(name), text,
+        sname = pattern.format(m=name)
+        ok = re.search(r"^\.SUBCKT\s+%s\s" % re.escape(sname), text,
                        re.M | re.I) is not None
         print("  %-7s %-34s %s" % ("ok  " if ok else "MISSING", name, why))
+        print("  %-7s %-34s %s" % ("ok  " if ok else "MISSING", sname, why))
         if not ok:
             rc = 1
 

@@ -33,3 +33,9 @@ __pycache__/
 # kept, so that docs/img/make_figures.py can draw it. The CSVs are megabytes
 # of samples and the figures they produce are what gets committed.
 **/char/wave/
+
+# User-provided ROM designs (keep documentation and directory tracker)
+user/*
+!user/README.md
+!user/.gitkeep
+
