@@ -92,6 +92,40 @@ the same picture on a white background and in vector form.
 
 ---
 
+## 1b. Model screenshots -- taken by hand from the ngspice plot window
+
+The main README walks the reader block by block, and each block carries one
+screenshot of its own deck. These are **not** produced by
+`run_waveform_capture.sh` -- open the deck interactively, `run`, `plot`, and
+screenshot the plot window. The README prints the exact command above every
+one of them; they are repeated here.
+
+| file | deck | plot |
+|---|---|---|
+| `10-col-deck.png` | `col236_worst_case_parasitic.sp` | `v(precharge) v(bl_0_236)` |
+| `11-periph-frontend.png` | `periph_active_tt.sp` | `v(clk0) v(wrom0_rom_row_decode_0/clk) v(wrom0_rom_row_decode_0/wl_0) v(wrom0_rom_column_decode_0/clk)` |
+| `12-backend-dout.png` | `backend_tt_2756.sp` | `v(wrom0_rom_base_array_0/bl_0_236) v(dout0[2])` |
+| `13-coldec.png` | `coldec_a0_tt.sp` | `v(wrom0_rom_column_decode_0/clk) v(wrom0_rom_column_decode_0/wl_0)` |
+| `14-pincap.png` | `pincap_tt.sp` | `v(clk0) i(vpin1)` |
+| `15-wl-slew.png` | `wlslew_tt.sp` | `v(clk0) v(wrom0_rom_row_decode_0/wl_0)` |
+| `16-slew-sweep.png` | `periph_slew0_tt.sp` | `v(clk0) v(wrom0_rom_column_decode_0/clk)` |
+| `17-col-energy.png` | `col236_energy_tt.sp` | `i(vvdd)` |
+| `18-setup.png` | `periph_setup_tt.sp` | `v(addr0[0]) v(clk0)` |
+
+Node names are from `wrom0`. The extracted netlist names nodes after
+instances, so on another macro they change -- read them out of the deck's own
+`.measure` lines:
+
+```sh
+grep -E "^\.meas|TARG" examples/<macro>/char/<deck>.sp
+```
+
+The precharge net is `<macro>_rom_column_decode_0/clk` in the periphery deck
+and plain `precharge` in the column deck -- the same net, named by whichever
+netlist the deck was cut from.
+
+---
+
 ## 2. Layout screenshots -- Magic or KLayout
 
 ### `01-macro-floorplan.png`
