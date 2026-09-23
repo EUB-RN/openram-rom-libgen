@@ -28,9 +28,12 @@ One `<macro>.v` per macro in $ROM_OUT_DIR/verilog (default <repo>/output/
 verilog), carrying that macro's own contents file and its own MEASURED timing.
 Nothing is typed by hand; the values are read from the macro's own .lib files:
 
-    access   <- "TOTAL (worst load)"          (the .lib header)
+    access   <- the largest cell_rise on the rising_edge arc of dout0
+                (the banner "TOTAL (worst load)" is a cross-check only)
     t_pre    <- min_pulse_width fall_constraint
     setup    <- first setup_rising value
+    hold     <- hold_rising inside bus(addr0)   -- the ADDRESS hold
+    hold_cs  <- hold_rising inside pin(cs0)     -- NOT the same number
 
 So after regenerating the .libs, rerunning this script is all it takes.
 
@@ -80,7 +83,7 @@ def _cell_rise_max(txt):
 def read_lib_timing(lib_path):
     """Return (access, t_pre, setup) in ns; None for anything not found."""
     if not os.path.exists(lib_path):
-        return None, None, None
+        return None, None, None, None, None
     txt = open(lib_path).read()
 
     # access comes from the cell_rise table. The banner line the generator
@@ -113,7 +116,26 @@ def read_lib_timing(lib_path):
     if m:
         setup = float(m.group(1))
 
-    return access, t_pre, setup
+    # HOLD, once per pin GROUP -- addr0 and cs0 no longer carry the same
+    # number and the model must not flatten them back together. The address
+    # hold is measured (run_hold_bisect.sh, converted to the clk0 pin's frame
+    # by run_addr2wl.sh) and is SHORTER than access; cs0 keeps the full access
+    # window because it gates the precharge and its loss ends the read at any
+    # point in the cycle. Each is read from inside its own container: the
+    # first hold_rising after `bus(addr0)` belongs to the address, the first
+    # after `pin(cs0)` to the chip select.
+    def _hold_after(marker):
+        i = txt.find(marker)
+        if i < 0:
+            return None
+        mm = re.search(r"timing_type\s*:\s*hold_rising.*?values\(\"([\d.]+)",
+                       txt[i:], re.S)
+        return float(mm.group(1)) if mm else None
+
+    hold = _hold_after("bus(addr0)")
+    hold_cs = _hold_after("pin(cs0)")
+
+    return access, t_pre, setup, hold, hold_cs
 
 
 def read_geometry(macro_dir, macro):
@@ -233,6 +255,14 @@ module {macro} (
   parameter real ACCESS_NS = {access};   // clk0 rising -> dout0 valid
   parameter real T_PRE_NS  = {t_pre};   // minimum clk0 low phase
   parameter real SETUP_NS  = {setup};   // addr0/cs0 stable before clk0 rises
+  // HOLD is not one number. The address may move once the bitline is past the
+  // inverter's trip point -- the read is decided there and the back-end delay
+  // after it does not depend on the address -- so HOLD_NS is SHORTER than
+  // access. cs0 gets no such relief: it gates the precharge, so losing it
+  // turns the precharge PMOS back on and destroys the read at ANY point in
+  // the cycle, including the part the address is excused from.
+  parameter real HOLD_NS    = {hold};   // addr0 stable after clk0 rises
+  parameter real HOLD_CS_NS = {hold_cs};   // cs0 stable after clk0 rises
 
   // 1 = report violations with $display. The corruption is applied either way
   // -- that is what silicon does; the test is expected to catch the bad result.
@@ -246,12 +276,14 @@ module {macro} (
 
   // Bitline state: all ones while precharged, only 1 -> 0 during evaluate.
   reg [WIDTH-1:0] bl;
+  reg [WIDTH-1:0] late_row;    // mask owed by address changes past the hold window
   reg             evaluating;
   reg             ready;        // has the access time elapsed?
   time            t_eval, t_fall, t_addr_chg;
 
   initial begin
     bl         = {{WIDTH{{1'b1}}}};
+    late_row   = {{WIDTH{{1'b1}}}};
     evaluating = 1'b0;
     ready      = 1'b0;
     t_eval     = 0;
@@ -263,6 +295,18 @@ module {macro} (
 
   // --- PRECHARGE: clk0 low OR cs0 low --------------------------------------
   always @(negedge clk0 or negedge cs0) begin
+    // cs0 HOLD. Unlike the address, cs0 has NO window in which it is free --
+    // not a longer one, none at all. Dropping it re-opens the precharge PMOS,
+    // and the bitline is the only place this macro keeps a read (there is no
+    // latch anywhere in it), so the data is pulled back to VDD whether or not
+    // it had become valid. The deadline is therefore not a duration after the
+    // rising edge but an EVENT: clk0's fall, where the consumer captures. Any
+    // deselection while the phase is open is a violation, and the .lib says
+    // the same thing with hold_falling = 0 -- the only form of the statement
+    // that survives a change of clock period.
+    if (REPORT && evaluating && clk0 === 1'b1 && cs0 !== 1'b1)
+      $display("ERROR %0t %m: cs0 HOLD violation -- deselected %0t after clk0 rose, with the evaluate phase still open. cs0 must reach clk0's FALLING edge (the capture point): the precharge PMOS turns back on and the read is lost, valid or not. hold_rising is %.3f ns, but the real deadline is the falling edge.",
+               $time, $time - t_eval, HOLD_CS_NS);
     // IF THE EVALUATE PHASE IS SHORTER THAN ACCESS the data never becomes
     // valid and dout0 stays at its precharge value (all ones). That is a
     // SILENT failure -- the output looks plausible, it is just always 0xFF --
@@ -273,6 +317,7 @@ module {macro} (
     evaluating = 1'b0;
     ready      = 1'b0;
     bl         = {{WIDTH{{1'b1}}}};
+    late_row   = {{WIDTH{{1'b1}}}};
     t_fall     = $time;
   end
 
@@ -299,12 +344,64 @@ module {macro} (
   end
 
   // --- ADDRESS CHANGING DURING EVALUATE ------------------------------------
+  // There are TWO distinct things a mid-evaluate address change does, and
+  // they have different deadlines. Getting this block to say only one of them
+  // is how it was wrong twice in a row.
+  //
+  //   INSIDE the hold window: the read is destroyed before it was ever valid.
+  //     The bitline had not yet driven bl_b to a logic level, so the new row's
+  //     conduction pattern lands on top of the old one and dout0 comes out as
+  //     the AND. Not recoverable -- a decoder node does not come back until
+  //     the next precharge.
+  //
+  //   PAST the hold window: the read ON ITS WAY survives. That is exactly what
+  //     run_hold_bisect.sh established (its pass criterion is bl_b within 10%
+  //     of the rail). But the PHASE does not survive, and that is NOT the same
+  //     statement. The newly selected row's zeros start discharging their
+  //     bitlines the moment the address moves, and outside precharge there is
+  //     no pull-up anywhere in the array to undo it. So dout0 holds the
+  //     correct value for about one more access time and then turns into the
+  //     AND -- if the evaluate phase is still open by then. A model that
+  //     ignored the late change would call the data good for an arbitrarily
+  //     long high phase, which the silicon does not.
+  //
+  // The delay applied is ACCESS_NS. The real path is addr0 -> wordline ->
+  // bitline -> dout0, which is slightly LONGER than access (access starts at
+  // clk0, whose front-end term is shorter than addr0 -> wordline), so the
+  // model corrupts slightly EARLY: the safe direction for a check.
+  //
+  // SIMPLIFICATION, stated rather than hidden: this treats every address bit
+  // as a ROW bit. The low bits drive the column mux, and a column-only change
+  // re-routes dout0 to other bitlines of the SAME row -- different data, but
+  // not corrupt data, and it arrives in a mux delay rather than a discharge
+  // time. Modelling it as the AND is pessimistic there, which is the direction
+  // to be wrong in.
   always @(addr0) begin
     if (evaluating && cs0 === 1'b1 && clk0 === 1'b1) begin
-      if (REPORT)
-        $display("ERROR %0t %m: addr0 changed DURING evaluate (clk0 rose at %0t) -- the bitlines are permanently corrupted, the read becomes the AND of the rows",
-                 $time, t_eval);
-      bl = bl & mem[addr0];
+      if (($time - t_eval) < HOLD_NS) begin
+        if (REPORT)
+          $display("ERROR %0t %m: addr0 HOLD violation -- changed %0t after clk0 rose, need %.3f ns. The bitlines are permanently corrupted; the read becomes the AND of the rows.",
+                   $time, $time - t_eval, HOLD_NS);
+        bl = bl & mem[addr0];
+      end else begin
+        // Accumulated rather than overwritten: the corruption is monotonic
+        // (bits only clear), so if two late changes overlap, applying the
+        // combined mask at the earlier deadline is the pessimistic order.
+        late_row = late_row & mem[addr0];
+        fork
+          begin
+            #(ACCESS_NS);
+            // Only if the phase is still open. A precharge in between has
+            // already restored the bitlines and there is nothing to corrupt.
+            if (evaluating && clk0 === 1'b1 && cs0 === 1'b1) begin
+              if (REPORT)
+                $display("ERROR %0t %m: dout0 CORRUPTED by a late address change -- the change at %0t was past the %.3f ns hold window, so the read in flight survived, but the new row has been discharging ever since and the evaluate phase is still open. dout0 is now the AND of the rows.",
+                         $time, $time - ACCESS_NS, HOLD_NS);
+              bl = bl & late_row;
+            end
+          end
+        join_none
+      end
     end
   end
 
@@ -349,9 +446,25 @@ def main():
             continue
 
         libname = "%s_%s.lib" % (macro, args.corner)
-        access, t_pre, setup = read_lib_timing(os.path.join(libdir, libname))
+        access, t_pre, setup, hold, hold_cs = read_lib_timing(
+            os.path.join(libdir, libname))
         words, width, addr_bits, wpr = read_geometry(mdir, macro)
 
+        # A missing hold falls back to the full access window -- the rule the
+        # library itself used before the measurement existed, and the safe
+        # direction -- rather than skipping the macro, so an older .lib still
+        # produces a model. It is announced, never silent.
+        if access is not None:
+            for _n, _v in (("addr0", hold), ("cs0", hold_cs)):
+                if _v is None:
+                    print("%-7s WARNING: no hold_rising for %s in %s -- the "
+                          "model falls back to the full access window "
+                          "(%.4f ns), which is the pessimistic direction."
+                          % (macro, _n, libname, access), file=sys.stderr)
+            if hold is None:
+                hold = access
+            if hold_cs is None:
+                hold_cs = access
         missing = [n for n, v in (("access", access), ("t_pre", t_pre), ("setup", setup))
                    if v is None]
         if missing:
@@ -375,12 +488,15 @@ def main():
             words=words, width=width, wpr=wpr, addr_bits=addr_bits,
             rows=rows, cols=cols, wcol=wcol, chain=chain,
             amsb=addr_bits - 1, dmsb=width - 1,
-            access="%.4f" % access, t_pre="%.4f" % t_pre, setup="%.4f" % setup)
+            access="%.4f" % access, t_pre="%.4f" % t_pre, setup="%.4f" % setup,
+            hold="%.4f" % hold, hold_cs="%.4f" % hold_cs)
 
         path = os.path.join(outdir, macro + ".v")
         open(path, "w").write(out)
-        print("%-7s written: %s  (access %.4f / t_pre %.4f / setup %.4f ns, %s)"
-              % (macro, os.path.relpath(path, REPO), access, t_pre, setup, args.corner))
+        print("%-7s written: %s  (access %.4f / t_pre %.4f / setup %.4f / "
+              "hold %.4f addr, %.4f cs0 ns, %s)"
+              % (macro, os.path.relpath(path, REPO), access, t_pre, setup,
+                 hold, hold_cs, args.corner))
 
     return rc
 

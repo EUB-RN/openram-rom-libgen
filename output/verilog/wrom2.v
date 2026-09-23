@@ -77,6 +77,14 @@ module wrom2 (
   parameter real ACCESS_NS = 42.4165;   // clk0 rising -> dout0 valid
   parameter real T_PRE_NS  = 13.2468;   // minimum clk0 low phase
   parameter real SETUP_NS  = 0.0480;   // addr0/cs0 stable before clk0 rises
+  // HOLD is not one number. The address may move once the bitline is past the
+  // inverter's trip point -- the read is decided there and the back-end delay
+  // after it does not depend on the address -- so HOLD_NS is SHORTER than
+  // access. cs0 gets no such relief: it gates the precharge, so losing it
+  // turns the precharge PMOS back on and destroys the read at ANY point in
+  // the cycle, including the part the address is excused from.
+  parameter real HOLD_NS    = 42.4165;   // addr0 stable after clk0 rises
+  parameter real HOLD_CS_NS = 42.4165;   // cs0 stable after clk0 rises
 
   // 1 = report violations with $display. The corruption is applied either way
   // -- that is what silicon does; the test is expected to catch the bad result.
@@ -90,12 +98,14 @@ module wrom2 (
 
   // Bitline state: all ones while precharged, only 1 -> 0 during evaluate.
   reg [WIDTH-1:0] bl;
+  reg [WIDTH-1:0] late_row;    // mask owed by address changes past the hold window
   reg             evaluating;
   reg             ready;        // has the access time elapsed?
   time            t_eval, t_fall, t_addr_chg;
 
   initial begin
     bl         = {WIDTH{1'b1}};
+    late_row   = {WIDTH{1'b1}};
     evaluating = 1'b0;
     ready      = 1'b0;
     t_eval     = 0;
@@ -107,6 +117,18 @@ module wrom2 (
 
   // --- PRECHARGE: clk0 low OR cs0 low --------------------------------------
   always @(negedge clk0 or negedge cs0) begin
+    // cs0 HOLD. Unlike the address, cs0 has NO window in which it is free --
+    // not a longer one, none at all. Dropping it re-opens the precharge PMOS,
+    // and the bitline is the only place this macro keeps a read (there is no
+    // latch anywhere in it), so the data is pulled back to VDD whether or not
+    // it had become valid. The deadline is therefore not a duration after the
+    // rising edge but an EVENT: clk0's fall, where the consumer captures. Any
+    // deselection while the phase is open is a violation, and the .lib says
+    // the same thing with hold_falling = 0 -- the only form of the statement
+    // that survives a change of clock period.
+    if (REPORT && evaluating && clk0 === 1'b1 && cs0 !== 1'b1)
+      $display("ERROR %0t %m: cs0 HOLD violation -- deselected %0t after clk0 rose, with the evaluate phase still open. cs0 must reach clk0's FALLING edge (the capture point): the precharge PMOS turns back on and the read is lost, valid or not. hold_rising is %.3f ns, but the real deadline is the falling edge.",
+               $time, $time - t_eval, HOLD_CS_NS);
     // IF THE EVALUATE PHASE IS SHORTER THAN ACCESS the data never becomes
     // valid and dout0 stays at its precharge value (all ones). That is a
     // SILENT failure -- the output looks plausible, it is just always 0xFF --
@@ -117,6 +139,7 @@ module wrom2 (
     evaluating = 1'b0;
     ready      = 1'b0;
     bl         = {WIDTH{1'b1}};
+    late_row   = {WIDTH{1'b1}};
     t_fall     = $time;
   end
 
@@ -143,12 +166,64 @@ module wrom2 (
   end
 
   // --- ADDRESS CHANGING DURING EVALUATE ------------------------------------
+  // There are TWO distinct things a mid-evaluate address change does, and
+  // they have different deadlines. Getting this block to say only one of them
+  // is how it was wrong twice in a row.
+  //
+  //   INSIDE the hold window: the read is destroyed before it was ever valid.
+  //     The bitline had not yet driven bl_b to a logic level, so the new row's
+  //     conduction pattern lands on top of the old one and dout0 comes out as
+  //     the AND. Not recoverable -- a decoder node does not come back until
+  //     the next precharge.
+  //
+  //   PAST the hold window: the read ON ITS WAY survives. That is exactly what
+  //     run_hold_bisect.sh established (its pass criterion is bl_b within 10%
+  //     of the rail). But the PHASE does not survive, and that is NOT the same
+  //     statement. The newly selected row's zeros start discharging their
+  //     bitlines the moment the address moves, and outside precharge there is
+  //     no pull-up anywhere in the array to undo it. So dout0 holds the
+  //     correct value for about one more access time and then turns into the
+  //     AND -- if the evaluate phase is still open by then. A model that
+  //     ignored the late change would call the data good for an arbitrarily
+  //     long high phase, which the silicon does not.
+  //
+  // The delay applied is ACCESS_NS. The real path is addr0 -> wordline ->
+  // bitline -> dout0, which is slightly LONGER than access (access starts at
+  // clk0, whose front-end term is shorter than addr0 -> wordline), so the
+  // model corrupts slightly EARLY: the safe direction for a check.
+  //
+  // SIMPLIFICATION, stated rather than hidden: this treats every address bit
+  // as a ROW bit. The low bits drive the column mux, and a column-only change
+  // re-routes dout0 to other bitlines of the SAME row -- different data, but
+  // not corrupt data, and it arrives in a mux delay rather than a discharge
+  // time. Modelling it as the AND is pessimistic there, which is the direction
+  // to be wrong in.
   always @(addr0) begin
     if (evaluating && cs0 === 1'b1 && clk0 === 1'b1) begin
-      if (REPORT)
-        $display("ERROR %0t %m: addr0 changed DURING evaluate (clk0 rose at %0t) -- the bitlines are permanently corrupted, the read becomes the AND of the rows",
-                 $time, t_eval);
-      bl = bl & mem[addr0];
+      if (($time - t_eval) < HOLD_NS) begin
+        if (REPORT)
+          $display("ERROR %0t %m: addr0 HOLD violation -- changed %0t after clk0 rose, need %.3f ns. The bitlines are permanently corrupted; the read becomes the AND of the rows.",
+                   $time, $time - t_eval, HOLD_NS);
+        bl = bl & mem[addr0];
+      end else begin
+        // Accumulated rather than overwritten: the corruption is monotonic
+        // (bits only clear), so if two late changes overlap, applying the
+        // combined mask at the earlier deadline is the pessimistic order.
+        late_row = late_row & mem[addr0];
+        fork
+          begin
+            #(ACCESS_NS);
+            // Only if the phase is still open. A precharge in between has
+            // already restored the bitlines and there is nothing to corrupt.
+            if (evaluating && clk0 === 1'b1 && cs0 === 1'b1) begin
+              if (REPORT)
+                $display("ERROR %0t %m: dout0 CORRUPTED by a late address change -- the change at %0t was past the %.3f ns hold window, so the read in flight survived, but the new row has been discharging ever since and the evaluate phase is still open. dout0 is now the AND of the rows.",
+                         $time, $time - ACCESS_NS, HOLD_NS);
+              bl = bl & late_row;
+            end
+          end
+        join_none
+      end
     end
   end
 
