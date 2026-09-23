@@ -154,8 +154,19 @@ Ordered by how much they can move a number:
    at all. It gates the precharge (`precharge = ~NAND(cs0, clk_int)`), so
    losing it during evaluate turns the precharge PMOS back on, pulls the
    bitline to VDD and kills the read at *any* point in the cycle, including
-   the late part the address is excused from. `tests/test_rom_lib.py` refuses
-   a `.lib` whose cs0 hold is shorter than its access time. The remaining
+   the late part the address is excused from.
+
+   **And cs0 carries a second arc, `hold_falling` = 0.** The window above says
+   cs0 must last until the data *exists*; what it cannot say is that cs0 must
+   last until the data is *captured*, which happens on clk0's fall -- this
+   macro has no latch, so the high phase is the whole life of the read. That
+   is not a duration. A cs0 released at the end of a 17.3271 ns `hold_rising`
+   satisfies the constraint and still re-opens the precharge 0.5 ns before the
+   earliest legal capture edge, and with a slower clock the gap is larger
+   still, because the requirement stretches with the period while a fixed
+   number does not. Referenced to the falling edge, zero states it exactly for
+   any period. `tests/test_rom_lib.py` refuses a `.lib` whose cs0 hold is
+   shorter than its access time, and one that has no `hold_falling` at all. The remaining
    eleven macro/corner pairs have no hold log, so both pins keep
    `hold = access` there and the header says so.
 

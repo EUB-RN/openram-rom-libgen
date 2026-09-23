@@ -23,8 +23,25 @@
 #                       modelling cross-check with error bars, not a yes/no,
 #                       and its reference is expensive enough to be absent
 #                       most of the time. See the script's own header.
+#   6. Verilog       -- validates behavioural Verilog models with iverilog if
+#                       installed (syntax and elaboration check). Skipped with
+#                       a notice when iverilog is not installed.
+#   6. test_verilog_model -- executes dynamic simulation testbenches against
+#                       the behavioural Verilog models with iverilog + vvp to
+#                       prove precharge, evaluate access delay, falling edge
+#                       invalidation and chip-select gating. Skipped when
+#                       iverilog/vvp is not installed.
 
 set -e
+
+# No .pyc files. Python validates a cached module by the source's mtime, and
+# an edit that lands in the SAME SECOND as the cache was written is taken as
+# unchanged -- so the suite runs the OLD module and reports a state the source
+# does not describe. Seen for real: a restored check_lib.py kept reporting the
+# blinded version's results. In an edit-then-test loop the reverse is just as
+# possible, and that direction is a false PASS.
+PYTHONDONTWRITEBYTECODE=1
+export PYTHONDONTWRITEBYTECODE
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(dirname "$HERE")
@@ -41,6 +58,12 @@ else
 fi
 
 rc=0
+# Layers that did not run. A green banner must not be able to mean "everything
+# was checked" when three of the six layers can silently skip -- OpenSTA when
+# it is not installed, the golden pin-cap reference when it has not been
+# produced, the Verilog layers when there are no models. Each skip is recorded
+# and named at the end.
+skipped=""
 
 echo "== the checker itself =="
 python3 "$HERE/test_checker.py" || rc=1
@@ -55,7 +78,11 @@ python3 "$HERE/test_rom_lib.py" $LIBS || rc=1
 
 echo
 echo "== input pin capacitance vs the golden reference (warn only) =="
-python3 "$HERE/test_pin_cap.py" || true
+pc_out=$(python3 "$HERE/test_pin_cap.py" 2>&1) || rc=1
+printf '%s\n' "$pc_out"
+case "$pc_out" in
+  *SKIP*) skipped="$skipped pin-cap-golden" ;;
+esac
 
 echo
 echo "== OpenSTA =="
@@ -65,12 +92,52 @@ if command -v "$STA" >/dev/null 2>&1; then
 else
   echo "  SKIP  '$STA' not found -- set STA_BIN to an OpenSTA binary to run"
   echo "        the generated files through the parser a consumer really uses."
+  skipped="$skipped OpenSTA"
 fi
 
 echo
-if [ $rc -eq 0 ]; then
-  echo "ALL TESTS PASSED"
+echo "== Behavioural Verilog models =="
+IV="${IVERILOG_BIN:-iverilog}"
+VERILOG_DIR="${ROM_OUT_DIR:-$REPO/output}/verilog"
+if command -v "$IV" >/dev/null 2>&1; then
+  v_count=0
+  for v in "$VERILOG_DIR"/*.v; do
+    [ -f "$v" ] || continue
+    v_count=$((v_count + 1))
+    mod=$(basename "$v" .v)
+    if "$IV" -g2012 -s "$mod" "$v" -o /dev/null >/dev/null 2>&1; then
+      echo "  ok   $(basename "$v")"
+    else
+      echo "  FAIL $(basename "$v")  iverilog syntax/elaboration error"
+      "$IV" -g2012 -s "$mod" "$v" -o /dev/null || true
+      rc=1
+    fi
+  done
+  if [ $v_count -eq 0 ]; then
+    echo "  SKIP  no Verilog models found in $VERILOG_DIR"
+    skipped="$skipped verilog-elaboration"
+  fi
 else
+  echo "  SKIP  'iverilog' not found -- set IVERILOG_BIN or install iverilog to validate"
+  echo "        behavioural Verilog models."
+  skipped="$skipped verilog-elaboration"
+fi
+echo "== Behavioural Verilog model simulation testbench =="
+vm_out=$(python3 "$HERE/test_verilog_model.py" 2>&1) || rc=1
+printf '%s\n' "$vm_out"
+case "$vm_out" in
+  *SKIP*) skipped="$skipped verilog-simulation" ;;
+esac
+
+echo
+if [ $rc -ne 0 ]; then
   echo "TESTS FAILED"
+elif [ -n "$skipped" ]; then
+  echo "PASSED, BUT NOT EVERYTHING RAN -- skipped:$skipped"
+  echo "Green means the layers that ran are clean. It does NOT mean the"
+  echo "library was checked by the tool a consumer uses, or that the"
+  echo "modelling cross-check has a reference to compare against."
+else
+  echo "ALL TESTS PASSED (every layer ran)"
 fi
 exit $rc

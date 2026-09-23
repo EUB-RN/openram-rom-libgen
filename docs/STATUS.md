@@ -1,6 +1,6 @@
 # Where the work stands
 
-Last updated: 2026-09-22. Keep this file current when stopping mid-task.
+Last updated: 2026-09-23. Keep this file current when stopping mid-task.
 
 ## Done and verified
 
@@ -394,6 +394,352 @@ logs added below -- extracted decks, the same size class as `periph_*`.)
 Note that these were already committed once, so the repository *history* is
 not smaller -- only the working tree is, and only new clones of a future
 history-rewritten repo would see the saving.
+
+## 2026-09-23
+
+### Hold reaches the behavioural Verilog
+
+The generated `<macro>.v` carried `SETUP_NS` and reported setup violations,
+but had no hold parameter at all -- it was checking the 0.03 ns constraint and
+saying nothing about the 15 ns one. What it did have was an unconditional
+"addr0 changed DURING evaluate" error covering the WHOLE evaluate phase: the
+old `hold = access` model, correct while hold was a declaration and wrong once
+it became a measurement.
+
+**Now.** `read_lib_timing` pulls a hold per pin GROUP -- the first
+`hold_rising` inside `bus(addr0)` and the first inside `pin(cs0)` -- so the
+model cannot flatten the two back together, and the .v carries `HOLD_NS` and
+`HOLD_CS_NS` separately. On wrom0 at TT: 15.2382 and 17.3271 ns. (The shipped
+models are built from SS, where no hold has been measured yet, so both are
+still the access window there.) A `.lib` with no `hold_rising` falls back to
+the full access window -- the pessimistic direction -- with a warning, rather
+than skipping the macro.
+
+**The behaviour, not just the parameter -- and it took two passes.** The first
+version fired only inside the window and did nothing at all after it. That is
+wrong, and the way it is wrong is worth recording: "the read in flight
+survives a late address change" and "the phase survives it" are DIFFERENT
+claims, and the hold measurement only establishes the first. Past `HOLD_NS`
+the bitline is through the inverter's trip point, so the read already on its
+way lands -- but the newly selected row's zeros start discharging their
+bitlines the moment the address moves, and outside precharge there is no
+pull-up anywhere in the array to undo that. dout0 stays correct for about one
+more access time and then becomes the AND, if the evaluate phase is still
+open. Ignoring the late change would call the data good for an arbitrarily
+long high phase, which the silicon does not.
+
+So the model now carries three behaviours: corruption inside the window
+(immediate, the read never becomes valid), survival immediately after it, and
+DELAYED corruption once the new row has had a discharge time. The delay used
+is `ACCESS_NS`; the true path is `addr0 -> wordline -> bitline -> dout0`,
+slightly longer than access, so the model corrupts slightly early -- the safe
+direction. A stated simplification: every address bit is treated as a ROW bit,
+while the low bits drive the column mux and a column-only change re-routes
+dout0 to other bitlines of the same row (different data, not corrupt data, in
+a mux delay rather than a discharge time). Modelling that as the AND is
+pessimistic, which is the direction to be wrong in.
+
+cs0 gets its own message on deselection inside `HOLD_CS_NS`, separate from the
+evaluate-too-short one, because the cause is a constraint on cs0 rather than a
+clock waveform.
+
+**Both halves are simulated, and both were proved able to fail.**
+`tests/test_verilog_model.py` gained two cases that run under iverilog: an
+address change at HOLD/2 must corrupt the read to the bit-wise AND of the two
+rows (0x12345678 & 0xA5A5A5A5 = 0x00240420, since the array has no pull-up
+outside precharge and a second row can only discharge more bits), and the same
+change after the window must do nothing. Mutation-tested rather than assumed:
+
+| mutation | which case caught it |
+|---|---|
+| ignore the late change (the first version of this fix) | "late change never corrupted dout0" |
+| remove the window gate (restore `hold = access`) | "destroyed the read in flight" |
+| remove the in-window corruption | "did not corrupt the read" |
+
+Three behaviours, three mutations, three different assertions firing -- none of
+them is decorative.
+
+A latent crash turned up while testing this: `read_lib_timing` had an early
+`return None, None, None` for a missing .lib, which stopped unpacking once the
+function returned five values. It only fires when the .lib is absent, which is
+why the normal run never hit it.
+
+### B3: the silent 3 ns hold fallback -- why it existed, and why nothing caught it
+
+`hold` starts as `BASE["hold"] = 3.00` ns, the analytic guess from before
+anything in `gen_rom_lib.py` was measured, and every key of `BASE` is turned
+into a CLI option with that default. Two separate mistakes then kept it alive
+and invisible, and they were the SAME mistake twice:
+
+* **The override was anchored to the wrong quantity.** The rule that replaces
+  the guess is `hold = access_eff`, and `access_eff` cannot be formed without
+  the back-end load sweep -- so the override is guarded by `if be:`. The
+  question "do I know the hold?" was being answered by "do I have the back-end
+  sweep?", which is a different question with the same answer most of the time.
+* **So was its disclosure.** The entire hold paragraph in the `.lib` header
+  sits inside that same `if be:` block. The one branch where hold is a guess
+  is exactly the branch where the text that would say so is skipped. The
+  `else` branch warns about *access* being incomplete and says nothing about
+  hold. Fallback and warning were hung off one condition and cancelled.
+
+Without `--measured` the guess is also derated, so at SS it ships as
+3.00 x 1.50 = 4.50 ns -- against a real requirement of ~39 ns. A hold that is
+too short is the unsafe direction: STA passes a design that loses its read.
+
+**Why it never bit.** `regen_rom_libs.sh` lists `be` among the terms whose
+absence skips the macro entirely, so the sign-off flow cannot reach the
+fallback. Only a call by hand can -- and the script's own docstring shows such
+calls as examples.
+
+**Fixed.** A `hold_is_analytic` flag anchored to hold itself, set false by
+either path that establishes a real value (`hold = access_eff`, or
+`--hold-measured`). When it survives, the `.lib` carries a warning block
+written OUTSIDE the `if be:` guard -- the branch that needs it -- and the
+script prints one on stderr as well. Verified on both fallback paths:
+3.0000 ns under `--measured`, 4.5000 ns without it, each announced in both
+places. The normal flow prints nothing, and the test suite passes.
+
+Not made fatal: the by-hand call is a documented use and the file now states
+loudly what it is. The flow that matters already refuses.
+
+### cs0 is pinned to the capture edge, not to a duration
+
+Following the hold split, one question survived: is `hold_rising` = access
+(17.3271 ns) actually enough for cs0? It is not, and the reason is a category
+error rather than a number being too small.
+
+dout0 becomes valid AT access and is captured on clk0's FALL -- this macro has
+no latch, so the high phase is the entire life of the read. `min_pulse_width`
+puts the earliest legal falling edge at 17.8271 ns. A cs0 released at 17.3271
+therefore satisfies the constraint exactly as written and still re-opens the
+precharge PMOS half a nanosecond before the data is taken. Worse, the gap is
+not fixed: drive the macro with a slower clock, which is legal, and the
+requirement grows with the period while the constant does not. **No value of
+hold_rising can express this**, `pw_high` included.
+
+The requirement is not a duration, it is an EVENT: cs0 must reach the falling
+edge. Liberty writes that as a hold against that edge, so every control pin
+now carries `hold_falling` = 0 alongside its `hold_rising`. Zero is exact --
+the capture is ON the edge -- and it holds for any clock period. Both arcs are
+kept: each is independently true, and a tool that only reads hold_rising still
+gets a meaningful number rather than nothing. It also keeps the analytic
+0.5 ns margin inside `pw_high` out of a constraint, which taking pw_high as
+the hold would not have.
+
+`check_lib.py` already allowed `hold_falling` and its duplicate-arc rule keys
+on (timing_type, related_pin), so the two coexist. `tests/test_rom_lib.py`
+now fails a `.lib` whose cs0 lacks the arc -- verified by deleting it from a
+copy. The behavioural Verilog follows the same logic: its cs0 check is no
+longer "deselected within HOLD_CS_NS" but "deselected while the phase is
+open", because that is the real deadline.
+
+**Why this mattered enough to chase.** The macro's user has no way to know
+this from the pinout, and before the arc existed the STA tool had no way to
+know it either. A cs0 pulled at the wrong moment produced a silent wrong read
+that every check in the flow would have passed.
+
+### Hold is now in Liberty's time frame, and cs0's setup is bounded
+
+Two loose ends from the hold work, both closed by measuring rather than
+arguing.
+
+**B2: the hold was in the wrong frame.** `run_hold_bisect.sh` answers the
+right physical question but in the COLUMN deck's frame -- that deck is driven
+by a synthetic `precharge` source and has no `clk0` in it at all, so its cut
+time is counted from the internal evaluate edge. Liberty's `hold_rising` is
+referenced to the `clk0` PIN. Two delays separate them:
+
+    hold(clk0) = t_clk2pre + cut - t_addr2wl
+
+`t_clk2pre` was already measured. `t_addr2wl` -- the address reaching the
+wordline it drops -- was not, and could not be: every existing deck switches
+the address during PRECHARGE, when the clocked decoder is opaque and no
+wordline moves.
+
+**How it is measured now.** `gen_periphery_power_tb.py --addr-sw-eval`
+switches the address in the middle of EVALUATE, when the decoder is
+transparent, so the newly selected row's wordline actually falls, and
+`t_addr2wl<k>` times it. The bit to switch is derived, not fixed:
+`addr0[0 .. log2(words_per_row)-1]` drive the COLUMN mux and toggling one of
+those moves no wordline at all, so the first ROW bit is
+`log2(G_WORDS_PER_ROW)` (3 on the example macros) and address 0 -> 2^3 moves
+the selection from row 0 to row 1. `run_addr2wl.sh` drives it.
+
+**Result, wrom0 at TT.** Exactly one probed wordline falls -- `wl_1`, the row
+the new address selects -- and the other seven report "failed", which is the
+same evidence the polarity block relies on:
+
+| term | ns |
+|---|---|
+| cut time, from the internal evaluate edge | 15.6615 |
+| + `t_clk2pre` | 0.7642 |
+| - `t_addr2wl1` | 1.1875 |
+| **= hold at the clk0 pin** | **15.2382** |
+
+So the raw cut time that shipped was **0.42 ns optimistic**. The two
+corrections nearly cancel, which is exactly what made this easy to miss --
+and a coincidence, not a reason. `gen_rom_lib.py` does the conversion, writes
+it out term by term in the header, warns and ships 0 rather than a negative
+hold if it ever inverts, and says outright that the number is in the deck's
+frame when the `addr2wl` log is absent. `t_clk2pre` is taken at the LARGEST
+point of the slew axis, which lengthens the converted hold, i.e. tightens it.
+
+A cross-check came free: the same deck reports `t_addr2dec7` = 0.0306 ns
+against the 0.0307 ns of the committed setup log, measured at a completely
+different instant in the cycle.
+
+**cs0's setup: bounded by the netlist, not left unknown.** `cs0` was given the
+address's setup although its own path had never been measured. It turns out
+there is nothing to measure: `cs0` goes straight to the A gate of
+`rom_control_nand` with no stage in between, and the extraction keeps it as a
+single node, so the pin and the gate are electrically the same point.
+
+What the constraint really is, is a RACE, and both halves of it are already
+measured. Both the decoder NAND and the control NAND are clocked by
+`clk_int`:
+
+| path | ns |
+|---|---|
+| addr0 -> the clocked decoder NAND | 0.0307 |
+| clk0 -> the same gate (`t_clk2int`) | 0.3255 |
+| requirement at the pin | **-0.2948** |
+
+The setup is NEGATIVE: the address may arrive after clk0 rises and still be in
+time. The library keeps shipping the positive path delay -- it is the
+conservative of the two, and relaxing a constraint as a side effect of
+changing what is being counted is the mistake this whole line of work exists
+to avoid -- but the header now states both numbers. And cs0 is covered: its
+path lacks the inverter the address path has, so its requirement is strictly
+the smaller of the two. That is a proof, not a deferral.
+
+### `t_clk2wl*` was measuring the wrong half of the cycle -- removed, not repaired
+
+A tooling bug, not a modelling one, and it had propagated into the docs.
+
+**What was wrong.** `gen_periphery_power_tb.py` opened the front-end TARG
+window at `_edge = (cycles-2)*TCLK`, with the comment calling that "the clk0
+rising edge to measure". It is not: `Vclk` is `PULSE(... TD={TCLK/2} ...)`, so
+clk0 RISES at `TCLK/2 + k*TCLK` and `_edge` is the start of a PRECHARGE phase,
+half a cycle early. The other users of `_edge` in the same file (the evaluate
+window, the address switching instant) read it with the correct meaning; only
+the front-end block misread it.
+
+**What it produced.** `t_clk2wl0 = -9.927404e-08` -- a delay of minus 99
+nanoseconds, the wordline's rise in the phase BEFORE the trigger -- in all
+twelve committed periphery logs, every macro and every corner.
+
+**The chain effect, which is the part worth remembering.** A negative delay is
+impossible and should have ended the matter on sight. Instead the sign was
+read as speed, and `regen_rom_libs.sh` carried the conclusion in a comment:
+"cross-checked against the wordline path with t_clk2wl0: in all three corners
+the wordline is FASTER than the precharge path, so precharge is the critical
+one." The sound measurement in the same log says the opposite --
+`t_wlfall0` = 1.5692 ns against `t_clk2pre` = 0.7642 ns, i.e. the wordline
+moves 0.8 ns LATER. `run_backend_delay.sh` had it as
+`access = max(t_clk2wl, t_clk2pre)`, a race that does not exist, and
+`docs/naming.md` credited `t_clk2wl0` with proving a polarity it never saw.
+
+**Why moving the window is not enough.** With TD at the true rising edge the
+same measure reports **+100.75 ns**: the wordline falls during evaluate and
+its next RISE is the recovery in the following precharge phase.
+`.measure` takes a window start and has no end, so no TD makes this arc
+meaningful -- because the arc does not exist. No wordline rises during
+evaluate at all.
+
+**What replaced it.** The rise measure is gone. In its place is a BOUNDED
+probe, `v_wl<k>_eval` -- `FIND v(wl_k) AT=` a fixed instant inside the
+evaluate phase, which cannot wander into a neighbouring phase the way a
+trig/targ search can. Read with `t_wlfall<k>` it states the decoder polarity
+in a form no window choice can corrupt. wrom0/TT, addr 0, measured
+2026-09-23:
+
+| probe | wl_0 | wl_1 .. wl_7 |
+|---|---|---|
+| `v_wl<k>_eval` | 6.17e-08 V | 1.800000 V, all seven |
+| `t_wlfall<k>` | 1.5692 ns | failed, all seven |
+
+One row is driven to ground, the other seven never move. That is the whole
+polarity statement, and neither half of it depends on where a search window
+opens.
+
+**What the polarity actually justifies.** The column deck holds every wordline
+at DC VDD, and the reason is NOT "the unselected rows fall" -- they do not
+move at all. It is that the one row whose gate does fall is strapped
+(`zero_cell`) in the read-0 case the deck characterises, so the chain keeps
+conducting and the discharge starts on the precharge edge. The wordline is
+not in series with the front-end term. Same conclusion as before, correct
+reasoning behind it.
+
+**No .lib number moves, and that is measured rather than argued.** wrom0/TT
+was re-run twice -- once with the window moved, once with the arc replaced --
+and every other measured value in the log is bit-identical through both:
+`t_clk2pre` 7.642059e-10, `t_clk2int` 3.255197e-10, `t_wlfall0` 1.569241e-09,
+`t_wl1090_0` 1.246524e-10 (the hold bisect's input) and the energy integral
+`q_c3` -3.47674e-12. Nothing consumed `t_clk2wl*`.
+
+**A third consumer had the same off-by-half-a-cycle.**
+`run_waveform_capture.sh` drew `docs/img/06-front-end.svg` over a window
+centred on `6*TCLK` -- where clk0 FALLS -- while its own title read "clk0
+rises, the selected wordline FALLS". Now `6.5*TCLK`, and it takes the
+wordline node from `t_wlfall0` since `t_clk2wl0` no longer exists. The
+committed SVG is stale until that capture is re-run.
+
+**Still stale: the committed logs.** They carry the -99 ns line and no
+`v_wl*_eval`. Since no shipped number depends on them, re-running the whole
+periphery flow is record hygiene rather than a correction -- noted here so
+the next reader of a log knows which side of this fix it is from.
+
+### The address hold is measured -- and cs0 does NOT inherit it
+
+`run_hold_bisect.sh` produced its first number (wrom0, TT: **15.6615 ns**
+against 17.3271 ns of access, `char/hold_tt.log`), and feeding it through
+`regen_rom_libs.sh` exposed a modelling defect in `gen_rom_lib.py`: the
+measured value was written onto EVERY input pin, cs0 included.
+
+**Why that is wrong.** The deck drops a wordline in mid-evaluate, i.e. cuts
+the series chain. That is what a moving ADDRESS does to a clocked row decoder
+and it is the only thing the experiment exercises. Its finding -- the read is
+decided once the bitline is through the inverter's trip point, so the tail of
+access does not constrain the address -- is exactly what does NOT carry over
+to cs0. cs0 is not on the decode path at all:
+
+    precharge = ~NAND(cs0, clk_int)
+
+so cs0 going away during evaluate turns the precharge PMOS back ON, the
+bitline is pulled to VDD and the read dies -- at ANY point in the cycle,
+including the late part the address is excused from. The correct cs0 hold is
+the full access window, which is what the library declared BEFORE the
+measurement existed. The measurement therefore relaxed a constraint by
+1.6656 ns on the strength of an experiment that never touched it, and in the
+unsafe direction.
+
+**The fix.** `gen_rom_lib.py` now keeps two constraint tables: `hold_rows`
+(the address buses, measured where a log exists) and `hold_ctrl_rows` (every
+other input -- cs0 today, any control pin a future macro adds), which stays at
+`access_eff` regardless. Both are named in the `.lib` header, with the
+reasoning, so a reader is not left to infer why two input pins carry different
+holds. On the eleven macro/corner pairs with no hold log nothing changes: both
+tables are `access_eff` and the header says the address hold is unmeasured.
+
+**What now catches it.** `tests/test_rom_lib.py` gained a check
+(`cs0 held for the whole read`, the 10th) that fails any `.lib` whose cs0 hold
+is shorter than its own access time. Verified the way a check has to be:
+run against the defective files it reported two failures on wrom0 TT, and
+passes on the regenerated set.
+
+**Still open in the same area.** SETUP has the identical problem and no
+comparable fix: the measured path is `addr0 -> inv_array_mod/Z` and cs0 is
+given that same number although its own path through the control NAND was
+never measured. Unlike hold there is no safe larger value to fall back to
+without measuring one, so it is recorded in the README as a limitation rather
+than patched. Also unaddressed: the measured hold is in the deck's own time
+frame (the cut time is counted from the PRECHARGE source's rising edge -- the
+column deck has no clk0 at all) while Liberty's `hold_rising` is referenced to
+the clk0 pin. The conversion is `+t_clk2pre` and `-t_addr2wl`; from the
+committed logs those are about +0.76 and -1.28 ns at TT, so the shipped number
+is roughly 0.5 ns conservative -- but that is two corrections nearly
+cancelling, not a frame conversion, and nothing states which frame the number
+is in.
 
 ## Findings from the 2026-09-20 audit: what is closed and what is not
 
