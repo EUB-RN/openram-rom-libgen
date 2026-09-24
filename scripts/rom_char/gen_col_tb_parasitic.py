@@ -17,13 +17,22 @@ bl_int_N_M. Parameter units are converted too (w,l,pd,ps in metres and ad,as in
 m^2 become bare microns and 'u'-suffixed micron^2, which is what ngspice
 accepts) -- verified experimentally.
 
-KNOWN LIMITATION: the deck carries the parasitic Cs found INSIDE the cell
-sub-circuits, but not the C elements at the `*_rom_base_array` level (bitline
-wire and inter-column coupling). On wrom0 column 236 those sum to about +3 fF
-against the ~5 fF the deck does carry, i.e. the discharge time here is somewhat
-optimistic. gen_backend_delay_tb.py and gen_periphery_power_tb.py handle the
-same situation with an explicit alive/dead + negative-net-capacitance rule;
-porting that rule here is the obvious next improvement.
+The deck carries BOTH halves of the extracted capacitance: the parasitic Cs
+inside the cell sub-circuits AND the C elements at the `*_rom_base_array`
+level (the bitline wire itself, the neighbouring columns coupling into it, the
+wordlines crossing over). The array level is brought in by the same alive/dead
++ negative-net-capacitance rule gen_backend_delay_tb.py and
+gen_periphery_power_tb.py use -- see the block next to `alive =` below. It is
+worth +3.21 fF on wrom0 column 236 against the ~5 fF the cells carry, and
+leaving it out is optimistic by:
+    corner   t_dis_50 without array C   with it   difference
+    tt              14.8495 ns         15.3355 ns    +3.3%
+    ss              36.0231 ns         37.1740 ns    +3.2%
+    ff               8.2893 ns          8.5622 ns    +3.3%
+The effect barely moves with the corner, unlike the wire resistance below:
+this is added charge, not added resistance, so it scales with the rest of the
+discharge instead of competing with it.
+--no-array-c rebuilds the deck without it, for comparison.
 
 Usage:  python3 gen_col_tb_parasitic.py <macro> [worst_column]
 Example: python3 gen_col_tb_parasitic.py wrom0        # column found for you
@@ -38,6 +47,10 @@ import rom_paths
 # builds the capacitance-only deck instead, for comparison.
 ARGV = [a for a in sys.argv[1:] if not a.startswith("--")]
 WITH_R = "--no-resistance" not in sys.argv
+# Array-level parasitic C is ON by default too, and for the same reason:
+# leaving it out is optimistic. See the alive/dead block below; --no-array-c
+# rebuilds the deck without it, for comparison.
+ARRAY_C = "--no-array-c" not in sys.argv
 # --tag names the deck. The default keeps every existing file name, and the
 # early-path run (the BEST column, for the .lib retain times) uses
 # --tag=best_case_parasitic so it cannot collide: wrom3's WORST column happens
@@ -68,7 +81,8 @@ for _a in sys.argv[1:]:
             sys.exit("--ones cannot be negative")
 if not ARGV:
     sys.exit("usage: gen_col_tb_parasitic.py <macro> [column] "
-             "[--no-resistance] [--tag=<name>] [--macros-dir=<dir>]")
+             "[--no-resistance] [--no-array-c] [--tag=<name>] "
+             "[--macros-dir=<dir>]")
 MACRO_RAW = ARGV[0]
 MACRO, BASE = rom_paths.split_macro(MACRO_RAW, MACROS_DIR)
 # With no column given it is DERIVED from the netlist (the column with the most
@@ -149,6 +163,107 @@ n_zero = len(zero_on_path)
 
 print(f"{MACRO} column {COL}: {n_one} series NMOS + {n_zero} dead cells "
       f"(by graph walk)", file=sys.stderr)
+
+# --- array-level parasitic C: the alive/dead rule ---------------------------
+# The cell sub-circuits carry their own parasitic Cs (they come in with the
+# .subckt definitions), but the BITLINE WIRE itself and everything coupling
+# into it -- the neighbouring columns, the wordlines crossing over -- live as
+# C elements at the `*_rom_base_array` level, one scope above the cells. This
+# deck keeps only one column out of the array, so those elements have to be
+# brought in by hand, and most of them have neither end on this column.
+#
+# The rule is the one gen_backend_delay_tb.py and gen_periphery_power_tb.py
+# already use:
+#   both ends ALIVE (a node this deck actually has)  -> keep the element as it
+#       is; this is the real coupling between two nodes of the column
+#   one end alive                                    -> the far node has been
+#       deleted, so its charge cannot move: sum those into a single
+#       capacitance to gnd per node. That is exactly what the far node is
+#       during a read -- a neighbouring bitline or a wordline that holds still
+#       while this one moves, i.e. an AC ground.
+#   neither end alive                                -> drop it
+#
+# NEGATIVE NET CAPACITANCE: Magic emits substrate-correction terms as NEGATIVE
+# C values, and they are only meant to cancel against positive terms that the
+# deleted part of the circuit would have carried. Left alone, a node can end up
+# with a negative total and the solver blows up at the first time point. So
+# after the sum, any node whose array-level total is negative gets a
+# compensating C to gnd -- except the nodes an ideal source drives (the
+# supplies and the wordlines), where a negative total is harmless.
+#
+# Where a node has wire resistance in series (Rw, below), the capacitance goes
+# on the WIRE side of it -- it is the wire's own capacitance.
+#
+# --no-array-c leaves all of this out and rebuilds the old, optimistic deck.
+alive = {"gnd", "0", "vdd"} | set(path_nodes)
+for _l in path_insts + zero_on_path:
+    alive.update(_l.split()[1:-1])
+# Driven by an ideal source in the deck below: the supplies, every wordline
+# (Vwl), every gnd_uq* island, and the precharge net -- which is alive here
+# because it gates the foot transistor. That last one MOVES, so its coupling
+# into the bitline is carried as the real thing rather than summed to gnd; it
+# is the small bump the bitline shows above VDD at the start of a discharge.
+# None of these needs the negative-net fix: a source holds the node whatever
+# the node total comes to.
+def _is_driven(nd):
+    return (nd in ("gnd", "0", "vdd", "precharge")
+            or nd.startswith("wl_") or nd.startswith("gnd"))
+
+array_c_lines = []
+n_c_keep = n_c_rt = n_c_drop = n_c_zero = n_c_fix = 0
+c_keep = c_rt = c_fix = c_col = 0.0
+if ARRAY_C:
+    _rt = collections.Counter()
+    for _l in blocks[arr]:
+        if not _l.startswith("C"):
+            continue
+        _t = _l.split()
+        if len(_t) < 4:
+            continue
+        try:
+            _v = to_float(_t[3])
+        except (AttributeError, ValueError):
+            continue
+        if _v == 0.0:            # Magic emits a lot of these; they are no-ops
+            n_c_zero += 1
+            continue
+        _ao, _bo = _t[1] in alive, _t[2] in alive
+        if _ao and _bo:
+            array_c_lines.append(f"Carr{n_c_keep} {_t[1]} {_t[2]} {_v*1e15:.5f}f")
+            n_c_keep += 1; c_keep += _v
+        elif _ao or _bo:
+            _rt[_t[1] if _ao else _t[2]] += _v
+        else:
+            n_c_drop += 1
+    for _i, (_nd, _v) in enumerate(sorted(_rt.items())):   # sorted: deterministic
+        if _v > 0:
+            array_c_lines.append(f"Cart{_i} {_nd} gnd {_v*1e15:.5f}f")
+            n_c_rt += 1; c_rt += _v
+    _tot = collections.Counter()
+    for _l in array_c_lines:
+        _t = _l.split()
+        _v = to_float(_t[3])
+        _tot[_t[1]] += _v; _tot[_t[2]] += _v
+    for _i, (_nd, _v) in enumerate(sorted(_tot.items())):
+        if _v >= 0 or _is_driven(_nd):
+            continue
+        array_c_lines.append(f"Cfx{_i} {_nd} gnd {-_v*1e15:.5f}f")
+        n_c_fix += 1; c_fix += -_v
+    # What actually changes the answer is only the part that lands on a node
+    # the bitline can move: the chain nodes. Most of the capacitance above
+    # sits on the WORDLINES, which cross the whole array and therefore carry
+    # hundreds of fF of it -- and which an ideal source holds still here, so
+    # they are inert. This is the number to compare against the ~5 fF the cell
+    # sub-circuits already carry.
+    for _l in array_c_lines:
+        _t = _l.split()
+        if not _is_driven(_t[1]) or not _is_driven(_t[2]):
+            c_col += to_float(_t[3])
+    print(f"{MACRO} array-level C: {n_c_keep} kept ({c_keep*1e15:.2f} fF), "
+          f"{n_c_rt} summed to gnd ({c_rt*1e15:.2f} fF), {n_c_drop} dropped, "
+          f"{n_c_fix} negative-net fixes ({c_fix*1e15:.3f} fF) -- "
+          f"{c_col*1e15:.2f} fF of it on the column itself",
+          file=sys.stderr)
 
 # --- synthetic chain: the FASTEST array this geometry can hold --------------
 # The .lib's retain times are an EARLY bound, so they have to hold for any
@@ -311,12 +426,31 @@ if res_lines:
 wl_nodes = sorted(set(re.findall(r"wl_0_\d+", chain)), key=lambda s: int(s.split("_")[-1]))
 wl_src = "\n".join(f"Vwl{i} {n} 0 DC {{VDD}}" for i, n in enumerate(wl_nodes))
 
+# The array-level C block. Every node it names is a node the chain already
+# has (that is what "alive" means), so it adds no undriven nodes -- the
+# wordline and gnd_uq sources below still cover the whole deck.
+array_c = "\n".join(array_c_lines)
+
 gnd_extra = sorted(set(re.findall(r"gnd_uq\d+", chain + defs)))
 gnd_src = "\n".join(f"Vgnd{n} {n} 0 DC 0" for n in gnd_extra)
+
+if ARRAY_C:
+    array_c_note = (
+        f"* array-level C: {n_c_keep} elements kept ({c_keep*1e15:.2f} fF), "
+        f"{n_c_rt} nodes summed to gnd ({c_rt*1e15:.2f} fF),\n"
+        f"*   {n_c_drop} dropped (neither end on this column), "
+        f"{n_c_zero} zero-valued; negative-net fix on {n_c_fix} nodes "
+        f"/ {c_fix*1e15:.3f} fF.\n"
+        f"*   {c_col*1e15:.2f} fF of it lands on the column's own nodes -- the rest "
+        f"is on the wordlines\n"
+        f"*   and the supplies, which ideal sources hold still.")
+else:
+    array_c_note = "* array-level C: NOT included (--no-array-c)"
 
 tb = f"""* {MACRO} -- isolated measurement of column {COL} with REAL PARASITIC C
 * {n_one} series NMOS + {n_zero} dead cells (graph walk, name independent)
 * wire resistance: {f"{r_cell:.1f} ohm per cell ({n_one} x = {n_one*r_cell/1000:.1f} kohm)" if r_cell else "NOT included (capacitance-only extraction)"}
+{array_c_note}
 
 .lib {rom_paths.sky130_lib()} tt
 
@@ -344,6 +478,8 @@ Xprechg_pmos {START} precharge vdd gnd {MACRO}_precharge_cell
 Xbl_inv gnd vdd vdd {START} bl_b {inv_subckt}
 
 {chain}
+
+{array_c}
 
 {defs}
 
