@@ -6,8 +6,6 @@ What is not modelled, and how far off each one can put the answer.
 
 ---
 
-## Known limitations
-
 Ordered by how much they can move a number:
 
 1. **The column deck misses array-level parasitics.** It carries the parasitic
@@ -109,6 +107,19 @@ Ordered by how much they can move a number:
    same 2x perturbation). The other eleven pins reproduce to 0.45% across ramp
    times and to four significant figures across all four macros. A Liberty bus
    carries ONE capacitance, so `addr0` ships the worst bit.
+   **The reduction itself is never validated against a full-array run, and it
+   never will be.** The deck deletes the cell array and the column mux and
+   puts their load back as lumped C; every check listed above runs that same
+   reduced deck, so all of them are blind to an error common to all of them.
+   The run that could see it -- the whole array simulated, nothing deleted --
+   was built, and on `wrom0`, a *1 kbit* example, it reached 16.4 GB and 2h37m
+   without finishing before it was killed. The array is the one block whose
+   size the user picks, so that cost is unbounded by construction; the check
+   was removed rather than shipped as something only the smallest macro can
+   afford. What bounds the reduction instead is the -4.9% / <0.6% array-load
+   sensitivity above, plus an independent hand calculation from Magic's
+   extracted wire C and the PDK's `Cox*W*L` (the 11 address pins come in at
+   0.94..0.99x of it, clk0 and cs0 at 1.35..1.50x, both the expected sign).
 6. **`MAX_CAP`, `MIN_CAP` and `MAX_TRANSITION` are fixed constants**
    (`gen_rom_lib.py`). The first two are the endpoints of the characterised
    output-load axis, so they are at least tied to something measured; the
@@ -193,8 +204,36 @@ Ordered by how much they can move a number:
    has never been swept. Given a race margin of 0.29 ns against a path delay
    of 0.03 ns, the effect is not expected to change any conclusion -- but that
    is an argument, not a sweep.
-8. **Energy assumes every column discharges every cycle** (all wordlines held
-   high), which is pessimistic by roughly 2x against random data.
+8. **Active energy is a 10-read sample, not an exhaustive average.**
+   `internal_power` on clk0 for `when : "cs0"` used to be `<every column> x
+   E_column + E_periphery`, i.e. every bitline discharging on every read --
+   1.81-1.95x the real average on the example macros. Since 2026-09-24
+   `gen_random_read_energy.py` scores each read as `<zeros in the selected row>
+   x E_column + E_periphery`, counting the discharging columns from the
+   netlist's own cell types (a `zero_cell` is a metal strap and conducts
+   whatever its wordline does; a `one_cell` in the selected row is an NMOS
+   whose gate has just fallen, so it opens the chain and that bitline stays at
+   VDD), and `regen_rom_libs.sh` writes the average of 10 random reads.
+
+   What is *still* approximate:
+   * **The sample is 10 reads.** The tool prints the exact mean over every row
+     next to it: the gap on the example macros is -3.5% to +1.7%, so a single
+     `.lib` number can sit a few percent either side of the true average. The
+     seed is per MACRO, not per corner, so all three corners sample the same
+     ten addresses -- which columns discharge is a property of the contents,
+     and a per-corner draw put ~7% of pure sampling noise into the corner
+     ratios until that was fixed.
+     `ROM_ENERGY_READS=200 scripts/rom_char/regen_rom_libs.sh` closes that at
+     no simulation cost -- it is a counting exercise, not a run. 10 is the
+     default only because it is what the model was specified as.
+   * **`E_column` is the worst column's.** Every discharging bitline is scored
+     at the charge measured on column `<worst>`, so per-read energy stays on
+     the safe side of a column-by-column sum.
+   * **It is contents-dependent by construction.** Reprogram the `.bin` and
+     the number moves; that is the point, but it means the figure belongs to
+     one ROM image rather than to the geometry.
+   * **The worst case is not gone**, only demoted: the `.lib` header quotes it
+     next to the average, because a peak-current budget still needs it.
 9. **Leakage is measured in the idle state only.** `cell_leakage_power` covers
    the array *and* the periphery, but both halves are taken with `.op` at
    clk0 = 0 -- the precharge phase, chain feet off, every wordline high. That

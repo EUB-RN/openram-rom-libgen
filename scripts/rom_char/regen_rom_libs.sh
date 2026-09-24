@@ -22,8 +22,16 @@
 #          one slice per block x a count, gmin-swept). Both are taken in the
 #          SAME state (clk0 low) so that they can be added. Without the
 #          periphery files the .lib says ARRAY ONLY and warns.
-# ENERGY : column array <columns> x char/col<N>_energy_<corner>.log e_col_pj
-#          + periphery              char/periph_active_<corner>.log  e_periph_pj
+# ENERGY : active (when "cs0") is the AVERAGE OF 10 RANDOM READS, not the
+#          worst case. Per read, E = <discharging columns in the selected row>
+#          x char/col<N>_energy_<corner>.log e_col_pj
+#          + char/periph_active_<corner>.log e_periph_pj. The column count
+#          comes from the netlist's own cell types (a zero_cell discharges,
+#          a one_cell in the selected row does not), so only the ACTIVITY is
+#          counted here -- both energy terms are still measured.
+#          gen_random_read_energy.py --log writes the per-read table to
+#          char/random_energy_<corner>.log. Set ROM_ENERGY_READS to change
+#          the sample size.
 #   idle   (when "!cs0")            : char/periph_idle_<corner>.log  e_periph_pj
 # SETUP  : char/periph_setup_<corner>.log  t_addr2dec* (worst of them)
 #
@@ -49,6 +57,81 @@ set -e
 . "$(dirname "$0")/common.sh"
 
 GEN="$ROM_CHAR_DIR/gen_rom_lib.py"
+
+# --------------------------------------------------------------------------
+# ONLY THIS FLOW'S LOGS
+#
+# Every number below is read back out of a file in <macro>/char. Those files
+# outlive everything: re-extract the macro, fix a measurement and rebuild a
+# deck, have an ngspice run die halfway, copy the tree from another machine --
+# the old log is still sitting there with a plausible number in it, and `meas`
+# returns it without a word.
+#
+# So a log is read only if the flow STAMPED it (common.sh: <log>.prov, written
+# by run_ng when the deck came back clean) and that stamp still describes what
+# is on disk: same deck, same log, same netlist, and no later verdict against
+# it (a failed re-run or check_settled marks it invalid, which is item 2c of
+# docs/STATUS.md -- an unsettled periphery log used to be read back with no
+# re-check at all).
+#
+# A stale log is NOT treated as a missing one. Missing has documented
+# fallbacks -- hold = access, a flat index_1, ARRAY-ONLY leakage, an analytic
+# setup bound -- all of them safe and all of them stated in the .lib header.
+# Quietly taking one of those roads while a rejected log sits next to it would
+# hide exactly what this check is for, so a rejected file FAILS that corner:
+# nothing is written for it and the script exits non-zero. Re-run the stage it
+# names.
+STALE_LEDGER="${TMPDIR:-/tmp}/rom_char_stale.$$"
+RC=0
+WROTE=0
+trap 'rm -f "$STALE_LEDGER"' EXIT
+
+# which run_*.sh writes a given file -- so the report says what to re-run
+# instead of leaving that to be looked up. Keyed on the name the flow itself
+# builds, so a renamed stage shows up here as "unknown" rather than as a wrong
+# instruction.
+stage_of() {
+  case "$1" in
+    *_worst_case_parasitic*)        echo run_col_timing.sh ;;
+    *_fastest_array*|*_best_case_parasitic*) echo run_early_path.sh ;;
+    *_leak_*.log)                   echo run_col_power.sh ;;
+    *_energy_*.log)                 echo run_col_energy.sh ;;
+    periph_leak_cs*.total)          echo run_periphery_leak.sh ;;
+    periph_active_*|periph_idle_*)  echo run_periphery_power.sh ;;
+    periph_setup_*)                 echo run_addr_setup.sh ;;
+    periph_slew*)                   echo run_slew_sweep.sh ;;
+    backend_*)                      echo run_backend_delay.sh ;;
+    coldec_a*)                      echo run_coldec_delay.sh ;;
+    pincap_*)                       echo run_pin_cap.sh ;;
+    hold_*)                         echo run_hold_bisect.sh ;;
+    addr2wl_*)                      echo run_addr2wl.sh ;;
+    *)                              echo "unknown stage" ;;
+  esac
+}
+
+# every file this script may read for one macro and corner ($1 corner, $2 sfx)
+corner_inputs() {
+  echo "$G_CHAR/${G_COLTAG}_worst_case_parasitic${2}.log"
+  echo "$G_CHAR/${G_COLTAG}_leak_${1}.log"
+  echo "$G_CHAR/${G_COLTAG}_energy_${1}.log"
+  echo "$G_CHAR/${G_BESTTAG}_fastest_array${2}.log"
+  echo "$G_CHAR/${G_BESTTAG}_best_case_parasitic${2}.log"
+  echo "$G_CHAR/periph_active_${1}.log"
+  echo "$G_CHAR/periph_idle_${1}.log"
+  echo "$G_CHAR/periph_setup_${1}.log"
+  echo "$G_CHAR/periph_leak_cs0_${1}.total"
+  echo "$G_CHAR/periph_leak_cs1_${1}.total"
+  echo "$G_CHAR/pincap_${1}.log"
+  echo "$G_CHAR/hold_${1}.log"
+  echo "$G_CHAR/addr2wl_${1}.log"
+  for _t in $(load_tags); do echo "$G_CHAR/backend_${1}_${_t}.log"; done
+  _i=0
+  for _s in $SLEWS; do echo "$G_CHAR/periph_slew${_i}_${1}.log"; _i=$((_i+1)); done
+  for _a in 0 1 2 3 4 5 6 7; do echo "$G_CHAR/coldec_a${_a}_${1}.log"; done
+}
+
+# How many random reads the active-energy average is taken over.
+ROM_ENERGY_READS="${ROM_ENERGY_READS:-10}"
 
 # file-name tag of a .lib CELL_TABLE index_2 point (1.7225 -> 17225)
 load_tags() { for cl in $LOADS; do echo "$cl" | tr -d '.'; done; }
@@ -76,10 +159,46 @@ for m in $(macro_list "$@"); do
     # the TT file has no suffix, the others are _ss / _ff
     [ "$c" = tt ] && sfx="" || sfx="_$c"
 
+    # Refuse anything that is not this flow's output before a single value
+    # is read (see ONLY THIS FLOW'S LOGS above).
+    : > "$STALE_LEDGER"
+    present=0
+    for f in $(corner_inputs "$c" "$sfx"); do
+      [ -f "$f" ] || continue
+      present=$((present+1))
+      why=$(prov_check "$f") || printf '%s\t%s\t%s\n' \
+           "$(stage_of "$(basename "$f")")" "$(basename "$f")" "$why" \
+           >> "$STALE_LEDGER"
+    done
+    if [ -s "$STALE_LEDGER" ]; then
+      bad=$(wc -l < "$STALE_LEDGER")
+      echo "$m $c: NOT REGENERATED -- $bad of the $present files it would read"
+      echo "        are not output of the current flow."
+      if [ "$bad" = "$present" ]; then
+        # Not a stale file here and there: nothing in this corner was produced
+        # by the flow as it stands. Listing 28 identical lines buries that.
+        echo "        NONE of them is stamped -- this characterisation"
+        echo "        predates the check, or the netlist has changed since."
+        echo "        Re-run the flow for $m (docs/flow.md), then this script."
+      else
+        # Grouped by stage: that is the unit you re-run, and one dead stage
+        # usually accounts for several files.
+        sort "$STALE_LEDGER" | awk -F'\t' '
+          { if ($1 != prev) { printf "          %s\n", $1; prev = $1 }
+            printf "            %-38s %s\n", $2, $3 }'
+      fi
+      # The .lib for this corner is NOT rewritten, so whatever an earlier run
+      # left in output/lib is still there -- and it is exactly the file
+      # somebody would ship believing it came from this run.
+      [ -f "$LIB_DIR/${m}_${corner}.lib" ] && \
+        echo "        $LIB_DIR/${m}_${corner}.lib is from an EARLIER run -- do not ship it"
+      RC=1
+      continue
+    fi
+
     PAR="$G_CHAR/${G_COLTAG}_worst_case_parasitic${sfx}.log"
     PA="$G_CHAR/periph_active_${c}.log"
     PI="$G_CHAR/periph_idle_${c}.log"
-    EC="$G_CHAR/${G_COLTAG}_energy_${c}.log"
     LK="$G_CHAR/${G_COLTAG}_leak_${c}.log"
 
     # 2) bitline term + precharge time (that corner's own run)
@@ -308,10 +427,32 @@ for m in $(macro_list "$@"); do
       tinv=$(awk -v a="$tf" -v p="$tp50" -v b="$be_min" \
                  'BEGIN{printf "%.4f", a+p+b}')
     fi
-    # energy: column array (G_COLS columns) + periphery
-    e_act=$(awk -v n="$G_COLS" -v ec="$(meas "$EC" e_col_pj)" \
-                -v ep="$(meas "$PA" e_periph_pj)" \
-                'BEGIN{ if (ec == "" || ep == "") exit 1; printf "%.4f", n*ec + ep }') || e_act=""
+    # ACTIVE ENERGY: the average of ROM_ENERGY_READS random reads, not the
+    # worst case. A column discharges only when the SELECTED ROW holds a zero
+    # there (a one_cell is an NMOS whose gate has just fallen, so it opens the
+    # series chain and that bitline stays at VDD), and the array is about half
+    # zeros -- `n*ec + ep` with n = every column was ~1.95x the real average on
+    # wrom0. gen_random_read_energy.py samples the address space, counts the
+    # discharging columns per read from the netlist's own cell types, and
+    # averages E_i = N_discharge(row_i)*e_col + e_periph. Both energy terms are
+    # still MEASURED (char/col<N>_energy_<corner>.log and $PA); only the
+    # ACTIVITY is counted here.
+    #
+    # Its seed is derived from the macro name ALONE, so regenerating from
+    # unchanged inputs cannot move the number AND all three corners sample the
+    # same ten addresses -- which columns discharge is set by the contents, not
+    # by the corner, so a per-corner draw would put sampling noise straight
+    # into the corner ratios (it was worth ~7% on wrom0 before this was fixed).
+    # --log leaves the per-read table in char/random_energy_<corner>.log,
+    # which is what the .lib cites.
+    e_act=$(python3 "$ROM_CHAR_DIR/gen_random_read_energy.py" "$m" \
+              --corner "$c" --reads "$ROM_ENERGY_READS" --energy-only --log \
+              --macros-dir "$MACROS_DIR") || e_act=""
+    # The worst case is not dropped, only demoted: the .lib header quotes it
+    # next to the average so a peak-current budget still has a number. It is
+    # read back from the log the call above just wrote.
+    e_worst=$(meas "$G_CHAR/random_energy_${c}.log" e_read_worst_pj |
+              awk '{printf "%.4f", $1}')
     e_idle=$(meas "$PI" e_periph_pj | awk '{printf "%.4f", $1}')
 
     # A missing measurement means a silently wrong .lib. Say which term it is.
@@ -351,7 +492,9 @@ front end + periphery power char/periph_{active,idle}_${c}.log, \
 bitline char/${G_COLTAG}_worst_case_parasitic${sfx}.log, \
 back end + slew char/backend_${c}_*.log, \
 leakage char/${G_COLTAG}_leak_${c}.log${leak_idle:+ + char/periph_leak_cs*_${c}.total}, \
-column energy char/${G_COLTAG}_energy_${c}.log\
+column energy char/${G_COLTAG}_energy_${c}.log, \
+active energy = mean of ${ROM_ENERGY_READS} random reads \
+char/random_energy_${c}.log\
 ${hold_meas:+, address hold char/hold_${c}.log}"
 
     python3 "$GEN" --lef "$LEF" --memory-type rom --measured \
@@ -360,22 +503,39 @@ ${hold_meas:+, address hold char/hold_${c}.log}"
       --setup "$stp" \
       --leakage-mw "$leak" ${leak_idle:+--leakage-idle-mw "$leak_idle"} \
       --energy-pj "$e_act" --energy-idle-pj "$e_idle" \
+      --energy-reads "$ROM_ENERGY_READS" \
+      ${e_worst:+--energy-worst-pj "$e_worst"} \
       --t-front "$tf_list" $slew_arg $retain_arg $coldec_arg $pc_arg \
       $a2w_arg $ci_arg \
       --backend-ns "$be" --out-slew-ns "$sl" \
       --t-invalid "$tinv" \
       --chain-len "$G_CHAIN" --worst-col "$col" \
       --rows "$G_ROWS" --cols "$G_COLS" --char-source "$SRC" >/dev/null
+    WROTE=$((WROTE+1))
 
-    printf "%-7s %-4s access = %.4f + %s + %s = %.4f ns  E=%s pJ  E_idle=%s pJ\n" \
+    printf "%-7s %-4s access = %.4f + %s + %s = %.4f ns  E=%s pJ (%s-read avg%s)  E_idle=%s pJ\n" \
       "$m" "$c" "$tf" "$acc" "$(echo "$be" | cut -d, -f3)" \
       "$(awk -v a="$tf" -v b="$acc" -v d="$(echo "$be" | cut -d, -f3)" \
-            'BEGIN{print a+b+d}')" "$e_act" "$e_idle"
+            'BEGIN{print a+b+d}')" "$e_act" "$ROM_ENERGY_READS" \
+      "${e_worst:+, worst $e_worst}" "$e_idle"
   done
 done
+if [ "$WROTE" = 0 ]; then
+  # Saying "Done -- .lib files written" over a run that wrote nothing is how a
+  # stale library gets shipped, so the banner below is not printed at all, and
+  # neither is the structural check run: it would be reading the PREVIOUS
+  # run's files and reporting them green.
+  echo
+  echo "NOTHING WAS WRITTEN -- no corner had a complete set of current logs." >&2
+  echo "Any .lib in $LIB_DIR is from an earlier run." >&2
+  exit 1
+fi
+
 echo "Done -- .lib files written to $LIB_DIR with measured timing"
 echo "(front end + bitline + back end), output slew, leakage and energy"
-echo "(active + idle)."
+echo "(active + idle). Active energy is the average of $ROM_ENERGY_READS random"
+echo "reads, not the all-columns-discharging worst case; the per-read tables"
+echo "are in <macro>/char/random_energy_<corner>.log."
 
 # Never hand out a file that was never read back. This is the cheap structural
 # pass (syntax, table shapes, arc completeness); tests/run_tests.sh adds the
@@ -389,3 +549,8 @@ if [ -f "$CHECK" ]; then
     exit 1
   fi
 fi
+
+# A corner whose logs were refused is a failure of the run, not a remark: the
+# .lib for it is either absent or left at whatever an earlier run wrote, and
+# both of those are wrong to exit 0 on.
+exit $RC

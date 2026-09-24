@@ -133,19 +133,20 @@ ap.add_argument("--pin-tr", default="1n",
                      "slow enough that the charge is the pin's own and not a "
                      "displacement spike through the first gate, and fast "
                      "enough to stay in the regime a real driver works in.")
-ap.add_argument("--keep-all", action="store_true",
-                help="--pin-cap: delete NOTHING. Keeps every top-level "
-                     "instance -- the cell array included -- so no block is "
-                     "replaced by a lumped load. This is the GOLDEN REFERENCE "
-                     "the reduced deck is checked against: every other "
-                     "cross-check on the pin capacitances is a self-consistency "
-                     "check and cannot see an error common to all variants. "
-                     "It is very slow; use --pin-only to measure a few pins.")
+# THERE IS NO WHOLE-MACRO VARIANT OF THIS DECK, and that is deliberate. A
+# --keep-all mode that deleted nothing -- the full cell array in the deck, as
+# a reference the reduced deck could be checked against -- existed and was
+# removed: on the 1 kbit example macros it already ran for hours at ~15 GB,
+# and the array is the one block whose size the user chooses. A reference that
+# gets exponentially more expensive with the ROM the user actually generates
+# is not a reference, it is a trap. The cost of the reduction is bounded by
+# the array-load sweep instead (see --pin-cap below and run_pin_cap.sh), which
+# scales with the macro because it never simulates the array at all.
 ap.add_argument("--pin-only", default=None,
                 help="--pin-cap: comma-separated pin names to measure instead "
                      "of all of them. The run time is set by the number of "
-                     "pins (each gets its own slot), so this is how a "
-                     "--keep-all reference run is made affordable.")
+                     "pins (each gets its own slot), so this is how a single "
+                     "pin is re-measured without paying for the other twelve.")
 ap.add_argument("--macros-dir", default=None,
                 help="macro tree (default: ROM_MACROS_DIR / <repo>/examples)")
 args = ap.parse_args()
@@ -221,11 +222,7 @@ KEEP_SUB = {f"{M}_rom_control_logic", f"{M}_rom_row_decode"}
 # therefore a timing run: only its t_pre2sel* measurements are usable.
 COLDEC = f"{M}_rom_column_decode"
 MUX = f"{M}_rom_column_mux_array"
-if args.keep_all:
-    if not args.pin_cap:
-        sys.exit("--keep-all only makes sense with --pin-cap")
-    KEEP_SUB = {l.split()[-1] for l in top_insts}
-elif args.with_coldec or args.pin_cap:
+if args.with_coldec or args.pin_cap:
     # --pin-cap needs it too: addr0[0:2] go to the COLUMN decoder and
     # addr0[3:] to the row decoder, so without it three address pins would be
     # measured driving nothing at all.
@@ -245,11 +242,7 @@ alive.update(p for p in top_ports if re.match(r"^(clk0|cs0|addr0\[)", p))
 # --- put back the load of the deleted cell array --------------------------
 arr = B[ARRAY]
 arr_ports = arr[0].split()[2:]
-# with --keep-all nothing is dropped, so the array instance is found
-# among the kept ones; it is still needed for `arrn` (the nets the
-# front-end measurement uses to identify the precharge net).
-arr_inst = [l for l in (top_insts if args.keep_all else drop)
-            if l.split()[-1] == ARRAY]
+arr_inst = [l for l in drop if l.split()[-1] == ARRAY]
 if not arr_inst:
     sys.exit(f"ERROR: no {ARRAY} instance at top level")
 p2n = dict(zip(arr_ports, arr_inst[0].split()[1:-1]))
@@ -420,13 +413,8 @@ def rebuild_load(sub, tag):
             load_report.append((port, ncell, cw))
     return load_lines, load_report
 
-if args.keep_all:
-    # nothing was deleted, so there is nothing to put back -- and asking
-    # rebuild_load for the array would double the load that is already there.
-    load_lines, load_report = [], []
-else:
-    load_lines, load_report = rebuild_load(ARRAY, "wl")
-if COLDEC in KEEP_SUB and not args.keep_all:
+load_lines, load_report = rebuild_load(ARRAY, "wl")
+if COLDEC in KEEP_SUB:
     # The eight column selects drive 256 mux pass transistors between them.
     # Without this the decoder would be measured driving its own wire C alone
     # and would come out far too fast.
@@ -505,9 +493,8 @@ while need - seen:
                 need.add(sub)
 defs = []
 for name in sorted(seen):   # sorted: deterministic output file
-    # ARRAY is normally skipped because it is deleted and replaced by lumped
-    # load; under --keep-all it IS the point of the run and must be emitted.
-    if name == TOP or (name == ARRAY and not args.keep_all):
+    # ARRAY is skipped: it is deleted and replaced by lumped load.
+    if name in (TOP, ARRAY):
         continue
     ls = B[name]
     defs.append("\n".join(fix_units(l) if l.startswith("X") else l for l in ls))
@@ -534,12 +521,21 @@ ic_nodes = [n for n in
             or re.search(r"/bl_\d+_\d+$", n)]
 ic_txt = "\n".join(f".ic v({n})={{VDD}}" for n in sorted(set(ic_nodes)))
 
-# --- FRONT END DELAY: clk0 -> precharge / wordline -----------------------
+# --- FRONT END DELAY: clk0 -> precharge ----------------------------------
 # `access` in the .lib runs from the rising edge of clk0 until dout0 is valid.
 # The column measurement (t_dis_50) triggers off the internal `precharge` net,
-# so the piece from clk0 to precharge/wordline is not in it.
-# It is measured here; total: access = max(t_clk2pre, t_clk2wl) + t_dis_50
-#                                    + t_bl2dout (gen_backend_delay_tb.py)
+# so the piece from clk0 to precharge is not in it. That piece is measured
+# here, and the total is
+#
+#     access = t_clk2pre + max(t_dis_50, t_coldec) + t_bl2dout
+#              ^ here      ^ column deck            ^ gen_backend_delay_tb.py
+#
+# NOT `max(t_clk2pre, t_clk2wl)`. There is no clk0 -> wordline RISE arc to
+# race against -- no wordline rises during evaluate at all -- and the wordline
+# is not in series with the front-end term either: the row whose gate falls is
+# strapped in the read-0 case the column deck characterises, so the discharge
+# starts on the precharge edge. See the block further down that removed
+# `t_clk2wl*` for the full reasoning and the numbers.
 ctl = set(next(l for l in keep if l.split()[-1].endswith("control_logic"))
           .split()[1:-1])
 rowd = set(next(l for l in keep if l.split()[-1].endswith("row_decode"))

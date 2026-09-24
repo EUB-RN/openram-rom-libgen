@@ -1,0 +1,56 @@
+name: CI - Liberty and Verilog Validation
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'output/lib/**'
+      - 'output/verilog/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate Liberty and Verilog Models
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Verilog tools (iverilog)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iverilog
+
+      - name: Cache OpenSTA binary
+        id: cache-opensta
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/sta
+          key: opensta-ubuntu-latest-v1
+
+      - name: Build and install OpenSTA (if not cached)
+        if: steps.cache-opensta.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get install -y build-essential tcl-dev tk-dev cmake git flex bison swig libz-dev
+          git clone --depth=1 https://github.com/The-OpenROAD-Project/OpenSTA.git /tmp/OpenSTA
+          cd /tmp/OpenSTA
+          mkdir build && cd build
+          cmake ..
+          make -j$(nproc)
+          sudo make install
+          sta -version || true
+
+      - name: Run validation testsuite
+        run: |
+          ./tests/run_tests.sh

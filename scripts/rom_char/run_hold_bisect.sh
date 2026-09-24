@@ -156,6 +156,11 @@ bisect_corner() {
     printf "* largest cut time that still FAILS: %.6e\n", l*1e-9
     printf "hold                =  %.6e\n", h*1e-9
   }' > "$G_CHAR/hold_${_c}.log"
+  # Derived from the bisection above, not from a single deck (deck "-"), but
+  # stamped like every other input to the library: an unstamped hold_<corner>.log
+  # is refused rather than used, since the .lib would otherwise take a hold
+  # time measured against some other netlist.
+  prov_write "hold-bisect" "-" "$G_CHAR/hold_${_c}.log" "$_m $_c"
 
   echo "   -> hold = $_hi ns   (simulated; $_lo ns does not reach the level,"
   echo "         tolerance $TOL ns, threshold $VOH x VDD)"

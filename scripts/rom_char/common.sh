@@ -8,6 +8,7 @@
 #   macro_list  -- every macro in the tree when no arguments are given
 #   load_geom   -- sets G_COLS / G_WORST_COL / G_CHAIN / G_CHAR / ...
 #   meas        -- pull a value out of an ngspice .measure line
+#   prov_*      -- the stamp that says a log came from THIS flow
 #
 # WHY: the macro list, the worst-column table, the column count and the
 # repository path are derived here once instead of being repeated in every
@@ -83,6 +84,146 @@ meas() {
 }
 
 # --------------------------------------------------------------------------
+# PROVENANCE: WHICH FLOW PRODUCED THIS LOG
+#
+# Every number in a .lib is read back out of a log in <macro>/char. Those logs
+# are ordinary files that survive anything: a netlist regenerated with a new
+# .bin, a deck rebuilt with a fixed measurement, an ngspice run that died
+# halfway, a tree copied from somewhere else. `meas` cannot tell any of that
+# apart -- it finds a line, it returns a number, and the library generator
+# writes it out as a measured value.
+#
+# So each log gets a stamp beside it, <log>.prov, written by run_ng the moment
+# the deck comes back clean. It records:
+#     deck + deck_sha   the exact deck that was simulated
+#     log_sha           the log as it was when it was judged healthy
+#     src + src_sha     the macro netlist that deck was built from ($G_SP)
+# and, if the run is later found to be unusable (check_settled), an `invalid`
+# line saying why.
+#
+# CONTENT HASHES, NOT TIMESTAMPS. mtimes are rewritten by a git checkout, a
+# copy, a rsync -- they say when a file arrived, not what is in it. The deck
+# embeds the netlist it was built from, so a re-extracted macro or a changed
+# generator produces a different deck and a different hash; that is what makes
+# "this log belongs to the current flow" a question with an answer.
+#
+# WHO CHECKS: regen_rom_libs.sh, before it reads a single value. An unstamped
+# or mismatched log is NOT treated as a missing one -- the missing-log paths
+# fall back to documented pessimistic defaults, and quietly taking that road
+# with a stale log on disk is the failure this exists to prevent.
+PROV_VERSION=1
+
+# sha256 of a file; the macro netlist is hashed once per macro (it is MBs and
+# every log in the tree names the same one).
+rom_sha() {
+  [ -f "$1" ] || { echo "-"; return 0; }
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | awk '{print $1}'
+  else
+    # No sha tool at all: cksum is weaker but still content-derived, which is
+    # the property being relied on.
+    cksum "$1" | awk '{print $1 "-" $2}'
+  fi
+}
+
+src_sha() {
+  if [ "${_SRC_F:-}" != "$1" ]; then _SRC_F="$1"; _SRC_V=$(rom_sha "$1"); fi
+  echo "$_SRC_V"
+}
+
+prov_field() { awk -F'\t' -v k="$2" '$1 == k { print $2; exit }' "$1" 2>/dev/null; }
+
+# prov_write <stage> <deck> <artifact> [context]
+#   <deck> may be "-" for a file DERIVED from other logs (run_periphery_leak's
+#   .total, run_hold_bisect's hold_<corner>.log): there is no single deck
+#   behind it, so what is stamped is the artifact itself plus the netlist.
+prov_write() {
+  _src="${G_SP:--}"
+  {
+    printf '# rom_char provenance v%s -- written by the flow, read by regen_rom_libs.sh\n' "$PROV_VERSION"
+    printf 'version\t%s\n' "$PROV_VERSION"
+    printf 'stage\t%s\n'   "$1"
+    printf 'context\t%s\n' "${4:-}"
+    printf 'when\t%s\n'    "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf 'deck\t%s\n'    "$2"
+    printf 'deck_sha\t%s\n' "$([ "$2" = "-" ] && echo - || rom_sha "$2")"
+    printf 'log_sha\t%s\n' "$(rom_sha "$3")"
+    printf 'src\t%s\n'     "$_src"
+    printf 'src_sha\t%s\n' "$([ "$_src" = "-" ] && echo - || src_sha "$_src")"
+  } > "$3.prov"
+}
+
+# prov_invalidate <artifact> <reason>
+#   The run happened and the file is there, but its number must not be used.
+#   Recorded rather than deleted so the reason survives to whoever asks.
+prov_invalidate() {
+  [ -f "$1.prov" ] || prov_write "unknown" "-" "$1" ""
+  grep -v '^invalid	' "$1.prov" > "$1.prov.tmp" 2>/dev/null || :
+  mv "$1.prov.tmp" "$1.prov"
+  printf 'invalid\t%s\n' "$2" >> "$1.prov"
+}
+
+# prov_adopt <stage> <deck> <log> [context]
+#   For a deck that a GENERATOR ran on its own (gen_col_tb_parasitic.py runs
+#   the TT column deck itself). The log did not pass through run_ng, so it is
+#   judged here by the same fatal signatures and then stamped -- or marked
+#   invalid, which is what makes an unstamped generator run unusable instead
+#   of unnoticed. Returns 1 if the log is not fit to use.
+prov_adopt() {
+  if [ ! -f "$3" ]; then
+    echo "  $1: $(basename "$3") was never written -- the generator's ngspice run did not produce it" >&2
+    return 1
+  fi
+  _why=$(grep -hE "$NG_FATAL" "$3" 2>/dev/null | head -1 |
+         sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | cut -c1-160)
+  if [ -n "$_why" ]; then
+    prov_invalidate "$3" "$_why"
+    echo "  $1: $(basename "$3") -- $_why" >&2
+    return 1
+  fi
+  prov_write "$1" "$2" "$3" "${4:-}"
+  return 0
+}
+
+# prov_check <artifact>
+#   Silent and 0 when the file belongs to the current flow. Otherwise prints
+#   ONE line saying what is wrong with it and returns 1.
+prov_check() {
+  _a="$1"; _p="$1.prov"
+  [ -f "$_a" ] || { echo "the file does not exist"; return 1; }
+  if [ ! -f "$_p" ]; then
+    echo "not stamped -- nothing says this flow produced it"
+    return 1
+  fi
+  _inv=$(prov_field "$_p" invalid)
+  [ -n "$_inv" ] && { echo "the run was rejected: $_inv"; return 1; }
+  # THE DECK, IF IT IS STILL THERE. Decks are gitignored (`**/char/*.sp`, 204
+  # MB across the examples) and every gen_*_tb.py rebuilds one from the
+  # netlist on demand, so a missing deck is the normal state of a clone and
+  # says nothing about the log. A deck that IS there and no longer hashes to
+  # what was simulated does: the measurement was fixed, or the circuit was,
+  # and this log predates it.
+  _d=$(prov_field "$_p" deck)
+  if [ -n "$_d" ] && [ "$_d" != "-" ] && [ -f "$_d" ]; then
+    [ "$(rom_sha "$_d")" = "$(prov_field "$_p" deck_sha)" ] || {
+      echo "$(basename "$_d") has changed since this log was written -- the log is from an older deck"
+      return 1; }
+  fi
+  [ "$(rom_sha "$_a")" = "$(prov_field "$_p" log_sha)" ] || {
+    echo "the file has changed since it was stamped"; return 1; }
+  _s=$(prov_field "$_p" src)
+  if [ -n "$_s" ] && [ "$_s" != "-" ]; then
+    [ -f "$_s" ] || { echo "the netlist it was built from is gone ($_s)"; return 1; }
+    [ "$(src_sha "$_s")" = "$(prov_field "$_p" src_sha)" ] || {
+      echo "$(basename "$_s") has changed since this log was written -- re-run the flow"
+      return 1; }
+  fi
+  return 0
+}
+
+# --------------------------------------------------------------------------
 # RUNNING NGSPICE WITHOUT SWALLOWING THE FAILURE
 #
 # Every deck used to be run as
@@ -152,6 +293,10 @@ run_ng() {
     return 1
   fi
   rm -f "$_term"
+  # The deck came back clean: stamp the log with the deck and the netlist it
+  # came from, so regen_rom_libs.sh can tell this run from one left over in
+  # the tree. Nothing downstream may use an unstamped log.
+  prov_write "$_st" "$_sp" "$_lg" "$_cx"
   return 0
 }
 
@@ -164,6 +309,12 @@ ng_fail() {
   printf "     deck   : %s\n" "$3" >&2
   printf "     log    : %s\n" "$4" >&2
   printf "%s\t%s\t%s\t%s\n" "$1" "$2" "${7:-$6}" "$4" >> "$NG_LEDGER"
+  # A failed re-run leaves the PREVIOUS run's log on disk, stamp and all. That
+  # stamp said the file was good, and it is now the output of nothing -- so
+  # withdraw it here rather than let regen_rom_libs.sh read a number the flow
+  # has just failed to reproduce.
+  [ -f "$4" ] && prov_invalidate "$4" "${7:-$6}"
+  return 0
 }
 
 # A deck that RAN but has NOT CONVERGED. ngspice is silent about this: the
@@ -182,8 +333,8 @@ SETTLE_MAX_PCT="${SETTLE_MAX_PCT:-1.0}"
 check_settled() {
   _st="$1"; _lg="$2"; _cx="$3"; _gp="$4"; _sp="${5:--}"
   awk -v g="$_gp" -v m="$SETTLE_MAX_PCT" 'BEGIN{exit !(g+0 > m+0)}' || return 0
-  ng_fail "$_st" "$_cx" "$_sp" "$_lg" "0" \
-          "NOT SETTLED -- the last two cycles differ by ${_gp}% (limit ${SETTLE_MAX_PCT}%). The deck ran clean; the number is a transient. Raise --cycles and re-run; do not ship this value."
+  ng_fail "$_st" "$_cx" "$_sp" "$_lg" "0 (the deck ran clean)" \
+          "NOT SETTLED -- the last two cycles differ by ${_gp}% (limit ${SETTLE_MAX_PCT}%). ngspice reports nothing wrong; the number is a startup transient, not the steady state. Raise --cycles and re-run; do not ship this value."
   return 1
 }
 
@@ -192,7 +343,7 @@ check_settled() {
 ng_summary() {
   [ -s "$NG_LEDGER" ] || return 0
   echo >&2
-  echo "SIMULATION FAILURES -- these numbers are NOT in the output:" >&2
+  echo "SIMULATION FAILURES -- do not use these numbers:" >&2
   awk -F'\t' '{printf "  %-22s %-22s %s\n", $1, $2, $3}' "$NG_LEDGER" >&2
   echo "  (each failing deck and log was kept; re-run one by hand to see more)" >&2
   return 1

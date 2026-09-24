@@ -1,0 +1,28 @@
+wrom3 ff: dynamic read energy, average of 10 random reads
+  array        : 134 rows x 256 columns, 1064 words x 8 per row
+  E_column     : 0.8572 pJ per discharged column  (col10_energy_ff.log)
+  E_periphery  : 7.2562 pJ per cycle              (periph_active_ff.log)
+  seed         : 1626233652
+
+  read     address      row   discharged       E (pJ)
+  1           1057      132          140     127.2586
+  2            979      122          126     115.2583
+  3            307       38          144     130.6872
+  4            812      101          128     116.9727
+  5             16        2          142     128.9729
+  6            292       36          130     118.6870
+  7            831      103          139     126.4014
+  8            410       51          130     118.6870
+  9            788       98          121     110.9725
+  10           607       75          122     111.8297
+
+  average      : 120.5727 pJ   (min 110.9725, max 130.6872, sd 7.2146)
+  worst case   : 226.6891 pJ   (all 256 columns discharging -- 1.88x)
+  whole array  : 125.1093 pJ   (exact mean over all 134 rows, 137.5 of 256
+                 columns discharging; per-row spread 0..256). The
+                 sample is -3.63% against it.
+
+e_read_avg_pj       =  1.205727e+02
+e_read_worst_pj     =  2.266891e+02
+n_reads             =  10
+seed                =  1626233652

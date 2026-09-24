@@ -102,6 +102,55 @@ def analyse(sp_path):
             sum(one.values()) / len(one), one[best_col], best_col)
 
 
+def row_zero_counts(sp_path):
+    """Return (rows, cols, {row: number of zero_cells in that row}).
+
+    WHY A PER-ROW VIEW: `analyse` answers a timing question ("which column is
+    slowest"), which only needs one_cells counted per COLUMN. Dynamic energy
+    asks the opposite question about the same array. A read selects one row and
+    drops its wordline; a column discharges only if the cell in that row is a
+    `zero_cell` (a metal strap, which conducts whatever its wordline does) --
+    a `one_cell` in the selected row is an NMOS whose gate has just gone low,
+    so it opens the series chain and that bitline stays at VDD. So the charge
+    drawn on the next precharge is set by the number of zero_cells in the
+    SELECTED ROW, which is what this returns.
+
+    The same `*_rom_base_array` scoping rule as `analyse` applies, and for the
+    same reason: `Xbit_r<r>_c<c>` names are reused by the row and column
+    decoder arrays, and counting those would contaminate the low rows.
+    """
+    with open(sp_path) as fh:
+        lines = fh.read().split("\n")
+
+    zero = collections.Counter()
+    rows, cols = set(), set()
+    cur_subckt = None
+    i = 0
+    while i < len(lines):
+        if lines[i].startswith(".SUBCKT "):
+            cur_subckt = lines[i].split()[1]
+        m = INST_RE.match(lines[i])
+        if not m or not (cur_subckt or "").endswith("_rom_base_array"):
+            i += 1
+            continue
+        row = int(m.group(1))
+        rows.add(row)
+        cols.add(int(m.group(2)))
+        zero.setdefault(row, 0)
+        j = i + 1
+        buf = []
+        while j < len(lines) and lines[j].startswith("+"):
+            buf.append(lines[j][1:])
+            j += 1
+        if buf and " ".join(buf).split()[-1].endswith("zero_cell"):
+            zero[row] += 1
+        i = j
+
+    if not rows:
+        return None
+    return len(rows), len(cols), dict(zero)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)

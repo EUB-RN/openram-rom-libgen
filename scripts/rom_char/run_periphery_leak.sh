@@ -137,6 +137,13 @@ for m in $(macro_list "$@"); do
       done
       if [ -n "$total" ]; then
         echo "$total" > "$G_CHAR/periph_leak_cs${cs}_${c}.total"
+        # The total is DERIVED from the gmin sweep above rather than written
+        # by one deck, so it gets its stamp here (deck "-"). Without it
+        # regen_rom_libs.sh cannot tell this sum from one left in the tree by
+        # an older netlist, and the periphery leakage term is exactly the one
+        # whose absence is silently survivable.
+        prov_write "periphery-leak" "-" \
+                   "$G_CHAR/periph_leak_cs${cs}_${c}.total" "$m $c cs$cs"
         printf "%-8s %-6s %s %.4f nA  (= %.6f uW at %s V)\n" TOTAL "" \
                "periphery leakage" "$total" \
                "$(awk -v i="$total" -v v="$v" 'BEGIN{print i*v/1000}')" "$v"

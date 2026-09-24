@@ -56,6 +56,18 @@ JOBS=4 ./scripts/rom_char/run_periphery_power.sh   #  -> periph_{active,idle}_<c
 # 6b) periphery leakage (one slice per block x a count, gmin-swept)
 ./scripts/rom_char/run_periphery_leak.sh           #  -> periph_leak_cs<n>_<corner>.total
 
+# 6c) column decode vs the discharge it races, and the input pin capacitances
+./scripts/rom_char/run_coldec_delay.sh             #  -> coldec_a<addr>_<corner>.log
+./scripts/rom_char/run_pin_cap.sh                  #  -> pincap_<corner>.log
+
+# 6d) OPTIONAL, and expensive. Every .lib term below has a pessimistic
+#     fallback that regen_rom_libs.sh announces when it fires, so skipping
+#     these gives a conservative library rather than a wrong one.
+./scripts/rom_char/run_slew_sweep.sh               #  -> periph_slew<n>_<corner>.log
+./scripts/rom_char/run_wl_slew.sh                  #  -> wlslew_<corner>.log
+./scripts/rom_char/run_hold_bisect.sh              #  -> hold_<corner>.log   (needs wlslew)
+./scripts/rom_char/run_addr2wl.sh                  #  -> addr2wl_<corner>.log
+
 # 7) write the .lib files (reads every log; nothing is entered by hand)
 ./scripts/rom_char/regen_rom_libs.sh               #  -> output/lib/<macro>_<CORNER>.lib
 
@@ -78,15 +90,40 @@ tree** is processed:
 ROM_MACROS_DIR=/path/to/macros ./scripts/rom_char/regen_rom_libs.sh
 ```
 
-Steps 2-6 are independent of each other (5 depends on 4); step 7 needs them
-all. Step 1 is the slow one (tens of minutes); steps 4 and 5 take a few minutes
+Steps 2-6 are independent of each other (5 depends on 4, and 6d's hold bisect
+depends on its own `wlslew` run); step 7 needs them all. `./flow.py <macro>`
+runs steps 1-7 in one command, except the optional 6d group -- run those by
+hand and re-run `regen_rom_libs.sh` to fold them in. Step 1 is the slow one (tens of minutes); steps 4 and 5 take a few minutes
 per corner, the rest are seconds.
+
+### Step 7 reads only what this flow produced
+
+A log in `<macro>/char` outlives the netlist it was measured on, the deck it
+came from and the run that wrote it. So every run writes a stamp beside its
+log, `<log>.prov`: the deck, the log and the macro netlist by **content hash**
+(mtimes are rewritten by a checkout or a copy, and say nothing about what is
+in a file). A run that later turns out to be unusable -- unsettled, or one
+whose re-run died leaving the previous log in place -- gets an `invalid` line
+in that stamp saying why.
+
+`regen_rom_libs.sh` checks all of it before reading a single value. An
+unstamped or mismatched file is **not** treated as a missing one: missing has
+documented fallbacks and the `.lib` header states each of them, while a
+rejected file fails that corner outright -- no `.lib` is written for it, the
+report groups the files by the `run_*.sh` that produces them, and the script
+exits non-zero. Re-run the stage it names; there is no way to tell it to
+accept an old log.
+
+Logs characterised before 2026-09-24 carry no stamp, so they are all refused
+until their stage is re-run.
 
 ### When something goes wrong
 
 | symptom | cause |
 |---|---|
 | `regen_rom_libs.sh` prints `missing measurement (...)` | that step has not been run, or its ngspice run failed -- the message names the term |
+| `regen_rom_libs.sh` prints `NOT REGENERATED -- ... not output of the current flow` | those logs carry no `.prov` stamp, or it no longer matches the deck/netlist on disk. Re-run the `run_*.sh` the report names; logs from before 2026-09-24 are unstamped and are all refused |
+| `NOTHING WAS WRITTEN -- no corner had a complete set of current logs` | nothing in the tree was produced by the flow as it stands. Any `.lib` in `output/lib` is from an earlier run |
 | `no setup measurement -> using pessimistic bound` | step 5 was skipped; the `.lib` is safe but pessimistic |
 | `ERROR: ... _cap_only.spice does not exist` | step 1 has not been run for that macro |
 | `no cellgate log (run run_periphery_power.sh first)` | step 5 was run before step 4 |
@@ -100,7 +137,7 @@ per corner, the rest are seconds.
 | file | job |
 |---|---|
 | `rom_paths.py` | path resolution + geometry (single source of truth), pre-flight check |
-| `common.sh` | shared base for `run_*.sh`: paths, corners, `macro_list`, `load_geom`, `meas` |
+| `common.sh` | shared base for `run_*.sh`: paths, corners, `macro_list`, `load_geom`, `meas`, and the `<log>.prov` stamp that says which flow produced a log |
 | `find_worst_column.py` | finds the worst column and its series chain from the netlist |
 | `rom_explore.py` | array structure summary, column histogram, row map |
 | `run_cap_extract.sh` | capacitance-only parasitic extraction with Magic |
@@ -112,9 +149,18 @@ per corner, the rest are seconds.
 | `gen_cell_gate_tb.py` | equivalent cell gate capacitance (`C = Q(VDD)/VDD`) |
 | `gen_periphery_power_tb.py` / `run_periphery_power.sh` | periphery energy (cs0=0/1), front-end delay, setup |
 | `run_addr_setup.sh` | `addr0` -> decoder NAND input setup measurement |
+| `run_pin_cap.sh` | input pin capacitance per pin, `C = Q(VDD)/VDD`, both edges |
+| `run_coldec_delay.sh` | column decode vs bitline discharge -- the race that sets the middle term of `access` |
+| `run_wl_slew.sh` | wordline fall delay and slew, real driver and real load |
+| `run_hold_bisect.sh` | the address hold: bisects the cut time at the cell nearest the bitline |
+| `gen_addr_hold_tb.py` / `run_addr_hold.sh` | exploratory hold sweep; its verdict goes to stdout, the per-point artefacts are not read back |
+| `run_addr2wl.sh` | `addr0` -> the wordline it drops, which carries the hold into the clk0 pin's time frame |
+| `run_slew_sweep.sh` | the measured `index_1` (clk0 input slew) axis |
+| `run_early_path.sh` | the fastest column, for the early/retain bound |
+| `gen_random_read_energy.py` | active read energy: samples the address space and counts the discharging columns per read from the netlist's own cell types |
 | `gen_col_power_tb.py` / `run_col_power.sh` / `run_col_energy.sh` | column leakage (`.op`) and column energy |
 | `gen_periphery_leak_tb.py` / `run_periphery_leak.sh` | periphery leakage: one slice per block x a count, with a gmin sweep |
-| `gen_power_tb.py` | brute-force full-macro deck, for cross-checks only |
+| `gen_power_tb.py` | **not part of the flow** -- a brute-force whole-macro power deck no script calls. Kept only for an occasional by-hand cross-check on a small macro; its cost follows the array, so it is not runnable on a real ROM (see the whole-macro reference note in the README) |
 | `gen_rom_lib.py` | LEF + measured values -> Liberty |
 | `gen_macro_behavioral_v.py` | behavioural `.v` that reports timing violations |
 | `regen_rom_libs.sh` | the top-level script that ties the flow together |

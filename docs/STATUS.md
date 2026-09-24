@@ -1,6 +1,6 @@
 # Where the work stands
 
-Last updated: 2026-09-23. Keep this file current when stopping mid-task.
+Last updated: 2026-09-24. Keep this file current when stopping mid-task.
 
 ## Done and verified
 
@@ -62,7 +62,7 @@ Bitline term, wire resistance ON, settled (ns):
 ### The column decoder is now measured -- and it RACES, it does not add
 
 `rom_column_decode` was the last block in the macro the flow never simulated
-(README limitation 2). `run_backend_delay.sh` drives the eight column selects
+(limitations.md item 2). `run_backend_delay.sh` drives the eight column selects
 with ideal DC sources, so nothing proved they were where they had to be when
 the bitline data arrived; the margin was an estimate.
 
@@ -155,7 +155,7 @@ what produced the tables above.
 
 ### Input pin capacitances are measured at last
 
-They were the last purely ANALYTIC numbers in the `.lib` (README limitation
+They were the last purely ANALYTIC numbers in the `.lib` (limitations.md item
 5): `PIN_CAP = {"clk0": 0.0025, "cs0": 0.0030, "_default": 0.0060}`, computed
 from gate widths, with ONE value covering all eleven address bits. The
 extraction said that could not be right on its face -- the top-level wire C
@@ -209,7 +209,7 @@ means the tail has not died inside the window.
 macros. `addr0[0]` and `addr0[6]` do not: they move 4-5% with the ramp time,
 and they are exactly the two the rise/fall check flags -- 21 flags over the 12
 runs, always those two, in every macro and every corner. That is systematic,
-not noise, and it is in the README as a known limitation rather than smoothed
+not noise, and it is in docs/limitations.md as a known limitation rather than smoothed
 over.
 
 **How much the deleted blocks matter -- measured, not argued.** The deck
@@ -294,69 +294,47 @@ Full sweep: 4 macros x 3 corners x 2 cs0 states x 4 gmin points, ~80 s per
 state, no slice `NOT CONVERGED`. All twelve `.lib` files regenerated; the test
 suite passes.
 
-### The golden reference: STARTED, KILLED, NOT FINISHED -- pick this up first
+### The golden reference: REMOVED -- it does not scale with the ROM
 
-**This is the one open thread. Everything else below is done.**
+**It was started, it was killed, and it is now gone from the tree.** The pin
+capacitance MEASUREMENT is untouched: every pin, every corner, the reduced
+deck, the numbers in the shipped `.lib`. What was removed is only the
+whole-macro reference run the reduced deck used to be compared against.
 
-Why it exists: every check on the pin capacitances above -- ramp independence,
-agreement across the four macros, insensitivity to a 2x change in the array
-load, the corner ordering -- is a SELF-CONSISTENCY check. Each bounds how far
-the answer moves when a knob moves, and all of them are structurally blind to
-an error that every variant shares. The reduced deck deletes the cell array
-and the column mux and puts their load back as lumped C; nothing above can
-tell you what that reduction COST.
+What it was: `gen_periphery_power_tb.py --pin-cap --keep-all` deleted nothing.
+The deck went from 2777 to 37883 device lines and from 19457 to 167539
+capacitors -- the whole 34305-cell array in it -- so there was no reduction
+left to be wrong about, and the gap between it and the reduced deck WAS the
+cost of the reduction.
 
-`gen_periphery_power_tb.py --pin-cap --keep-all` deletes nothing. The deck
-goes from 2777 to 37883 device lines and from 19457 to 167539 capacitors --
-the whole 34305-cell array is in it -- so there is no reduction left to be
-wrong about, and the gap between it and the reduced deck IS the cost.
+**Why it is gone.** On 2026-09-22 it was run on wrom0, TT, three pins
+(`clk0`, `addr0[0]`, `addr0[9]`). It ran **2h37m at 100% CPU** and reached
+**16.4 GB RSS** -- 63% of a 31 GB machine, 3 GB into swap. It was still
+progressing (CPU time tracked elapsed time exactly), but `ngspice -b` prints
+no progress, so there was no way to tell whether an hour or ten remained. It
+was killed. No result.
 
-**What happened (2026-09-22).** wrom0, TT, three pins
-(`clk0`, `addr0[0]`, `addr0[9]`). It ran for **2h37m at 100% CPU** and reached
-**16.4 GB RSS**, which was 63% of a 31 GB machine and had pushed it 3 GB into
-swap. It was still progressing -- CPU time tracked elapsed time exactly, so it
-was computing, not stalled -- but `ngspice -b` prints no progress, so there was
-no way to tell whether an hour or ten hours remained. It was killed to give the
-machine back. **No result.**
+Cutting it to one pin would have cut the run time by about a third and the
+memory not at all, and that is the point: **wrom0 is a 1 kbit example**, the
+smallest thing this generator ever builds. The cell array is the one block
+whose size the USER picks. A reference whose cost follows the array is not a
+reference for a generator -- on a real ROM the deck does not run slowly, it
+dies, and a check that only works on the smallest possible macro cannot sit in
+the flow. So `--keep-all`, `--pin-only`'s reference role, `GOLDEN_PINS`,
+`GOLDEN_BAND` and `tests/test_pin_cap.py` (the old 5th test layer) were all
+removed rather than left as a knob nobody can afford to turn.
 
-**To resume:**
+**What this costs us, stated plainly.** Every remaining check on the pin
+capacitances -- ramp independence, rise vs fall, agreement across the four
+macros, the corner ordering -- runs the same reduced deck, so all of them are
+structurally blind to an error the reduction makes in every variant at once.
+That error is now BOUNDED rather than measured, from two directions:
 
-    GOLDEN_PINS="addr0[9]" JOBS=1 scripts/rom_char/run_pin_cap.sh wrom0
-
-One pin instead of three cuts the transient from 126 ns to about 42 ns -- the
-run time is set by the pin count, each pin getting its own slot -- so expect
-roughly a third of 2h37m. Memory will NOT shrink with the pin count: it is set
-by the circuit, so budget ~17 GB and run nothing else. `addr0[9]` gives the
-TYPICAL reduction error; `addr0[0]` gives the WORST, since it is the pin the
-settling check flags, the pin that moves 4-5% with the ramp time, and the pin
-that moved -4.9% when the array load was doubled. Do `addr0[9]` first: if the
-typical error is large, the worst one hardly matters.
-
-Consider giving it a longer ramp as well. At `PIN_TR=2n` the transient doubles
-but the timestep doubles with it, so the step COUNT is unchanged -- and the
-reduced deck is known to be ramp independent on `addr0[9]`, so a 2 ns golden
-run stays comparable.
-
-**The infrastructure is in place and waiting for the log**, so resuming costs
-one command and nothing else:
-
-* `run_pin_cap.sh` runs it when `GOLDEN_PINS` is set (off by default), writes
-  `pincap_golden_<corner>.{sp,log}`, and prints a reduced-vs-golden table.
-* `tests/test_pin_cap.py` is the 5th layer of `tests/run_tests.sh`. It matches
-  the two logs BY PIN NAME through their `*PINCAP` markers -- the golden run
-  measures a subset and so has its own index numbering; matching by index
-  would silently compare the wrong pins. Right now it prints a SKIP saying how
-  to produce the reference.
-* Both WARN outside `GOLDEN_BAND` (default 10%) and neither fails. The band is
-  set from both sides: below ~5% it would fire on `addr0[0]` and `addr0[6]`,
-  whose few-percent ramp sensitivity is already documented; a real reduction
-  error is not a few percent, since the analytic estimate this work replaced
-  was off by 58-96%. Revisit the band once there is a real number to set it
-  against.
-
-**What we have without it**, and what it is worth: an independent hand
-calculation from OUTSIDE the simulation entirely -- Magic's extracted wire C
-plus the PDK's `Cox*W*L` over the first-stage gate area:
+* **the array-load sensitivity**: doubling the lumped load the deleted array
+  is replaced by moves `addr0[0]` by -4.9% and every other pin by under 0.6%.
+* **an independent hand calculation** from outside the simulation entirely --
+  Magic's extracted wire C plus the PDK's `Cox*W*L` over the first-stage gate
+  area:
 
 | group | measured / hand calculation |
 |---|---|
@@ -368,8 +346,9 @@ is not at full inversion-Cox across a 0 -> VDD swing, it passes through
 accumulation and depletion, so a charge-based measurement should come in under
 `W*L*Cox`. clk0 and cs0 landing above is also expected -- their first stage is
 a large driver into a heavy load and the hand calculation has no Miller term.
-That bounds the magnitude and it is genuinely independent, but it does not
-test the DELETION, which is what the golden run is for.
+That bounds the magnitude and it is genuinely independent; what it does not do
+is test the DELETION. Nothing runnable does, and `docs/limitations.md` item 5
+says so instead of promising a check that cannot be paid for.
 
 ### `examples/` cleaned out: 752 MB -> 383 MB
 
@@ -383,8 +362,8 @@ logs added below -- extracted decks, the same size class as `periph_*`.)
   column prefixes, the worst and the best.
 * **Magic extraction intermediates (`*.ext`, 178 MB, 188 files)** and
   **netgen's machine-readable LVS dump (`*.lvs.json`, 191 MB)** are deleted and
-  `.gitignore`d. No script reads either: `run_ext.sh` / `run_cap_extract.sh`
-  rebuild the `.ext` from `<macro>.gds` and the flow only ever consumes
+  `.gitignore`d. No script reads either: `run_cap_extract.sh`
+  rebuilds the `.ext` from `<macro>.gds` and the flow only ever consumes
   `<macro>_cap_only.spice`, while the human-readable LVS verdict stays in
   `<macro>.lvs.report.gz` and `<macro>_lvs.log`. The four
   `<macro>_rom_base_array.ext` files alone were 142 MB.
@@ -794,7 +773,7 @@ passes on the regenerated set.
 comparable fix: the measured path is `addr0 -> inv_array_mod/Z` and cs0 is
 given that same number although its own path through the control NAND was
 never measured. Unlike hold there is no safe larger value to fall back to
-without measuring one, so it is recorded in the README as a limitation rather
+without measuring one, so it is recorded in docs/limitations.md as a limitation rather
 than patched. Also unaddressed: the measured hold is in the deck's own time
 frame (the cut time is counted from the PRECHARGE source's rising edge -- the
 column deck has no clk0 at all) while Liberty's `hold_rising` is referenced to
@@ -803,6 +782,98 @@ committed logs those are about +0.76 and -1.28 ns at TT, so the shipped number
 is roughly 0.5 ns conservative -- but that is two corrections nearly
 cancelling, not a frame conversion, and nothing states which frame the number
 is in.
+
+## 2026-09-24
+
+### Active energy is an average of random reads, not the worst case
+
+`internal_power` on clk0 for `when : "cs0"` was
+
+    E = <every column> x e_col_pj + e_periph_pj
+
+-- every bitline in the macro discharging on every read. That is not a rare
+case, it is an impossible one unless the selected row is all zeros, and it put
+the shipped number 1.7-2.0x over the truth.
+
+**What actually discharges.** A read precharges every bitline to VDD while
+clk0 = 0, then drops the selected row's wordline. A column whose cell in that
+row is a `zero_cell` is a metal strap: it conducts whatever its wordline does,
+the series chain stays closed, and that bitline discharges. A column whose
+cell is a `one_cell` is an NMOS whose gate has just gone low: it opens the
+chain, that bitline stays at VDD, and the next precharge draws nothing for it.
+So the energy of one read is set by the **number of zeros in the selected
+row** -- about half the array on the example macros (wrom0: 126.9 of 256 per
+row).
+
+**What was built.** `gen_random_read_energy.py` samples addresses out of the
+macro's valid address space (`words` from the `.bin`, `row = addr /
+words_per_row`), counts the discharging columns per read from the netlist's
+own cell types (`find_worst_column.row_zero_counts`, same
+`*_rom_base_array` scoping rule as the worst-column scan), and averages
+
+    E_i = <zeros in row_i> x e_col_pj + e_periph_pj
+
+Nothing here simulates: both energy terms are still the measured ones, and
+only the ACTIVITY is new. `regen_rom_libs.sh` calls it with `--energy-only
+--log`, so the per-read table lands in `char/random_energy_<corner>.log` and
+the `.lib` cites that file.
+
+**Reproducibility.** The seed is derived from the macro name and the corner,
+not from the clock, so regenerating from unchanged inputs cannot move the
+number -- the same rule the rest of the flow follows. `--seed <n>` pins
+another draw and `--seed random` takes a fresh one.
+
+**Result** (all four macros, all three corners, 10 reads each; "array mean" is
+the exact mean over every row, printed by the tool as the sampling-error
+check):
+
+| macro | corner | 10-read avg (pJ) | array mean (pJ) | worst case (pJ) | worst/avg |
+|---|---|---|---|---|---|
+| wrom0 | tt | 66.36 | 67.79 | 130.45 | 1.97x |
+| wrom0 | ss | 46.61 | 47.60 | 90.99 | 1.95x |
+| wrom0 | ff | 111.54 | 114.03 | 222.73 | 2.00x |
+| wrom1 | tt | 71.04 | 71.76 | 139.90 | 1.97x |
+| wrom1 | ss | 49.69 | 50.18 | 97.20 | 1.96x |
+| wrom1 | ff | 120.01 | 121.24 | 239.84 | 2.00x |
+| wrom2 | tt | 71.44 | 70.28 | 135.21 | 1.89x |
+| wrom2 | ss | 50.48 | 49.67 | 94.99 | 1.88x |
+| wrom2 | ff | 124.06 | 121.98 | 238.33 | 1.92x |
+| wrom3 | tt | 70.14 | 72.70 | 129.97 | 1.85x |
+| wrom3 | ss | 49.01 | 50.77 | 90.23 | 1.84x |
+| wrom3 | ff | 120.57 | 125.11 | 226.69 | 1.88x |
+
+The `worst/avg` column is now near-constant *within* a macro and differs
+*between* macros, which is the shape it should have: the ratio is set by the
+contents. What residual corner-to-corner movement is left in it (1.95-2.00x on
+wrom0) is real -- `E_periphery` is a fixed additive term that does not scale
+with the column count, so it weighs differently against `E_column` at each
+corner.
+
+**The same ten reads at every corner.** The seed is derived from the macro
+name ALONE. Putting the corner in it -- which is how this was first written --
+drew a different sample at each corner and let sampling noise into the
+ACTIVITY, which is physically wrong: how many columns discharge is set by the
+ROM contents, and the same address selects the same row with the same zeros at
+tt, ss and ff. On wrom0 the sampled mean came out 124.8 / 126.9 / 133.3
+columns at tt / ss / ff against a true 126.9 everywhere, a spurious 6.8%
+spread that landed straight in the corner ratios. Fixed the same day; all
+three corners now read the same ten addresses (wrom0: 123.9 at all three) and
+the only thing that moves between corners is the measured energy.
+
+**The sample size is the one thing left to watch.** Ten reads out of 134 rows
+puts the average -3.5% to +1.7% off the exact array mean, and that spread is
+printed next to every answer rather than left to be discovered. It costs
+nothing to close -- this is counting, not simulation -- so
+`ROM_ENERGY_READS=200 scripts/rom_char/regen_rom_libs.sh` is available; 10 is
+the default only because that is what the model was specified as.
+
+**The worst case is not discarded**, only demoted. `gen_rom_lib.py` takes
+`--energy-worst-pj` and the `.lib` header quotes it beside the average, with
+the ratio, because a peak-current budget needs it and an average-power figure
+does not. `run_col_energy.sh` now reports both totals as well (`E_worst` and a
+flat-50% `E_avg` estimate), and says which of the two `P@fmax` is quoted for.
+
+All twelve `.lib` files were regenerated and pass `tests/check_lib.py`.
 
 ## Findings from the 2026-09-20 audit: what is closed and what is not
 
@@ -876,13 +947,87 @@ yukselen kenari` and two more); they were translated 2026-09-22. The check
 that holds now is a word scan, not a character scan -- `grep -P "[^\x00-\x7F]"`
 comes back clean either way and proves nothing.
 
-### STILL OPEN
+**2b. Nothing gated on the settling check.** FIXED 2026-09-23.
+`run_periphery_power.sh` measured `q_c2` and `q_c3` on consecutive cycles,
+printed their gap in the summary table, and no consumer ever compared them.
+The gap stood at 24-40% on the bad TT runs and nobody acted on it.
 
-**2b. Nothing gates on the settling check.** `run_periphery_power.sh` prints
-the last-two-cycle gap in a summary table and that is all. It stood at 24-40%
-on the bad TT runs and nobody acted on it. It should fail the run, or at least
-be re-read by `regen_rom_libs.sh` before the number is used. (The column deck
-got exactly this treatment in the item-1 fix; the periphery deck did not.)
+`check_settled` (`common.sh`) now compares them against `SETTLE_MAX_PCT`,
+default **1.0%** -- the same limit `gen_col_tb_parasitic.py` applies to
+`t_dis_50` against `t_dis_50_prev`. Over it, the row goes into the same ledger
+a crashed deck uses, so `ng_summary` reports both together and the run exits
+non-zero. The table is still printed in full first: one run shows every macro
+and corner before it fails.
+
+This is the THIRD silent-failure mode, and the one neither of the first two
+guards can see. A crashed deck is caught by its exit code; a deck that exits
+zero having logged `Error: no such vector` is caught by `run_ng` reading the
+log. Here ngspice is correct and silent -- every `.measure` resolves, the exit
+status is 0, and the number is simply a startup transient rather than the
+steady state. Only the circuit's own two-cycle comparison can tell.
+
+The exposure was asymmetric and worst where it was least visible. The active
+value is `N_cols x E_col + E_periph` (wrom0 TT: 130.4458 pJ, of which the
+periphery is 6.2581), so a 30% periphery error moves it ~1.4%. The idle value
+(`when : "!cs0"`, 3.5379 pJ) **is** the periphery term, so the same error is a
+30% error in the shipped number.
+
+All 24 committed periphery logs are between 0.11% and 0.59%, so the 1% limit
+is a loose ceiling on the current data rather than a tight one. The gap that
+once read 24-40% was the trapezoidal integrator, not the circuit (item 3) --
+which is the point: the settling column was the signal that detected that
+defect, and it was the one signal with no teeth.
+`tests/test_error_reporting.py` now covers the limit, the boundary, the
+report's contents and the fact that the script still calls the check.
+
+**2c. `regen_rom_libs.sh` read whatever log was in the tree.** FIXED
+2026-09-24, and wider than it was written: re-reading the `q_c2`/`q_c3` gap
+at the point `PA`/`PI` are taken would have closed the unsettled case only,
+and the unsettled log is one member of a family. A log in `<macro>/char`
+outlives everything -- the netlist it was measured on, the deck it came from,
+the run that wrote it. Re-extract the macro with a new `.bin`, fix a
+measurement and rebuild a deck, have a re-run die halfway, copy the tree from
+another machine: the old log is still there with a plausible number in it,
+`meas` finds a line and returns it, and the `.lib` calls it measured.
+
+So the question is no longer "is this number bad in a way I know how to test"
+but "did **this** flow produce this file", and it is answered where the file
+is written rather than guessed where it is read. `run_ng` stamps every log it
+accepts with `<log>.prov` (`common.sh`): the deck, the log and the macro
+netlist, **by content hash** -- mtimes are rewritten by any checkout, copy or
+rsync, so they record when a file arrived rather than what is in it. The two
+files the flow derives instead of simulating (`periph_leak_cs<n>_<corner>.total`,
+`hold_<corner>.log`) are stamped by the scripts that write them, and the TT
+decks a generator runs itself (`gen_col_tb_parasitic.py`, in `run_col_timing.sh`
+and `run_early_path.sh`) go through `prov_adopt`, which judges them by the
+same fatal signatures first.
+
+A verdict against a run withdraws the stamp rather than deleting the file:
+`check_settled` and `ng_fail` write an `invalid` line carrying the reason, so
+an unsettled log -- and a log whose **re-run** has just failed, which is the
+case that leaves the previous run's numbers standing -- is refused with that
+reason quoted. That is item 2c proper, closed as a special case of the rule.
+
+`regen_rom_libs.sh` checks all 27 files it may read for a macro and corner
+before it reads a single value. A rejected file is NOT treated as a missing
+one: missing has documented fallbacks (hold = access, a flat `index_1`,
+ARRAY-ONLY leakage, an analytic setup bound), all safe and all stated in the
+`.lib` header, and quietly taking one of those roads while a rejected log sits
+next to it is precisely the failure being closed. A rejection fails that
+corner -- no `.lib` is written for it, the report groups the files by the
+`run_*.sh` that produces them, it names any `.lib` left over from an earlier
+run in `output/lib`, and the script exits non-zero. A run where no corner
+survived writes nothing, skips the structural check (it would be reading the
+previous run's files and reporting them green) and says so.
+
+The cost is deliberate and worth stating: **every log committed before
+2026-09-24 is unstamped, so it is refused.** `.prov` files are content-hashed
+against the netlist, not the deck's presence (decks are gitignored and rebuilt
+on demand), so a clone regenerates fine -- but the existing corpus has to be
+re-run once to carry stamps. There is no flag to accept an unstamped log; the
+adoption gesture and the failure it exists to prevent are the same gesture.
+`tests/test_error_reporting.py` covers the stamp, each way of invalidating it,
+the missing-deck case and the fact that `regen_rom_libs.sh` still honours it.
 
 ### NOT DEFECTS -- measurement artefacts that are understood
 
@@ -926,7 +1071,7 @@ now known to be worth about 70 mV and not characterised per macro.
 
 ## Other known gaps
 
-Listed in README.md under "Known limitations". The biggest one by far is now
+Listed in docs/limitations.md. The biggest one by far is now
 item 1: **array-level parasitics missing from the column deck** (+3 fF against
 the ~5 fF the deck carries, on the largest term of `access`). The back-end and
 periphery decks already have the alive/dead + negative-net-capacitance rule
@@ -934,9 +1079,10 @@ that fixes it; porting it into `gen_col_tb_parasitic.py` is the obvious next
 piece of work.
 
 The rest: the ~5% of ramp-time sensitivity left on `addr0[0]` and
-`addr0[6]` after the pin-cap work, energy assuming every column
-discharges, one column/one bit generalised, and the `index_1` axis stopping at
-0.5 ns. Periphery leakage IS counted now (`run_periphery_leak.sh`: one slice
+`addr0[6]` after the pin-cap work, one column/one bit generalised, and the
+`index_1` axis stopping at 0.5 ns. Energy no longer assumes every column
+discharges (2026-09-24, above); what is left there is the size of the sample
+the average is taken over. Periphery leakage IS counted now (`run_periphery_leak.sh`: one slice
 per block x a count, gmin-swept, `.op` in the idle state) and the slice list
 covers every block the top-level cell instantiates since the read back end was
 added -- it roughly TRIPLES `cell_leakage_power` (0.000169 -> 0.000535 mW at
@@ -957,6 +1103,8 @@ Uncommitted:
   separate line of work, left for its own commit
 * `docs/img/*` (diagrams, not yet referenced from the README)
 
-WHERE TO PICK UP: the golden reference, above. It is the only thing started
-and not finished; one command resumes it and the test layer is already waiting
-for its log.
+WHERE TO PICK UP: nothing here is half-finished any more. The one thread that
+was -- the whole-macro golden pin-cap reference -- is closed by REMOVAL, not
+by a result: its cost grows with the array the user chooses, so it was never
+runnable on a real ROM. See "The golden reference: REMOVED" above for what the
+pin capacitances are bounded by instead.

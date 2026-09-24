@@ -856,6 +856,31 @@ def gen_lib(name, area, buses, scalars, corner, args):
         if args.energy_pj:
             w(" *   when \"cs0\"  = %.4f pJ  (read: column array + periphery)"
               % args.energy_pj)
+            if args.energy_reads:
+                w(" *     MODELLED AS THE AVERAGE OF %d RANDOM READS, not the"
+                  % args.energy_reads)
+                w(" *     worst case. A bitline draws recharge current only if")
+                w(" *     it discharged, and it discharges only where the")
+                w(" *     SELECTED ROW holds a zero -- a stored one is an NMOS")
+                w(" *     whose gate has just fallen, which opens the series")
+                w(" *     chain and leaves that bitline at VDD. So each")
+                w(" *     sampled read is scored as")
+                w(" *       <zeros in the selected row> x E_column + E_periphery")
+                w(" *     with both energy terms measured and only the activity")
+                w(" *     counted from the netlist's own cell types.")
+                if args.energy_worst_pj:
+                    w(" *     The all-columns-discharge worst case is %.4f pJ"
+                      % args.energy_worst_pj)
+                    w(" *     (%.2fx this number); use it for a current budget,"
+                      % (args.energy_worst_pj / args.energy_pj))
+                    w(" *     not for an average-power figure.")
+                w(" *     The sample is drawn with a seed derived from the")
+                w(" *     macro name ALONE, so it is reproducible AND all")
+                w(" *     three corners read the same addresses: which")
+                w(" *     columns discharge is set by the ROM contents, not")
+                w(" *     by the corner, so a per-corner draw would put pure")
+                w(" *     sampling noise into the corner ratios.")
+                w(" *     The per-read table is in char/random_energy_*.log.")
         if args.energy_idle_pj:
             w(" *   when \"!cs0\" = %.4f pJ  (IDLE: cs0 only gates the"
               % args.energy_idle_pj)
@@ -1224,6 +1249,14 @@ def main():
                          "an internal_power block is written on clk0. No "
                          "frequency needed -- the power tool computes "
                          "P=E*f*activity itself.")
+    ap.add_argument("--energy-reads", type=int, default=None,
+                    help="how many random reads --energy-pj is the average of "
+                         "(.lib header only). Omit it and the header makes no "
+                         "claim about how the number was arrived at.")
+    ap.add_argument("--energy-worst-pj", type=float, default=None,
+                    help="the all-columns-discharging worst case (pJ, .lib "
+                         "header only), quoted next to the average so a "
+                         "current budget has something to use.")
     ap.add_argument("--t-front", default=None,
                     help="clk0 -> precharge/wordline delay (ns, measured). "
                          "Because the column measurement triggers off the "

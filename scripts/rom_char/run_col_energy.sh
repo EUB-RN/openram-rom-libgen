@@ -16,8 +16,18 @@ need_ngspice
 ng_reset          # clear the failure ledger for this run
 GEN="$ROM_CHAR_DIR/gen_col_power_tb.py"
 
-printf "%-7s %-6s %12s %12s %10s %14s\n" \
-       macro corner "E_col(pJ)" "E_total(pJ)" "c2/c3(%)" "P@fmax(mW)"
+# Two totals are reported, and they answer different questions:
+#   E_worst : every column discharging (n x E_col + 0 periphery here) -- the
+#             peak-current case, and what the .lib used to carry.
+#   E_avg   : the same sum at ~50% switching activity, which is what random
+#             contents actually do (a column discharges only where the selected
+#             row holds a zero). The .lib now carries the real per-row average
+#             from gen_random_read_energy.py; this column is the quick estimate
+#             that says whether that tool's answer is the right size.
+# Neither includes the periphery -- run_periphery_power.sh measures that.
+printf "%-7s %-6s %12s %12s %12s %10s %14s\n" \
+       macro corner "E_col(pJ)" "E_worst(pJ)" "E_avg(pJ)" "c2/c3(%)" \
+       "P@fmax(mW)"
 for m in $(macro_list "$@"); do
   load_geom "$m" || continue
   for ck in $CORNERS; do
@@ -32,18 +42,32 @@ for m in $(macro_list "$@"); do
     if [ -z "$q3" ]; then
       printf "%-7s %-6s %12s\n" "$m" "$c" "FAILED"; continue
     fi
-    echo "$q2 $q3" | awk -v m="$m" -v c="$c" -v v="$v" -v f="$f" -v n="$G_COLS" '
+    # The c2/c3 gap is DATA, not a remark: check_settled decides on it below,
+    # exactly as run_periphery_power.sh does with the same quantity. Two
+    # decimals because at a 1% limit one cannot show which side of it a row
+    # is on.
+    gap=$(echo "$q2 $q3" | awk '
       { q2 = ($1 < 0 ? -$1 : $1); q3 = ($2 < 0 ? -$2 : $2);
-        e    = q3*v*1e12;                 # pJ per column per cycle
-        etot = e*n;                       # pJ per read (all columns)
-        settle = q3 ? (q2-q3 < 0 ? q3-q2 : q2-q3)/q3*100 : 0;
-        pmw  = etot*1e-12*f*1e6*1e3;      # pJ x MHz -> mW
-        printf "%-7s %-6s %12.4f %12.2f %10.1f %14.3f\n", m, c, e, etot, settle, pmw }'
+        printf "%.2f", q3 ? (q2-q3 < 0 ? q3-q2 : q2-q3)/q3*100 : 0 }')
+    echo "$q3" | awk -v m="$m" -v c="$c" -v v="$v" -v f="$f" -v n="$G_COLS" -v g="$gap" '
+      { q3 = ($1 < 0 ? -$1 : $1);
+        e     = q3*v*1e12;                # pJ per column per cycle
+        eworst = e*n;                     # pJ per read, every column discharging
+        eavg   = e*n*0.5;                 # pJ per read at ~50% switching
+        pmw   = eworst*1e-12*f*1e6*1e3;   # pJ x MHz -> mW, the peak case
+        printf "%-7s %-6s %12.4f %12.2f %12.2f %10.2f %14.3f\n",
+               m, c, e, eworst, eavg, g, pmw }'
+    check_settled "col-energy" "$lg" "$m $c" "$gap" "$sp" || true
   done
 done
 echo
 echo "NOTE: these numbers cover the COLUMN ARRAY only. Decoder/buffer/mux/"
 echo "      control (periphery) energy is separate -- run_periphery_power.sh."
+echo "      E_avg here is a flat 50% estimate. The number that reaches the"
+echo "      .lib is the average of 10 random reads with the discharging"
+echo "      columns counted per row from the netlist --"
+echo "      gen_random_read_energy.py <macro> --corner <c>."
+echo "      P@fmax is quoted for E_worst, i.e. the peak-current case."
 
 # Non-zero if any deck died. The numbers those decks would have produced
 # are simply absent otherwise, and absent is indistinguishable from fine.

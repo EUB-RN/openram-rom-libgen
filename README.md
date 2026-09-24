@@ -61,7 +61,7 @@ What makes it unlike an SRAM, and what every model below has to respect:
 | 2 | precharge -> bitline 50% | column | `t_dis_50` -- **dominates** |
 | 3 | bitline -> `dout0` | back end | `t_bl2dout` |
 
-Names like `t_clk2wl` read *time, from `clk0`, to the wordline*: see
+Names like `t_clk2pre` read *time, from `clk0`, to the precharge net*: see
 [Reading a measurement name](docs/naming.md).
 
 ---
@@ -191,6 +191,83 @@ the deck has settled. Cycle 1 is never used.
 
 ![Column supply current over one cycle](docs/img/17-col-energy.png)
 
+### Dynamic read energy: the average of 10 random reads, not the worst case
+
+`run_col_energy.sh` measures what **one** discharging column costs. What the
+`.lib` needs is what a **read** costs, and that depends on how many columns
+discharge at all.
+
+Not all of them do. A read precharges every bitline to VDD while `clk0` is
+low, then drops the selected row's wordline:
+
+* the cell is a `zero_cell` -- a metal strap. It conducts whatever its
+  wordline does, the series chain stays closed, **that bitline discharges**
+  and the next precharge has to recharge it;
+* the cell is a `one_cell` -- an NMOS whose gate has just gone low. It
+  **opens** the chain, that bitline stays at VDD, and the next precharge draws
+  nothing for it.
+
+So the energy of one read is set by the number of zeros in the **selected
+row** -- about half the array on the example macros (wrom0: 126.9 of 256).
+Scoring every column as discharging, which is what this flow used to do, is
+1.8-2.0x over the truth.
+
+```bash
+python3 scripts/rom_char/gen_random_read_energy.py wrom0 --corner tt
+```
+```
+wrom0 tt: dynamic read energy, average of 10 random reads
+  array        : 134 rows x 256 columns, 1064 words x 8 per row
+  E_column     : 0.4851 pJ per discharged column  (col236_energy_tt.log)
+  E_periphery  : 6.2581 pJ per cycle              (periph_active_tt.log)
+  seed         : 4192668302
+
+  read     address      row   discharged       E (pJ)
+  1             45        5          118      63.5009
+  2            860      107          133      70.7775
+  3            542       67          122      65.4413
+  4            297       37          127      67.8669
+  5            351       43          111      60.1051
+  6            877      109          109      59.1349
+  7            388       48          129      68.8371
+  8            202       25          124      66.4115
+  9            487       60          134      71.2626
+  10           752       94          132      70.2924
+
+  average      : 66.3630 pJ   (min 59.1349, max 71.2626, sd 4.3175)
+  worst case   : 130.4458 pJ   (all 256 columns discharging -- 1.97x)
+  whole array  : 67.7945 pJ   (exact mean over all 134 rows, 126.9 of 256
+                 columns discharging; per-row spread 0..158). The
+                 sample is -2.11% against it.
+```
+
+Nothing here simulates. Both energy terms are still the measured ones
+(`e_col_pj`, `e_periph_pj`); what is new is the **activity**, counted from the
+netlist's own cell types. `regen_rom_libs.sh` calls this per macro per corner
+and writes the per-read table to `char/random_energy_<corner>.log`, which the
+`.lib` header cites.
+
+**The seed is per macro, not per corner** -- on purpose. How many columns
+discharge is a property of the ROM *contents*: the same address selects the
+same row holding the same zeros at tt, ss and ff. Seeding per corner drew a
+different sample at each one and put that difference into the activity
+(124.8 / 126.9 / 133.3 columns at tt / ss / ff on wrom0, against a true 126.9
+everywhere) -- a spurious ~7% spread landing straight in the corner ratios.
+All three corners now read the same ten addresses, so the only thing moving
+between corners is the measured energy.
+
+**The worst case is not discarded, only demoted.** The `.lib` header quotes it
+beside the average with the ratio, because a peak-current budget needs it and
+an average-power figure does not.
+
+The sample size is the remaining approximation: ten reads out of 134 rows sit
+-3.5% to +1.7% off the exact array mean, and the tool prints that gap next to
+every answer. Closing it costs nothing -- this is counting, not simulation:
+
+```bash
+ROM_ENERGY_READS=200 ./scripts/rom_char/regen_rom_libs.sh
+```
+
 ---
 
 ## 3. Pin capacitance, and slew
@@ -221,18 +298,27 @@ ngspice 2 -> plot v(clk0) i(vpin1)
 
 ![Pin capacitance: the ramp and the charge it draws](docs/img/14-pincap.png)
 
-Two cross-checks, both expensive, neither producing a number the `.lib` needs:
+The cross-check, which produces no number the `.lib` needs -- run the deck
+twice and compare, because the charge over a full swing must not depend on how
+fast the pin is ramped:
 
 ```bash
 PIN_TR=2n ./scripts/rom_char/run_pin_cap.sh wrom0     # ramp independence
-GOLDEN_PINS="clk0,addr0[0],addr0[9]" ./scripts/rom_char/run_pin_cap.sh wrom0
 ```
 
-The second is the **golden reference**: nothing deleted, no lumped load
-anywhere. Hours, ~15 GB. `tests/run_tests.sh` reports its deviation as a
-warning, never a failure. Every other check is *self-consistency* -- it bounds
-how far an answer moves when a knob moves, and is structurally blind to an
-error every variant shares.
+**There is no whole-macro reference run.** There was one -- a `--keep-all`
+deck with nothing deleted, no lumped load anywhere -- and it was removed. On
+`wrom0`, a 1 kbit example, it ran for hours at ~15 GB and was killed before it
+finished; the cell array is the one block whose size the *user* picks, so on a
+real ROM that deck does not run slowly, it dies. A check that only works on
+the smallest possible macro cannot be part of a generator's flow.
+
+What that leaves is a known limit rather than a hidden one. Every check here
+runs the same reduced deck, so none of them can see an error the reduction
+makes in all of them at once. That error is **bounded, not measured**:
+doubling the lumped load the deleted array is replaced by moves `addr0[0]` by
+4.9% and every other pin by under 0.6% ([limitations.md](docs/limitations.md)
+item 5).
 
 ### Wordline slew -- how fast a wordline really falls
 
@@ -295,6 +381,50 @@ them becomes the setup constraint.
 
 ![Address setup](docs/img/18-setup.png)
 
+#### Why `cs0` inherits that number instead of getting its own
+
+`cs0` ships the *address* setup, and its own path is never simulated. That is
+a deliberate choice rather than an oversight, and it is worth spelling out
+because the same question about **hold** was answered the opposite way.
+
+**Hold: cs0 was split off, because a safe larger value existed.** The hold
+experiment cuts the series chain mid-evaluate -- what a moving *address* does
+to a clocked row decoder, and nothing else. `cs0` is not on the decode path at
+all: it gates the precharge (`precharge = ~NAND(cs0, clk_int)`), so losing it
+during evaluate turns the precharge PMOS back on and kills the read at *any*
+point in the cycle. Applying the address's measured hold to `cs0` would have
+*relaxed* its constraint on the strength of an experiment that never touched
+it. There was somewhere safe to retreat to -- the full access window, which is
+what the library declared before the measurement existed -- so `cs0` keeps
+that, and the two pins carry different holds.
+
+**Setup: there is no such retreat, so the gap is declared instead of
+papered over.** A setup constraint is a *lower* bound; making it safer means
+making it larger, and there is no larger value here that is defensible without
+measuring one. Inventing a pessimistic pad would put a number in the `.lib`
+that no measurement backs -- exactly the failure mode the rest of this flow is
+built to avoid. So the address's measured path delay ships on `cs0` too, and
+the fact that it was never measured on `cs0` is recorded in
+[limitations.md](docs/limitations.md) item 7.
+
+**What bounds it in the meantime is the netlist, not a guess.** `cs0` goes
+straight to the A gate of `rom_control_nand` with no stage in between, and the
+extraction keeps pin and gate as a single node. The address path has one
+inverter (`inv_array_mod`) that `cs0`'s does not. So `cs0`'s real requirement
+is *strictly smaller* than the number it ships -- the shipped value is
+conservative for it, provably, from the topology. That is an argument from the
+netlist rather than a simulation, which is why it is a stated limitation and
+not a closed item.
+
+The same reasoning decides the sign elsewhere: the measured `t_addr2dec*` is
+0.0307 ns at TT, but the gate it feeds is clocked by `clk_int`, which arrives
+`t_clk2int` = 0.3255 ns after `clk0` -- so the true requirement at the pin is
+**-0.2948 ns**, i.e. the address may legally arrive *after* the clock edge.
+The library keeps shipping the positive path delay, because a constraint
+should not be relaxed as a side effect of changing what is being counted. The
+`.lib` header states both numbers so a reader is never left guessing which one
+they are holding.
+
 ---
 
 ## 4. The `.lib`: how it is built, and how it is checked
@@ -315,7 +445,7 @@ to that corner, so multiplying would double count.
 | `setup_rising` | worst `t_addr2dec*` |
 | `capacitance` per input pin | `c_cyc<i>_ff` |
 | leakage | column `.op` x columns + periphery block slices, same clk0 state so they add |
-| energy, active and idle | `e_col_pj` x columns + `e_periph_pj`; idle from the `!cs0` deck |
+| energy, active and idle | active: mean of 10 random reads, `<zeros in the selected row>` x `e_col_pj` + `e_periph_pj`; idle from the `!cs0` deck |
 | pins, bus widths, area | the macro's LEF |
 
 The falling-edge arc is not optional: without it STA reads an unlatched ROM as
@@ -335,13 +465,13 @@ Four layers, in order, exit status 1 if any fails:
 
 | layer | what it proves |
 |---|---|
-| `test_checker.py` | the checker still catches the 11 planted defects in `tests/fixtures/`. A validator nobody validates turns every run green. |
+| `test_checker.py` | the checker still catches the 15 planted defects in `tests/fixtures/`. A validator nobody validates turns every run green. |
 | `check_lib.py` | **is this valid Liberty?** Syntax with a line number; table shape against the `lu_table_template` it names; monotonic `index_1`/`index_2`; every `timing()` has a known `timing_type`; delay arcs have all four tables; `related_pin` names a pin that exists; bus width matches its slice; no duplicate arcs; no negative delays; the pg_pin / `voltage_map` chain actually connects. |
 | `test_rom_lib.py` | **does it say what this ROM does?** The falling-edge arc, the constraints, both power states, corner ordering. |
 | OpenSTA | our parser checking our writer is a closed loop. This opens it, with the parser a consumer really uses. Skipped with a notice if `sta` is absent -- set `STA_BIN`. |
 
-A fifth layer, `test_pin_cap.py`, compares the pin-cap deck against the golden
-reference and **warns, never fails**.
+Two further layers run the generated behavioural Verilog through `iverilog`
+and `vvp`, and are skipped with a notice when neither is installed.
 
 ---
 

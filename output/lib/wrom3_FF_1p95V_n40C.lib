@@ -20,7 +20,7 @@
  *   t_bl2dout at the smallest load -- because what must be proven
  *   is that the consumer captured BEFORE the data went away.
  *
- * SOURCE: access/t_pre come from ngspice measurements on real Magic parasitic C + that corner's OWN sky130 models; 134x256 array, worst column 10 (series NMOS 77); front end + periphery power char/periph_{active,idle}_ff.log, bitline char/col10_worst_case_parasitic_ff.log, back end + slew char/backend_ff_*.log, leakage char/col10_leak_ff.log + char/periph_leak_cs*_ff.total, column energy char/col10_energy_ff.log
+ * SOURCE: access/t_pre come from ngspice measurements on real Magic parasitic C + that corner's OWN sky130 models; 134x256 array, worst column 10 (series NMOS 77); front end + periphery power char/periph_{active,idle}_ff.log, bitline char/col10_worst_case_parasitic_ff.log, back end + slew char/backend_ff_*.log, leakage char/col10_leak_ff.log + char/periph_leak_cs*_ff.total, column energy char/col10_energy_ff.log, active energy = mean of 10 random reads char/random_energy_ff.log
  * -- THIS corner (FF_1p95V_n40C) was simulated separately with its own
  * sky130 model files (tt/ss/ff); no fixed scaling factor was used.
  * Measurement showed that this matters: the old SS x1.85 assumption was
@@ -120,7 +120,23 @@
  *
  * POWER MODEL: internal_power on clk0 is ENERGY PER CYCLE (pJ);
  * the power tool applies the frequency (P = E*f*activity).
- *   when "cs0"  = 226.6891 pJ  (read: column array + periphery)
+ *   when "cs0"  = 120.5727 pJ  (read: column array + periphery)
+ *     MODELLED AS THE AVERAGE OF 10 RANDOM READS, not the
+ *     worst case. A bitline draws recharge current only if
+ *     it discharged, and it discharges only where the
+ *     SELECTED ROW holds a zero -- a stored one is an NMOS
+ *     whose gate has just fallen, which opens the series
+ *     chain and leaves that bitline at VDD. So each
+ *     sampled read is scored as
+ *       <zeros in the selected row> x E_column + E_periphery
+ *     with both energy terms measured and only the activity
+ *     counted from the netlist's own cell types.
+ *     The all-columns-discharge worst case is 226.6891 pJ
+ *     (1.88x this number); use it for a current budget,
+ *     not for an average-power figure.
+ *     The sample is drawn with a seed derived from the
+ *     macro name and the corner, so it is reproducible;
+ *     the per-read table is in char/random_energy_*.log.
  *   when "!cs0" = 4.0849 pJ  (IDLE: cs0 only gates the
  *     precharge; the clk_int tree, the address buffers, the row
  *     decoder and 134 wordlines switch even when deselected.
@@ -457,8 +473,8 @@ cell (wrom3) {
         internal_power() {
             related_pg_pin : vccd1;
             when : "cs0";
-            rise_power(scalar) { values("226.6891"); }
-            fall_power(scalar) { values("226.6891"); }
+            rise_power(scalar) { values("120.5727"); }
+            fall_power(scalar) { values("120.5727"); }
         }
         internal_power() {
             related_pg_pin : vccd1;

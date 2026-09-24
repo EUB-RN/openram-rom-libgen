@@ -14,7 +14,7 @@ Exit status is 1 on any failure, so it can gate a commit or a CI job.
 `regen_rom_libs.sh` also runs the structural pass by itself at the end of every
 run — a file that does not parse never leaves the generator.
 
-## The four layers
+## The layers
 
 | layer | file | question it answers |
 |---|---|---|
@@ -22,6 +22,18 @@ run — a file that does not parse never leaves the generator.
 | 2 | `check_lib.py` | is this valid Liberty? |
 | 3 | `test_rom_lib.py` | does it say what this macro actually does? |
 | 4 | `read_liberty.tcl` | does OpenSTA accept it? |
+| 5 | `iverilog` | do generated behavioural Verilog models compile and elaborate cleanly? |
+| 6 | `test_verilog_model.py` | do behavioural Verilog models simulate correctly (precharge, access delay, invalidation, cs0)? |
+| 0 | `test_error_reporting.py` | does a dead, unsettled or *absent* simulation stay loud -- and can a log that this flow did not produce still reach a `.lib`? |
+
+Layer 0 sits before all of them because it asks about the numbers rather than
+the file: a `.lib` can be perfectly valid Liberty, say exactly what a ROM says,
+and carry a measurement of a circuit that no longer exists. It covers the four
+silent failures -- a deck that crashed, one that exited zero having logged an
+error, one that ran clean without settling, and a log that was simply left in
+the tree by an older netlist or an older run. The last is answered by the
+`<log>.prov` stamp `run_ng` writes and `regen_rom_libs.sh` refuses to work
+without (see [`docs/flow.md`](../docs/flow.md)).
 
 Layer 1 comes first on purpose. A validator nobody validates is worse than no
 validator: it turns every run green and everyone stops looking. `fixtures/`
@@ -48,6 +60,18 @@ access time, since an invalidation after the data is valid says nothing.
 Layer 4 is skipped with a notice when no OpenSTA is installed. Layers 1–3 are
 our parser checking our writer, which is a closed loop; this opens it using the
 parser a consumer really uses. Point `STA_BIN` at a binary to run it.
+
+Layer 5 validates all behavioural Verilog models (`output/verilog/*.v`) using
+`iverilog` if available, asserting error-free syntax and elaboration.
+Layer 6 (`test_verilog_model.py`) runs dynamic simulation testbenches against
+all behavioural Verilog models (`output/verilog/*.v`) using `iverilog` + `vvp`.
+It asserts that the simulated output holds all ones during precharge, delays
+valid data until `ACCESS_NS` has elapsed, erases data immediately on the falling
+clock edge, and remains idle when `cs0 = 0`.
+
+Both OpenSTA and Verilog checks are fully automated in CI via
+`.github/workflows/ci.yml` on every push and pull request touching libraries or
+models.
 
 ## Adding a check
 

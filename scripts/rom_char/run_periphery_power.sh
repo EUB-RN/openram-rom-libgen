@@ -78,9 +78,9 @@ wait
 # --- Summary --------------------------------------------------------------
 echo
 printf "%-7s %-6s %-4s %14s %10s %14s\n" macro corner cs0 "E_periph(pJ)" "c2/c3(%)" "P@fmax(mW)"
-# Rows over the settling limit are collected here and reported AFTER the table,
-# so one run still shows every macro and corner before it fails.
-unsettled=""
+# Rows are collected here and judged AFTER the table, so one run still shows
+# every macro and corner before it fails.
+rows=""
 for m in $MACROS; do
   load_geom "$m" || continue
   for ck in $CORNERS; do
@@ -107,8 +107,9 @@ for m in $MACROS; do
           e = q3*v*1e12;
           pmw = e*1e-12*f*1e6*1e3;
           printf "%-7s %-6s %-4s %14.4f %10.2f %14.4f\n", m, c, cs, e, g, pmw }'
-      awk -v g="$gap" -v x="$SETTLE_MAX_PCT" 'BEGIN{exit !(g+0 > x+0)}' \
-        && unsettled="${unsettled}$m $c cs$cs|$gap|$lg|$sp
+      # EVERY row is collected, not just the ones that look bad here: the
+      # limit lives in check_settled and must not be spelled a second time.
+      rows="${rows}$m $c cs$cs|$gap|$lg|$sp
 "
     done
   done
@@ -122,11 +123,12 @@ echo "      with --tclk 400n."
 # Over the limit is a failure, not a remark. It is entered in the same ledger
 # a crash uses, so ng_summary reports both together and the exit code covers
 # both. Done after the table for the reason given at the top of it.
-printf '%s' "$unsettled" | while IFS='|' read -r cx gap lg sp; do
+printf '%s' "$rows" | while IFS='|' read -r cx gap lg sp; do
   [ -n "$cx" ] || continue
   check_settled "periphery-energy" "$lg" "$cx" "$gap" "$sp" || true
 done
 
-# Non-zero if any deck died. The numbers those decks would have produced
-# are simply absent otherwise, and absent is indistinguishable from fine.
+# Non-zero if any deck died OR any of them never settled. In the first case
+# the number is simply absent, and absent is indistinguishable from fine; in
+# the second it is present and wrong, which is worse.
 ng_summary

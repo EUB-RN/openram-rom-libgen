@@ -36,6 +36,15 @@ WHAT IS CHECKED
     5. ng_summary names every failed stage and returns 1
     6. no ngspice invocation anywhere in scripts/ has gone back to
        swallowing its status
+    7. a deck that RAN CLEAN but has not converged is a failure too. This is
+       the third silent case and neither the exit code nor the log can see
+       it: every .measure resolves, ngspice says nothing, and the number is
+       a startup transient rather than the steady state. The decks that can
+       tell measure the same quantity on two consecutive cycles;
+       `check_settled` compares them against SETTLE_MAX_PCT and ledgers the
+       mismatch like a crash. On 2026-09-06 that gap stood at 24-40% in the
+       periphery energy run, was printed in the summary table, and nothing
+       acted on it.
 
 Usage:
     python3 tests/test_error_reporting.py
@@ -163,12 +172,98 @@ def check_behaviour(tmp):
     if "SUM=0" not in out:
         bad.append("ng_summary did not return 0 on a clean run")
 
+    # The stamp is written by the REAL run_ng path, not only by the unit
+    # test above: a clean deck must leave one, and a dead deck must not leave
+    # a usable one, or regen_rom_libs.sh is judging logs by a file nobody
+    # writes.
+    if not os.path.exists(os.path.join(tmp, "good.log.prov")):
+        bad.append("run_ng accepted a healthy deck without stamping its log, "
+                   "so the .lib generator will refuse the run it just made")
+    for dead in ("loud", "quiet"):
+        r = sh('. "$ROM_CHAR_DIR/common.sh"; prov_check "%s"; echo "RC=$?"'
+               % os.path.join(tmp, dead + ".log"))
+        if "RC=1" not in r.stdout:
+            bad.append("the log of a deck that DIED (%s) passed the "
+                       "provenance check" % dead)
+
     out = run_ng_case(tmp, "measfail", EXPECTED_MEASURE_FAILURE)
     if "RC=0" not in out:
         bad.append("an EXPECTED .measure failure was treated as fatal. The "
                    "flow relies on those: an unselected wordline has no edge "
                    "to measure, and 93 of the 311 committed logs contain one. "
                    "Failing on them would make every good run red")
+    return bad
+
+
+def check_settling():
+    """An unsettled deck must fail the run, not just print a number.
+
+    No ngspice needed: check_settled is arithmetic over two numbers the deck
+    has already written to its log.
+    """
+    bad = []
+
+    def case(gap):
+        r = sh('. "$ROM_CHAR_DIR/common.sh"; ng_reset; '
+               'check_settled "test-stage" "x.log" "ctx1 ctx2" "%s" "x.sp"; '
+               'echo "RC=$?"; ng_summary; echo "SUM=$?"' % gap)
+        return r.stdout + r.stderr
+
+    lim = sh('. "$ROM_CHAR_DIR/common.sh"; echo "$SETTLE_MAX_PCT"').stdout.strip()
+    if lim != "1.0":
+        bad.append("the settling limit is %r, not the 1.0%% the column deck "
+                   "uses for t_dis_50 -- the two checks must not drift apart"
+                   % lim)
+
+    out = case("0.59")                   # the worst committed periphery log
+    if "RC=0" not in out or "SUM=0" not in out:
+        bad.append("a SETTLED deck (0.59%, the worst value in the committed "
+                   "logs) was reported as a failure -- the limit is too tight "
+                   "to pass a good run")
+    if "FAILED" in out:
+        bad.append("a settled deck printed a failure report")
+
+    out = case("1.00")                   # exactly at the limit is still fine
+    if "RC=0" not in out:
+        bad.append("a gap exactly AT the limit was failed; the check must be "
+                   "strictly greater, or the limit cannot be quoted as a "
+                   "pass/fail boundary")
+
+    out = case("25.00")
+    if "RC=1" not in out:
+        bad.append("AN UNSETTLED DECK WAS TREATED AS SUCCESS -- this is the "
+                   "case run_ng cannot see, because ngspice ran clean and the "
+                   "number it produced is simply a transient")
+    if "SUM=1" not in out:
+        bad.append("ng_summary did not return 1 after an unsettled deck, so "
+                   "the run would still exit zero")
+    if "NOT SETTLED" not in out or "25.00" not in out:
+        bad.append("the report does not say the deck is unsettled, or does "
+                   "not quote the gap that made it one")
+    if "ctx1 ctx2" not in out:
+        bad.append("the unsettled report does not carry the context "
+                   "(macro/corner/state), so it does not say WHICH run to redo")
+    return bad
+
+
+def check_settling_is_wired():
+    """The helper existing is not the same as a script using it.
+
+    Item 2b of the 2026-09-20 audit was exactly this shape: the periphery
+    deck measured q_c2 and q_c3, the summary printed their gap, and no
+    consumer ever compared them.
+    """
+    bad = []
+    path = os.path.join(CHAR, "run_periphery_power.sh")
+    # A mention is not a call: the first version of this guard was satisfied
+    # by the comment that explains the call, which is exactly the failure it
+    # is meant to catch. So: a non-comment line that INVOKES it.
+    called = any(line.strip().startswith("check_settled ")
+                 for line in open(path))
+    if not called:
+        bad.append("run_periphery_power.sh measures q_c2/q_c3 but no longer "
+                   "calls check_settled -- the gap is back to being a remark "
+                   "in a table")
     return bad
 
 
@@ -198,6 +293,134 @@ def check_no_swallowing():
     return bad
 
 
+def check_provenance(tmp):
+    """A log may only be read if THIS flow produced it.
+
+    The fourth silent case, and the one the other three leave open: the run
+    never happened at all. A log in <macro>/char outlives the netlist it was
+    measured on, the deck it came from and the run that wrote it -- re-extract
+    the macro, rebuild a deck, copy the tree from another machine, and `meas`
+    still finds a plausible number and returns it without a word.
+    `regen_rom_libs.sh` then writes it into a .lib as a measured value.
+
+    So run_ng stamps every clean log with <log>.prov (the deck, the log and
+    the netlist it was built from, by CONTENT HASH -- mtimes are rewritten by
+    any checkout or copy), check_settled/ng_fail withdraw that stamp when the
+    run turns out to be unusable, and the library generator refuses anything
+    that is not stamped. This pins down each of those.
+    """
+    bad = []
+    d = os.path.join(tmp, "prov")
+    os.makedirs(d, exist_ok=True)
+    sp, lg, src = (os.path.join(d, n) for n in ("x.sp", "x.log", "netlist.sp"))
+
+    def write(path, text):
+        with open(path, "w") as fh:
+            fh.write(text)
+
+    def prov(cmd):
+        return sh('. "$ROM_CHAR_DIR/common.sh"; G_SP="%s"; %s; echo "RC=$?"'
+                  % (src, cmd))
+
+    write(src, "* the netlist\n")
+    write(sp, "* the deck\n")
+    write(lg, "foo   =  1.0\n")
+
+    out = prov('prov_check "%s"' % lg)
+    if "RC=1" not in out.stdout or "not stamped" not in out.stdout:
+        bad.append("AN UNSTAMPED LOG WAS ACCEPTED. Nothing in the tree is "
+                   "proof that a log came from the current flow except the "
+                   "stamp, so this is the whole check")
+
+    prov('prov_write "test-stage" "%s" "%s" "ctx"' % (sp, lg))
+    out = prov('prov_check "%s"' % lg)
+    if "RC=0" not in out.stdout:
+        bad.append("a log stamped by the flow was rejected: %s"
+                   % out.stdout.strip())
+    if out.stdout.strip() != "RC=0":
+        bad.append("prov_check is not silent on a good log -- it would bury "
+                   "the real rejections in noise")
+
+    # 1. the deck changed: the log is from an older deck
+    write(sp, "* the deck, with the measurement fixed\n")
+    out = prov('prov_check "%s"' % lg)
+    if "RC=1" not in out.stdout or "x.sp" not in out.stdout:
+        bad.append("A LOG WHOSE DECK HAS SINCE CHANGED WAS ACCEPTED -- that "
+                   "is a measurement of a circuit that is no longer the one "
+                   "being characterised")
+    write(sp, "* the deck\n")                    # put it back
+
+    # ... but a deck that is simply ABSENT is the normal state: decks are
+    # gitignored (204 MB) and rebuilt from the netlist on demand, so their
+    # absence says nothing about the log, while the netlist hash still ties
+    # it to this design. Refusing here would make a clone unable to
+    # regenerate anything without re-running the whole flow.
+    os.rename(sp, sp + ".away")
+    out = prov('prov_check "%s"' % lg)
+    if "RC=0" not in out.stdout:
+        bad.append("a log whose deck has been cleaned away was refused, "
+                   "although decks are gitignored and regenerated on demand: "
+                   "%s" % out.stdout.strip())
+    os.rename(sp + ".away", sp)
+
+    # 2. the netlist changed: every log in the tree is about another macro
+    write(src, "* the netlist, re-extracted with a new .bin\n")
+    out = prov('prov_check "%s"' % lg)
+    if "RC=1" not in out.stdout or "netlist.sp" not in out.stdout:
+        bad.append("A LOG TAKEN ON A DIFFERENT NETLIST WAS ACCEPTED -- "
+                   "regenerating the ROM would keep the old timing")
+    write(src, "* the netlist\n")
+
+    # 3. the log itself was edited or replaced
+    write(lg, "foo   =  2.0\n")
+    out = prov('prov_check "%s"' % lg)
+    if "RC=1" not in out.stdout or "changed since it was stamped" not in out.stdout:
+        bad.append("a log edited after it was stamped was still accepted")
+    write(lg, "foo   =  1.0\n")
+
+    # 4. a verdict against the run withdraws the stamp
+    out = prov('prov_invalidate "%s" "NOT SETTLED -- 25%% gap"; '
+               'prov_check "%s"' % (lg, lg))
+    if "RC=1" not in out.stdout or "NOT SETTLED" not in out.stdout:
+        bad.append("an invalidated run was still readable, or its reason was "
+                   "lost -- an unsettled log is present and WRONG, which is "
+                   "worse than absent")
+
+    # 5. ng_fail must withdraw it: a failed RE-RUN leaves the previous run's
+    #    log and stamp on disk, and that pair says the number is good.
+    prov('prov_write "test-stage" "%s" "%s" "ctx"' % (sp, lg))
+    out = prov('ng_reset; ng_fail "test-stage" "ctx" "%s" "%s" "1" "it died"; '
+               'prov_check "%s"' % (sp, lg, lg))
+    if "RC=1" not in out.stdout or "it died" not in out.stdout:
+        bad.append("A FAILED RE-RUN LEFT THE PREVIOUS RUN'S STAMP STANDING, "
+                   "so the .lib would keep a number the flow has just failed "
+                   "to reproduce")
+    return bad
+
+
+def check_provenance_is_wired():
+    """The stamp existing is not the same as the generator honouring it.
+
+    Item 2c of the 2026-09-20 audit had this shape one level down: the gap was
+    measured, printed, and never read back by the script that consumed the
+    log.
+    """
+    bad = []
+    regen = os.path.join(CHAR, "regen_rom_libs.sh")
+    body = [l for l in open(regen) if not l.strip().startswith("#")]
+    if not any("prov_check" in l for l in body):
+        bad.append("regen_rom_libs.sh no longer calls prov_check -- it is "
+                   "back to reading whatever log happens to be in the tree")
+    if not any("exit $RC" in l or "exit \"$RC\"" in l for l in body):
+        bad.append("regen_rom_libs.sh does not exit on a refused corner, so "
+                   "a run that wrote nothing still reports success")
+    common = open(os.path.join(CHAR, "common.sh")).read()
+    if "prov_write" not in common.split("run_ng()")[1].split("ng_fail()")[0]:
+        bad.append("run_ng no longer stamps the logs it accepts, so every "
+                   "log in the tree looks like it came from nowhere")
+    return bad
+
+
 def main():
     rc = 0
     tmp = tempfile.mkdtemp(prefix="rom_err_")
@@ -209,6 +432,22 @@ def main():
             rc = 1
         else:
             print("  ok   every ngspice call goes through run_ng")
+
+        wired = check_settling_is_wired() + check_settling()
+        for b in wired:
+            print("  FAIL [settling gate] %s" % b)
+        if wired:
+            rc = 1
+        else:
+            print("  ok   an unsettled deck fails the run, at a 1% limit")
+
+        prv = check_provenance_is_wired() + check_provenance(tmp)
+        for b in prv:
+            print("  FAIL [provenance] %s" % b)
+        if prv:
+            rc = 1
+        else:
+            print("  ok   only logs this flow produced can reach a .lib")
 
         beh = check_behaviour(tmp)
         if beh is None:

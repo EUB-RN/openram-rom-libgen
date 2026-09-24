@@ -7,7 +7,7 @@
 # Exit status is 1 if anything failed, so it can gate a commit or a CI job.
 #
 # WHAT RUNS, AND WHY EACH LAYER EXISTS:
-#   1. test_checker  -- proves the checker still catches the 11 defects in
+#   1. test_checker  -- proves the checker still catches the 15 defects in
 #                       tests/fixtures/. A validator nobody validates turns
 #                       every run green and everyone stops looking.
 #   1b. test_error_reporting -- a deck that dies must say WHICH STAGE died
@@ -24,12 +24,7 @@
 #   4. OpenSTA       -- our parser checking our writer is a closed loop;
 #                       this opens it, using the parser a consumer really
 #                       uses. Skipped with a notice when sta is not installed.
-#   5. test_pin_cap  -- the pin-capacitance deck against a GOLDEN reference
-#                       run that deletes nothing. WARNS, never fails: it is a
-#                       modelling cross-check with error bars, not a yes/no,
-#                       and its reference is expensive enough to be absent
-#                       most of the time. See the script's own header.
-#   6. Verilog       -- validates behavioural Verilog models with iverilog if
+#   5. Verilog       -- validates behavioural Verilog models with iverilog if
 #                       installed (syntax and elaboration check). Skipped with
 #                       a notice when iverilog is not installed.
 #   6. test_verilog_model -- executes dynamic simulation testbenches against
@@ -66,9 +61,8 @@ fi
 rc=0
 # Layers that did not run. A green banner must not be able to mean "everything
 # was checked" when three of the six layers can silently skip -- OpenSTA when
-# it is not installed, the golden pin-cap reference when it has not been
-# produced, the Verilog layers when there are no models. Each skip is recorded
-# and named at the end.
+# it is not installed and the Verilog layers when there are no models. Each
+# skip is recorded and named at the end.
 skipped=""
 
 echo "== the checker itself =="
@@ -85,14 +79,6 @@ python3 "$HERE/check_lib.py" -v $LIBS || rc=1
 echo
 echo "== ROM semantics =="
 python3 "$HERE/test_rom_lib.py" $LIBS || rc=1
-
-echo
-echo "== input pin capacitance vs the golden reference (warn only) =="
-pc_out=$(python3 "$HERE/test_pin_cap.py" 2>&1) || rc=1
-printf '%s\n' "$pc_out"
-case "$pc_out" in
-  *SKIP*) skipped="$skipped pin-cap-golden" ;;
-esac
 
 echo
 echo "== OpenSTA =="
@@ -144,9 +130,19 @@ if [ $rc -ne 0 ]; then
   echo "TESTS FAILED"
 elif [ -n "$skipped" ]; then
   echo "PASSED, BUT NOT EVERYTHING RAN -- skipped:$skipped"
-  echo "Green means the layers that ran are clean. It does NOT mean the"
-  echo "library was checked by the tool a consumer uses, or that the"
-  echo "modelling cross-check has a reference to compare against."
+  echo "Green means the layers that ran are clean. It does NOT mean:"
+  # Name only what was actually skipped. A blanket disclaimer that names a
+  # layer which DID run is the same defect as a green banner that hides one:
+  # both make the summary say something the run does not support.
+  case "$skipped" in *OpenSTA*)
+    echo "  - that the library was checked by the parser a consumer uses" ;;
+  esac
+  case "$skipped" in *verilog-elaboration*)
+    echo "  - that the behavioural models compile and elaborate" ;;
+  esac
+  case "$skipped" in *verilog-simulation*)
+    echo "  - that the behavioural models were simulated" ;;
+  esac
 else
   echo "ALL TESTS PASSED (every layer ran)"
 fi

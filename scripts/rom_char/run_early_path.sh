@@ -73,6 +73,13 @@ for m in $(macro_list "$@"); do
           $RFLAG "--tag=$TAG"
   python3 "$ROM_CHAR_DIR/gen_col_tb_parasitic.py" "$m" "$G_BEST_COL" \
           $RFLAG "--tag=$FAST" --ones=0
+  # Both TT decks were run by the generator itself, not by run_ng, so they are
+  # judged and stamped here -- an unstamped log is refused downstream, which
+  # for retain_* means no arc at all rather than one from an older netlist.
+  for t in "$TAG" "$FAST"; do
+    prov_adopt "early-path" "$G_CHAR/${G_BESTTAG}_${t}.sp" \
+               "$G_CHAR/${G_BESTTAG}_${t}.log" "$m tt" || true
+  done
   for c in ss ff; do
     for t in "$TAG" "$FAST"; do
       python3 "$ROM_CHAR_DIR/make_corner_variant.py" "$m" "$G_BEST_COL" "$c" \

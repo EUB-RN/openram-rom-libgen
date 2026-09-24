@@ -1,0 +1,28 @@
+wrom0 tt: dynamic read energy, average of 10 random reads
+  array        : 134 rows x 256 columns, 1064 words x 8 per row
+  E_column     : 0.4851 pJ per discharged column  (col236_energy_tt.log)
+  E_periphery  : 6.2581 pJ per cycle              (periph_active_tt.log)
+  seed         : 4192668302
+
+  read     address      row   discharged       E (pJ)
+  1             45        5          118      63.5009
+  2            860      107          133      70.7775
+  3            542       67          122      65.4413
+  4            297       37          127      67.8669
+  5            351       43          111      60.1051
+  6            877      109          109      59.1349
+  7            388       48          129      68.8371
+  8            202       25          124      66.4115
+  9            487       60          134      71.2626
+  10           752       94          132      70.2924
+
+  average      : 66.3630 pJ   (min 59.1349, max 71.2626, sd 4.3175)
+  worst case   : 130.4458 pJ   (all 256 columns discharging -- 1.97x)
+  whole array  : 67.7945 pJ   (exact mean over all 134 rows, 126.9 of 256
+                 columns discharging; per-row spread 0..158). The
+                 sample is -2.11% against it.
+
+e_read_avg_pj       =  6.636302e+01
+e_read_worst_pj     =  1.304458e+02
+n_reads             =  10
+seed                =  4192668302

@@ -26,6 +26,20 @@ need_ngspice
 ng_reset          # clear the failure ledger for this run
 export NGSPICE_BIN="$NG"
 
+# The bitline term has its own settling proof: the deck measures t_dis_50 on
+# the last cycle and t_dis_50_prev on the one before, and they must agree.
+# gen_col_tb_parasitic.py printed a WARNING about it and nothing acted on the
+# warning; worse, it only ran for TT, because the SS/FF decks are built by
+# make_corner_variant.py and run straight from here. This turns both halves
+# into the same failure every other unsettled deck gets.
+col_settled() {
+  _d=$(meas "$3" t_dis_50); _p=$(meas "$3" t_dis_50_prev)
+  [ -n "$_d" ] && [ -n "$_p" ] || return 0
+  _g=$(awk -v a="$_d" -v b="$_p" 'BEGIN{ d=(a-b); if (d<0) d=-d;
+         printf "%.2f", a ? d/a*100 : 0 }')
+  check_settled "col-timing" "$3" "$1 $2" "$_g" "$4" || true
+}
+
 for m in $(macro_list "$@"); do
   load_geom "$m" || continue
   echo "== $m  (worst column $G_WORST_COL, series NMOS $G_CHAIN) =="
@@ -39,6 +53,12 @@ for m in $(macro_list "$@"); do
     }
   fi
   python3 "$ROM_CHAR_DIR/gen_col_tb_parasitic.py" "$m" "$G_WORST_COL" $RFLAG
+  # The TT deck is built AND RUN by the generator, so its log never passes
+  # through run_ng and would carry no provenance stamp -- which downstream
+  # means "not from this flow" and is refused. Judge and stamp it here by the
+  # same rules run_ng applies to the SS/FF decks below.
+  prov_adopt "col-timing" "$G_CHAR/${G_COLTAG}_worst_case_parasitic.sp" \
+             "$G_CHAR/${G_COLTAG}_worst_case_parasitic.log" "$m tt" || true
   for c in ss ff; do
     python3 "$ROM_CHAR_DIR/make_corner_variant.py" "$m" "$G_WORST_COL" "$c" >/dev/null
     sp="$G_CHAR/${G_COLTAG}_worst_case_parasitic_${c}.sp"
@@ -46,7 +66,14 @@ for m in $(macro_list "$@"); do
     run_ng "col-timing" "$sp" "$lg" "$m $c" || continue
     printf "%s %s t_dis_50 = %s   t_pre_99 = %s\n" "$m" "$c" \
       "$(meas "$lg" t_dis_50)" "$(meas "$lg" t_pre_99)"
+    col_settled "$m" "$c" "$lg" "$sp"
   done
+  # The TT deck is run by the generator above, which prints its own settling
+  # verdict but only WARNS. Gate it here with the same rule the corner decks
+  # get, so all three are judged alike -- SS is the corner most at risk, being
+  # 2.4x slower, and it was the one with no check at all.
+  col_settled "$m" "tt" "$G_CHAR/${G_COLTAG}_worst_case_parasitic.log" \
+                        "$G_CHAR/${G_COLTAG}_worst_case_parasitic.sp"
 done
 
 # Non-zero if any deck died. The numbers those decks would have produced
