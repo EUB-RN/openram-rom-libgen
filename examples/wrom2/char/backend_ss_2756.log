@@ -10,24 +10,24 @@ Using SPARSE 1.3 as Direct Linear Solver
 Operating point simulation skipped by 'uic',
   now using transient initial conditions.
 
-No. of Data Rows : 4023
+No. of Data Rows : 4024
 
   Measurements for Transient Analysis
 
-t_bl2dout           =  1.783498e-09 targ=  5.498169e-08 trig=  5.319819e-08
-t_dout_slew         =  3.103995e-09 targ=  5.666753e-08 trig=  5.356353e-08
+t_bl2dout           =  1.745936e-09 targ=  5.621790e-08 trig=  5.447196e-08
+t_dout_slew         =  3.118471e-09 targ=  5.790987e-08 trig=  5.479140e-08
 
 
-Total analysis time (seconds) = 37.0096
+Total analysis time (seconds) = 27.1133
 
-Total elapsed time (seconds) = 153.618 
+Total elapsed time (seconds) = 130.859 
 
-Total DRAM available = 31789.559 MB.
-DRAM currently available = 13881.609 MB.
+Total DRAM available = 31789.566 MB.
+DRAM currently available = 10103.359 MB.
 Maximum ngspice program size =  753.297 MB.
-Current ngspice program size =  686.695 MB.
+Current ngspice program size =  686.484 MB.
 
-Shared ngspice pages =   11.488 MB.
+Shared ngspice pages =   11.277 MB.
 Text (code) pages =    6.520 MB.
 Stack = 0 bytes.
 Library pages =  731.133 MB.

@@ -14,21 +14,21 @@ No. of Data Rows : 4024
 
   Measurements for Transient Analysis
 
-t_bl2dout           =  1.471772e-09 targ=  2.317944e-08 trig=  2.170766e-08
-t_dout_slew         =  4.339957e-10 targ=  2.339898e-08 trig=  2.296499e-08
+t_bl2dout           =  1.499769e-09 targ=  2.362089e-08 trig=  2.212112e-08
+t_dout_slew         =  4.433223e-10 targ=  2.384492e-08 trig=  2.340159e-08
 
 
-Total analysis time (seconds) = 38.07
+Total analysis time (seconds) = 22.7082
 
-Total elapsed time (seconds) = 157.624 
+Total elapsed time (seconds) = 108.997 
 
-Total DRAM available = 31789.559 MB.
-DRAM currently available = 14539.312 MB.
-Maximum ngspice program size =  754.781 MB.
-Current ngspice program size =  688.082 MB.
+Total DRAM available = 31789.566 MB.
+DRAM currently available = 13940.875 MB.
+Maximum ngspice program size =  754.773 MB.
+Current ngspice program size =  688.105 MB.
 
-Shared ngspice pages =   11.410 MB.
+Shared ngspice pages =   11.441 MB.
 Text (code) pages =    6.520 MB.
 Stack = 0 bytes.
-Library pages =  732.617 MB.
+Library pages =  732.609 MB.
 

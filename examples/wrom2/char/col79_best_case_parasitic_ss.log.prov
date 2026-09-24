@@ -1,0 +1,10 @@
+# rom_char provenance v1 -- written by the flow, read by regen_rom_libs.sh
+version	1
+stage	early-path
+context	wrom2 ss
+when	2026-09-24T12:53:26Z
+deck	/home/hpw/openram-rom-libgen/examples/wrom2/char/col79_best_case_parasitic_ss.sp
+deck_sha	0b71d5b4b7c089fb29598bd4ecf69e1bfdba3e6595c6043ea85544e8c3d0bf9a
+log_sha	596d92c848f25b6f449e9a1355120907e1aee88594b462fcbf9c1014a4cadde8
+src	/home/hpw/openram-rom-libgen/examples/wrom2/wrom2.sp
+src_sha	8326ae3f2c4cd848d9f88a26b5c783df21b080f14e082dbf053ca2df76c1ca41
