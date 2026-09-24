@@ -1,7 +1,7 @@
 { pkgs ? import <nixpkgs> {} }:
 
 let
-  # Standart Sky130 PDK arama yolları
+  # The usual places a sky130 PDK lands, in the order they are tried.
   findPdkScript = ''
     if [ -z "$PDK_ROOT" ]; then
       if [ -d "$HOME/.volare/volare/sky130/versions" ]; then
@@ -30,37 +30,42 @@ in pkgs.mkShell {
     python3
     ngspice
     iverilog
+    # Step 1 of the flow (run_cap_extract.sh) is a Magic extraction, and
+    # docs/flow.md lists Magic 8.3+ as a requirement. Without it this shell
+    # cannot run the flow it advertises -- every later deck needs the
+    # <macro>_cap_only.spice that step writes.
+    magic
   ];
 
   shellHook = ''
     ${findPdkScript}
 
-    # user/ dizininde en az bir makro varsa varsayılan olarak user/ dizinini seç
-    if [ -d "./user" ] && [ -n "$(find ./user -mindepth 1 -maxdepth 1 -type d 2>/dev/null)" ]; then
-      export ROM_MACROS_DIR="$(pwd)/user"
-    else
-      export ROM_MACROS_DIR="$(pwd)/user"
-    fi
+    # This shell is for running YOUR OWN ROM, so the macro tree is user/ --
+    # see user/README.md. The examples in examples/ are study material and are
+    # not what someone entering this shell means to characterise; point
+    # ROM_MACROS_DIR at them by hand to work on those instead.
+    export ROM_MACROS_DIR="$(pwd)/user"
     export ROM_OUT_DIR="$(pwd)/output"
     export NGSPICE_BIN="${pkgs.ngspice}/bin/ngspice"
 
     echo "=================================================================="
-    echo "  openram-rom-libgen İzole Nix Ortamı Hazır!"
+    echo "  openram-rom-libgen isolated Nix environment ready"
     echo "=================================================================="
-    echo "  * Girdi Dizini (ROM): $ROM_MACROS_DIR"
-    echo "  * Çıktı Dizini      : $ROM_OUT_DIR"
+    echo "  * macro tree (ROM): $ROM_MACROS_DIR"
+    echo "  * output root     : $ROM_OUT_DIR"
     if [ -n "$SKY130_LIB" ]; then
-      echo "  * Sky130 PDK Modeli : $SKY130_LIB"
+      echo "  * sky130 models   : $SKY130_LIB"
     else
-      echo "  ! UYARI: Sky130 PDK otomatik bulunamadı. Lütfen PDK_ROOT tanımlayın."
+      echo "  ! WARNING: no sky130 PDK found. Set PDK_ROOT before running."
     fi
     echo ""
-    echo "  Kullanım:"
-    echo "    1. Kendi ROM dosyalarınızı './user/<rom_adı>/' altına koyun."
-    echo "    2. Tek komutla çalıştırın:"
-    echo "       ./flow.py <rom_adı>"
-    echo "       veya doğrudan: ./flow.py (user altındaki ilk ROM'u işler)"
-    echo "    3. Çıktılar './output/lib/' ve './output/verilog/' altına yazılır."
+    echo "  Usage:"
+    echo "    1. Put your own ROM under './user/<macro>/'."
+    echo "    2. Run it in one command:"
+    echo "       ./flow.py <macro>"
+    echo "       or ./flow.py on its own, which processes EVERY macro"
+    echo "       found under user/."
+    echo "    3. Deliverables land in './output/lib/' and './output/verilog/'."
     echo "=================================================================="
   '';
 }

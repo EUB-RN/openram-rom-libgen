@@ -8,7 +8,18 @@ What the flow needs from a macro directory, what the `.lib` says about power and
 
 ## Using your own ROM
 
-A macro directory is expected to look like an OpenRAM ROM output:
+There are two ways in, and they differ only in where the macro lives:
+
+* **`user/` + `./flow.py <macro>`** -- drop the macro under `user/`, and one
+  command runs pre-flight, the simulations, both generators and the tests.
+  This is what `shell.nix` sets up; see [`user/README.md`](../user/README.md).
+  It leaves the optional measurements of step 6d out (see
+  [flow.md](flow.md)), so its library is conservative rather than complete.
+* **`ROM_MACROS_DIR` + the `run_*.sh` scripts** -- the step-by-step flow this
+  page and [flow.md](flow.md) describe. Use it when you want a single
+  measurement, or the optional ones `flow.py` skips.
+
+Either way a macro directory is expected to look like an OpenRAM ROM output:
 
 ```
 <macro>/
@@ -84,10 +95,13 @@ of rows only surfaces in someone else's tool. `tests/` closes that:
 tests/run_tests.sh
 ```
 
-Four layers: the checker's own fixtures (11 deliberately broken Liberty files,
+Six layers: the checker's own fixtures (15 deliberately broken Liberty files,
 so a green run means something), the generic Liberty structure, the ROM
 semantics (both `dout0` arcs, the constraints, both power states, FF < TT < SS
-ordering), and OpenSTA's own `read_liberty` where it is installed.
+ordering), OpenSTA's own `read_liberty` where it is installed, and two that
+compile and then simulate the generated behavioural Verilog. Each layer that
+could not run is named in the closing banner, so a green run never means more
+than it did.
 `regen_rom_libs.sh` runs the structural pass by itself at the end of every run,
 so a file that does not parse never leaves the generator. Details in
 [`tests/README.md`](../tests/README.md).

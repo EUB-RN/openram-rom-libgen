@@ -180,4 +180,4 @@ bitline through the cell capacitances. It is the small bump visible at the
 start of every discharge if you plot the deck.)
 
 What this does *not* cover is neighbour-column coupling, which the column deck
-does not carry at all -- see limitation 1 below.
+does not carry at all -- see [limitations.md](limitations.md) item 1.

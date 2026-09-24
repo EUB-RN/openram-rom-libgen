@@ -1,12 +1,27 @@
 #!/usr/bin/env python3
 """Unified CLI Orchestrator for openram-rom-libgen.
 
-Executes the entire end-to-end ROM characterization flow with a single command:
+Runs the characterization flow needed for a complete .lib and .v in one command:
   1. Pre-flight verification (netlist, LEF, sub-circuit integrity)
   2. SPICE simulations (column timing, back-end delay, periphery power/leakage, pin cap)
   3. Liberty (.lib) generation for TT, SS, FF corners from measured logs
   4. Behavioural Verilog (.v) generation with measured timing
   5. Comprehensive test validation (check_lib, test_rom_lib, test_verilog_model)
+
+WHAT STEP 2 DOES NOT RUN. The sweep below is the set every .lib term needs.
+Four further measurements exist and are deliberately left out of it, because
+each costs far more than the rest of the flow put together and each has a
+documented pessimistic fallback the generator announces when it fires:
+
+    run_wl_slew.sh + run_hold_bisect.sh   the address hold; without it the
+                                          .lib ships hold = access
+    run_addr2wl.sh                        converts that hold to the clk0 pin's
+                                          time frame
+    run_slew_sweep.sh                     the measured index_1 (clk0 slew) axis
+
+So a .lib produced by this script alone is correct and conservative, not
+complete. Run those four by hand and re-run with --from-logs to close them;
+regen_rom_libs.sh names each one it had to fall back on.
 
 USAGE
 -----
@@ -118,48 +133,45 @@ def main():
     if args.out_dir:
         os.environ["ROM_OUT_DIR"] = os.path.abspath(args.out_dir)
     os.environ["JOBS"] = str(args.jobs)
-    env = os.environ.copy()
 
-    # Resolve macros
-    all_discovered = rom_paths.discover(args.macros_dir)
-    if args.all or not args.macros:
-        target_macros = all_discovered
-    # Resolve macros and paths
+    # Resolve macros. Named macros may be given as a bare name or as a path;
+    # a path with no --macros-dir sets ROM_MACROS_DIR to its parent, so the
+    # run_*.sh called below find the same tree. With no names (--all, or no
+    # argument at all) every macro in the tree is processed.
     target_macros = []
     if args.macros:
         for m_arg in args.macros:
             name, md = rom_paths.split_macro(m_arg, args.macros_dir)
             target_macros.append(name)
-            # If user provided a path and didn't set macros_dir, infer it
             if ("/" in m_arg or "\\" in m_arg or os.path.isdir(m_arg)) and not args.macros_dir:
                 parent = os.path.dirname(md)
                 if parent:
                     os.environ["ROM_MACROS_DIR"] = parent
-    elif args.all:
-        target_macros = rom_paths.discover(args.macros_dir)
     else:
-        target_macros = args.macros
-        # No arguments: check if user/ has macros, otherwise discover default
-        discovered = rom_paths.discover(args.macros_dir)
-        target_macros = discovered
+        target_macros = rom_paths.discover(args.macros_dir)
 
+    # After the inference above, so a path argument reaches the child scripts.
     env = os.environ.copy()
 
     if not target_macros:
-        log_err("No macros specified or discovered. Check --macros-dir or specify macro names.")
-        log_err("No macros specified or discovered. Put your ROM in './user/<macro>/' or specify a path.")
+        log_err("No macros specified or discovered. Put your ROM in "
+                "'./user/<macro>/', pass --macros-dir, or name a macro.")
         sys.exit(1)
+
+    if args.check_only:
+        mode = "Pre-flight check only"
+    elif args.from_logs:
+        mode = "Generate from logs"
+    else:
+        mode = "Full simulation flow"
 
     print(f"{Colors.BOLD}openram-rom-libgen Flow Orchestrator{Colors.RESET}")
     print(f"Target macros  : {', '.join(target_macros)}")
-    print(f"Macro directory: {rom_paths.macros_dir()}")
-    print(f"Output root    : {rom_paths.out_dir()}")
-    print(f"Mode           : {'Generate from logs' if args.from_logs else 'Full simulation flow'}")
     print(f"Macro directory: {rom_paths.macros_dir(args.macros_dir)}")
     print(f"Output root    : {rom_paths.out_dir(explicit=args.out_dir)}")
-    print(f"Mode           : {'Pre-flight check only' if args.check_only else ('Generate from logs' if args.from_logs else 'Full simulation flow')}")
+    print(f"Mode           : {mode}")
 
-    total_steps = 2 if args.check_only else (4 if args.from_logs else 5)
+    total_steps = 1 if args.check_only else (4 if args.from_logs else 5)
     current_step = 1
 
     # Step 1: Pre-flight checks

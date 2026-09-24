@@ -1,6 +1,6 @@
 # Reading a measurement name
 
-Every number in this project comes from an ngspice `.measure`, and the names follow one grammar. `t_clk2wl` reads as *time, from `clk0`, to the wordline*.
+Every number in this project comes from an ngspice `.measure`, and the names follow one grammar. `t_clk2pre` reads as *time, from `clk0`, to the precharge net*.
 
 [<- back to the README](../README.md)
 
@@ -20,6 +20,7 @@ still readable.
 | `i_` | current | A | `i_leak` |
 | `p_` | power; the name ends `_mw` | mW | `p_leak_mw` |
 | `bl_`, `blb_` | a *voltage* sampled on a bitline at one instant | V | `bl_hold_end` |
+| `v_` | a voltage sampled on any node at one fixed instant (`FIND ... AT=`), not a crossing search | V | `v_wl0_eval` |
 
 **2 -- the body is the arc, and the digit `2` in the middle reads as "to".**
 `a2b` is the delay from node `a` to node `b`: `t_clk2pre` is `clk0` -> the
@@ -37,7 +38,7 @@ is a 90% -> 10% wordline fall, `t_wlslew` the 80% -> 20% fall sky130 Liberty
 uses.
 
 **4 -- a trailing bare digit is an index, not a threshold.** It selects which
-pin, bit, or slice the measurement was taken on: `t_clk2wl0` is the arc to
+pin, bit, or slice the measurement was taken on: `t_wlfall0` is the arc to
 wordline 0, `c_cyc3_ff` the cycle capacitance of pin index 3,
 `t_pre2sel5_rise` the arc to `word_sel[5]`. Index and threshold can both be
 present -- `t_wl1090_0` is the 90-10 slew of wordline 0.
@@ -79,7 +80,7 @@ present -- `t_wl1090_0` is the 90-10 slew of wordline 0.
 
 | name | read as | where it comes from |
 |---|---|---|
-| `t_clk2wl0` | time, `clk0` -> wordline 0 **rising** | periphery deck; expected to FAIL -- no wordline rises during evaluate, and that failure is half the polarity evidence |
+| `v_wl0_eval` | the **voltage** on wordline 0 at a fixed instant inside evaluate | periphery deck; half the polarity evidence -- the selected row reads ~0 V, the other seven read full VDD. It replaced a `t_clk2wl0` RISE arc that never existed: no wordline rises during evaluate, so that search only ever found an edge in a neighbouring phase |
 | `t_wlfall0` | time, `clk0` -> wordline 0 **falling** | periphery deck; the half that succeeds, and what proves the selected wordline falls |
 | `t_clk2pre` | time, `clk0` -> `precharge` net | periphery deck; term 1 of `access` |
 | `t_dis_50` | time to the bitline's 50% **dis**charge crossing | column deck; term 2 of `access`, the dominant one |
