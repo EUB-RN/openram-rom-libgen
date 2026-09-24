@@ -341,7 +341,6 @@ Vprecharge precharge 0 PULSE(0 {{VDD}} {{TCLK/2}} 100p 100p {{TCLK/2-100p}} {{TC
 {wl_src}
 
 Xprechg_pmos {START} precharge vdd gnd {MACRO}_precharge_cell
-Xbl_inv gnd vdd vdd {START} bl_b {MACRO}_pinv_dec_3
 Xbl_inv gnd vdd vdd {START} bl_b {inv_subckt}
 
 {chain}
