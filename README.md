@@ -23,6 +23,34 @@ Deeper reading: [the macro](docs/macro.md) · [measurement names](docs/naming.md
 
 ---
 
+## Contents
+
+1. [The ROM macro](#1-the-rom-macro)
+2. [How each block is modelled](#2-how-each-block-is-modelled)
+   - [Parasitics](#parasitic-extraction--resistance-modelling-an-intentional-design-choice)
+   - [The column](#the-column-bitline-discharge-and-precharge)
+   - [Front end](#the-periphery-front-end-clk0---internal-clock---wordline---precharge)
+   - [Back end](#the-back-end-bitline---dout0-at-one-of-the-three-lib-loads)
+   - [Column decoder](#the-column-decoder-against-the-discharge-it-races)
+   - [Leakage](#leakage-and-energy-current-not-voltage)
+   - [Read energy](#dynamic-read-energy-the-average-of-10-random-reads-not-the-worst-case)
+3. [Pin capacitance, and slew](#3-pin-capacitance-and-slew)
+   - [Input pin C](#input-pin-capacitance----the-capacitance-attribute-of-every-input-pin)
+   - [Wordline slew](#wordline-slew----how-fast-a-wordline-really-falls)
+   - [Output slew](#output-slew-and-the-two-lib-table-axes)
+   - [Address setup](#address-setup)
+4. [The `.lib`](#4-the-lib-how-it-is-built-and-how-it-is-checked)
+   - [Built](#built)
+   - [Checked](#checked)
+5. [The behavioural Verilog](#5-the-behavioural-verilog-why-and-how)
+   - [Why](#why-it-is-generated)
+   - [How](#how-it-is-generated)
+   - [Syntax check](#syntax-check)
+
+[Quick start](#quick-start)
+
+---
+
 ## 1. The ROM macro
 
 ![Macro floorplan](docs/img/01-macro-floorplan.png)
