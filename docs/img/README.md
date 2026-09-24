@@ -128,6 +128,22 @@ netlist the deck was cut from.
 
 ## 2. Layout screenshots -- Magic or KLayout
 
+**These are REPRESENTATIVE, and the README says so where they appear.** Unlike
+the waveforms above -- which are ngspice's own output for a named example
+macro and are reproducible with the command printed beside each one -- a
+layout screenshot is a picture of whatever macro was open in the viewer. The
+ones committed here come from a ROM of the same architecture, built by the
+same OpenRAM `rom_compiler`, but NOT from `wrom0`..`wrom3`: the block labels
+in them carry that macro's own prefix, which is exactly how a reader can tell.
+
+That distinction has to survive, because the prose around these figures is
+full of numbers -- chain lengths, cell counts, block names -- and every one of
+them is read out of the example macros' netlists and logs, never off a
+picture. A reader who takes the array shot as the example macro will try to
+count transistors in it and get a different answer than the text gives. If you
+replace these with shots of your own macro, say which macro in the README note
+rather than deleting the note.
+
 ### `01-macro-floorplan.png`
 **What:** the whole macro, zoomed to fit, with the seven top-level blocks
 distinguishable.

@@ -53,6 +53,16 @@ Deeper reading: [the macro](docs/macro.md) · [measurement names](docs/naming.md
 
 ## 1. The ROM macro
 
+> **The layout screenshots in this section are representative, not the example
+> macros.** They are taken from a ROM built by the same OpenRAM `rom_compiler`
+> and show the same architecture, but it is a *different macro* from the
+> `wrom0`..`wrom3` under `examples/` -- the block labels in the picture carry
+> that macro's own prefix. Read them as "this is what the structure looks
+> like", never as a measurement. **Every number on this page comes from a
+> netlist or a measurement log of the example macros, never from a picture**
+> -- the waveform figures further down are the ones generated from the
+> examples' own simulations.
+
 ![Macro floorplan](docs/img/01-macro-floorplan.png)
 
 Seven top-level blocks: `rom_control_logic`, `rom_row_decode`,
@@ -64,7 +74,11 @@ Seven top-level blocks: `rom_control_logic`, `rom_row_decode`,
 What makes it unlike an SRAM, and what every model below has to respect:
 
 * **A bitline is the entire column in series** -- ~80 NMOS in the discharge
-  path, so the delay grows roughly *quadratically* with chain length.
+  path, so the delay grows roughly *quadratically* with chain length. (That
+  count is `wrom0`'s worst column, scanned out of its netlist by
+  `find_worst_column.py`; it is not read off the array picture above, which is
+  a different macro. Your own ROM's chain length is whatever
+  `rom_paths.py --check` reports for it.)
 * **The stored bit is a metal strap.** Every cell position holds a real
   transistor; a `zero_cell` shorts its source to its drain, a `one_cell` does
   not.
@@ -600,3 +614,6 @@ Step detail, per-script logs and troubleshooting:
 
 > A figure that shows as broken has not been captured yet -- the command above
 > it is how to reproduce it. Figure conventions: [docs/img/README.md](docs/img/README.md).
+> The waveform figures are ngspice's own output for the example macro named in
+> the command beside them; the layout screenshots in section 1 are
+> representative shots of the same architecture from a different macro.
