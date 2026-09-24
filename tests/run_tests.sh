@@ -6,6 +6,10 @@
 #
 # Exit status is 1 if anything failed, so it can gate a commit or a CI job.
 #
+# ROM_TESTS_STRICT=1 turns every SKIP into a failure. Set it where the tools
+# are supposed to be installed -- CI does -- so that a green run cannot mean
+# "OpenSTA was missing, so we did not check".
+#
 # WHAT RUNS, AND WHY EACH LAYER EXISTS:
 #   1. test_checker  -- proves the checker still catches the 15 defects in
 #                       tests/fixtures/. A validator nobody validates turns
@@ -126,6 +130,20 @@ case "$vm_out" in
 esac
 
 echo
+# STRICT: a layer that could not run is a FAILURE, not a notice.
+#
+# Locally a skip is the right answer -- someone without OpenSTA should still
+# be able to run the rest. In CI it is not: there every tool IS installed on
+# purpose, so a skip means the install silently did not take, and a green run
+# would then mean "the layers that happened to work are clean" while claiming
+# to mean "the library was validated". That is the same swallowed failure the
+# flow's ngspice wrapper exists to prevent, one level up.
+if [ -n "$skipped" ] && [ -n "$ROM_TESTS_STRICT" ]; then
+  echo "STRICT: these layers did not run:$skipped"
+  echo "ROM_TESTS_STRICT is set, so that is a failure rather than a notice --"
+  echo "every tool the suite needs is supposed to be present here."
+  rc=1
+fi
 if [ $rc -ne 0 ]; then
   echo "TESTS FAILED"
 elif [ -n "$skipped" ]; then

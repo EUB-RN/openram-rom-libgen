@@ -9,6 +9,19 @@
 
 set failed 0
 
+# An empty argv is not an empty job, it is a job that never started: the
+# files are passed after the script name, and if OpenSTA does not forward
+# them the foreach below simply never runs and this exits 0. That would be
+# the worst outcome available -- a layer reporting success having read
+# nothing -- so it is a failure instead.
+if { [llength $argv] == 0 } {
+    puts "  FAIL read_liberty.tcl received no .lib arguments."
+    puts "       The files are passed after the script name; this OpenSTA did"
+    puts "       not forward them, so NOTHING was checked. Pass them another"
+    puts "       way rather than letting the layer pass vacuously."
+    exit 1
+}
+
 foreach path $argv {
     if { [catch {read_liberty $path} err] } {
         puts "  FAIL [file tail $path]  OpenSTA refused it: $err"

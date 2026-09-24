@@ -27,30 +27,62 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Verilog tools (iverilog)
+      # Everything the suite needs at RUN time, installed unconditionally.
+      #
+      # This is deliberately NOT behind the cache guard below. The cache holds
+      # one file, /usr/local/bin/sta, and that binary is dynamically linked
+      # against libtcl: restoring it onto an image where tcl was never
+      # installed gives a binary that cannot start. Installing the
+      # dependencies on every run costs seconds and removes a failure that
+      # would only appear on the second run, which is the worst kind.
+      #
+      # libeigen3-dev is the one that was missing and broke this workflow:
+      # OpenSTA's CMakeLists.txt has an unconditional
+      # `find_package(Eigen3 REQUIRED)`, and the GitHub ubuntu runner images
+      # do not ship Eigen. cmake failed at configure time, roughly 40 s in.
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y iverilog
+          sudo apt-get install -y \
+            iverilog \
+            build-essential cmake git flex bison swig \
+            tcl-dev libeigen3-dev libz-dev
 
       - name: Cache OpenSTA binary
         id: cache-opensta
         uses: actions/cache@v4
         with:
           path: /usr/local/bin/sta
-          key: opensta-ubuntu-latest-v1
+          # Keyed on this file, so changing the build recipe below cannot be
+          # masked by a binary built from the old one.
+          key: opensta-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
 
       - name: Build and install OpenSTA (if not cached)
         if: steps.cache-opensta.outputs.cache-hit != 'true'
         run: |
-          sudo apt-get install -y build-essential tcl-dev tk-dev cmake git flex bison swig libz-dev
           git clone --depth=1 https://github.com/The-OpenROAD-Project/OpenSTA.git /tmp/OpenSTA
           cd /tmp/OpenSTA
-          mkdir build && cd build
-          cmake ..
-          make -j$(nproc)
-          sudo make install
-          sta -version || true
+          # BUILD_TESTS defaults to ON and pulls in `find_package(GTest
+          # REQUIRED)`, which the runner image does not have either. OpenSTA's
+          # own unit tests are not what this job validates, so turning them
+          # off removes the dependency instead of installing one, and cuts the
+          # build down at the same time.
+          cmake -S . -B build -DBUILD_TESTS=OFF
+          cmake --build build -j"$(nproc)"
+          sudo cmake --install build
 
+      # No `|| true`. A binary that cannot run must fail HERE, where the
+      # message says "OpenSTA does not work", rather than downstream where it
+      # reads as "the Liberty is bad".
+      - name: OpenSTA must actually run
+        run: sta -version
+
+      # ROM_TESTS_STRICT turns every SKIP in the suite into a failure. Every
+      # tool is installed above on purpose, so a skipped layer here means an
+      # install silently did not take -- and a green run that skipped the
+      # OpenSTA layer would claim the library was validated by the parser a
+      # consumer uses when nothing of the sort happened.
       - name: Run validation testsuite
-        run: |
-          ./tests/run_tests.sh
+        env:
+          ROM_TESTS_STRICT: '1'
+        run: ./tests/run_tests.sh
