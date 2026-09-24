@@ -8,14 +8,28 @@ What is not modelled, and how far off each one can put the answer.
 
 Ordered by how much they can move a number:
 
-1. **The column deck misses array-level parasitics.** It carries the parasitic
-   Cs inside the cell sub-circuits, but not the C elements at the
-   `*_rom_base_array` level (bitline wire and inter-column coupling). On the
-   example macros those sum to about +3 fF against the ~5 fF the deck does
-   carry, so the bitline term -- the largest term of `access` -- is somewhat
-   optimistic. The back-end and periphery decks already handle this with an
-   explicit alive/dead + negative-net-capacitance rule; porting that rule into
-   `gen_col_tb_parasitic.py` is the obvious next fix.
+1. **The column deck's neighbours are held still, not switched.** The
+   array-level parasitics are *in* since 2026-09-24: `gen_col_tb_parasitic.py`
+   now pulls the C elements at the `*_rom_base_array` level -- the bitline
+   wire itself, the neighbouring columns, the wordlines crossing over -- in
+   through the same alive/dead + negative-net-capacitance rule the back-end
+   and periphery decks use. It is worth **+3.07 to +3.32 fF** on the column's
+   own nodes across the four example macros, against the ~5 fF the cell
+   sub-circuits carry, and it slowed the bitline term by **+3.2 to +3.3% at
+   every corner** (wrom0: 14.8495 -> 15.3355 ns at TT, 36.0231 -> 37.1740 ns
+   at SS, 8.2893 -> 8.5622 ns at FF). `--no-array-c` rebuilds the old deck.
+
+   What is left is the *state* of everything on the far side of that
+   capacitance. The deck keeps one column, so a coupling C to a deleted
+   neighbour is summed into a capacitance to gnd -- i.e. the neighbour is an
+   AC ground, holding still while this bitline moves. In a real read every
+   column is read at once: a neighbour falling *with* this one lowers the
+   effective coupling, one staying high raises it (Miller). Only the coupling
+   between nodes this deck still has is carried faithfully. The term this
+   applies to is small -- of the 3.2 fF, 0.57 fF is on the bitline node
+   itself and the rest is spread over 82 chain nodes -- but it is an
+   assumption, not a measurement, and the data-dependent part of it is not
+   characterised.
 2. **`rom_column_decode` is measured only at the worst address.**
    `run_coldec_delay.sh` (2026-09-22) closed the old gap -- the mux select used
    to be an ideal source in the back-end deck and the margin was an estimate.

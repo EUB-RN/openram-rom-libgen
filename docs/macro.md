@@ -179,5 +179,6 @@ transistor in the way, so its high level is full rail to begin with.
 bitline through the cell capacitances. It is the small bump visible at the
 start of every discharge if you plot the deck.)
 
-What this does *not* cover is neighbour-column coupling, which the column deck
-does not carry at all -- see [limitations.md](limitations.md) item 1.
+What this does *not* cover is the *switching* of the neighbouring columns: the
+column deck carries their coupling capacitance, but as a capacitance to a node
+that holds still -- see [limitations.md](limitations.md) item 1.

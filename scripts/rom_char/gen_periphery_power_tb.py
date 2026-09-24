@@ -368,8 +368,8 @@ def rebuild_load(sub, tag):
         # example macros this is about HALF the wordline load (29.5 fF of
         # 58 fF), the cell gates being the other half -- so a deck that
         # dropped it would measure a wordline driving roughly half its real
-        # load. (The column deck does drop the same class of element on the
-        # BITLINE; that is limitations.md item 1.)
+        # load. (The column deck carries the same class of element on the
+        # BITLINE by the same alive/dead rule -- see gen_col_tb_parasitic.py.)
         cw = max(wire_c.get(port, 0.0), 0.0)
         ncell = 0
         for sb, c in sorted(subs):
