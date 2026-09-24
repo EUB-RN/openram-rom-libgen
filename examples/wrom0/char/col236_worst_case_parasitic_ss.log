@@ -452,29 +452,29 @@ vgndgnd_uq0#branch                 1.75057e-13
 vvdd#branch                       -5.03703e-10
 
 
-No. of Data Rows : 30048
+No. of Data Rows : 30058
 
   Measurements for Transient Analysis
 
-t_dis_50            =  3.602313e-08 targ=  5.036073e-06 trig=  5.000050e-06
-t_dis_10            =  7.009528e-08 targ=  5.070145e-06 trig=  5.000050e-06
-t_dis_50_prev       =  3.602313e-08 targ=  3.036073e-06 trig=  3.000050e-06
-t_pre_50            =  3.592572e-10 targ=  4.000409e-06 trig=  4.000050e-06
-t_pre_90            =  7.988091e-10 targ=  4.000849e-06 trig=  4.000050e-06
-t_pre_99            =  1.408718e-08 targ=  4.014137e-06 trig=  4.000050e-06
+t_dis_50            =  3.717404e-08 targ=  5.037224e-06 trig=  5.000050e-06
+t_dis_10            =  7.216559e-08 targ=  5.072216e-06 trig=  5.000050e-06
+t_dis_50_prev       =  3.717404e-08 targ=  3.037224e-06 trig=  3.000050e-06
+t_pre_50            =  3.695058e-10 targ=  4.000420e-06 trig=  4.000050e-06
+t_pre_90            =  8.355960e-10 targ=  4.000886e-06 trig=  4.000050e-06
+t_pre_99            =  1.450789e-08 targ=  4.014558e-06 trig=  4.000050e-06
 
 
-Total analysis time (seconds) = 10.9484
+Total analysis time (seconds) = 14.5914
 
-Total elapsed time (seconds) = 62.289 
+Total elapsed time (seconds) = 58.769 
 
-Total DRAM available = 31789.559 MB.
-DRAM currently available = 19413.945 MB.
-Maximum ngspice program size =  421.297 MB.
-Current ngspice program size =  354.535 MB.
+Total DRAM available = 31789.566 MB.
+DRAM currently available = 15822.637 MB.
+Maximum ngspice program size =  420.117 MB.
+Current ngspice program size =  353.539 MB.
 
-Shared ngspice pages =   11.375 MB.
+Shared ngspice pages =   11.559 MB.
 Text (code) pages =    6.520 MB.
 Stack = 0 bytes.
-Library pages =  399.133 MB.
+Library pages =  397.953 MB.
 

@@ -1,0 +1,10 @@
+# rom_char provenance v1 -- written by the flow, read by regen_rom_libs.sh
+version	1
+stage	backend-delay
+context	wrom0 tt load=689
+when	2026-09-24T10:40:41Z
+deck	/home/hpw/openram-rom-libgen/examples/wrom0/char/backend_tt_689.sp
+deck_sha	5aaaad304e77b2c711ff95dab980ed21ce28b8e9a69f5419fe1a3741626adca8
+log_sha	811ab4dfc034e39777332f1f30cc3a08510ee70feadc08bf2946a75e590967a4
+src	/home/hpw/openram-rom-libgen/examples/wrom0/wrom0.sp
+src_sha	bab2cf4cfbc30db63bc8e54b68adf0cfec6bfe0a5559a1d72febca09e34fa192

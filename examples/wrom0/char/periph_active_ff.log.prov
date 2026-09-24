@@ -1,0 +1,10 @@
+# rom_char provenance v1 -- written by the flow, read by regen_rom_libs.sh
+version	1
+stage	periphery-energy
+context	wrom0 ff cs1
+when	2026-09-24T11:21:46Z
+deck	/home/hpw/openram-rom-libgen/examples/wrom0/char/periph_active_ff.sp
+deck_sha	cfe79b88cfabe709ff577629a3f232b696ed6c2c4725e121322710c1db93cace
+log_sha	dcdd7f9cb40aff22e8930e272b49975a4d3aef96a0198505b85037a53c249736
+src	/home/hpw/openram-rom-libgen/examples/wrom0/wrom0.sp
+src_sha	bab2cf4cfbc30db63bc8e54b68adf0cfec6bfe0a5559a1d72febca09e34fa192
