@@ -363,7 +363,14 @@ def rebuild_load(sub, tag):
         if net not in alive or net in (SUPPLY_HI, SUPPLY_LO, "0"):
             continue
         subs = [(sb, c) for (sb, pp), c in gate_cnt.items() if pp == port]
-        cw = max(wire_c.get(port, 0.0), 0.0)   # dizi ici tel parazitigi
+        # The ARRAY-LEVEL wire parasitics on this port: the C elements that
+        # sit at the cell array's own level rather than inside a cell. On the
+        # example macros this is about HALF the wordline load (29.5 fF of
+        # 58 fF), the cell gates being the other half -- so a deck that
+        # dropped it would measure a wordline driving roughly half its real
+        # load. (The column deck does drop the same class of element on the
+        # BITLINE; that is limitations.md item 1.)
+        cw = max(wire_c.get(port, 0.0), 0.0)
         ncell = 0
         for sb, c in sorted(subs):
             dev, _, cg = cell_gate_model(sb)
