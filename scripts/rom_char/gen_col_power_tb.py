@@ -48,6 +48,14 @@ ap.add_argument("--steps", type=int, default=400,
                 help="transient steps per cycle (TCLK/steps). The deck is "
                      "step converged with method=gear, so this is not a knob "
                      "that changes the answer -- it exists to PROVE that.")
+ap.add_argument("--cycles", type=int, default=6,
+                help="cycles to run in active mode; the two BEFORE the last "
+                     "one are measured, and they have to agree (the settling "
+                     "proof). 4 was enough until the column deck gained the "
+                     "array-level parasitics -- the extra charge makes the "
+                     "chain fill more slowly and wrom2 at SS then missed the "
+                     "1%% limit by 0.07 points. 6 clears every macro and "
+                     "corner.")
 ap.add_argument("--integrator", default="gear", choices=["gear", "trap"],
                 help="ngspice integration method. gear is the default and the "
                      "only one this deck is step converged with; trap "
@@ -167,15 +175,16 @@ Vprecharge precharge 0 PULSE(0 {{VDD}} {{TCLK/2}} 100p 100p {{TCLK/2-100p}} {{TC
 * nanoamps. Here they are microamps and tightening it only makes convergence
 * harder (the same finding as next door).
 .options gmin=1e-12 abstol=1e-12 reltol=1e-3 itl1=500 itl4=100{" method=gear" if args.integrator == "gear" else ""}
-.tran '{args.tclk}/{args.steps}' '4*TCLK' uic
-* Cycles 2 AND 3 are measured separately: equal values prove the circuit has
-* SETTLED (with uic every node starts at 0 and the chain fills slowly).
-* Cycle 3 is the more settled one, so THAT is what goes into the .lib.
+.tran '{args.tclk}/{args.steps}' '{args.cycles}*TCLK' uic
+* The two cycles before the last one are measured separately: equal values
+* prove the circuit has SETTLED (with uic every node starts at 0 and the chain
+* fills slowly). q_c3 is the more settled of the two, so THAT is what goes
+* into the .lib. Here that is cycle {args.cycles - 1} against cycle {args.cycles - 2}.
 * FREQUENCY INDEPENDENCE VERIFIED (2026-09-05, wrom0 column 155, TT):
 *   TCLK=200n -> q_c3 = 2.342e-13 C
 *   TCLK=400n -> q_c3 = 2.419e-13 C   (period 2x, charge 3.3% different)
-.measure tran q_c2 integ i(Vvdd) from='TCLK' to='2*TCLK'
-.measure tran q_c3 integ i(Vvdd) from='2*TCLK' to='3*TCLK'
+.measure tran q_c2 integ i(Vvdd) from='{args.cycles - 3}*TCLK' to='{args.cycles - 2}*TCLK'
+.measure tran q_c3 integ i(Vvdd) from='{args.cycles - 2}*TCLK' to='{args.cycles - 1}*TCLK'
 .measure tran e_col_pj param='abs(q_c3)*VDD*1e12'
 .end
 """
