@@ -170,8 +170,6 @@ ngspice 1 -> run
 ngspice 2 -> plot v(precharge) v(bl_0_236)
 ```
 
-![Column deck: precharge net and bitline](docs/img/10-col-deck.png)
-
 **What comes out of this deck** (`col<N>_worst_case_parasitic*.log`). The blue
 trace is the whole of `access`'s dominant term; the red one is the precharge
 phase that has to finish before the next read can start:
@@ -185,6 +183,8 @@ phase that has to finish before the next read can start:
 | `t_pre_99` | recharge to 99% | `min_pulse_width(fall)` and `minimum_period` -- the ROM's *minimum* clock frequency |
 | `t_pre_90` | recharge to 90% | measured, deliberately NOT used: 90% lands ~0.5 ns and would write a `min_pulse_width` 20x too small |
 
+![Column deck: precharge net and bitline](docs/img/10-col-deck.png)
+
 ### The periphery front end: clk0 -> internal clock -> wordline -> precharge
 
 ```bash
@@ -195,11 +195,6 @@ ngspice examples/wrom0/char/periph_active_tt.sp
 ngspice 1 -> run
 ngspice 2 -> plot v(clk0) v(wrom0_rom_row_decode_0/clk) v(wrom0_rom_row_decode_0/wl_0) v(wrom0_rom_column_decode_0/clk)
 ```
-
-The selected wordline **falls** -- the decoder polarity is settled by this
-measurement, not assumed.
-
-![Periphery deck: clock, wordline, precharge](docs/img/11-periph-frontend.png)
 
 **What comes out of this deck** (`periph_active_<corner>.log`). It is the only
 deck with the real decoder in it, so both the front-end delay and the
@@ -225,6 +220,11 @@ releases. (The case where the wordline edge does matter is a read of **1**,
 which the column deck does not simulate; see
 [limitations.md](docs/limitations.md).)
 
+The selected wordline **falls** -- the decoder polarity is settled by this
+measurement, not assumed.
+
+![Periphery deck: clock, wordline, precharge](docs/img/11-periph-frontend.png)
+
 ### The back end: bitline -> dout0, at one of the three `.lib` loads
 
 ```bash
@@ -235,8 +235,6 @@ ngspice examples/wrom0/char/backend_tt_2756.sp
 ngspice 1 -> run
 ngspice 2 -> plot v(wrom0_rom_base_array_0/bl_0_236) v(dout0[2])
 ```
-
-![Back-end deck: bitline to dout0](docs/img/12-backend-dout.png)
 
 **What comes out of this deck** (`backend_<corner>_<load>.log`). It is run
 once per `.lib` output load, which is what makes `index_2` three measurements
@@ -251,6 +249,8 @@ The bitline here is not an ideal ramp: its slope is this corner's own measured
 `t_dis_50`/`t_dis_10` from the column deck, so the back end sees the edge the
 array actually delivers.
 
+![Back-end deck: bitline to dout0](docs/img/12-backend-dout.png)
+
 ### The column decoder, against the discharge it races
 
 ```bash
@@ -261,11 +261,6 @@ ngspice examples/wrom0/char/coldec_a0_tt.sp
 ngspice 1 -> run
 ngspice 2 -> plot v(wrom0_rom_column_decode_0/clk) v(wrom0_rom_column_decode_0/wl_0)
 ```
-
-`t_pre2sel` must land before `t_dis_50`, otherwise the middle term of `access`
-is the decoder and the script says so.
-
-![Column decode vs bitline discharge](docs/img/13-coldec.png)
 
 **What comes out of this deck** (`coldec_a<addr>_<corner>.log`):
 
@@ -280,6 +275,11 @@ losing the race. `gen_rom_lib.py --t-coldec` will switch the middle term over
 if a future macro ever flips it, and `run_coldec_delay.sh` exits non-zero and
 says so.
 
+`t_pre2sel` must land before `t_dis_50`, otherwise the middle term of `access`
+is the decoder and the script says so.
+
+![Column decode vs bitline discharge](docs/img/13-coldec.png)
+
 ### Leakage and energy: current, not voltage
 
 ```bash
@@ -290,11 +290,6 @@ ngspice examples/wrom0/char/col236_energy_tt.sp
 ngspice 1 -> run
 ngspice 2 -> plot i(vvdd)
 ```
-
-Energy is `q_c3 x VDD` -- the charge integrated over the **third** cycle, so
-the deck has settled. Cycle 1 is never used.
-
-![Column supply current over one cycle](docs/img/17-col-energy.png)
 
 **What comes out of these two decks.** They are the only ones that report a
 CURRENT rather than a voltage, and between them they fill both power sections
@@ -307,6 +302,11 @@ of the `.lib`:
 | `q_c2` | same | the cycle before it, purely as the settling check |
 | `vvdd#branch` | `col<N>_leak_<corner>.log` (`.op`, no waveform) | the array half of `cell_leakage_power`, times the column count |
 | per-block branch currents | `periph_leak_cs<n>_<corner>.total` | the periphery half, one slice per block times a count from the netlist. Both halves are taken in the SAME idle state (clk0 low) so that they can be added |
+
+Energy is `q_c3 x VDD` -- the charge integrated over the **third** cycle, so
+the deck has settled. Cycle 1 is never used.
+
+![Column supply current over one cycle](docs/img/17-col-energy.png)
 
 ### Dynamic read energy: the average of 10 random reads, not the worst case
 
@@ -413,8 +413,6 @@ ngspice 1 -> run
 ngspice 2 -> plot v(clk0) i(vpin1)
 ```
 
-![Pin capacitance: the ramp and the charge it draws](docs/img/14-pincap.png)
-
 **What comes out of this deck** (`pincap_<corner>.log`), for each of the
 thirteen input pins `i`:
 
@@ -446,6 +444,8 @@ doubling the lumped load the deleted array is replaced by moves `addr0[0]` by
 4.9% and every other pin by under 0.6% ([limitations.md](docs/limitations.md)
 item 5).
 
+![Pin capacitance: the ramp and the charge it draws](docs/img/14-pincap.png)
+
 ### Wordline slew -- how fast a wordline really falls
 
 The column deck cannot answer this: it holds every wordline at DC VDD. The
@@ -468,8 +468,6 @@ ngspice 1 -> run
 ngspice 2 -> plot v(clk0) v(wrom0_rom_row_decode_0/wl_0)
 ```
 
-![Wordline fall, driver and load both real](docs/img/15-wl-slew.png)
-
 **What comes out of this deck** (`wlslew_<corner>.log`). None of it is a
 `.lib` number directly -- this deck exists to give the HOLD measurement a real
 wordline edge instead of a synthetic one:
@@ -482,6 +480,8 @@ wordline edge instead of a synthetic one:
 
 That is why `run_wl_slew.sh` has to run BEFORE `run_hold_bisect.sh`, and why
 the hold is measured only where both logs exist.
+
+![Wordline fall, driver and load both real](docs/img/15-wl-slew.png)
 
 ### Output slew, and the two `.lib` table axes
 
@@ -498,12 +498,6 @@ ngspice 1 -> run
 ngspice 2 -> plot v(clk0) v(wrom0_rom_column_decode_0/clk)
 ```
 
-Only term 1 of `access` depends on the clk0 edge -- terms 2 and 3 trigger off
-the precharge net and the bitline, which cannot see clk0. That is also why the
-output slew table stays flat over `index_1`.
-
-![Front-end delay vs clk0 input slew](docs/img/16-slew-sweep.png)
-
 **What comes out of this sweep** (`periph_slew<n>_<corner>.log`, one run per
 slew point):
 
@@ -517,6 +511,12 @@ placeholder: a 10x change in the clock edge moves the front-end term by 5.7%
 and `access` by 0.24%, because 14.85 ns of that sum is a bitline discharge
 that cannot see clk0 at all.
 
+Only term 1 of `access` depends on the clk0 edge -- terms 2 and 3 trigger off
+the precharge net and the bitline, which cannot see clk0. That is also why the
+output slew table stays flat over `index_1`.
+
+![Front-end delay vs clk0 input slew](docs/img/16-slew-sweep.png)
+
 ### Address setup
 
 ```bash
@@ -527,11 +527,6 @@ ngspice examples/wrom0/char/periph_setup_tt.sp
 ngspice 1 -> run
 ngspice 2 -> plot v(addr0[0]) v(clk0)
 ```
-
-`t_addr2dec*` is address pin -> the decoder output it drives; the worst of
-them becomes the setup constraint.
-
-![Address setup](docs/img/18-setup.png)
 
 **What comes out of this deck** (`periph_setup_<corner>.log`):
 
@@ -583,6 +578,11 @@ The library keeps shipping the positive path delay, because a constraint
 should not be relaxed as a side effect of changing what is being counted. The
 `.lib` header states both numbers so a reader is never left guessing which one
 they are holding.
+
+`t_addr2dec*` is address pin -> the decoder output it drives; the worst of
+them becomes the setup constraint.
+
+![Address setup](docs/img/18-setup.png)
 
 ---
 
