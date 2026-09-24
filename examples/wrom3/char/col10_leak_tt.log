@@ -39900,6 +39900,2868 @@ No. of Data Rows : 1
        leff           1.77988e-07           1.77988e-07
 
  Capacitor: Fixed capacitor
+     device                cfx212                cfx209                cfx207
+      model                     C                     C                     C
+capacitance               6.1e-19              1.12e-18               8.3e-19
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cfx204                cfx202                cfx200
+      model                     C                     C                     C
+capacitance               5.5e-19               5.5e-19              1.15e-18
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cfx198                cfx197                cfx196
+      model                     C                     C                     C
+capacitance               5.5e-19               7.3e-19                 9e-19
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cfx194                cfx193                cfx191
+      model                     C                     C                     C
+capacitance              1.01e-18               4.4e-19              1.01e-18
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cfx190                cfx189                cfx188
+      model                     C                     C                     C
+capacitance               5.5e-19               5.2e-19                 8e-19
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cfx187                cfx185                cfx183
+      model                     C                     C                     C
+capacitance               5.5e-19               5.5e-19                 8e-19
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cfx181                cfx180                cfx178
+      model                     C                     C                     C
+capacitance               8.4e-19               5.5e-19               4.4e-19
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cfx177                cfx173                cfx171
+      model                     C                     C                     C
+capacitance               8.4e-19               9.8e-19              1.12e-18
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cfx169                cfx167                cfx165
+      model                     C                     C                     C
+capacitance               5.5e-19              1.12e-18              1.01e-18
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cfx164                cfx163                cfx162
+      model                     C                     C                     C
+capacitance               7.3e-19              1.12e-18              1.01e-18
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cfx160                cfx158                cfx153
+      model                     C                     C                     C
+capacitance              1.01e-18              1.01e-18               8.7e-19
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cfx152                cfx149                cfx146
+      model                     C                     C                     C
+capacitance                 9e-19              1.12e-18               2.6e-19
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cfx144                cfx142                cfx141
+      model                     C                     C                     C
+capacitance               8.4e-19              1.29e-18              1.29e-18
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cfx139               cart213               cart212
+      model                     C                     C                     C
+capacitance               8.3e-19            2.9389e-16             9.019e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart211               cart210               cart209
+      model                     C                     C                     C
+capacitance            2.9173e-16            5.4585e-16             8.962e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart208               cart207               cart206
+      model                     C                     C                     C
+capacitance            1.0531e-16             9.019e-17             2.013e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart205               cart204               cart203
+      model                     C                     C                     C
+capacitance              5.39e-16             9.047e-17            2.0158e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart202               cart201               cart200
+      model                     C                     C                     C
+capacitance             9.047e-17            1.9155e-16             8.962e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart199               cart198               cart197
+      model                     C                     C                     C
+capacitance             2.167e-16             9.047e-17             9.018e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart196               cart195               cart194
+      model                     C                     C                     C
+capacitance              8.99e-17            1.8637e-16              8.99e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart193               cart192               cart191
+      model                     C                     C                     C
+capacitance             9.047e-17            1.0559e-16              8.99e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart190               cart189               cart188
+      model                     C                     C                     C
+capacitance             9.047e-17             9.047e-17             9.019e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart187               cart186               cart185
+      model                     C                     C                     C
+capacitance             9.047e-17            1.9755e-16             9.047e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart184               cart183               cart182
+      model                     C                     C                     C
+capacitance             1.053e-16             9.019e-17            1.9699e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart181               cart180               cart179
+      model                     C                     C                     C
+capacitance             9.018e-17             9.047e-17            4.3978e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart178               cart177               cart176
+      model                     C                     C                     C
+capacitance             9.047e-17             9.018e-17            1.9097e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart175               cart174               cart173
+      model                     C                     C                     C
+capacitance            2.0187e-16             3.136e-16              8.99e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart172               cart171               cart170
+      model                     C                     C                     C
+capacitance            1.9126e-16              8.99e-17            1.9684e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart169               cart168               cart167
+      model                     C                     C                     C
+capacitance             9.047e-17            1.0559e-16              8.99e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart166               cart165               cart164
+      model                     C                     C                     C
+capacitance            2.0102e-16              8.99e-17             9.018e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart163               cart162               cart161
+      model                     C                     C                     C
+capacitance              8.99e-17              8.99e-17            1.0502e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart160               cart159               cart158
+      model                     C                     C                     C
+capacitance              8.99e-17             1.949e-16              8.99e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart157               cart156               cart155
+      model                     C                     C                     C
+capacitance            3.1242e-16            2.1195e-16             2.965e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart154               cart153               cart152
+      model                     C                     C                     C
+capacitance             2.013e-16              8.99e-17              8.99e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart151               cart150               cart149
+      model                     C                     C                     C
+capacitance            3.9488e-16            3.9565e-16              8.99e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart148               cart147               cart146
+      model                     C                     C                     C
+capacitance            1.0531e-16            8.4758e-16             9.076e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart145               cart144               cart143
+      model                     C                     C                     C
+capacitance            2.9835e-16             9.018e-17            4.2375e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart142               cart141               cart140
+      model                     C                     C                     C
+capacitance             8.962e-17             8.962e-17            2.9167e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart139               cart138               cart137
+      model                     C                     C                     C
+capacitance             9.019e-17            1.0559e-16           1.18549e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart136               cart135               cart134
+      model                     C                     C                     C
+capacitance           1.20144e-14           1.18314e-14           1.09609e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart133               cart132               cart131
+      model                     C                     C                     C
+capacitance           1.35789e-14           1.40423e-14           1.40319e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart130               cart129               cart128
+      model                     C                     C                     C
+capacitance            1.2305e-14           1.21944e-14           1.20108e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart127               cart126               cart125
+      model                     C                     C                     C
+capacitance           1.21634e-14           1.20071e-14           1.09006e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart124               cart123               cart122
+      model                     C                     C                     C
+capacitance           1.17984e-14           1.22786e-14           1.20004e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart121               cart120               cart119
+      model                     C                     C                     C
+capacitance           1.21198e-14           1.19396e-14           1.19798e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart118               cart117               cart116
+      model                     C                     C                     C
+capacitance           1.22284e-14           1.13024e-14           1.06356e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart115               cart114               cart113
+      model                     C                     C                     C
+capacitance           1.15231e-14           1.21008e-14           1.19379e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart112               cart111               cart110
+      model                     C                     C                     C
+capacitance           1.20906e-14           1.20041e-14           1.18074e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart109               cart108               cart107
+      model                     C                     C                     C
+capacitance           1.21515e-14           1.10543e-14           1.19144e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart106               cart105               cart104
+      model                     C                     C                     C
+capacitance           1.21356e-14           1.16434e-14             1.184e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart103               cart102               cart101
+      model                     C                     C                     C
+capacitance           1.19696e-14           1.18094e-14           1.19869e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               cart100                cart99                cart98
+      model                     C                     C                     C
+capacitance            1.1982e-14           1.10063e-14           1.35789e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart97                cart96                cart95
+      model                     C                     C                     C
+capacitance           1.40423e-14           1.40287e-14            1.1654e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart94                cart93                cart92
+      model                     C                     C                     C
+capacitance           1.22531e-14           1.22039e-14           1.23795e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart91                cart90                cart89
+      model                     C                     C                     C
+capacitance           1.19657e-14           1.08956e-14           1.14226e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart88                cart87                cart86
+      model                     C                     C                     C
+capacitance           1.23003e-14           1.23661e-14           1.19613e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart85                cart84                cart83
+      model                     C                     C                     C
+capacitance           1.20326e-14           1.21665e-14           1.16949e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart82                cart81                cart80
+      model                     C                     C                     C
+capacitance           1.19585e-14           1.15731e-14           1.15653e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart79                cart78                cart77
+      model                     C                     C                     C
+capacitance            1.2074e-14           1.18323e-14           1.23938e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart76                cart75                cart74
+      model                     C                     C                     C
+capacitance           1.19267e-14           1.20387e-14           1.18188e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart73                cart72                cart71
+      model                     C                     C                     C
+capacitance           1.08175e-14           1.20515e-14            1.1901e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart70                cart69                cart68
+      model                     C                     C                     C
+capacitance           1.23599e-14           1.19842e-14           1.21414e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart67                cart66                cart65
+      model                     C                     C                     C
+capacitance           1.21198e-14           1.19273e-14           1.23324e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart64                cart63                cart62
+      model                     C                     C                     C
+capacitance           1.10875e-14           1.35789e-14           1.40423e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart61                cart60                cart59
+      model                     C                     C                     C
+capacitance           1.17964e-14           1.40324e-14           1.24006e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart58                cart57                cart56
+      model                     C                     C                     C
+capacitance           1.22233e-14           1.24241e-14           1.21816e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart55                cart54                cart53
+      model                     C                     C                     C
+capacitance           1.06809e-14           1.19342e-14           1.20406e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart52                cart51                cart50
+      model                     C                     C                     C
+capacitance           1.21365e-14           1.19146e-14            1.2264e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart49                cart48                cart47
+      model                     C                     C                     C
+capacitance           1.17882e-14           1.14857e-14            1.1815e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart46                cart45                cart44
+      model                     C                     C                     C
+capacitance           1.08544e-14           1.14924e-14           1.23322e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart43                cart42                cart41
+      model                     C                     C                     C
+capacitance           1.22887e-14            1.1677e-14           1.18908e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart40                cart39                cart38
+      model                     C                     C                     C
+capacitance           1.15933e-14           1.20029e-14           1.06059e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart37                cart36                cart35
+      model                     C                     C                     C
+capacitance           1.35789e-14           1.40423e-14           1.40297e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart34                cart33                cart32
+      model                     C                     C                     C
+capacitance           1.16956e-14           1.21259e-14           1.20696e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart31                cart30                cart29
+      model                     C                     C                     C
+capacitance           1.19068e-14           1.12974e-14            1.2151e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart28                cart27                cart26
+      model                     C                     C                     C
+capacitance           1.13614e-14           1.19394e-14           1.20561e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart25                cart24                cart23
+      model                     C                     C                     C
+capacitance            1.2145e-14           1.22458e-14           1.22074e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart22                cart21                cart20
+      model                     C                     C                     C
+capacitance           1.17986e-14            1.0661e-14           1.14293e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart19                cart18                cart17
+      model                     C                     C                     C
+capacitance           1.18778e-14           1.20514e-14           1.22224e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart16                cart15                cart14
+      model                     C                     C                     C
+capacitance           1.21216e-14           1.21083e-14           1.20738e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart13                cart12                cart11
+      model                     C                     C                     C
+capacitance           1.18761e-14           1.08493e-14           1.19103e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                cart10                 cart9                 cart8
+      model                     C                     C                     C
+capacitance           1.21863e-14           1.19851e-14           1.20886e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                 cart7                 cart6                 cart5
+      model                     C                     C                     C
+capacitance           1.21373e-14           1.19937e-14           1.07608e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                 cart4                 cart3                 cart2
+      model                     C                     C                     C
+capacitance           3.30762e-14           1.81142e-14             1.757e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                 cart0               carr700               carr699
+      model                     C                     C                     C
+capacitance             4.521e-16          -1.29581e-14           -2.6513e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr698               carr697               carr696
+      model                     C                     C                     C
+capacitance          -1.29572e-14          -1.28348e-14           3.92906e-15
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr695               carr694               carr693
+      model                     C                     C                     C
+capacitance           -1.2404e-16           -1.2404e-16           3.91861e-15
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr692               carr691               carr690
+      model                     C                     C                     C
+capacitance           -4.0528e-16          -1.28303e-14          -1.29827e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr689               carr688               carr687
+      model                     C                     C                     C
+capacitance          -1.29892e-14           -4.0784e-16           -1.2966e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr686               carr685               carr684
+      model                     C                     C                     C
+capacitance           -2.6446e-16           3.81732e-15           -1.2404e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr683               carr682               carr681
+      model                     C                     C                     C
+capacitance           -1.2404e-16          -1.28354e-14           -1.2404e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr680               carr679               carr678
+      model                     C                     C                     C
+capacitance          -1.29447e-14           -1.2404e-16           -4.0635e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr677               carr676               carr675
+      model                     C                     C                     C
+capacitance          -1.29917e-14           3.83287e-15           3.91411e-15
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr674               carr673               carr672
+      model                     C                     C                     C
+capacitance          -1.29859e-14           3.91924e-15           3.91896e-15
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr671               carr670               carr669
+      model                     C                     C                     C
+capacitance           3.81968e-15           -2.6513e-16             -1.64e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr668               carr667               carr666
+      model                     C                     C                     C
+capacitance           -1.2404e-16           -2.6594e-16          -1.28342e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr665               carr664               carr663
+      model                     C                     C                     C
+capacitance          -1.29693e-14           -1.2997e-14          -1.29974e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr662               carr661               carr660
+      model                     C                     C                     C
+capacitance          -1.28804e-14          -1.29804e-14           3.80624e-15
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr659               carr658               carr657
+      model                     C                     C                     C
+capacitance          -1.29922e-14          -1.29962e-14          -1.29884e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr656               carr655               carr654
+      model                     C                     C                     C
+capacitance           -1.2943e-14          -1.29594e-14          -1.28383e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr653               carr652               carr651
+      model                     C                     C                     C
+capacitance          -1.29564e-14           3.92227e-15           -2.6594e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr650               carr649               carr648
+      model                     C                     C                     C
+capacitance           -4.3925e-16           -1.2404e-16            3.8284e-15
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr647               carr646               carr645
+      model                     C                     C                     C
+capacitance          -1.29916e-14          -1.29819e-14           -4.3602e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr644               carr643               carr642
+      model                     C                     C                     C
+capacitance           -1.2404e-16          -1.29565e-14           -1.2404e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr641               carr640               carr639
+      model                     C                     C                     C
+capacitance           3.80483e-15           -2.6594e-16           3.82562e-15
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr638               carr637               carr636
+      model                     C                     C                     C
+capacitance           -1.2404e-16           -1.2404e-16          -1.29579e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr635               carr634               carr633
+      model                     C                     C                     C
+capacitance           3.80784e-15           -1.2404e-16          -1.29795e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr632               carr631               carr630
+      model                     C                     C                     C
+capacitance           -1.2404e-16          -1.29776e-14           3.90639e-15
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr629               carr628               carr627
+      model                     C                     C                     C
+capacitance           -4.0568e-16           -1.2843e-14           -1.2404e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr626               carr625               carr624
+      model                     C                     C                     C
+capacitance           3.77419e-15          -1.29534e-14           -1.2999e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr623               carr622               carr621
+      model                     C                     C                     C
+capacitance            8.3082e-16           3.80575e-15          -1.29815e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr620               carr619               carr618
+      model                     C                     C                     C
+capacitance          -1.28479e-14          -1.29745e-14             -1.64e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr617               carr616               carr615
+      model                     C                     C                     C
+capacitance           -1.2404e-16          -1.29685e-14          -1.29431e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr614               carr613               carr612
+      model                     C                     C                     C
+capacitance           -1.2404e-16          -1.29739e-14          -1.29974e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr611               carr610               carr609
+      model                     C                     C                     C
+capacitance          -1.29821e-14           3.77419e-15          -1.29769e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr608               carr607               carr606
+      model                     C                     C                     C
+capacitance           -1.2404e-16          -1.28405e-14           -2.6594e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr605               carr604               carr603
+      model                     C                     C                     C
+capacitance          -1.29558e-14             -1.64e-17           -1.2961e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr602               carr601               carr600
+      model                     C                     C                     C
+capacitance          -1.29413e-14             -1.64e-17          -1.28804e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr599               carr598               carr597
+      model                     C                     C                     C
+capacitance          -1.28424e-14          -1.28536e-14             -1.64e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr596               carr595               carr594
+      model                     C                     C                     C
+capacitance           -1.2404e-16          -1.29512e-14           -5.8311e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr593               carr592               carr591
+      model                     C                     C                     C
+capacitance          -1.28804e-14          -1.28396e-14             -1.64e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr590               carr589               carr588
+      model                     C                     C                     C
+capacitance           -1.2404e-16          -1.29465e-14           3.91962e-15
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr587               carr586               carr585
+      model                     C                     C                     C
+capacitance           -1.2957e-14           -1.2404e-16          -1.28373e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr584               carr583               carr582
+      model                     C                     C                     C
+capacitance          -1.29528e-14          -1.28355e-14          -1.28426e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr581               carr580               carr579
+      model                     C                     C                     C
+capacitance           -1.2404e-16          -1.28408e-14          -1.28331e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr578               carr577               carr576
+      model                     C                     C                     C
+capacitance           -1.5742e-16          -1.29894e-14           -2.6594e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr575               carr574               carr573
+      model                     C                     C                     C
+capacitance           3.77419e-15          -1.29983e-14           -1.2958e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr572               carr571               carr570
+      model                     C                     C                     C
+capacitance           3.91333e-15          -1.29373e-14          -1.29845e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr569               carr568               carr567
+      model                     C                     C                     C
+capacitance           -1.2404e-16           -2.6486e-16           -1.2404e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr566               carr565               carr564
+      model                     C                     C                     C
+capacitance          -1.29974e-14          -1.29944e-14          -1.29898e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr563               carr562               carr561
+      model                     C                     C                     C
+capacitance           3.91577e-15           -5.8178e-16           -1.3049e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr560               carr559               carr558
+      model                     C                     C                     C
+capacitance           -2.9829e-16           -2.6527e-16           -1.2404e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr557               carr556               carr555
+      model                     C                     C                     C
+capacitance           -1.2404e-16          -1.29545e-14           3.90018e-15
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr554               carr553               carr552
+      model                     C                     C                     C
+capacitance          -1.29543e-14             3.919e-15           -1.2404e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr551               carr550               carr549
+      model                     C                     C                     C
+capacitance          -1.28391e-14           3.92229e-15          -1.28344e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr548               carr547               carr546
+      model                     C                     C                     C
+capacitance          -1.29438e-14           -1.3806e-14           3.82837e-15
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr545               carr544               carr543
+      model                     C                     C                     C
+capacitance          -1.28804e-14          -1.28412e-14          -1.29501e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr542               carr541               carr540
+      model                     C                     C                     C
+capacitance          -1.28388e-14          -1.29571e-14           3.90724e-15
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr539               carr538               carr537
+      model                     C                     C                     C
+capacitance          -1.29497e-14           -4.0528e-16           -1.2404e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr536               carr535               carr534
+      model                     C                     C                     C
+capacitance           -1.2837e-14           -1.2404e-16           -1.2404e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr533               carr532               carr531
+      model                     C                     C                     C
+capacitance           -1.5809e-16          -1.29884e-14          -1.29974e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr530               carr529               carr528
+      model                     C                     C                     C
+capacitance          -1.44614e-14            -9.745e-17          -8.08666e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr527               carr526               carr525
+      model                     C                     C                     C
+capacitance          -1.29914e-14           3.81328e-15           -4.4189e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr524               carr523               carr522
+      model                     C                     C                     C
+capacitance          -1.28277e-14          -1.28276e-14           -1.2404e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr521               carr520               carr519
+      model                     C                     C                     C
+capacitance           -1.2404e-16           -1.2404e-16          -1.28406e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr518               carr517               carr516
+      model                     C                     C                     C
+capacitance           4.81035e-15           -1.2404e-16           -2.6527e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr515               carr514               carr513
+      model                     C                     C                     C
+capacitance           -1.2404e-16          -1.29907e-14           -1.2404e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr512               carr511               carr510
+      model                     C                     C                     C
+capacitance           -1.2404e-16           -1.2404e-16          -1.28463e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr509               carr508               carr507
+      model                     C                     C                     C
+capacitance           -2.6513e-16          -1.28385e-14           3.77419e-15
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr506               carr505               carr504
+      model                     C                     C                     C
+capacitance          -1.00462e-15          -1.29943e-14          -1.28514e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr503               carr502               carr501
+      model                     C                     C                     C
+capacitance          -1.29473e-14          -1.28461e-14          -1.29826e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr500               carr499               carr498
+      model                     C                     C                     C
+capacitance           3.81908e-15          -1.29973e-14           3.90721e-15
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr497               carr496               carr495
+      model                     C                     C                     C
+capacitance           -1.2404e-16          -1.28287e-14          -1.29889e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr494               carr493               carr492
+      model                     C                     C                     C
+capacitance           -5.4623e-16           3.92999e-15           -4.0516e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr491               carr490               carr489
+      model                     C                     C                     C
+capacitance           -2.6527e-16             -1.64e-17           -1.2404e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr488               carr487               carr486
+      model                     C                     C                     C
+capacitance          -1.30101e-14             1.662e-17           1.50087e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr485               carr484               carr483
+      model                     C                     C                     C
+capacitance           1.50087e-14             1.654e-17           1.50091e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr482               carr481               carr480
+      model                     C                     C                     C
+capacitance              1.66e-17           1.50088e-14              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr479               carr478               carr477
+      model                     C                     C                     C
+capacitance             2.077e-15             4.588e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr476               carr475               carr474
+      model                     C                     C                     C
+capacitance             1.665e-17           2.07701e-15           1.50091e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr473               carr472               carr471
+      model                     C                     C                     C
+capacitance              1.56e-17           1.50069e-14             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr470               carr469               carr468
+      model                     C                     C                     C
+capacitance             5.526e-17              1.56e-17             1.478e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr467               carr466               carr465
+      model                     C                     C                     C
+capacitance            1.5008e-14             3.515e-17             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr464               carr463               carr462
+      model                     C                     C                     C
+capacitance              1.56e-17              1.66e-17             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr461               carr460               carr459
+      model                     C                     C                     C
+capacitance             1.478e-17              8.44e-18             4.718e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr458               carr457               carr456
+      model                     C                     C                     C
+capacitance             4.752e-17             2.077e-15              1.66e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr455               carr454               carr453
+      model                     C                     C                     C
+capacitance              1.56e-17           1.50088e-14              4.77e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr452               carr451               carr450
+      model                     C                     C                     C
+capacitance              1.56e-17             1.651e-17           1.50088e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr449               carr448               carr447
+      model                     C                     C                     C
+capacitance              1.56e-17             1.561e-17             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr446               carr445               carr444
+      model                     C                     C                     C
+capacitance           2.07699e-15           1.50089e-14              1.66e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr443               carr442               carr441
+      model                     C                     C                     C
+capacitance              1.56e-17              1.56e-17             5.526e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr440               carr439               carr438
+      model                     C                     C                     C
+capacitance              1.66e-17            1.5009e-14              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr437               carr436               carr435
+      model                     C                     C                     C
+capacitance             2.077e-15           1.50089e-14           1.50087e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr434               carr433               carr432
+      model                     C                     C                     C
+capacitance           1.50088e-14             1.651e-17           1.50089e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr431               carr430               carr429
+      model                     C                     C                     C
+capacitance             5.526e-17             1.651e-17             5.025e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr428               carr427               carr426
+      model                     C                     C                     C
+capacitance           1.50087e-14             2.077e-15              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr425               carr424               carr423
+      model                     C                     C                     C
+capacitance              1.56e-17            1.5009e-14             1.671e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr422               carr421               carr420
+      model                     C                     C                     C
+capacitance           1.50089e-14             1.665e-17           1.50089e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr419               carr418               carr417
+      model                     C                     C                     C
+capacitance             1.665e-17              1.56e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                    -0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr416               carr415               carr414
+      model                     C                     C                     C
+capacitance              1.56e-17             6.212e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr413               carr412               carr411
+      model                     C                     C                     C
+capacitance              1.56e-17              1.56e-17           1.50069e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr410               carr409               carr408
+      model                     C                     C                     C
+capacitance            1.5009e-14           1.50089e-14           1.50253e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr407               carr406               carr405
+      model                     C                     C                     C
+capacitance           1.50088e-14            1.5009e-14             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr404               carr403               carr402
+      model                     C                     C                     C
+capacitance           1.50087e-14              1.56e-17             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr401               carr400               carr399
+      model                     C                     C                     C
+capacitance              1.26e-17              1.56e-17             8.243e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr398               carr397               carr396
+      model                     C                     C                     C
+capacitance              1.56e-17             1.671e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr395               carr394               carr393
+      model                     C                     C                     C
+capacitance              1.56e-17              1.26e-17             5.016e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr392               carr391               carr390
+      model                     C                     C                     C
+capacitance           1.50089e-14           1.50088e-14             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr389               carr388               carr387
+      model                     C                     C                     C
+capacitance              1.56e-17             2.077e-15             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr386               carr385               carr384
+      model                     C                     C                     C
+capacitance           1.50089e-14             4.578e-17           1.50088e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr383               carr382               carr381
+      model                     C                     C                     C
+capacitance              1.66e-17             2.077e-15           1.50089e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr380               carr379               carr378
+      model                     C                     C                     C
+capacitance             1.651e-17              1.56e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr377               carr376               carr375
+      model                     C                     C                     C
+capacitance              4.77e-17             2.077e-15              5.28e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr374               carr373               carr372
+      model                     C                     C                     C
+capacitance             5.134e-17           1.50087e-14           1.50089e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr371               carr370               carr369
+      model                     C                     C                     C
+capacitance              1.56e-17              1.56e-17             1.671e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr368               carr367               carr366
+      model                     C                     C                     C
+capacitance              1.26e-17             1.671e-17           1.50089e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr365               carr364               carr363
+      model                     C                     C                     C
+capacitance             1.671e-17             1.262e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr362               carr361               carr360
+      model                     C                     C                     C
+capacitance            1.5009e-14             5.684e-17            3.4098e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr359               carr358               carr357
+      model                     C                     C                     C
+capacitance              1.56e-17              1.56e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr356               carr355               carr354
+      model                     C                     C                     C
+capacitance           1.50069e-14              1.56e-17           1.50089e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr353               carr352               carr351
+      model                     C                     C                     C
+capacitance              1.26e-17              1.66e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr350               carr349               carr348
+      model                     C                     C                     C
+capacitance             1.478e-17           1.50088e-14           1.50087e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr347               carr346               carr345
+      model                     C                     C                     C
+capacitance            1.5009e-14             1.651e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr344               carr343               carr342
+      model                     C                     C                     C
+capacitance              1.66e-17             1.651e-17             1.478e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr341               carr340               carr339
+      model                     C                     C                     C
+capacitance           1.50089e-14             4.588e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr338               carr337               carr336
+      model                     C                     C                     C
+capacitance              5.28e-17             1.781e-17             1.662e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr335               carr334               carr333
+      model                     C                     C                     C
+capacitance             1.651e-17             1.651e-17             2.077e-15
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr332               carr331               carr330
+      model                     C                     C                     C
+capacitance              1.66e-17              1.56e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr329               carr328               carr327
+      model                     C                     C                     C
+capacitance              1.56e-17             1.651e-17           1.50089e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr326               carr325               carr324
+      model                     C                     C                     C
+capacitance           1.50088e-14              1.56e-17              1.66e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr323               carr322               carr321
+      model                     C                     C                     C
+capacitance              1.56e-17              1.56e-17              5.79e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr320               carr319               carr318
+      model                     C                     C                     C
+capacitance           2.07699e-15              1.56e-17           1.50091e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr317               carr316               carr315
+      model                     C                     C                     C
+capacitance             4.752e-17           1.50069e-14              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr314               carr313               carr312
+      model                     C                     C                     C
+capacitance             1.654e-17             5.016e-17           1.50088e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr311               carr310               carr309
+      model                     C                     C                     C
+capacitance             3.478e-17           1.50078e-14              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr308               carr307               carr306
+      model                     C                     C                     C
+capacitance             5.119e-17            6.8448e-16              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr305               carr304               carr303
+      model                     C                     C                     C
+capacitance              5.03e-17           1.50088e-14             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr302               carr301               carr300
+      model                     C                     C                     C
+capacitance             1.651e-17              1.56e-17              1.66e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr299               carr298               carr297
+      model                     C                     C                     C
+capacitance              1.56e-17              1.56e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr296               carr295               carr294
+      model                     C                     C                     C
+capacitance             4.752e-17              1.66e-17           1.50069e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr293               carr292               carr291
+      model                     C                     C                     C
+capacitance           1.50088e-14             1.561e-17             5.535e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr290               carr289               carr288
+      model                     C                     C                     C
+capacitance              1.56e-17           1.50089e-14              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr287               carr286               carr285
+      model                     C                     C                     C
+capacitance             4.588e-17           1.50092e-14             4.833e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr284               carr283               carr282
+      model                     C                     C                     C
+capacitance              1.56e-17              1.56e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr281               carr280               carr279
+      model                     C                     C                     C
+capacitance              1.66e-17           1.50091e-14             1.662e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr278               carr277               carr276
+      model                     C                     C                     C
+capacitance             5.271e-17           7.23824e-15              1.66e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr275               carr274               carr273
+      model                     C                     C                     C
+capacitance           1.50088e-14             1.674e-17           1.50089e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr272               carr271               carr270
+      model                     C                     C                     C
+capacitance              1.66e-17              1.56e-17              1.66e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr269               carr268               carr267
+      model                     C                     C                     C
+capacitance           1.50077e-14             1.662e-17             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr266               carr265               carr264
+      model                     C                     C                     C
+capacitance           1.50089e-14             5.007e-17             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr263               carr262               carr261
+      model                     C                     C                     C
+capacitance              1.56e-17             1.651e-17             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr260               carr259               carr258
+      model                     C                     C                     C
+capacitance           1.50087e-14           1.50089e-14             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr257               carr256               carr255
+      model                     C                     C                     C
+capacitance             5.155e-17              1.56e-17           1.50088e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr254               carr253               carr252
+      model                     C                     C                     C
+capacitance              1.56e-17             1.469e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr251               carr250               carr249
+      model                     C                     C                     C
+capacitance              1.56e-17             4.761e-17              1.66e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr248               carr247               carr246
+      model                     C                     C                     C
+capacitance            1.5009e-14             1.671e-17             5.428e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr245               carr244               carr243
+      model                     C                     C                     C
+capacitance              1.66e-17             1.651e-17           1.50069e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr242               carr241               carr240
+      model                     C                     C                     C
+capacitance              1.66e-17             1.651e-17              1.66e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                    -0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr239               carr238               carr237
+      model                     C                     C                     C
+capacitance           1.50089e-14              1.56e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr236               carr235               carr234
+      model                     C                     C                     C
+capacitance             4.752e-17              1.66e-17             1.662e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr233               carr232               carr231
+      model                     C                     C                     C
+capacitance           1.50091e-14           1.50089e-14             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr230               carr229               carr228
+      model                     C                     C                     C
+capacitance             1.662e-17            1.5009e-14           1.50089e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr227               carr226               carr225
+      model                     C                     C                     C
+capacitance             1.478e-17              1.56e-17              1.26e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr224               carr223               carr222
+      model                     C                     C                     C
+capacitance             1.662e-17              1.56e-17           1.50089e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr221               carr220               carr219
+      model                     C                     C                     C
+capacitance              1.56e-17           1.50087e-14           1.50089e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr218               carr217               carr216
+      model                     C                     C                     C
+capacitance            1.5009e-14             1.651e-17             1.665e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr215               carr214               carr213
+      model                     C                     C                     C
+capacitance              1.56e-17            1.5009e-14              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr212               carr211               carr210
+      model                     C                     C                     C
+capacitance              1.56e-17           1.50089e-14           1.50089e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr209               carr208               carr207
+      model                     C                     C                     C
+capacitance              1.56e-17             1.662e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr206               carr205               carr204
+      model                     C                     C                     C
+capacitance             1.651e-17              1.56e-17              1.66e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr203               carr202               carr201
+      model                     C                     C                     C
+capacitance              1.56e-17             1.651e-17             4.969e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr200               carr199               carr198
+      model                     C                     C                     C
+capacitance              1.56e-17           1.50089e-14           1.50088e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr197               carr196               carr195
+      model                     C                     C                     C
+capacitance           1.50089e-14              1.66e-17             1.662e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr194               carr193               carr192
+      model                     C                     C                     C
+capacitance              1.56e-17           1.50088e-14             1.898e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr191               carr190               carr189
+      model                     C                     C                     C
+capacitance              1.56e-17           1.50089e-14           1.50089e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr188               carr187               carr186
+      model                     C                     C                     C
+capacitance           1.50086e-14              1.27e-17             2.077e-15
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr185               carr184               carr183
+      model                     C                     C                     C
+capacitance              1.56e-17           1.50087e-14             1.671e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr182               carr181               carr180
+      model                     C                     C                     C
+capacitance              1.56e-17             1.673e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr179               carr178               carr177
+      model                     C                     C                     C
+capacitance            1.5009e-14           1.50088e-14           1.50089e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr176               carr175               carr174
+      model                     C                     C                     C
+capacitance              5.11e-17             1.662e-17             1.488e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr173               carr172               carr171
+      model                     C                     C                     C
+capacitance            1.5009e-14              1.56e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr170               carr169               carr168
+      model                     C                     C                     C
+capacitance           1.50089e-14             4.761e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr167               carr166               carr165
+      model                     C                     C                     C
+capacitance              1.66e-17             1.662e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr164               carr163               carr162
+      model                     C                     C                     C
+capacitance           1.50088e-14              1.56e-17           2.07701e-15
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr161               carr160               carr159
+      model                     C                     C                     C
+capacitance              1.56e-17             1.651e-17           1.50088e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr158               carr157               carr156
+      model                     C                     C                     C
+capacitance              1.56e-17              1.66e-17              4.77e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr155               carr154               carr153
+      model                     C                     C                     C
+capacitance              1.56e-17           1.50089e-14              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr152               carr151               carr150
+      model                     C                     C                     C
+capacitance              1.56e-17              1.66e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr149               carr148               carr147
+      model                     C                     C                     C
+capacitance             1.654e-17              1.66e-17           1.50088e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr146               carr145               carr144
+      model                     C                     C                     C
+capacitance              1.56e-17             4.761e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr143               carr142               carr141
+      model                     C                     C                     C
+capacitance              4.88e-17             1.662e-17             5.781e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr140               carr139               carr138
+      model                     C                     C                     C
+capacitance             1.663e-17              1.56e-17              1.66e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr137               carr136               carr135
+      model                     C                     C                     C
+capacitance           1.50088e-14           2.07701e-15              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr134               carr133               carr132
+      model                     C                     C                     C
+capacitance              4.77e-17              6.22e-18              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr131               carr130               carr129
+      model                     C                     C                     C
+capacitance              1.56e-17           1.50088e-14             1.662e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr128               carr127               carr126
+      model                     C                     C                     C
+capacitance           1.50069e-14           1.50088e-14             1.671e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr125               carr124               carr123
+      model                     C                     C                     C
+capacitance              1.66e-17              1.56e-17              1.26e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr122               carr121               carr120
+      model                     C                     C                     C
+capacitance           1.50089e-14             1.662e-17           1.50089e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr119               carr118               carr117
+      model                     C                     C                     C
+capacitance              1.56e-17           1.50088e-14              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr116               carr115               carr114
+      model                     C                     C                     C
+capacitance             1.651e-17              1.56e-17             1.663e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device               carr113               carr112               carr111
+      model                     C                     C                     C
+capacitance             5.016e-17             4.761e-17           1.50087e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr110               carr109               carr108
+      model                     C                     C                     C
+capacitance             1.561e-17              1.27e-17              5.28e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr107               carr106               carr105
+      model                     C                     C                     C
+capacitance             1.651e-17          -1.28584e-15           1.50087e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr104               carr103               carr102
+      model                     C                     C                     C
+capacitance              1.56e-17              1.56e-17             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device               carr101               carr100                carr99
+      model                     C                     C                     C
+capacitance             1.671e-17              1.56e-17            1.3094e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device                carr98                carr97                carr96
+      model                     C                     C                     C
+capacitance              1.56e-17             1.662e-17             4.588e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device                carr95                carr94                carr93
+      model                     C                     C                     C
+capacitance              1.56e-17           1.50091e-14            5.2545e-16
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                carr92                carr91                carr90
+      model                     C                     C                     C
+capacitance             1.651e-17           1.50088e-14             5.016e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                carr89                carr88                carr87
+      model                     C                     C                     C
+capacitance             1.651e-17             1.662e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                carr86                carr85                carr84
+      model                     C                     C                     C
+capacitance             1.716e-17             1.478e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                carr83                carr82                carr81
+      model                     C                     C                     C
+capacitance           1.50092e-14              1.56e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                carr80                carr79                carr78
+      model                     C                     C                     C
+capacitance              4.77e-17             1.651e-17             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                    -0
+
+ Capacitor: Fixed capacitor
+     device                carr77                carr76                carr75
+      model                     C                     C                     C
+capacitance              4.77e-17             2.077e-15              1.66e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                carr74                carr73                carr72
+      model                     C                     C                     C
+capacitance             1.662e-17             5.893e-17              5.79e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device                carr71                carr70                carr69
+      model                     C                     C                     C
+capacitance             1.675e-17              1.66e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                carr68                carr67                carr66
+      model                     C                     C                     C
+capacitance              1.66e-17             1.651e-17              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device                carr65                carr64                carr63
+      model                     C                     C                     C
+capacitance             1.671e-17              1.56e-17            1.5009e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                carr62                carr61                carr60
+      model                     C                     C                     C
+capacitance             5.007e-17           1.50089e-14              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device                carr59                carr58                carr57
+      model                     C                     C                     C
+capacitance             1.651e-17              1.56e-17           1.50087e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                carr56                carr55                carr54
+      model                     C                     C                     C
+capacitance              1.56e-17             1.662e-17              1.26e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                carr53                carr52                carr51
+      model                     C                     C                     C
+capacitance             1.651e-17            1.5038e-16              1.56e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                    -0
+
+ Capacitor: Fixed capacitor
+     device                carr50                carr49                carr48
+      model                     C                     C                     C
+capacitance             1.651e-17              1.56e-17             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device                carr47                carr46                carr45
+      model                     C                     C                     C
+capacitance              1.66e-17             5.007e-17             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device                carr44                carr43                carr42
+      model                     C                     C                     C
+capacitance             1.662e-17             1.651e-17              5.79e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                carr41                carr40                carr39
+      model                     C                     C                     C
+capacitance              1.66e-17              1.26e-17              1.66e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                    -0                    -0
+
+ Capacitor: Fixed capacitor
+     device                carr38                carr37                carr36
+      model                     C                     C                     C
+capacitance             5.428e-17              1.26e-17            1.5009e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device                carr35                carr34                carr33
+      model                     C                     C                     C
+capacitance           1.50089e-14             4.752e-17             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device                carr32                carr31                carr30
+      model                     C                     C                     C
+capacitance              1.66e-17              5.79e-17           1.50089e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                carr29                carr28                carr27
+      model                     C                     C                     C
+capacitance            1.5009e-14           1.50088e-14           1.50069e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                carr26                carr25                carr24
+      model                     C                     C                     C
+capacitance             1.561e-17             1.665e-17             4.843e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device                carr23                carr22                carr21
+      model                     C                     C                     C
+capacitance             1.651e-17           1.50089e-14              1.66e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device                carr20                carr19                carr18
+      model                     C                     C                     C
+capacitance              1.56e-17             1.273e-17             1.671e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                    -0                    -0
+
+ Capacitor: Fixed capacitor
+     device                carr17                carr16                carr15
+      model                     C                     C                     C
+capacitance             1.651e-17              1.56e-17            1.5008e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                carr14                carr13                carr12
+      model                     C                     C                     C
+capacitance             1.651e-17              1.56e-17             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                    -0
+
+ Capacitor: Fixed capacitor
+     device                carr11                carr10                 carr9
+      model                     C                     C                     C
+capacitance              1.56e-17              4.77e-17           1.50089e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                    -0                     0
+
+ Capacitor: Fixed capacitor
+     device                 carr8                 carr7                 carr6
+      model                     C                     C                     C
+capacitance              1.56e-17             1.488e-17             1.662e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                 carr5                 carr4                 carr3
+      model                     C                     C                     C
+capacitance           2.07701e-15           1.50088e-14             1.651e-17
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                     0                     0                     0
+
+ Capacitor: Fixed capacitor
+     device                 carr2                 carr1                 carr0
+      model                     C                     C                     C
+capacitance             1.651e-17             4.833e-17           1.50087e-14
+      dtemp                     0                     0                     0
+     bv_max                 1e+99                 1e+99                 1e+99
+          i                     0                     0                     0
+          p                    -0                     0                     0
+
+ Capacitor: Fixed capacitor
      device c.xwrom3_rom_base_zer c.xwrom3_rom_base_zer c.xwrom3_rom_base_zer
       model                     C                     C                     C
 capacitance            1.0004e-16              1.69e-16             1.098e-17
@@ -43059,17 +45921,17 @@ capacitance             5.763e-17
           p          -6.58814e-10
 
 
-Total analysis time (seconds) = 0.00596907
+Total analysis time (seconds) = 0.00696791
 
-Total elapsed time (seconds) = 40.546 
+Total elapsed time (seconds) = 37.892 
 
-Total DRAM available = 31789.559 MB.
-DRAM currently available = 18103.605 MB.
-Maximum ngspice program size =  420.422 MB.
-Current ngspice program size =  353.594 MB.
+Total DRAM available = 31789.566 MB.
+DRAM currently available = 14807.465 MB.
+Maximum ngspice program size =  420.570 MB.
+Current ngspice program size =  353.742 MB.
 
-Shared ngspice pages =   11.309 MB.
+Shared ngspice pages =   11.312 MB.
 Text (code) pages =    6.520 MB.
 Stack = 0 bytes.
-Library pages =  398.258 MB.
+Library pages =  398.406 MB.
 

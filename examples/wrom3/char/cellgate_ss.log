@@ -20,17 +20,17 @@ c_one_ff            =  4.12677e-01
 c_zero_ff           =  4.12677e-01
 
 
-Total analysis time (seconds) = 0.0617261
+Total analysis time (seconds) = 0.0604674
 
-Total elapsed time (seconds) = 39.197 
+Total elapsed time (seconds) = 35.863 
 
-Total DRAM available = 31789.578 MB.
-DRAM currently available = 19736.375 MB.
-Maximum ngspice program size =  420.371 MB.
-Current ngspice program size =  353.535 MB.
+Total DRAM available = 31789.566 MB.
+DRAM currently available = 15738.246 MB.
+Maximum ngspice program size =  420.375 MB.
+Current ngspice program size =  353.734 MB.
 
-Shared ngspice pages =   11.301 MB.
+Shared ngspice pages =   11.500 MB.
 Text (code) pages =    6.520 MB.
 Stack = 0 bytes.
-Library pages =  398.207 MB.
+Library pages =  398.211 MB.
 

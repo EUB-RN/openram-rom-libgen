@@ -1,0 +1,10 @@
+# rom_char provenance v1 -- written by the flow, read by regen_rom_libs.sh
+version	1
+stage	cell-gate-cap
+context	wrom3 tt
+when	2026-09-24T11:02:20Z
+deck	/home/hpw/openram-rom-libgen/examples/wrom3/char/cellgate_tt.sp
+deck_sha	4b9ed468f755b269480e9e6bb40037a44cd2168bc585618626479fdb1ee7980e
+log_sha	5ea3d8612fd94e942378d0a72c7f7b30d2fad4802f0f44907174bbad8f7ca93a
+src	/home/hpw/openram-rom-libgen/examples/wrom3/wrom3.sp
+src_sha	1b4bd9b990872ad4668fb0152919ca19d6710252e7e9ae3930adb7b68db06adb

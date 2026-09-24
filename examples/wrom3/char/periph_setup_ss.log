@@ -16,69 +16,112 @@ No. of Data Rows : 2440
 
 
 Error: measure  t_wlfall0  trig(TARG) : out of interval
- .measure tran t_wlfall0 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.190000e-06 targ v(wrom3_rom_row_decode_0/wl_0) val=    8.000000000000000e-01     fall=1 td=1.200000e-06 failed!
+ .measure tran t_wlfall0 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.290000e-06 targ v(wrom3_rom_row_decode_0/wl_0) val=    8.000000000000000e-01     fall=1 td=1.300000e-06 failed!
 
 
-Error: measure  t_clk2wl1  trig(TARG) : out of interval
- .measure tran t_clk2wl1 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.190000e-06 targ v(wrom3_rom_row_decode_0/wl_1) val=    8.000000000000000e-01     rise=1 td=1.200000e-06 failed!
+Error: measure  t_wlslew0  trig(TRIG) : out of interval
+ .measure tran t_wlslew0 trig v(wrom3_rom_row_decode_0/wl_0) val=    1.280000000000000e+00     fall=1 td=1.300000e-06 targ v(wrom3_rom_row_decode_0/wl_0) val=    3.200000000000001e-01     fall=1 td=1.300000e-06 failed!
+
+
+Error: measure  t_wl1090_0  trig(TRIG) : out of interval
+ .measure tran t_wl1090_0 trig v(wrom3_rom_row_decode_0/wl_0) val=    1.440000000000000e+00     fall=1 td=1.300000e-06 targ v(wrom3_rom_row_decode_0/wl_0) val=    1.600000000000000e-01     fall=1 td=1.300000e-06 failed!
 
 
 Error: measure  t_wlfall1  trig(TARG) : out of interval
- .measure tran t_wlfall1 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.190000e-06 targ v(wrom3_rom_row_decode_0/wl_1) val=    8.000000000000000e-01     fall=1 td=1.200000e-06 failed!
+ .measure tran t_wlfall1 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.290000e-06 targ v(wrom3_rom_row_decode_0/wl_1) val=    8.000000000000000e-01     fall=1 td=1.300000e-06 failed!
 
 
-Error: measure  t_clk2wl2  trig(TARG) : out of interval
- .measure tran t_clk2wl2 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.190000e-06 targ v(wrom3_rom_row_decode_0/wl_2) val=    8.000000000000000e-01     rise=1 td=1.200000e-06 failed!
+Error: measure  t_wlslew1  trig(TRIG) : out of interval
+ .measure tran t_wlslew1 trig v(wrom3_rom_row_decode_0/wl_1) val=    1.280000000000000e+00     fall=1 td=1.300000e-06 targ v(wrom3_rom_row_decode_0/wl_1) val=    3.200000000000001e-01     fall=1 td=1.300000e-06 failed!
+
+
+Error: measure  t_wl1090_1  trig(TRIG) : out of interval
+ .measure tran t_wl1090_1 trig v(wrom3_rom_row_decode_0/wl_1) val=    1.440000000000000e+00     fall=1 td=1.300000e-06 targ v(wrom3_rom_row_decode_0/wl_1) val=    1.600000000000000e-01     fall=1 td=1.300000e-06 failed!
 
 
 Error: measure  t_wlfall2  trig(TARG) : out of interval
- .measure tran t_wlfall2 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.190000e-06 targ v(wrom3_rom_row_decode_0/wl_2) val=    8.000000000000000e-01     fall=1 td=1.200000e-06 failed!
+ .measure tran t_wlfall2 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.290000e-06 targ v(wrom3_rom_row_decode_0/wl_2) val=    8.000000000000000e-01     fall=1 td=1.300000e-06 failed!
 
 
-Error: measure  t_clk2wl3  trig(TARG) : out of interval
- .measure tran t_clk2wl3 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.190000e-06 targ v(wrom3_rom_row_decode_0/wl_3) val=    8.000000000000000e-01     rise=1 td=1.200000e-06 failed!
+Error: measure  t_wlslew2  trig(TRIG) : out of interval
+ .measure tran t_wlslew2 trig v(wrom3_rom_row_decode_0/wl_2) val=    1.280000000000000e+00     fall=1 td=1.300000e-06 targ v(wrom3_rom_row_decode_0/wl_2) val=    3.200000000000001e-01     fall=1 td=1.300000e-06 failed!
+
+
+Error: measure  t_wl1090_2  trig(TRIG) : out of interval
+ .measure tran t_wl1090_2 trig v(wrom3_rom_row_decode_0/wl_2) val=    1.440000000000000e+00     fall=1 td=1.300000e-06 targ v(wrom3_rom_row_decode_0/wl_2) val=    1.600000000000000e-01     fall=1 td=1.300000e-06 failed!
 
 
 Error: measure  t_wlfall3  trig(TARG) : out of interval
- .measure tran t_wlfall3 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.190000e-06 targ v(wrom3_rom_row_decode_0/wl_3) val=    8.000000000000000e-01     fall=1 td=1.200000e-06 failed!
+ .measure tran t_wlfall3 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.290000e-06 targ v(wrom3_rom_row_decode_0/wl_3) val=    8.000000000000000e-01     fall=1 td=1.300000e-06 failed!
 
 
-Error: measure  t_clk2wl4  trig(TARG) : out of interval
- .measure tran t_clk2wl4 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.190000e-06 targ v(wrom3_rom_row_decode_0/wl_4) val=    8.000000000000000e-01     rise=1 td=1.200000e-06 failed!
+Error: measure  t_wlslew3  trig(TRIG) : out of interval
+ .measure tran t_wlslew3 trig v(wrom3_rom_row_decode_0/wl_3) val=    1.280000000000000e+00     fall=1 td=1.300000e-06 targ v(wrom3_rom_row_decode_0/wl_3) val=    3.200000000000001e-01     fall=1 td=1.300000e-06 failed!
+
+
+Error: measure  t_wl1090_3  trig(TRIG) : out of interval
+ .measure tran t_wl1090_3 trig v(wrom3_rom_row_decode_0/wl_3) val=    1.440000000000000e+00     fall=1 td=1.300000e-06 targ v(wrom3_rom_row_decode_0/wl_3) val=    1.600000000000000e-01     fall=1 td=1.300000e-06 failed!
 
 
 Error: measure  t_wlfall4  trig(TARG) : out of interval
- .measure tran t_wlfall4 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.190000e-06 targ v(wrom3_rom_row_decode_0/wl_4) val=    8.000000000000000e-01     fall=1 td=1.200000e-06 failed!
+ .measure tran t_wlfall4 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.290000e-06 targ v(wrom3_rom_row_decode_0/wl_4) val=    8.000000000000000e-01     fall=1 td=1.300000e-06 failed!
 
 
-Error: measure  t_clk2wl5  trig(TARG) : out of interval
- .measure tran t_clk2wl5 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.190000e-06 targ v(wrom3_rom_row_decode_0/wl_5) val=    8.000000000000000e-01     rise=1 td=1.200000e-06 failed!
+Error: measure  t_wlslew4  trig(TRIG) : out of interval
+ .measure tran t_wlslew4 trig v(wrom3_rom_row_decode_0/wl_4) val=    1.280000000000000e+00     fall=1 td=1.300000e-06 targ v(wrom3_rom_row_decode_0/wl_4) val=    3.200000000000001e-01     fall=1 td=1.300000e-06 failed!
+
+
+Error: measure  t_wl1090_4  trig(TRIG) : out of interval
+ .measure tran t_wl1090_4 trig v(wrom3_rom_row_decode_0/wl_4) val=    1.440000000000000e+00     fall=1 td=1.300000e-06 targ v(wrom3_rom_row_decode_0/wl_4) val=    1.600000000000000e-01     fall=1 td=1.300000e-06 failed!
 
 
 Error: measure  t_wlfall5  trig(TARG) : out of interval
- .measure tran t_wlfall5 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.190000e-06 targ v(wrom3_rom_row_decode_0/wl_5) val=    8.000000000000000e-01     fall=1 td=1.200000e-06 failed!
+ .measure tran t_wlfall5 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.290000e-06 targ v(wrom3_rom_row_decode_0/wl_5) val=    8.000000000000000e-01     fall=1 td=1.300000e-06 failed!
 
 
-Error: measure  t_clk2wl6  trig(TARG) : out of interval
- .measure tran t_clk2wl6 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.190000e-06 targ v(wrom3_rom_row_decode_0/wl_6) val=    8.000000000000000e-01     rise=1 td=1.200000e-06 failed!
+Error: measure  t_wlslew5  trig(TRIG) : out of interval
+ .measure tran t_wlslew5 trig v(wrom3_rom_row_decode_0/wl_5) val=    1.280000000000000e+00     fall=1 td=1.300000e-06 targ v(wrom3_rom_row_decode_0/wl_5) val=    3.200000000000001e-01     fall=1 td=1.300000e-06 failed!
+
+
+Error: measure  t_wl1090_5  trig(TRIG) : out of interval
+ .measure tran t_wl1090_5 trig v(wrom3_rom_row_decode_0/wl_5) val=    1.440000000000000e+00     fall=1 td=1.300000e-06 targ v(wrom3_rom_row_decode_0/wl_5) val=    1.600000000000000e-01     fall=1 td=1.300000e-06 failed!
 
 
 Error: measure  t_wlfall6  trig(TARG) : out of interval
- .measure tran t_wlfall6 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.190000e-06 targ v(wrom3_rom_row_decode_0/wl_6) val=    8.000000000000000e-01     fall=1 td=1.200000e-06 failed!
+ .measure tran t_wlfall6 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.290000e-06 targ v(wrom3_rom_row_decode_0/wl_6) val=    8.000000000000000e-01     fall=1 td=1.300000e-06 failed!
 
 
-Error: measure  t_clk2wl7  trig(TARG) : out of interval
- .measure tran t_clk2wl7 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.190000e-06 targ v(wrom3_rom_row_decode_0/wl_7) val=    8.000000000000000e-01     rise=1 td=1.200000e-06 failed!
+Error: measure  t_wlslew6  trig(TRIG) : out of interval
+ .measure tran t_wlslew6 trig v(wrom3_rom_row_decode_0/wl_6) val=    1.280000000000000e+00     fall=1 td=1.300000e-06 targ v(wrom3_rom_row_decode_0/wl_6) val=    3.200000000000001e-01     fall=1 td=1.300000e-06 failed!
+
+
+Error: measure  t_wl1090_6  trig(TRIG) : out of interval
+ .measure tran t_wl1090_6 trig v(wrom3_rom_row_decode_0/wl_6) val=    1.440000000000000e+00     fall=1 td=1.300000e-06 targ v(wrom3_rom_row_decode_0/wl_6) val=    1.600000000000000e-01     fall=1 td=1.300000e-06 failed!
 
 
 Error: measure  t_wlfall7  trig(TARG) : out of interval
- .measure tran t_wlfall7 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.190000e-06 targ v(wrom3_rom_row_decode_0/wl_7) val=    8.000000000000000e-01     fall=1 td=1.200000e-06 failed!
+ .measure tran t_wlfall7 trig v(clk0) val=    8.000000000000000e-01     rise=1 td=1.290000e-06 targ v(wrom3_rom_row_decode_0/wl_7) val=    8.000000000000000e-01     fall=1 td=1.300000e-06 failed!
+
+
+Error: measure  t_wlslew7  trig(TRIG) : out of interval
+ .measure tran t_wlslew7 trig v(wrom3_rom_row_decode_0/wl_7) val=    1.280000000000000e+00     fall=1 td=1.300000e-06 targ v(wrom3_rom_row_decode_0/wl_7) val=    3.200000000000001e-01     fall=1 td=1.300000e-06 failed!
+
+
+Error: measure  t_wl1090_7  trig(TRIG) : out of interval
+ .measure tran t_wl1090_7 trig v(wrom3_rom_row_decode_0/wl_7) val=    1.440000000000000e+00     fall=1 td=1.300000e-06 targ v(wrom3_rom_row_decode_0/wl_7) val=    1.600000000000000e-01     fall=1 td=1.300000e-06 failed!
 
 q_c2                =   -3.11599e-12 from=  1.00000e-06 to=  1.20000e-06
 q_c3                =   -2.99958e-12 from=  1.20000e-06 to=  1.40000e-06
 e_periph_pj         =  4.79933e+00
 t_clk2int           =  5.914925e-10 targ=  1.300841e-06 trig=  1.300250e-06
-t_clk2wl0           =  -9.880311e-08 targ=  1.201447e-06 trig=  1.300250e-06
+v_wl0_eval          =  1.600000e+00
+v_wl1_eval          =  1.600000e+00
+v_wl2_eval          =  1.600000e+00
+v_wl3_eval          =  1.600000e+00
+v_wl4_eval          =  1.600000e+00
+v_wl5_eval          =  1.600000e+00
+v_wl6_eval          =  1.600000e+00
+v_wl7_eval          =  1.600000e+00
 t_clk2pre           =  1.416604e-09 targ=  1.301667e-06 trig=  1.300250e-06
 t_addr2dec0         =  4.781156e-11 targ=  1.250098e-06 trig=  1.250050e-06
 t_addr2dec1         =  4.799218e-11 targ=  1.250098e-06 trig=  1.250050e-06
@@ -90,17 +133,17 @@ t_addr2dec6         =  4.803987e-11 targ=  1.250098e-06 trig=  1.250050e-06
 t_addr2dec7         =  4.742662e-11 targ=  1.250097e-06 trig=  1.250050e-06
 
 
-Total analysis time (seconds) = 105.055
+Total analysis time (seconds) = 124.845
 
-Total elapsed time (seconds) = 430.119 
+Total elapsed time (seconds) = 509.188 
 
-Total DRAM available = 31789.578 MB.
-DRAM currently available = 21971.086 MB.
-Maximum ngspice program size = 2777.512 MB.
-Current ngspice program size = 2709.977 MB.
+Total DRAM available = 31789.566 MB.
+DRAM currently available = 4186.141 MB.
+Maximum ngspice program size = 2777.547 MB.
+Current ngspice program size = 2710.602 MB.
 
-Shared ngspice pages =   10.883 MB.
+Shared ngspice pages =   11.430 MB.
 Text (code) pages =    6.520 MB.
 Stack = 0 bytes.
-Library pages = 2755.348 MB.
+Library pages = 2755.383 MB.
 

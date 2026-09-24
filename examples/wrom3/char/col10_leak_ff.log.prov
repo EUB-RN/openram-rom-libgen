@@ -1,0 +1,10 @@
+# rom_char provenance v1 -- written by the flow, read by regen_rom_libs.sh
+version	1
+stage	col-leakage
+context	wrom3 ff
+when	2026-09-24T12:37:06Z
+deck	/home/hpw/openram-rom-libgen/examples/wrom3/char/col10_leak_ff.sp
+deck_sha	216ec879d1284f25c90c708c298fdb9d9371ca4560e61b2ef341cdfee187dff9
+log_sha	d6ffb1d077be59e7f851b1077fd8249e3d2cda683caaf85c4c53eb98500a1bbc
+src	/home/hpw/openram-rom-libgen/examples/wrom3/wrom3.sp
+src_sha	1b4bd9b990872ad4668fb0152919ca19d6710252e7e9ae3930adb7b68db06adb

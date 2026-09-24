@@ -1,0 +1,10 @@
+# rom_char provenance v1 -- written by the flow, read by regen_rom_libs.sh
+version	1
+stage	col-timing
+context	wrom3 tt
+when	2026-09-24T10:35:40Z
+deck	/home/hpw/openram-rom-libgen/examples/wrom3/char/col10_worst_case_parasitic.sp
+deck_sha	bfe255718db57822dbc4e24550a4042beda986d1c0354f8ec19025c2e382573b
+log_sha	78246ebe9591001aad7a8220a4f447fa32f04b2684721ce837449aeeaf275877
+src	/home/hpw/openram-rom-libgen/examples/wrom3/wrom3.sp
+src_sha	1b4bd9b990872ad4668fb0152919ca19d6710252e7e9ae3930adb7b68db06adb
