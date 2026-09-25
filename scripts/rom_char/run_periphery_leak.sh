@@ -73,11 +73,12 @@ for m in $(macro_list "$@"); do
                 --temp "$t" --gmin "$g" >/dev/null 2>&1
         sp="$G_CHAR/periph_leak_cs${cs}_${c}_g${g}.sp"
         lg="$G_CHAR/periph_leak_cs${cs}_${c}_g${g}.log"
-        run_ng "periphery-leak" "$sp" "$lg" "$m $c cs$cs gmin=$g" &
+        job_slot
+        run_ng "periphery-leak" "$sp" "$lg" "$m $c cs$cs gmin=$g" & job_add $!
         n=$((n + 1))
-        [ "$((n % JOBS))" -eq 0 ] && wait
       done
-      wait
+      # a real join, not a throttle: the table below reads these logs
+      job_drain
 
       # per slice: the smallest gmin is the answer, the point above it
       # agreeing is the proof

@@ -67,13 +67,13 @@ for m in $MACROS; do
       lg="$G_CHAR/periph_${tag}_${c}.log"
       python3 "$GENP" "$m" "$cs" "$sp" --corner "$c" --vdd "$v" --temp "$t" \
               --gate-cap-ff "$cg" >/dev/null
-      run_ng "periphery-energy" "$sp" "$lg" "$m $c cs$cs" &
+      job_slot
+      run_ng "periphery-energy" "$sp" "$lg" "$m $c cs$cs" & job_add $!
       n=$((n+1))
-      [ $((n % JOBS)) -eq 0 ] && wait
     done
   done
 done
-wait
+job_drain
 
 # --- Summary --------------------------------------------------------------
 echo

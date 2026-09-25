@@ -73,19 +73,21 @@ for m in $MACROS; do
     # the reference: no cut at all -- it must reproduce the committed t_dis_50,
     # which is what proves the patched deck is still the same circuit.
     python3 "$GEN" "$m" "$OUT/ref_${c}.sp" --corner "$c" >/dev/null
-    run_ng "addr-hold-ref" "$OUT/ref_${c}.sp" "$OUT/ref_${c}.log" "$m $c" &
-    n=$((n+1)); [ $((n % JOBS)) -eq 0 ] && wait
+    job_slot
+    run_ng "addr-hold-ref" "$OUT/ref_${c}.sp" "$OUT/ref_${c}.log" "$m $c" & job_add $!
+    n=$((n+1))
     for b in $BREAKS; do
       tag=$(echo "$b" | tr '.' 'p')
       python3 "$GEN" "$m" "$OUT/cut${tag}_${c}.sp" --corner "$c" \
               --break-ns "$b" --wl-slew-ns "$slew" >/dev/null
+      job_slot
       run_ng "addr-hold-sweep" "$OUT/cut${tag}_${c}.sp" \
-             "$OUT/cut${tag}_${c}.log" "$m $c break=$b" &
-      n=$((n+1)); [ $((n % JOBS)) -eq 0 ] && wait
+             "$OUT/cut${tag}_${c}.log" "$m $c break=$b" & job_add $!
+      n=$((n+1))
     done
   done
 done
-wait
+job_drain
 
 echo
 for m in $MACROS; do

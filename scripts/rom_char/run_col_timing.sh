@@ -40,40 +40,59 @@ col_settled() {
   check_settled "col-timing" "$3" "$1 $2" "$_g" "$4" || true
 }
 
+# The macros are independent and each one's block is mostly ngspice waiting on
+# itself: the generator runs the TT deck, then SS and FF follow it. Run the
+# MACROS side by side instead, one subshell each -- twelve decks that used to
+# go strictly one after another now cost about three. Output is captured per
+# macro and printed in order afterwards, so a parallel run still reads like a
+# serial one.
+JOBS=$(stage_jobs "$ROM_MEM_COLUMN")
+TIMING_OUT="${TMPDIR:-/tmp}/rom_col_timing.$$"
+mkdir -p "$TIMING_OUT"
+trap 'rm -rf "$TIMING_OUT"' EXIT
+
 for m in $(macro_list "$@"); do
   load_geom "$m" || continue
-  echo "== $m  (worst column $G_WORST_COL, series NMOS $G_CHAIN) =="
-  if [ "${NO_RESISTANCE:-0}" = 1 ]; then
-    RFLAG=--no-resistance
-  else
-    RFLAG=""
-    python3 "$ROM_CHAR_DIR/gen_resistance_model.py" "$m" || {
-      echo "  $m: resistance model failed -- falling back to capacitance only"
+  job_slot
+  (
+    echo "== $m  (worst column $G_WORST_COL, series NMOS $G_CHAIN) =="
+    if [ "${NO_RESISTANCE:-0}" = 1 ]; then
       RFLAG=--no-resistance
-    }
-  fi
-  python3 "$ROM_CHAR_DIR/gen_col_tb_parasitic.py" "$m" "$G_WORST_COL" $RFLAG
-  # The TT deck is built AND RUN by the generator, so its log never passes
-  # through run_ng and would carry no provenance stamp -- which downstream
-  # means "not from this flow" and is refused. Judge and stamp it here by the
-  # same rules run_ng applies to the SS/FF decks below.
-  prov_adopt "col-timing" "$G_CHAR/${G_COLTAG}_worst_case_parasitic.sp" \
-             "$G_CHAR/${G_COLTAG}_worst_case_parasitic.log" "$m tt" || true
-  for c in ss ff; do
-    python3 "$ROM_CHAR_DIR/make_corner_variant.py" "$m" "$G_WORST_COL" "$c" >/dev/null
-    sp="$G_CHAR/${G_COLTAG}_worst_case_parasitic_${c}.sp"
-    lg="$G_CHAR/${G_COLTAG}_worst_case_parasitic_${c}.log"
-    run_ng "col-timing" "$sp" "$lg" "$m $c" || continue
-    printf "%s %s t_dis_50 = %s   t_pre_99 = %s\n" "$m" "$c" \
-      "$(meas "$lg" t_dis_50)" "$(meas "$lg" t_pre_99)"
-    col_settled "$m" "$c" "$lg" "$sp"
-  done
-  # The TT deck is run by the generator above, which prints its own settling
-  # verdict but only WARNS. Gate it here with the same rule the corner decks
-  # get, so all three are judged alike -- SS is the corner most at risk, being
-  # 2.4x slower, and it was the one with no check at all.
-  col_settled "$m" "tt" "$G_CHAR/${G_COLTAG}_worst_case_parasitic.log" \
-                        "$G_CHAR/${G_COLTAG}_worst_case_parasitic.sp"
+    else
+      RFLAG=""
+      python3 "$ROM_CHAR_DIR/gen_resistance_model.py" "$m" || {
+        echo "  $m: resistance model failed -- falling back to capacitance only"
+        RFLAG=--no-resistance
+      }
+    fi
+    python3 "$ROM_CHAR_DIR/gen_col_tb_parasitic.py" "$m" "$G_WORST_COL" $RFLAG
+    # The TT deck is built AND RUN by the generator, so its log never passes
+    # through run_ng and would carry no provenance stamp -- which downstream
+    # means "not from this flow" and is refused. Judge and stamp it here by the
+    # same rules run_ng applies to the SS/FF decks below.
+    prov_adopt "col-timing" "$G_CHAR/${G_COLTAG}_worst_case_parasitic.sp" \
+               "$G_CHAR/${G_COLTAG}_worst_case_parasitic.log" "$m tt" || true
+    for c in ss ff; do
+      python3 "$ROM_CHAR_DIR/make_corner_variant.py" "$m" "$G_WORST_COL" "$c" >/dev/null
+      sp="$G_CHAR/${G_COLTAG}_worst_case_parasitic_${c}.sp"
+      lg="$G_CHAR/${G_COLTAG}_worst_case_parasitic_${c}.log"
+      run_ng "col-timing" "$sp" "$lg" "$m $c" || continue
+      printf "%s %s t_dis_50 = %s   t_pre_99 = %s\n" "$m" "$c" \
+        "$(meas "$lg" t_dis_50)" "$(meas "$lg" t_pre_99)"
+      col_settled "$m" "$c" "$lg" "$sp"
+    done
+    # The TT deck is run by the generator above, which prints its own settling
+    # verdict but only WARNS. Gate it here with the same rule the corner decks
+    # get, so all three are judged alike -- SS is the corner most at risk, being
+    # 2.4x slower, and it was the one with no check at all.
+    col_settled "$m" "tt" "$G_CHAR/${G_COLTAG}_worst_case_parasitic.log" \
+                          "$G_CHAR/${G_COLTAG}_worst_case_parasitic.sp"
+  ) > "$TIMING_OUT/$m.txt" 2>&1 & job_add $!
+done
+job_drain
+
+for m in $(macro_list "$@"); do
+  [ -f "$TIMING_OUT/$m.txt" ] && cat "$TIMING_OUT/$m.txt"
 done
 
 # Non-zero if any deck died. The numbers those decks would have produced

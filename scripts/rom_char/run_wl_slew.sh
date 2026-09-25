@@ -56,11 +56,12 @@ for m in $MACROS; do
     sp="$G_CHAR/wlslew_${c}.sp"
     python3 "$GENP" "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
             --gate-cap-ff "$cg" >/dev/null
-    run_ng "wordline-slew" "$sp" "$G_CHAR/wlslew_${c}.log" "$m $c" &
-    n=$((n+1)); [ $((n % JOBS)) -eq 0 ] && wait
+    job_slot
+    run_ng "wordline-slew" "$sp" "$G_CHAR/wlslew_${c}.log" "$m $c" & job_add $!
+    n=$((n+1))
   done
 done
-wait
+job_drain
 
 echo
 for m in $MACROS; do

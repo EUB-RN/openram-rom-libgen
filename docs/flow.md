@@ -23,7 +23,8 @@ What has to be installed, what each step of the flow produces, and which script 
 | `OPENRAM_TECH` | -- | required by `run_cap_extract.sh` |
 | `PDK_ROOT` | `~/OpenLane/pdks` | where sky130A lives |
 | `SKY130_LIB` | `$PDK_ROOT/sky130A/libs.tech/ngspice/sky130.lib.spice` | model file |
-| `JOBS` | `4` | parallel ngspice runs |
+| `JOBS` | `min(cores, MemAvailable/`$ROM_JOB_MEM_GB`)` | ngspice runs in flight at once. Memory-sized, not core-sized; stages built on one column ask for their own smaller footprint (`stage_jobs`) |
+| `ROM_JOB_MEM_GB` | `3` | per-job memory budget the default is computed from (the periphery decks' ~2.6 GB) |
 | `LOADS` | `1.7225 6.89 27.56` | `.lib` CELL_TABLE output load points (fF) |
 | `ROM_CORNERS` | `tt:1.8:25:34.1 ss:1.6:100:18.3 ff:1.95:-40:48.2` | corner:VDD:temp:fmax(MHz). `fmax` only scales the `P = E x f` summary column -- the real bound is `minimum_period` in the `.lib` |
 
@@ -47,7 +48,7 @@ python3 scripts/rom_char/gen_col_tb_parasitic.py wrom0 --with-resistance
 ./scripts/rom_char/run_backend_delay.sh            #  -> backend_<corner>_<load>.log
 
 # 4) periphery energy (active/idle) + cell gate capacitance
-JOBS=4 ./scripts/rom_char/run_periphery_power.sh   #  -> periph_{active,idle}_<corner>.log
+JOBS=4 ./scripts/rom_char/run_periphery_power.sh   #  -> periph_{active,idle}_<corner>.log   (JOBS= only to override the automatic count)
 
 # 5) address setup (needs the cellgate log from step 4)
 ./scripts/rom_char/run_addr_setup.sh               #  -> periph_setup_<corner>.log

@@ -54,54 +54,73 @@ FAST=fastest_array
 # array: on wrom0 at tt, 0 cells 0.5080 ns against 1 cell 0.5738 ns, but 47
 # cells 10.0972 ns.
 
+JOBS=$(stage_jobs "$ROM_MEM_COLUMN")
+EARLY_OUT="${TMPDIR:-/tmp}/rom_early_path.$$"
+mkdir -p "$EARLY_OUT"
+trap 'rm -rf "$EARLY_OUT"' EXIT
+
+# Same shape as run_col_timing.sh. Both TT decks are built AND RUN by the
+# generator, one after the other, so the only parallelism left inside a macro
+# is its four SS/FF runs -- the `wait` below still joins those. What was idle
+# is the MACROS: they are independent and now run side by side, each one's
+# output captured and printed in order afterwards so a parallel run still
+# reads like a serial one.
 for m in $(macro_list "$@"); do
   load_geom "$m" || { echo "$m: cannot read geometry, skipped"; continue; }
-  echo "== $m  (best column $G_BEST_COL, series NMOS $G_BEST_CHAIN;"
-  echo "        worst is column $G_WORST_COL with $G_CHAIN) =="
-  if [ "${NO_RESISTANCE:-0}" = 1 ]; then
-    RFLAG=--no-resistance
-  else
-    RFLAG=""
-    python3 "$ROM_CHAR_DIR/gen_resistance_model.py" "$m" >/dev/null || {
-      echo "  $m: resistance model failed -- falling back to capacitance only"
+  job_slot
+  (
+    echo "== $m  (best column $G_BEST_COL, series NMOS $G_BEST_CHAIN;"
+    echo "        worst is column $G_WORST_COL with $G_CHAIN) =="
+    if [ "${NO_RESISTANCE:-0}" = 1 ]; then
       RFLAG=--no-resistance
-    }
-  fi
-  # 1) the best PROGRAMMED column -- reported for comparison
-  # 2) the fastest array this GEOMETRY can hold -- what retain_* uses
-  python3 "$ROM_CHAR_DIR/gen_col_tb_parasitic.py" "$m" "$G_BEST_COL" \
-          $RFLAG "--tag=$TAG"
-  python3 "$ROM_CHAR_DIR/gen_col_tb_parasitic.py" "$m" "$G_BEST_COL" \
-          $RFLAG "--tag=$FAST" --ones=0
-  # Both TT decks were run by the generator itself, not by run_ng, so they are
-  # judged and stamped here -- an unstamped log is refused downstream, which
-  # for retain_* means no arc at all rather than one from an older netlist.
-  for t in "$TAG" "$FAST"; do
-    prov_adopt "early-path" "$G_CHAR/${G_BESTTAG}_${t}.sp" \
-               "$G_CHAR/${G_BESTTAG}_${t}.log" "$m tt" || true
-  done
-  for c in ss ff; do
+    else
+      RFLAG=""
+      python3 "$ROM_CHAR_DIR/gen_resistance_model.py" "$m" >/dev/null || {
+        echo "  $m: resistance model failed -- falling back to capacitance only"
+        RFLAG=--no-resistance
+      }
+    fi
+    # 1) the best PROGRAMMED column -- reported for comparison
+    # 2) the fastest array this GEOMETRY can hold -- what retain_* uses
+    python3 "$ROM_CHAR_DIR/gen_col_tb_parasitic.py" "$m" "$G_BEST_COL" \
+            $RFLAG "--tag=$TAG"
+    python3 "$ROM_CHAR_DIR/gen_col_tb_parasitic.py" "$m" "$G_BEST_COL" \
+            $RFLAG "--tag=$FAST" --ones=0
+    # Both TT decks were run by the generator itself, not by run_ng, so they are
+    # judged and stamped here -- an unstamped log is refused downstream, which
+    # for retain_* means no arc at all rather than one from an older netlist.
     for t in "$TAG" "$FAST"; do
-      python3 "$ROM_CHAR_DIR/make_corner_variant.py" "$m" "$G_BEST_COL" "$c" \
-              "--tag=$t" >/dev/null
-      sp="$G_CHAR/${G_BESTTAG}_${t}_${c}.sp"
-      lg="$G_CHAR/${G_BESTTAG}_${t}_${c}.log"
-      run_ng "early-path" "$sp" "$lg" "$m $c" &
+      prov_adopt "early-path" "$G_CHAR/${G_BESTTAG}_${t}.sp" \
+                 "$G_CHAR/${G_BESTTAG}_${t}.log" "$m tt" || true
     done
-  done
-  wait
+    for c in ss ff; do
+      for t in "$TAG" "$FAST"; do
+        python3 "$ROM_CHAR_DIR/make_corner_variant.py" "$m" "$G_BEST_COL" "$c" \
+                "--tag=$t" >/dev/null
+        sp="$G_CHAR/${G_BESTTAG}_${t}_${c}.sp"
+        lg="$G_CHAR/${G_BESTTAG}_${t}_${c}.log"
+        run_ng "early-path" "$sp" "$lg" "$m $c" &
+      done
+    done
+    wait
 
-  printf "  %-4s %14s %14s %14s\n" corner "fastest array" "best column" "worst column"
-  for c in tt ss ff; do
-    [ "$c" = tt ] && sfx="" || sfx="_$c"
-    f=$(meas "$G_CHAR/${G_BESTTAG}_${FAST}${sfx}.log" t_dis_50 \
-        | awk '{printf "%.4f", $1*1e9}')
-    e=$(meas "$G_CHAR/${G_BESTTAG}_${TAG}${sfx}.log" t_dis_50 \
-        | awk '{printf "%.4f", $1*1e9}')
-    l=$(meas "$G_CHAR/${G_COLTAG}_worst_case_parasitic${sfx}.log" t_dis_50 \
-        | awk '{printf "%.4f", $1*1e9}')
-    printf "  %-4s %14s %14s %14s\n" "$c" "${f:-FAILED}" "${e:-?}" "${l:-?}"
-  done
+    printf "  %-4s %14s %14s %14s\n" corner "fastest array" "best column" "worst column"
+    for c in tt ss ff; do
+      [ "$c" = tt ] && sfx="" || sfx="_$c"
+      f=$(meas "$G_CHAR/${G_BESTTAG}_${FAST}${sfx}.log" t_dis_50 \
+          | awk '{printf "%.4f", $1*1e9}')
+      e=$(meas "$G_CHAR/${G_BESTTAG}_${TAG}${sfx}.log" t_dis_50 \
+          | awk '{printf "%.4f", $1*1e9}')
+      l=$(meas "$G_CHAR/${G_COLTAG}_worst_case_parasitic${sfx}.log" t_dis_50 \
+          | awk '{printf "%.4f", $1*1e9}')
+      printf "  %-4s %14s %14s %14s\n" "$c" "${f:-FAILED}" "${e:-?}" "${l:-?}"
+    done
+  ) > "$EARLY_OUT/$m.txt" 2>&1 & job_add $!
+done
+job_drain
+
+for m in $(macro_list "$@"); do
+  [ -f "$EARLY_OUT/$m.txt" ] && cat "$EARLY_OUT/$m.txt"
 done
 
 echo

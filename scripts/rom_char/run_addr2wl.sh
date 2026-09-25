@@ -71,12 +71,12 @@ for m in $MACROS; do
     python3 "$GENP" "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
             --gate-cap-ff "$cg" --addr 0 --addr-alt "$ALT" \
             --addr-sw-eval >/dev/null
-    run_ng "addr-to-wordline" "$sp" "$lg" "$m $c" &
+    job_slot
+    run_ng "addr-to-wordline" "$sp" "$lg" "$m $c" & job_add $!
     n=$((n+1))
-    [ $((n % JOBS)) -eq 0 ] && wait
   done
 done
-wait
+job_drain
 
 echo ""
 printf "%-7s %-6s %12s %12s %12s   %s\n" \

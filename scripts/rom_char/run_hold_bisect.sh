@@ -48,7 +48,13 @@
 # bitline goes on discharging and the read survives an earlier address move.
 #
 # COST: ~1 min per point, ceil(log2((hi-lo)/tol)) points plus the two bracket
-# checks. The corners run in parallel, one process each.
+# checks. A bisection cannot be parallelised -- each point picks the next one
+# -- but the macro x corner PAIRS are independent, and all of them run side by
+# side. This used to parallelise over corners only, three processes at a time
+# with the macros queued behind each other: on four macros that was a 4x
+# underuse of any machine with cores to spare, and it is where the "why is
+# this taking three hours" came from. The decks are one extracted column,
+# ~0.45 GB each, so twelve at once costs ~5 GB.
 #
 # Usage: scripts/rom_char/run_hold_bisect.sh [macro ...]
 #        HOLD_TOL=0.02 scripts/rom_char/run_hold_bisect.sh wrom0
@@ -65,6 +71,10 @@ set -e
 need_ngspice
 ng_reset          # clear the failure ledger for this run
 GEN="$ROM_CHAR_DIR/gen_addr_hold_tb.py"
+
+# One extracted column per deck, not the periphery's 2.6 GB: this stage can
+# afford far more processes than the default $JOBS assumes.
+JOBS=$(stage_jobs "$ROM_MEM_COLUMN")
 
 TOL="${HOLD_TOL:-0.05}"          # ns; stop when the bracket is this narrow
 VOH="${HOLD_VOH_FRAC:-0.9}"      # bl_b must reach this fraction of VDD
@@ -204,13 +214,22 @@ for m in $MACROS; do
       [ -z "$hi" ] && hi=22
     fi
 
+    # Forked AFTER load_geom, so the subshell carries this macro's own
+    # geometry; the parent may move on to the next macro immediately.
+    job_slot
     ( bisect_corner "$m" "$c" "$v" "$OUT" "$slew" "$slewsrc" "$hi" \
-        > "$OUT/bisect_${c}.txt" 2>&1 ) &
+        > "$OUT/bisect_${c}.txt" 2>&1 ) & job_add $!
   done
-  wait
+done
+job_drain
+
+# Printed macro by macro afterwards, so a run that was interleaved across
+# twelve processes still reads in the order somebody would look for it.
+for m in $MACROS; do
+  load_geom "$m" || continue
   for ck in $CORNERS; do
     c=$(echo "$ck" | cut -d: -f1)
-    [ -f "$OUT/bisect_${c}.txt" ] && cat "$OUT/bisect_${c}.txt" && echo
+    [ -f "$G_CHAR/hold/bisect_${c}.txt" ] && cat "$G_CHAR/hold/bisect_${c}.txt" && echo
   done
 done
 

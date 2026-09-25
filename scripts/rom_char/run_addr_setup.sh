@@ -67,12 +67,12 @@ for m in $MACROS; do
     lg="$G_CHAR/periph_setup_${c}.log"
     python3 "$GENP" "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
             --gate-cap-ff "$cg" --addr "$ADDR" --addr-alt "$ADDR_ALT" >/dev/null
-    run_ng "addr-setup" "$sp" "$lg" "$m $c" &
+    job_slot
+    run_ng "addr-setup" "$sp" "$lg" "$m $c" & job_add $!
     n=$((n+1))
-    [ $((n % JOBS)) -eq 0 ] && wait
   done
 done
-wait
+job_drain
 
 echo ""
 echo "macro   corner  measured setup (ns)   [addr0 -> decoder NAND input]"

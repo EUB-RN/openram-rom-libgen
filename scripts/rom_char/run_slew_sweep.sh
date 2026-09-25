@@ -51,14 +51,14 @@ for m in $MACROS; do
       lg="$G_CHAR/periph_slew${i}_${c}.log"
       python3 "$GENP" "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
               --gate-cap-ff "$cg" --clk-slew "${sl}n" >/dev/null
-      run_ng "slew-sweep" "$sp" "$lg" "$m $c slew$i" &
+      job_slot
+      run_ng "slew-sweep" "$sp" "$lg" "$m $c slew$i" & job_add $!
       n=$((n+1))
       i=$((i+1))
-      [ $((n % JOBS)) -eq 0 ] && wait
     done
   done
 done
-wait
+job_drain
 
 # --- Summary --------------------------------------------------------------
 echo

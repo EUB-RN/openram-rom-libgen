@@ -90,12 +90,12 @@ for m in $MACROS; do
     lg="$G_CHAR/pincap_${c}.log"
     python3 "$GENP" "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
             --gate-cap-ff "$cg" --pin-cap --pin-tr "$PIN_TR" >/dev/null
-    run_ng "pin-cap" "$sp" "$lg" "$m $c" &
+    job_slot
+    run_ng "pin-cap" "$sp" "$lg" "$m $c" & job_add $!
     n=$((n+1))
-    [ $((n % JOBS)) -eq 0 ] && wait
   done
 done
-wait
+job_drain
 
 # --- Summary --------------------------------------------------------------
 # The pin index -> name mapping is a *PINCAP marker the generator writes into

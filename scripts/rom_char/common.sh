@@ -39,7 +39,11 @@ NG="${NGSPICE_BIN:-ngspice}"
 # the one it was written on. An explicit JOBS= still wins; detection that
 # fails falls back to the old 4 rather than guessing.
 ROM_JOB_MEM_GB="${ROM_JOB_MEM_GB:-3}"
+# Remember whether the user chose the number, BEFORE the default fills it in:
+# stage_jobs below must not second-guess an explicit JOBS=.
+case "${JOBS:-}" in "") ROM_JOBS_FIXED=0 ;; *) ROM_JOBS_FIXED=1 ;; esac
 rom_auto_jobs() {
+  _mem="${1:-$ROM_JOB_MEM_GB}"
   _cores=$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null \
            || sysctl -n hw.ncpu 2>/dev/null) || _cores=""
   # MemAvailable, not MemFree: the page cache is reclaimable and counting it
@@ -48,7 +52,10 @@ rom_auto_jobs() {
   [ -z "$_avail_kb" ] && _avail_kb=$(( $(sysctl -n hw.memsize 2>/dev/null || echo 0) / 1024 ))
   case "$_cores$_avail_kb" in *[!0-9]*|"") echo 4; return;; esac
   [ "$_cores" -ge 1 ] 2>/dev/null || { echo 4; return; }
-  _by_mem=$(( _avail_kb / 1048576 / ROM_JOB_MEM_GB ))
+  # awk, not $(( )): the footprint is a real number (the column decks are
+  # 0.45 GB) and shell arithmetic would truncate 0.45 to 0 and divide by zero.
+  _by_mem=$(awk -v kb="$_avail_kb" -v g="$_mem" \
+            'BEGIN{ if (g+0 <= 0) g = 3; printf "%d", kb/1048576/g }')
   _n="$_cores"; [ "$_by_mem" -lt "$_n" ] && _n="$_by_mem"
   # FLOOR OF 2, and it is not cosmetic. This is sampled ONCE, at start, and
   # then holds for a run that can last hours. Free memory is not: another
@@ -63,6 +70,58 @@ rom_auto_jobs() {
   echo "$_n"
 }
 JOBS="${JOBS:-$(rom_auto_jobs)}"
+
+# NOT EVERY STAGE COSTS THE SAME, and one number for all of them leaves most
+# of the machine idle. $JOBS above is sized for the PERIPHERY decks, which
+# keep the row decoder and hold ~2.6 GB. The decks built out of one column --
+# the hold bisection, the column timing and energy decks -- hold ~0.45 GB,
+# six times less, so the same memory budget affords six times the processes.
+# A stage that knows its own footprint asks for it:
+#
+#     JOBS=$(stage_jobs "$ROM_MEM_COLUMN")
+#
+# An explicit JOBS= from the environment still wins over both.
+ROM_MEM_PERIPHERY=3        # row decoder + lumped array: pin cap, slew sweep,
+                           # column decode, periphery power/leak, addr2wl, wl slew
+ROM_MEM_COLUMN=0.5         # one extracted column: col timing/energy, hold bisect
+ROM_MEM_BACKEND=1          # bitline inverter + mux + output buffer
+
+stage_jobs() {
+  [ "$ROM_JOBS_FIXED" = 1 ] && { echo "$JOBS"; return; }
+  rom_auto_jobs "$1"
+}
+
+# A ROLLING PIPELINE, NOT A BATCH BARRIER.
+#
+# Every stage used to launch $JOBS runs and then `wait` for ALL of them before
+# launching the next batch, so each batch cost the SLOWEST run in it and the
+# other cores sat idle until it finished. With SS three times slower than FF
+# in the same batch that is most of the machine, most of the time.
+#
+#     job_slot            # block until a slot is free
+#     run_ng ... & job_add $!
+#     ...
+#     job_drain           # at the end
+#
+# job_slot counts TRACKED PIDS rather than calling `jobs`: in dash a command
+# substitution is a subshell and `jobs` there reports nothing, which would
+# have made the throttle a no-op on exactly the /bin/sh most of these machines
+# have. kill -0 costs nothing and answers in any shell.
+_ROM_JOB_PIDS=""
+job_slot() {
+  _lim="${1:-$JOBS}"
+  while : ; do
+    _alive=""; _n=0
+    for _p in $_ROM_JOB_PIDS; do
+      if kill -0 "$_p" 2>/dev/null; then _alive="$_alive $_p"; _n=$((_n+1)); fi
+    done
+    _ROM_JOB_PIDS="$_alive"
+    [ "$_n" -lt "$_lim" ] && return 0
+    sleep 1
+  done
+}
+job_add()   { _ROM_JOB_PIDS="$_ROM_JOB_PIDS $1"; }
+job_drain() { wait; _ROM_JOB_PIDS=""; }
 
 # tag:vdd:temperature:fmax(MHz) -- fmax only feeds the P=E*f summary column;
 # nothing in the .lib is derived from it. The values are 1/minimum_period as

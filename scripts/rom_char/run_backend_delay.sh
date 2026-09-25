@@ -37,6 +37,10 @@ need_ngspice
 ng_reset          # clear the failure ledger for this run
 GEN="$ROM_CHAR_DIR/gen_backend_delay_tb.py"
 
+# The back-end deck keeps only the read path -- inverter, mux, output
+# buffer -- so it is ~1 GB rather than the periphery's 2.6.
+JOBS=$(stage_jobs "$ROM_MEM_BACKEND")
+
 # capture_bl <column deck> <out.txt> -- the column deck again, waveform kept.
 # wrdata lays one time column down per vector, so the file is
 #   time  v(bitline)  time  v(precharge)
@@ -82,13 +86,13 @@ for m in $MACROS; do
       lg="$G_CHAR/backend_${c}_${tag}.log"
       python3 "$GEN" "$m" "$G_WORST_COL" "$sp" --bl-wave "$wave" \
               --corner "$c" --vdd "$v" --temp "$t" --load-ff "$cl" >/dev/null
-      run_ng "backend-delay" "$sp" "$lg" "$m $c load=$tag" &
+      job_slot
+      run_ng "backend-delay" "$sp" "$lg" "$m $c load=$tag" & job_add $!
       n=$((n+1))
-      [ $((n % JOBS)) -eq 0 ] && wait
     done
   done
 done
-wait
+job_drain
 
 echo
 printf "%-7s %-6s %10s %14s %14s\n" macro corner "load(fF)" "t_bl2dout(ns)" "dout_slew(ns)"

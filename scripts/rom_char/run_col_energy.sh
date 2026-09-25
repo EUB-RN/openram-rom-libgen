@@ -25,6 +25,26 @@ GEN="$ROM_CHAR_DIR/gen_col_power_tb.py"
 #             from gen_random_read_energy.py; this column is the quick estimate
 #             that says whether that tool's answer is the right size.
 # Neither includes the periphery -- run_periphery_power.sh measures that.
+# One extracted column per deck, ~0.45 GB: bounded by cores, not memory.
+JOBS=$(stage_jobs "$ROM_MEM_COLUMN")
+
+# RUN PASS -- every macro x corner at once. These are the longest decks in
+# the flow (six cycles at a 1 us precharge phase), which is exactly why
+# running them one after another cost the most.
+for m in $(macro_list "$@"); do
+  load_geom "$m" || continue
+  for ck in $CORNERS; do
+    c=$(echo "$ck" | cut -d: -f1); v=$(echo "$ck" | cut -d: -f2)
+    t=$(echo "$ck" | cut -d: -f3)
+    sp="$G_CHAR/${G_COLTAG}_energy_${c}.sp"
+    python3 "$GEN" "$m" "$G_WORST_COL" active "$sp" --corner "$c" --vdd "$v" --temp "$t" >/dev/null
+    job_slot
+    run_ng "col-energy" "$sp" "$G_CHAR/${G_COLTAG}_energy_${c}.log" "$m $c" & job_add $!
+  done
+done
+job_drain
+
+# REPORT PASS, in macro/corner order, reading back what the run pass wrote.
 printf "%-7s %-6s %12s %12s %12s %10s %14s\n" \
        macro corner "E_col(pJ)" "E_worst(pJ)" "E_avg(pJ)" "c2/c3(%)" \
        "P@fmax(mW)"
@@ -35,8 +55,6 @@ for m in $(macro_list "$@"); do
     t=$(echo "$ck" | cut -d: -f3); f=$(echo "$ck" | cut -d: -f4)
     sp="$G_CHAR/${G_COLTAG}_energy_${c}.sp"
     lg="$G_CHAR/${G_COLTAG}_energy_${c}.log"
-    python3 "$GEN" "$m" "$G_WORST_COL" active "$sp" --corner "$c" --vdd "$v" --temp "$t" >/dev/null
-    run_ng "col-energy" "$sp" "$lg" "$m $c" || continue
     q2=$(meas "$lg" q_c2)
     q3=$(meas "$lg" q_c3)
     if [ -z "$q3" ]; then

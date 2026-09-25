@@ -288,6 +288,17 @@ optimistic at the one corner signoff actually uses.
 
 ![Back-end deck: bitline to dout0](docs/img/12-backend-dout.png)
 
+*`backend_tt_2756.sp`. Red is the bitline `v(bl_0_236)` -- the column deck's
+own discharge, replayed; blue is `v(dout0[2])`. The red curve is the whole
+argument of this section in one picture: it is not a line. It leaves VDD at
+15.5 ns almost flat, is steepest around the 0.9 V the inverter trips at
+(20.3 ns, `t_dis_50` + the deck's 5 ns start), and then trails off towards
+zero for tens of nanoseconds. A straight ramp fitted to the 50% and 10%
+points is the chord across that trail, three times flatter than the curve is
+where it matters. dout0 falls 1.17 ns after the bitline crosses 50% --
+`t_bl2dout` at this load -- and it falls in ~0.6 ns, an edge no part of the
+bitline's own shape resembles.*
+
 ### The column decoder, against the discharge it races
 
 ```bash
@@ -816,6 +827,24 @@ so it never drops below 2 however busy the machine looks at that instant. A
 run that lasts hours must not be serialised by a squeeze that lasts seconds;
 if you are deliberately starting a flow on a loaded machine, say `JOBS=` and
 mean it.
+
+**Not every deck costs 2.6 GB, and the stages say so.** A deck built out of
+one extracted column -- the column timing and energy decks, the hold
+bisection -- holds ~0.45 GB, so the same memory budget affords six times the
+processes; the back-end deck, which keeps only the read path, sits between
+them. Each stage asks for its own footprint (`stage_jobs` in `common.sh`,
+`ROM_MEM_COLUMN` / `ROM_MEM_BACKEND` / `ROM_MEM_PERIPHERY`) instead of
+inheriting the periphery's. An explicit `JOBS=` still wins over all of it.
+
+**Work is taken from a rolling queue, not in batches.** Each stage keeps
+`JOBS` runs in flight and starts the next one the moment a slot frees. The
+earlier code launched `JOBS` runs and waited for *all* of them before
+starting the next batch, so every batch cost as much as its slowest member --
+with SS three times slower than FF in the same batch, most of the machine sat
+idle most of the time. What still cannot overlap is stated where it happens:
+a bisection picks each point from the previous answer, and the decks a
+generator runs itself (the TT column and early-path decks) run inside their
+own macro's turn. The macros themselves never wait for each other.
 
 Step detail, per-script logs and troubleshooting:
 [Requirements, the flow, and the files](docs/flow.md). Without a simulator,

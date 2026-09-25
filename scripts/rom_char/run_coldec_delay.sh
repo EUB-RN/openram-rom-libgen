@@ -97,13 +97,13 @@ for m in $MACROS; do
       python3 "$GENP" "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
               --gate-cap-ff "$cg" --with-coldec --addr "$a" \
               --cycles "$CYCLES" >/dev/null
-      run_ng "column-decode" "$sp" "$lg" "$m $c addr$a" &
+      job_slot
+      run_ng "column-decode" "$sp" "$lg" "$m $c addr$a" & job_add $!
       n=$((n+1))
-      [ $((n % JOBS)) -eq 0 ] && wait
     done
   done
 done
-wait
+job_drain
 
 # --- Summary --------------------------------------------------------------
 # For each address: which select moved, how long it took, and what it has to

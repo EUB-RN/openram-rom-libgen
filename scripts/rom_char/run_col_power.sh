@@ -19,7 +19,11 @@ need_ngspice
 ng_reset          # clear the failure ledger for this run
 GEN="$ROM_CHAR_DIR/gen_col_power_tb.py"
 
-printf "%-7s %-6s %14s %14s %14s\n" macro corner "I_column(nA)" "I_total(uA)" "P_total(uW)"
+# One extracted column per deck, ~0.45 GB, so this stage is bounded by cores
+# rather than by memory -- the twelve runs used to go one after another.
+JOBS=$(stage_jobs "$ROM_MEM_COLUMN")
+
+# RUN PASS. Nothing is read back here, so nothing has to wait for its turn.
 for m in $(macro_list "$@"); do
   load_geom "$m" || continue
   for ck in $CORNERS; do
@@ -29,9 +33,24 @@ for m in $(macro_list "$@"); do
     sp="$G_CHAR/${G_COLTAG}_leak_${c}.sp"
     lg="$G_CHAR/${G_COLTAG}_leak_${c}.log"
     python3 "$GEN" "$m" "$G_WORST_COL" idle "$sp" --corner "$c" --vdd "$v" --temp "$t" >/dev/null
-    run_ng "col-leakage" "$sp" "$lg" "$m $c" || continue
+    job_slot
+    run_ng "col-leakage" "$sp" "$lg" "$m $c" & job_add $!
+  done
+done
+job_drain
+
+# REPORT PASS, in macro/corner order whatever order they finished in. A deck
+# that died leaves no current in its log and is printed as FAILED rather than
+# skipped -- run_ng has already recorded why in the ledger.
+printf "%-7s %-6s %14s %14s %14s\n" macro corner "I_column(nA)" "I_total(uA)" "P_total(uW)"
+for m in $(macro_list "$@"); do
+  load_geom "$m" || continue
+  for ck in $CORNERS; do
+    c=$(echo "$ck" | cut -d: -f1)
+    v=$(echo "$ck" | cut -d: -f2)
+    lg="$G_CHAR/${G_COLTAG}_leak_${c}.log"
     # `.measure op` produces no numeric output -> read the current from the .op table
-    i=$(grep -m1 "vvdd#branch" "$lg" | awk '{print $2}')
+    i=$(grep -m1 "vvdd#branch" "$lg" 2>/dev/null | awk '{print $2}')
     if [ -z "$i" ]; then
       printf "%-7s %-6s %14s\n" "$m" "$c" "FAILED"
       continue
