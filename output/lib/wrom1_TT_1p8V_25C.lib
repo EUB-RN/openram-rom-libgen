@@ -9,13 +9,13 @@
  *   clk0 = 0 -> bitlines precharge (dout0 all ones)
  *   clk0 = 1 -> evaluate; the selected cells discharge the bitline
  *   worst case through ~88 series NMOS (column 214);
- *   dout0 valid 15.811 ns later
+ *   dout0 valid 16.328 ns later
  *   dout0 becomes INVALID when clk0 falls. The consumer must either
  *   sample on clk0's falling edge, or drive the macro with an inverted
  *   clock (clk0 = ~clk) and capture on the system clock's rising edge.
  *   That invalidation IS in the data: bus(dout0) carries a second
  *   timing() group with timing_type : falling_edge and a delay of
- *   2.4992 ns (clk0 falling -> dout0 leaving its valid level).
+ *   1.9944 ns (clk0 falling -> dout0 leaving its valid level).
  *   It is the EARLIEST invalidation -- t_clk2pre + t_pre_50 +
  *   t_bl2dout at the smallest load -- because what must be proven
  *   is that the consumer captured BEFORE the data went away.
@@ -31,14 +31,14 @@
  *
  * ACCESS IS THE SUM OF THREE TERMS (all measured):
  *   clk0 -> precharge/wordline : 0.7586 ns
- *   precharge -> bitline 50%   : 15.8106 ns
- *   bitline -> dout0           : 1.4933 .. 1.7300 ns (vs output load)
- *   TOTAL (worst load)         : 18.2992 ns
+ *   precharge -> bitline 50%   : 16.3275 ns
+ *   bitline -> dout0           : 0.9796 .. 1.1933 ns (vs output load)
+ *   TOTAL (worst load)         : 18.2794 ns
  * The back-end term covers the bitline inverter, the 256:32 column
  * mux and the output buffer.
  *
  * HOLD IS NOT MEASURED. It is declared equal to access
- * (18.2992 ns) because the row decoder is clocked: an address
+ * (18.2794 ns) because the row decoder is clocked: an address
  * that moves during evaluate drops a second wordline and that
  * wordline does not come back inside the cycle. Safe, and
  * pessimistic -- scripts/rom_char/run_hold_bisect.sh measures
@@ -52,8 +52,8 @@
  * duration, and no setup/hold number can express it.
  *
  * COLUMN DECODER (measured, run_coldec_delay.sh): precharge ->
- *   column select takes 0.5753 ns against 15.8106 ns for the
- *   bitline, i.e. the mux is open 27x earlier than the data
+ *   column select takes 0.5753 ns against 16.3275 ns for the
+ *   bitline, i.e. the mux is open 28x earlier than the data
  *   needs it. It shares the precharge edge with the discharge
  *   rather than following it, so it adds NOTHING to access.
  *   This used to be an estimate; it is now a measurement.
@@ -87,7 +87,7 @@
  *   spread is above; it is real, not measurement noise.
  *
  * BOTH AXES OF THE TABLE ARE MEASURED.
- *   index_2 (output load)  : the back-end term, 1.4933 .. 1.7300 ns
+ *   index_2 (output load)  : the back-end term, 0.9796 .. 1.1933 ns
  *   index_1 (clk0 slew)    : the front-end term, 0.7227 .. 0.7586 ns
  *     at clk0 transitions 0.05, 0.2, 0.5 ns
  * t_front is the only term that depends on the clk0 edge: the
@@ -99,7 +99,7 @@
  * the library cannot declare a slew it was never measured at.
  *
  * EARLY PATH (retain_rise/retain_fall on dout0): dout0 keeps the
- * PREVIOUS cycle's value for 2.7234 .. 2.7593 ns after clk0 rises.
+ * PREVIOUS cycle's value for 2.2356 .. 2.2715 ns after clk0 rises.
  * Measured on the FASTEST ARRAY this geometry can hold, where
  * everything else in this file uses the worst column. A stored 0
  * is a metal strap and leaves the series path; a stored 1 is a
@@ -116,11 +116,11 @@
  * to fail on.
  * retaining_rise/fall is the smallest-load output slew, not a
  * separate measurement.
- * Output transition time MEASURED: 0.5036 .. 0.7746 ns
+ * Output transition time MEASURED: 0.3250 .. 0.5980 ns
  *
  * POWER MODEL: internal_power on clk0 is ENERGY PER CYCLE (pJ);
  * the power tool applies the frequency (P = E*f*activity).
- *   when "cs0"  = 71.0438 pJ  (read: column array + periphery)
+ *   when "cs0"  = 72.4492 pJ  (read: column array + periphery)
  *     MODELLED AS THE AVERAGE OF 10 RANDOM READS, not the
  *     worst case. A bitline draws recharge current only if
  *     it discharged, and it discharges only where the
@@ -131,12 +131,16 @@
  *       <zeros in the selected row> x E_column + E_periphery
  *     with both energy terms measured and only the activity
  *     counted from the netlist's own cell types.
- *     The all-columns-discharge worst case is 139.9021 pJ
+ *     The all-columns-discharge worst case is 142.8013 pJ
  *     (1.97x this number); use it for a current budget,
  *     not for an average-power figure.
  *     The sample is drawn with a seed derived from the
- *     macro name and the corner, so it is reproducible;
- *     the per-read table is in char/random_energy_*.log.
+ *     macro name ALONE, so it is reproducible AND all
+ *     three corners read the same addresses: which
+ *     columns discharge is set by the ROM contents, not
+ *     by the corner, so a per-corner draw would put pure
+ *     sampling noise into the corner ratios.
+ *     The per-read table is in char/random_energy_*.log.
  *   when "!cs0" = 3.5426 pJ  (IDLE: cs0 only gates the
  *     precharge; the clk_int tree, the address buffers, the row
  *     decoder and 134 wordlines switch even when deselected.
@@ -193,7 +197,7 @@ library (wrom1_TT_1p8V_25C) {
     default_input_pin_cap    : 1.0;
     default_inout_pin_cap    : 1.0;
     default_output_pin_cap   : 0.0;
-    default_max_transition   : 0.9295;
+    default_max_transition   : 0.7176;
     default_fanout_load      : 1.0;
     default_max_fanout       : 4.0;
     default_connection_class : universal;
@@ -280,44 +284,44 @@ cell (wrom1) {
             related_pin : "clk0";
             timing_type : rising_edge;
             cell_rise(CELL_TABLE) {
-            values("18.0266, 18.0832, 18.2633",\
-                    "18.0445, 18.1011, 18.2812",\
-                    "18.0625, 18.1191, 18.2992");
+            values("18.0298, 18.0815, 18.2435",\
+                    "18.0477, 18.0994, 18.2614",\
+                    "18.0657, 18.1174, 18.2794");
             }
             cell_fall(CELL_TABLE) {
-            values("18.0266, 18.0832, 18.2633",\
-                    "18.0445, 18.1011, 18.2812",\
-                    "18.0625, 18.1191, 18.2992");
+            values("18.0298, 18.0815, 18.2435",\
+                    "18.0477, 18.0994, 18.2614",\
+                    "18.0657, 18.1174, 18.2794");
             }
             rise_transition(CELL_TABLE) {
-            values("0.5036, 0.5554, 0.7746",\
-                    "0.5036, 0.5554, 0.7746",\
-                    "0.5036, 0.5554, 0.7746");
+            values("0.3250, 0.3824, 0.5980",\
+                    "0.3250, 0.3824, 0.5980",\
+                    "0.3250, 0.3824, 0.5980");
             }
             fall_transition(CELL_TABLE) {
-            values("0.5036, 0.5554, 0.7746",\
-                    "0.5036, 0.5554, 0.7746",\
-                    "0.5036, 0.5554, 0.7746");
+            values("0.3250, 0.3824, 0.5980",\
+                    "0.3250, 0.3824, 0.5980",\
+                    "0.3250, 0.3824, 0.5980");
             }
             retain_rise(CELL_TABLE) {
-            values("2.7234, 2.7234, 2.7234",\
-                    "2.7413, 2.7413, 2.7413",\
-                    "2.7593, 2.7593, 2.7593");
+            values("2.2356, 2.2356, 2.2356",\
+                    "2.2535, 2.2535, 2.2535",\
+                    "2.2715, 2.2715, 2.2715");
             }
             retain_fall(CELL_TABLE) {
-            values("2.7234, 2.7234, 2.7234",\
-                    "2.7413, 2.7413, 2.7413",\
-                    "2.7593, 2.7593, 2.7593");
+            values("2.2356, 2.2356, 2.2356",\
+                    "2.2535, 2.2535, 2.2535",\
+                    "2.2715, 2.2715, 2.2715");
             }
             retaining_rise(CELL_TABLE) {
-            values("0.5036, 0.5036, 0.5036",\
-                    "0.5036, 0.5036, 0.5036",\
-                    "0.5036, 0.5036, 0.5036");
+            values("0.3250, 0.3250, 0.3250",\
+                    "0.3250, 0.3250, 0.3250",\
+                    "0.3250, 0.3250, 0.3250");
             }
             retaining_fall(CELL_TABLE) {
-            values("0.5036, 0.5036, 0.5036",\
-                    "0.5036, 0.5036, 0.5036",\
-                    "0.5036, 0.5036, 0.5036");
+            values("0.3250, 0.3250, 0.3250",\
+                    "0.3250, 0.3250, 0.3250",\
+                    "0.3250, 0.3250, 0.3250");
             }
         }
         timing() {
@@ -325,24 +329,24 @@ cell (wrom1) {
             related_pin : "clk0";
             timing_type : falling_edge;
             cell_rise(CELL_TABLE) {
-            values("2.4992, 2.4992, 2.4992",\
-                    "2.4992, 2.4992, 2.4992",\
-                    "2.4992, 2.4992, 2.4992");
+            values("1.9944, 1.9944, 1.9944",\
+                    "1.9944, 1.9944, 1.9944",\
+                    "1.9944, 1.9944, 1.9944");
             }
             cell_fall(CELL_TABLE) {
-            values("2.4992, 2.4992, 2.4992",\
-                    "2.4992, 2.4992, 2.4992",\
-                    "2.4992, 2.4992, 2.4992");
+            values("1.9944, 1.9944, 1.9944",\
+                    "1.9944, 1.9944, 1.9944",\
+                    "1.9944, 1.9944, 1.9944");
             }
             rise_transition(CELL_TABLE) {
-            values("0.5036, 0.5554, 0.7746",\
-                    "0.5036, 0.5554, 0.7746",\
-                    "0.5036, 0.5554, 0.7746");
+            values("0.3250, 0.3824, 0.5980",\
+                    "0.3250, 0.3824, 0.5980",\
+                    "0.3250, 0.3824, 0.5980");
             }
             fall_transition(CELL_TABLE) {
-            values("0.5036, 0.5554, 0.7746",\
-                    "0.5036, 0.5554, 0.7746",\
-                    "0.5036, 0.5554, 0.7746");
+            values("0.3250, 0.3824, 0.5980",\
+                    "0.3250, 0.3824, 0.5980",\
+                    "0.3250, 0.3824, 0.5980");
             }
         }
         }
@@ -374,14 +378,14 @@ cell (wrom1) {
             timing_type : hold_rising;
             related_pin : "clk0";
             rise_constraint(CONSTRAINT_TABLE) {
-                values("18.2992, 18.2992, 18.2992",\
-                    "18.2992, 18.2992, 18.2992",\
-                    "18.2992, 18.2992, 18.2992");
+                values("18.2794, 18.2794, 18.2794",\
+                    "18.2794, 18.2794, 18.2794",\
+                    "18.2794, 18.2794, 18.2794");
             }
             fall_constraint(CONSTRAINT_TABLE) {
-                values("18.2992, 18.2992, 18.2992",\
-                    "18.2992, 18.2992, 18.2992",\
-                    "18.2992, 18.2992, 18.2992");
+                values("18.2794, 18.2794, 18.2794",\
+                    "18.2794, 18.2794, 18.2794",\
+                    "18.2794, 18.2794, 18.2794");
             }
         }
         }
@@ -411,14 +415,14 @@ cell (wrom1) {
             timing_type : hold_rising;
             related_pin : "clk0";
             rise_constraint(CONSTRAINT_TABLE) {
-                values("18.2992, 18.2992, 18.2992",\
-                    "18.2992, 18.2992, 18.2992",\
-                    "18.2992, 18.2992, 18.2992");
+                values("18.2794, 18.2794, 18.2794",\
+                    "18.2794, 18.2794, 18.2794",\
+                    "18.2794, 18.2794, 18.2794");
             }
             fall_constraint(CONSTRAINT_TABLE) {
-                values("18.2992, 18.2992, 18.2992",\
-                    "18.2992, 18.2992, 18.2992",\
-                    "18.2992, 18.2992, 18.2992");
+                values("18.2794, 18.2794, 18.2794",\
+                    "18.2794, 18.2794, 18.2794",\
+                    "18.2794, 18.2794, 18.2794");
             }
         }
         timing() {
@@ -461,20 +465,20 @@ cell (wrom1) {
         timing() {
             timing_type : "min_pulse_width";
             related_pin : clk0;
-            rise_constraint(scalar) { values("18.7992"); }
-            fall_constraint(scalar) { values("11.1215"); }
+            rise_constraint(scalar) { values("18.7794"); }
+            fall_constraint(scalar) { values("11.5229"); }
         }
         timing() {
             timing_type : "minimum_period";
             related_pin : clk0;
-            rise_constraint(scalar) { values("29.9207"); }
-            fall_constraint(scalar) { values("29.9207"); }
+            rise_constraint(scalar) { values("30.3023"); }
+            fall_constraint(scalar) { values("30.3023"); }
         }
         internal_power() {
             related_pg_pin : vccd1;
             when : "cs0";
-            rise_power(scalar) { values("71.0438"); }
-            fall_power(scalar) { values("71.0438"); }
+            rise_power(scalar) { values("72.4492"); }
+            fall_power(scalar) { values("72.4492"); }
         }
         internal_power() {
             related_pg_pin : vccd1;

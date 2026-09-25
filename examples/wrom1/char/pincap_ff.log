@@ -81,16 +81,16 @@ c_fall12_ff         =  8.64200e+00
 c_cyc12_ff          =  8.57835e+00
 
 
-Total analysis time (seconds) = 60.8819
+Total analysis time (seconds) = 55.4428
 
-Total elapsed time (seconds) = 520.862 
+Total elapsed time (seconds) = 680.933 
 
-Total DRAM available = 31789.582 MB.
-DRAM currently available = 17260.527 MB.
+Total DRAM available = 31789.570 MB.
+DRAM currently available = 20745.648 MB.
 Maximum ngspice program size = 2881.516 MB.
-Current ngspice program size = 2814.613 MB.
+Current ngspice program size = 2807.109 MB.
 
-Shared ngspice pages =   11.387 MB.
+Shared ngspice pages =   11.004 MB.
 Text (code) pages =    6.520 MB.
 Stack = 0 bytes.
 Library pages = 2859.352 MB.
