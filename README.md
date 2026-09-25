@@ -855,9 +855,12 @@ Step detail, per-script logs and troubleshooting:
 
 > A figure that shows as broken has not been captured yet -- the command above
 > it is how to reproduce it. Figure conventions: [docs/img/README.md](docs/img/README.md).
-> The waveform figures are ngspice's own output for the example macro named in
-> the command beside them; the layout screenshots in section 1 are
-> representative shots of the same architecture from a different macro.
+> The waveform figures are ngspice's own plot window for the example macro
+> named in the command beside them, screenshotted by hand: **no script in this
+> repository captures a waveform**, because the figures are the independent
+> check on what the flow computed and evidence made by the flow itself is not
+> a check on it. The layout screenshots in section 1 are representative shots
+> of the same architecture from a different macro.
 
 ---
 

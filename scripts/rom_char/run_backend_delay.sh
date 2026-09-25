@@ -8,9 +8,11 @@
 # the trip point for wrom0 at TT) that this term cannot be guessed.
 #
 # The stimulus is not a model of that edge, it IS the edge: this script
-# re-runs the column deck with its bitline kept (the measured run throws the
-# waveform away, exactly as run_waveform_capture.sh does for the figures) and
-# gen_backend_delay_tb.py replays those samples through a PWL source. What
+# re-runs the column deck with its bitline kept (the measured run asks only
+# for .measure results, so ngspice throws the samples away) and
+# gen_backend_delay_tb.py replays them through a PWL source. What is kept is
+# DATA for a measurement, not a picture -- the figures in docs/img are taken
+# by a person at the plot window and no script draws one. What
 # stood here before was a straight ramp through the measured 50% and 10%
 # points; a discharge decelerates, so that secant was 3.1x flatter than the
 # real curve at the inverter's trip point and t_bl2dout came out 48% high.

@@ -81,10 +81,12 @@ JOBS=4 ./scripts/rom_char/run_periphery_power.sh   #  -> periph_{active,idle}_<c
 
 # 8) behavioural Verilog
 python3 scripts/rom_char/gen_macro_behavioral_v.py #  -> output/verilog/<macro>.v
-
-# 9) optional: redraw the waveform figures from what was just measured
-./scripts/rom_char/run_waveform_capture.sh   # ngspice hardcopy -> docs/img/*.svg
 ```
+
+Figures are not step 10. Nothing in this flow draws one: a waveform figure is
+taken by a person, interactively, at ngspice's own plot window --
+[`docs/img/README.md`](img/README.md) says why and gives the deck and the
+`plot` line for each.
 
 Every script takes macro names as arguments; with none, **every macro in the
 tree** is processed:
@@ -168,12 +170,12 @@ until their stage is re-run.
 | `gen_rom_lib.py` | LEF + measured values -> Liberty |
 | `gen_macro_behavioral_v.py` | behavioural `.v` that reports timing violations |
 | `regen_rom_libs.sh` | the top-level script that ties the flow together |
-| `run_waveform_capture.sh` | re-runs a measured deck with the waveform kept; ngspice's own `hardcopy` writes the figure |
 | `tests/` | validation of the generated `.lib` -- see [`tests/README.md`](../tests/README.md) |
 
-Figures live in `docs/img/`. The waveforms are ngspice's own `hardcopy` of
-its own runs -- no plotting tool sits between the simulation and the picture
--- and `run_waveform_capture.sh` redraws them from the decks that were just
-measured. The layout screenshots are yours to take.
+Figures live in `docs/img/`. The waveforms are screenshots of ngspice's own
+plot window -- no plotting tool sits between the simulation and the picture,
+and no script takes them either: they are the independent check on what the
+flow computed, so a person captures them. The layout screenshots are yours to
+take too.
 [`docs/img/README.md`](img/README.md) says exactly what each figure has
 to show and which command produces it.

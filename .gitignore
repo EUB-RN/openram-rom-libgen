@@ -30,13 +30,11 @@ __pycache__/
 **/char/periph_leak_*_g1e-*.log
 **/char/periph_leak_*_g1e-*.log.prov
 
-# Waveforms kept from a re-run of an already-measured deck. Two scripts write
-# here and neither product is an input that has to survive: run_waveform_
-# capture.sh keeps raw files so ngspice's own `hardcopy` can draw the figures
-# (no plotting tool sits between the simulation and the picture -- the figures
-# are what gets committed), and run_backend_delay.sh keeps bl_<corner>.txt,
-# the column deck's discharge that the back-end deck replays. Both are
-# megabytes of samples and both are rebuilt from the deck they came from.
+# run_backend_delay.sh keeps bl_<corner>.txt here: the column deck's own
+# discharge, which the back-end deck replays through a PWL source. It is
+# megabytes of samples, it is not an input that has to survive, and it is
+# rebuilt from the deck it came from. (Figures do NOT come from here -- no
+# script captures a waveform; see docs/img/README.md.)
 **/char/wave/
 
 # User-provided ROM designs (keep documentation and directory tracker)
