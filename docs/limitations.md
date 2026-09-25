@@ -91,7 +91,7 @@ Ordered by how much they can move a number:
    | ff | 0.4603 | 0.4679 | 0.4725 | 2.7% |
 
    A 10x change in the clock edge stretches the front-end term by 5.7% at TT
-   -- and `access` by 0.24%, from 17.3084 to 17.3499 ns, because 14.85 ns of
+   -- and `access` by 0.24%, from 17.2260 to 17.2675 ns, because 15.34 ns of
    that sum is a bitline discharge that cannot see clk0 at all. So a consumer
    reading three near-identical rows is seeing the measurement, not a
    placeholder: this macro genuinely does not care how fast its clock arrives.
@@ -191,9 +191,12 @@ Ordered by how much they can move a number:
    still, because the requirement stretches with the period while a fixed
    number does not. Referenced to the falling edge, zero states it exactly for
    any period. `tests/test_rom_lib.py` refuses a `.lib` whose cs0 hold is
-   shorter than its access time, and one that has no `hold_falling` at all. The remaining
-   eleven macro/corner pairs have no hold log, so both pins keep
-   `hold = access` there and the header says so.
+   shorter than its access time, and one that has no `hold_falling` at all.
+
+   All twelve macro/corner pairs carry a measured address hold since
+   2026-09-25; the eleven that used to fall back to `hold = access` no longer
+   do. It runs 88-95% of access, so the fallback was pessimistic by 5-12% --
+   safe, but a constraint nobody had measured.
 
    **Setup is a path delay, and the race it has to win is quantified.**
    `t_addr2dec*` measures `addr0 -> inv_array_mod/Z`, the A input of the

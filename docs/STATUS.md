@@ -770,6 +770,8 @@ other input -- cs0 today, any control pin a future macro adds), which stays at
 reasoning, so a reader is not left to infer why two input pins carry different
 holds. On the eleven macro/corner pairs with no hold log nothing changes: both
 tables are `access_eff` and the header says the address hold is unmeasured.
+(Those eleven were measured on 2026-09-25 -- see that section. The mechanism
+described here is what made it a data question rather than a code one.)
 
 **What now catches it.** `tests/test_rom_lib.py` gained a check
 (`cs0 held for the whole read`, the 10th) that fails any `.lib` whose cs0 hold
@@ -963,6 +965,64 @@ to milliamps with every real current flat on zero.
 All twelve `.lib` and all four `.v` were regenerated from the re-characterised
 logs and `tests/check_lib.py` passes on all of them. Regenerating from
 unchanged inputs reproduces them byte for byte -- verified after the commit.
+
+### The address hold is measured everywhere now
+
+`run_wl_slew.sh` -> `run_hold_bisect.sh` -> `run_addr2wl.sh` had only ever run
+on wrom0/TT, so eleven of the twelve `.lib` files shipped `hold = access`.
+That fallback is safe and each header said so, but it declares the address
+must stay put ~10% longer than the circuit needs. All twelve are measured now:
+
+| | tt | ss | ff |
+|---|---|---|---|
+| wrom0 | 15.7509 | 35.9700 | 9.3744 |
+| wrom1 | 16.8393 | 38.3781 | 10.0604 |
+| wrom2 | 17.1508 | 39.2514 | 10.1891 |
+| wrom3 | 15.3536 | 35.4509 | 9.1882 |
+
+(ns, at the clk0 pin, `hold = t_clk2pre + cut - t_addr2wl`.) It runs 88-95% of
+access, the same shape everywhere, and `t_addr2wl` agrees to four digits
+across the four macros -- the periphery is the same circuit in all of them.
+
+Two cross-checks fell out of it. wrom0/TT's cut time came back at 16.1742 ns,
+the value already in the shipped header, from a run that used twelve parallel
+processes instead of three -- the bisection is deterministic and the
+parallelism did not touch it. And the wordline edge is real in every corner
+now (0.1558 ns at TT, 0.2915 at SS, 0.1028 at FF, against the ideal 100 ps
+step the deck used to fall back to), which is the pessimistic direction: a
+real edge keeps the chain partly conducting as it falls.
+
+### Why that took an afternoon, and what was done about it
+
+The run was on course for ~3 hours and the machine was mostly idle for it.
+Two structural reasons, both fixed in `common.sh` and the thirteen stages
+that use it:
+
+* every stage launched `$JOBS` decks and waited for ALL of them before
+  starting the next batch, so each batch cost its slowest member -- SS is 3x
+  slower than FF and they share batches. There is a rolling queue now
+  (`job_slot` / `job_add` / `job_drain`): the next deck starts the moment a
+  slot frees. It counts tracked PIDs with `kill -0` rather than calling
+  `jobs`, which in dash reports nothing from the subshell a command
+  substitution creates -- the throttle would have been a silent no-op on
+  exactly the `/bin/sh` most machines have.
+* `$JOBS` is sized for the periphery decks (~2.6 GB). A deck built from one
+  extracted column holds ~0.45 GB and was still being run seven at a time.
+  `stage_jobs` asks for the stage's own footprint (`ROM_MEM_COLUMN`,
+  `ROM_MEM_BACKEND`, `ROM_MEM_PERIPHERY`).
+
+And three stages had no parallelism to throttle in the first place:
+`run_hold_bisect.sh` parallelised over corners only, with the macros queued
+behind each other (a bisection cannot be split -- each point picks the next --
+but the twelve macro x corner pairs are independent), and
+`run_col_timing.sh` / `run_col_energy.sh` / `run_col_power.sh` were strictly
+serial, twelve decks with no `&` anywhere. Measured on this run: the hold
+stage went from ~2 hours to 33 minutes.
+
+One thing the stage footprints do NOT cover: two stages started BY HAND at the
+same time each size themselves against the same free memory and oversubscribe
+it together. That is how this run touched 2 GB of swap. In the flow as
+documented the stages run one after another, so it does not arise.
 
 ## Findings from the 2026-09-20 audit: what is closed and what is not
 
@@ -1218,19 +1278,20 @@ regenerate, `tests/check_lib.py` passes 12/12, and `tests/run_tests.sh` is
 green on every layer that can run here (OpenSTA still SKIPs -- no `sta`
 binary).
 
-**The twelve `.lib` and four `.v` in `output/` are CURRENT.** Re-running
-`regen_rom_libs.sh` and `gen_macro_behavioral_v.py` over the committed logs
-reproduces them byte for byte -- checked on 2026-09-25, `git status` clean
-afterwards. wrom0/TT ships `t_dis_50` = 15.3355 ns and `access` = 17.2675 ns.
+**The twelve `.lib` and four `.v` in `output/` are CURRENT**, and all twelve
+now carry a measured address hold rather than the `hold = access` fallback.
+Re-running `regen_rom_libs.sh` and `gen_macro_behavioral_v.py` over the
+committed logs reproduces them byte for byte -- checked on 2026-09-25,
+`git status` clean afterwards. wrom0/TT ships `t_dis_50` = 15.3355 ns,
+`access` = 17.2675 ns and `hold` = 15.7509 ns on addr0.
 
 Still open, in the order it would cost to close:
 
-* **The address hold is measured for wrom0/TT ONLY.** `run_hold_bisect.sh`,
-  `run_addr2wl.sh` and `run_wl_slew.sh` have never run on wrom1-3 or on the
-  other two corners, so eleven of the twelve `.lib` files carry
-  `hold = access` -- pessimistic, and each says so in its own header. Same
-  shape of gap as the column decoder, which is measured at every address on
-  wrom0/TT and at address 0 everywhere else.
+* The column decoder is measured at every address on wrom0/TT and at address
+  0 -- the slowest select -- everywhere else. The periphery is the same
+  circuit in all four macros and the numbers agree to four digits across them,
+  so this is cheap rather than risky; a macro whose column decoder differs
+  would need the full sweep.
 * **Five of the nine README figures have no capture yet**: `12-backend-dout`,
   `14-pincap`, `15-wl-slew`, `16-slew-sweep`, `18-setup`. The README links
   them already, so those five render as broken images. Every one has its deck

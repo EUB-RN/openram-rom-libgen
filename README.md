@@ -248,7 +248,7 @@ ngspice examples/wrom0/char/backend_tt_2756.sp
 ```
 ```
 ngspice 1 -> run
-ngspice 2 -> plot v(wrom0_rom_base_array_0/bl_0_236) v(dout0[2])
+ngspice 2 -> plot v(wrom0_rom_base_array_0/bl_0_236) v("dout0[2]")
 ```
 
 **What comes out of this deck** (`backend_<corner>_<load>.log`). It is run
@@ -567,7 +567,10 @@ wordline edge instead of a synthetic one:
 | `t_wl1090_0` | 90% -> 10% fall | **`/ 0.8` is the ramp `run_hold_bisect.sh` cuts the chain with** (`--wl-slew-ns`). Without it the hold would be bisected against an ideal edge the silicon never produces |
 
 That is why `run_wl_slew.sh` has to run BEFORE `run_hold_bisect.sh`, and why
-the hold is measured only where both logs exist.
+the hold is measured only where both logs exist -- which, since 2026-09-25, is
+every macro at every corner. Where they are missing the `.lib` keeps
+`hold = access` and says so in its header; that fallback is pessimistic by
+5-12%, since the measured hold runs 88-95% of access.
 
 ![Wordline fall, driver and load both real](docs/img/15-wl-slew.png)
 
@@ -596,7 +599,7 @@ slew point):
 
 The axis is nearly flat, and that is the measurement rather than a
 placeholder: a 10x change in the clock edge moves the front-end term by 5.7%
-and `access` by 0.24%, because 14.85 ns of that sum is a bitline discharge
+and `access` by 0.24%, because 15.34 ns of that sum is a bitline discharge
 that cannot see clk0 at all.
 
 Only term 1 of `access` depends on the clk0 edge -- terms 2 and 3 trigger off
