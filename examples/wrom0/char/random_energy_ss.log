@@ -1,28 +1,28 @@
 wrom0 ss: dynamic read energy, average of 10 random reads
   array        : 134 rows x 256 columns, 1064 words x 8 per row
-  E_column     : 0.3359 pJ per discharged column  (col236_energy_ss.log)
+  E_column     : 0.3446 pJ per discharged column  (col236_energy_ss.log)
   E_periphery  : 4.9940 pJ per cycle              (periph_active_ss.log)
   seed         : 4192668302
 
   read     address      row   discharged       E (pJ)
-  1             45        5          118      44.6317
-  2            860      107          133      49.6703
-  3            542       67          122      45.9753
-  4            297       37          127      47.6549
-  5            351       43          111      42.2803
-  6            877      109          109      41.6084
-  7            388       48          129      48.3267
-  8            202       25          124      46.6471
-  9            487       60          134      50.0062
-  10           752       94          132      49.3344
+  1             45        5          118      45.6573
+  2            860      107          133      50.8264
+  3            542       67          122      47.0357
+  4            297       37          127      48.7587
+  5            351       43          111      43.2451
+  6            877      109          109      42.5559
+  7            388       48          129      49.4480
+  8            202       25          124      47.7249
+  9            487       60          134      51.1710
+  10           752       94          132      50.4818
 
-  average      : 46.6135 pJ   (min 41.6084, max 50.0062, sd 2.9896)
-  worst case   : 90.9875 pJ   (all 256 columns discharging -- 1.95x)
-  whole array  : 47.6047 pJ   (exact mean over all 134 rows, 126.9 of 256
+  average      : 47.6905 pJ   (min 42.5559, max 51.1710, sd 3.0670)
+  worst case   : 93.2127 pJ   (all 256 columns discharging -- 1.95x)
+  whole array  : 48.7073 pJ   (exact mean over all 134 rows, 126.9 of 256
                  columns discharging; per-row spread 0..158). The
-                 sample is -2.08% against it.
+                 sample is -2.09% against it.
 
-e_read_avg_pj       =  4.661354e+01
-e_read_worst_pj     =  9.098751e+01
+e_read_avg_pj       =  4.769048e+01
+e_read_worst_pj     =  9.321266e+01
 n_reads             =  10
 seed                =  4192668302

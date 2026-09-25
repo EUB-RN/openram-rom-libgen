@@ -1,0 +1,10 @@
+# rom_char provenance v1 -- written by the flow, read by regen_rom_libs.sh
+version	1
+stage	column-decode
+context	wrom0 tt addr7
+when	2026-09-24T20:53:47Z
+deck	/home/hpw/openram-rom-libgen/examples/wrom0/char/coldec_a7_tt.sp
+deck_sha	cd17c93bb346d27243e2f5f03ce4750dbbd67751308703ec3dd368036481fb23
+log_sha	8442a88722c65c2b0f1a6230e1050368b4a8fc110ecd0c100df270b6a50e5e62
+src	/home/hpw/openram-rom-libgen/examples/wrom0/wrom0.sp
+src_sha	bab2cf4cfbc30db63bc8e54b68adf0cfec6bfe0a5559a1d72febca09e34fa192

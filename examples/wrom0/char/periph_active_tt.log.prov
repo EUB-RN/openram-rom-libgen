@@ -2,9 +2,9 @@
 version	1
 stage	periphery-energy
 context	wrom0 tt cs1
-when	2026-09-24T11:12:25Z
+when	2026-09-24T17:31:06Z
 deck	/home/hpw/openram-rom-libgen/examples/wrom0/char/periph_active_tt.sp
 deck_sha	5e1cc372bb160d55851ec7e151cb2e08bdc86bf4f0b4d4e05b8d0ca574706e4e
-log_sha	785ab9c980183034dbb05fafe9a8729aaa5f0a5a62727a7df04d2079868c7873
+log_sha	94093e1a76cccacb95fe0b573512797294d0d0787349b0bb8868ea9eb91f155e
 src	/home/hpw/openram-rom-libgen/examples/wrom0/wrom0.sp
 src_sha	bab2cf4cfbc30db63bc8e54b68adf0cfec6bfe0a5559a1d72febca09e34fa192

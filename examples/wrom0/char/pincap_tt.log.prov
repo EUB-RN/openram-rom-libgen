@@ -1,0 +1,10 @@
+# rom_char provenance v1 -- written by the flow, read by regen_rom_libs.sh
+version	1
+stage	pin-cap
+context	wrom0 tt
+when	2026-09-24T18:03:42Z
+deck	/home/hpw/openram-rom-libgen/examples/wrom0/char/pincap_tt.sp
+deck_sha	1d8484bc408d0a37e7fce6a80334cf00b3c0d222ebb8150d02cdc0e63b8ac55d
+log_sha	541f17c545cd6550035aeff58e5f3a69222ad05b440f535dfdcaed960fb7bffc
+src	/home/hpw/openram-rom-libgen/examples/wrom0/wrom0.sp
+src_sha	bab2cf4cfbc30db63bc8e54b68adf0cfec6bfe0a5559a1d72febca09e34fa192

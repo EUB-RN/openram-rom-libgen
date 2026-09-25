@@ -19,17 +19,17 @@ q_c3                =   -2.15378e-13 from=  8.00000e-07 to=  1.00000e-06
 e_col_pj            =  3.44604e-01
 
 
-Total analysis time (seconds) = 1.28911
+Total analysis time (seconds) = 2.07014
 
-Total elapsed time (seconds) = 51.231 
+Total elapsed time (seconds) = 101.329 
 
-Total DRAM available = 31789.566 MB.
-DRAM currently available = 13531.492 MB.
-Maximum ngspice program size =  421.242 MB.
-Current ngspice program size =  354.594 MB.
+Total DRAM available = 31789.570 MB.
+DRAM currently available = 11239.312 MB.
+Maximum ngspice program size =  421.531 MB.
+Current ngspice program size =  354.793 MB.
 
-Shared ngspice pages =   11.488 MB.
+Shared ngspice pages =   11.398 MB.
 Text (code) pages =    6.520 MB.
 Stack = 0 bytes.
-Library pages =  399.078 MB.
+Library pages =  399.367 MB.
 

@@ -2,9 +2,9 @@
 version	1
 stage	col-energy
 context	wrom0 ff
-when	2026-09-24T13:10:42Z
+when	2026-09-24T17:04:25Z
 deck	/home/hpw/openram-rom-libgen/examples/wrom0/char/col236_energy_ff.sp
 deck_sha	b15494d485f407f282e3b0d5172e1b41da32ee5b2f49c809e4b43061e47e3d0e
-log_sha	96584efb89cf6f93f25e62780ae49fe56020a12ee4418f6eace023bfd7ac6610
+log_sha	0223a9af2464610ea243d0b18420f019de4c365f55d13ad13eb32c9ce361d3d3
 src	/home/hpw/openram-rom-libgen/examples/wrom0/wrom0.sp
 src_sha	bab2cf4cfbc30db63bc8e54b68adf0cfec6bfe0a5559a1d72febca09e34fa192

@@ -2,9 +2,9 @@
 version	1
 stage	cell-gate-cap
 context	wrom0 ss
-when	2026-09-24T10:57:32Z
+when	2026-09-24T17:02:13Z
 deck	/home/hpw/openram-rom-libgen/examples/wrom0/char/cellgate_ss.sp
 deck_sha	21425879b2be3181b38168011880281f243c3f5c49a814c2a4b383e9808f7d82
-log_sha	ad51602bb362d7a3ffc88875e8a83c23d9db4f26d1af5ad66698a809720c3b24
+log_sha	024d8f27cce5745c34ab05cbe45bf411acfdcba74758aca81fab09481c89d16b
 src	/home/hpw/openram-rom-libgen/examples/wrom0/wrom0.sp
 src_sha	bab2cf4cfbc30db63bc8e54b68adf0cfec6bfe0a5559a1d72febca09e34fa192

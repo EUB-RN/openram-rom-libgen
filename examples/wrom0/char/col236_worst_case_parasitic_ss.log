@@ -464,17 +464,17 @@ t_pre_90            =  8.355960e-10 targ=  4.000886e-06 trig=  4.000050e-06
 t_pre_99            =  1.450789e-08 targ=  4.014558e-06 trig=  4.000050e-06
 
 
-Total analysis time (seconds) = 14.5914
+Total analysis time (seconds) = 21.6528
 
-Total elapsed time (seconds) = 58.769 
+Total elapsed time (seconds) = 116.282 
 
-Total DRAM available = 31789.566 MB.
-DRAM currently available = 15822.637 MB.
-Maximum ngspice program size =  420.117 MB.
-Current ngspice program size =  353.539 MB.
+Total DRAM available = 31789.570 MB.
+DRAM currently available = 11873.949 MB.
+Maximum ngspice program size =  420.492 MB.
+Current ngspice program size =  353.648 MB.
 
-Shared ngspice pages =   11.559 MB.
+Shared ngspice pages =   11.293 MB.
 Text (code) pages =    6.520 MB.
 Stack = 0 bytes.
-Library pages =  397.953 MB.
+Library pages =  398.328 MB.
 

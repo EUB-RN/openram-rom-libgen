@@ -2,9 +2,9 @@
 version	1
 stage	periphery-energy
 context	wrom0 tt cs0
-when	2026-09-24T11:12:09Z
+when	2026-09-24T17:17:36Z
 deck	/home/hpw/openram-rom-libgen/examples/wrom0/char/periph_idle_tt.sp
 deck_sha	824d7bda89d69fe6cd2482a03d149ca3cea64a90e741961b54d2176aa61ab70d
-log_sha	4c504432334cff2b2f578fd6fb5664b72cb8794c4f1b06eb32d19945eb894280
+log_sha	99d3dd975eb28340d4e6a823ed28bce90a8246f70c363747f262800a26679c1d
 src	/home/hpw/openram-rom-libgen/examples/wrom0/wrom0.sp
 src_sha	bab2cf4cfbc30db63bc8e54b68adf0cfec6bfe0a5559a1d72febca09e34fa192

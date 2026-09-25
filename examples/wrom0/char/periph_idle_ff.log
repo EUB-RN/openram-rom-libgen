@@ -115,17 +115,17 @@ v_wl6_eval          =  1.950000e+00
 v_wl7_eval          =  1.950000e+00
 
 
-Total analysis time (seconds) = 140.46
+Total analysis time (seconds) = 211.256
 
-Total elapsed time (seconds) = 547.602 
+Total elapsed time (seconds) = 696.936 
 
-Total DRAM available = 31789.566 MB.
-DRAM currently available = 10653.629 MB.
-Maximum ngspice program size = 2782.910 MB.
-Current ngspice program size = 2716.023 MB.
+Total DRAM available = 31789.570 MB.
+DRAM currently available = 13963.191 MB.
+Maximum ngspice program size = 2782.938 MB.
+Current ngspice program size = 2416.922 MB.
 
-Shared ngspice pages =   11.426 MB.
+Shared ngspice pages =   11.348 MB.
 Text (code) pages =    6.520 MB.
 Stack = 0 bytes.
-Library pages = 2760.746 MB.
+Library pages = 2760.773 MB.
 
