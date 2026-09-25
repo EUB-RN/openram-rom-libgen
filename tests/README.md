@@ -69,6 +69,35 @@ It asserts that the simulated output holds all ones during precharge, delays
 valid data until `ACCESS_NS` has elapsed, erases data immediately on the falling
 clock edge, and remains idle when `cs0 = 0`.
 
+## `wave/` -- the testbench you look at instead of run
+
+Every layer above is pass/fail: nothing in them is meant to be opened in a
+wave viewer, and layer 6's testbench is built in a temporary directory, writes
+no VCD, and drives the model through its *violations* on purpose.
+
+`wave/` holds the opposite instrument. `tb_<macro>_wave.v` drives only legal
+cycles and sweeps a run of addresses so the ROM contents can be read off the
+waves, in Vivado's wave window or in gtkwave. It is generated, not written by
+hand, so the timing in it cannot drift from the model's:
+
+```sh
+python3 scripts/rom_char/gen_wave_tb.py            # every macro
+python3 scripts/rom_char/gen_wave_tb.py wrom0 --reads 64
+```
+
+It also writes `<macro>_rom.mem`. That file is not a convenience:
+`rom_configs/<macro>.bin` is raw binary and `$readmemb` cannot read it -- it
+aborts on the first byte and the array stays X -- so the contents are converted
+to text and the testbench points its `INIT_FILE` there. The byte order inside a
+word is not recorded anywhere in the `.bin`; little-endian is the default and
+`--endian big` is the other choice.
+
+The trace to read the data off is `dout_cap`, not `dout0`. `dout0` returns to
+all ones on every falling edge, because precharge erases the read -- half of
+every cycle is `FFFFFFFF` and that is the macro being honest. `dout_cap` is the
+value a consumer clocked on the falling edge would capture. The run commands
+for Vivado are in the header of each testbench and in `tb_<macro>_wave.tcl`.
+
 Both OpenSTA and Verilog checks are fully automated in CI via
 `.github/workflows/ci.yml` on every push and pull request touching libraries or
 models.
