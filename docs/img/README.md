@@ -104,7 +104,7 @@ one of them; they are repeated here.
 |---|---|---|---|
 | `10-col-deck.png` | `col236_worst_case_parasitic.sp` | `v(precharge) v(bl_0_236)` | yes |
 | `11-periph-frontend.png` | `periph_active_tt.sp` | `v(clk0) v(wrom0_rom_row_decode_0/clk) v(wrom0_rom_row_decode_0/wl_0) v(wrom0_rom_column_decode_0/clk)` | yes |
-| `12-backend-dout.png` | `backend_tt_2756.sp` | `v(wrom0_rom_base_array_0/bl_0_236) v(dout0[2])` | no |
+| `12-backend-dout.png` | `backend_tt_2756.sp` | `v(wrom0_rom_base_array_0/bl_0_236) v(dout0[2])` | yes |
 | `13-coldec.png` | `coldec_a0_tt.sp` | `v(wrom0_rom_column_decode_0/clk) v(wrom0_rom_column_decode_0/wl_0)` | yes, but from `periph_active_tt.sp` -- see below |
 | `14-pincap.png` | `pincap_tt.sp` | `v(clk0) i(vpin1)` | no |
 | `15-wl-slew.png` | `wlslew_tt.sp` | `v(clk0) v(wrom0_rom_row_decode_0/wl_0)` | no |
@@ -117,7 +117,7 @@ The committed `13-coldec.png` shows the right two vectors but was taken from
 window title says so, and the README caption says so too. Re-capture it from
 `coldec_a0_tt.sp` and the caveat in the caption goes away.
 
-The four captured ones are the plot window as ngspice draws it -- black paper,
+The five captured ones are the plot window as ngspice draws it -- black paper,
 title bar and all -- not `hardcopy` output. That is fine per section 1 above;
 `hardcopy` only moves the same picture onto white and into vector form.
 
