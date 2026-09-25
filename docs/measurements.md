@@ -10,7 +10,7 @@ Which deck measures which block, how `access` is built from three terms, the fre
 
 ![Macro floorplan](img/01-macro-floorplan.png)
 
-The macro has seven top-level blocks. Six appear in the measurements:
+The macro has seven top-level blocks. All seven appear in the measurements:
 
 | block | timing | power |
 |---|---|---|
@@ -19,8 +19,8 @@ The macro has seven top-level blocks. Six appear in the measurements:
 | `rom_base_array` (cells + precharge) | column deck (worst column) | yes (x columns) |
 | `rom_bitline_inverter` | back-end deck | yes (inside the column deck) |
 | `rom_column_mux_array` | back-end deck | no |
-| `rom_output_buffer` | back-end deck | no |
-| `rom_column_decode` (addr[2:0] -> word_sel) | not measured | no |
+| `rom_output_buffer` | back-end deck | yes (periphery leak) |
+| `rom_column_decode` (addr[2:0] -> word_sel) | coldec deck (races discharge) | yes (periphery leak) |
 
 ### `access` is the sum of three measured terms
 
@@ -61,7 +61,8 @@ justifies holding every wordline at VDD in the column deck.
 The back-end deck is run once per output load, so the `index_2`
 (`total_output_net_capacitance`) axis of the CELL_TABLE is a real measurement
 and not three copies of one number. The bitline edge driving it is not a guess
-either -- it uses the slope implied by the measured `t_dis_50`/`t_dis_10`.
+either -- it replays the column deck's own discharge waveform sample for
+sample through a PWL source (cached in `char/wave/bl_<corner>.txt`).
 
 Also measured: setup (`t_addr2dec*`), leakage (`.op`), per-column energy and
 periphery energy, active and idle.
@@ -79,10 +80,10 @@ macros:
 
 | macro | corner | `min_pulse_width` rise / fall | `minimum_period` | f_max |
 |---|---|---|---|---|
-| wrom0 | TT | 17.83 / 11.52 ns | 29.35 ns | 34.1 MHz |
-| wrom0 | SS | -- | 54.75 ns | 18.3 MHz |
-| wrom0 | FF | -- | 20.74 ns | 48.2 MHz |
-| wrom3 | TT | -- | 28.82 ns | 34.7 MHz |
+| wrom0 | TT | 17.77 / 12.25 ns | 30.02 ns | 33.3 MHz |
+| wrom0 | SS | 41.98 / 14.88 ns | 56.86 ns | 17.6 MHz |
+| wrom0 | FF | 10.17 /  9.67 ns | 19.84 ns | 50.4 MHz |
+| wrom3 | TT | 17.20 / 12.28 ns | 29.48 ns | 33.9 MHz |
 
 Prefer these to any number written in prose: STA enforces what is in the
 `.lib`, and nothing enforces a sentence in a README. (The `fmax` field of
