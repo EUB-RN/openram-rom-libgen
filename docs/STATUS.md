@@ -1,6 +1,6 @@
 # Where the work stands
 
-Last updated: 2026-09-24. Keep this file current when stopping mid-task.
+Last updated: 2026-09-25. Keep this file current when stopping mid-task.
 
 ## Done and verified
 
@@ -32,6 +32,13 @@ Last updated: 2026-09-24. Keep this file current when stopping mid-task.
   installed.
 
 ## The 2026-09-20 re-characterisation: FINISHED
+
+*Every bitline number in this section is from that run. Two later changes moved
+them: the array-level parasitic C (2026-09-24, +3.2-3.3%) and the replayed
+bitline edge in the back-end deck (2026-09-25, `t_bl2dout` -35 to -45% at TT
+and FF, +30% at SS). wrom0 TT `t_dis_50` reads 15.3355 ns now, not 14.8495.
+The shipped values are in `output/lib/`; this section is kept as the record of
+that run.*
 
 All four macros now carry the same three pieces of work -- wire resistance,
 the measured `index_1` (clk0 slew) axis and the early path. Every step of the
@@ -876,6 +883,87 @@ flat-50% `E_avg` estimate), and says which of the two `P@fmax` is quoted for.
 
 All twelve `.lib` files were regenerated and pass `tests/check_lib.py`.
 
+## 2026-09-25
+
+### The back end was measured against an edge no ROM produces
+
+`gen_backend_delay_tb.py` drove the bitline with a straight ramp through the
+measured `t_dis_50` and `t_dis_10`. That ramp reproduces those two instants
+and nothing else, and the curve it stands in for is not a line: a bitline
+discharge DECELERATES, so the 50%-to-10% secant is far flatter than the slope
+at the VDD/2 the deck actually trips on (wrom0 TT: -0.0382 against
+-0.1185 V/ns, 3.1x; 2.3x at SS, 3.0x at FF).
+
+The fix is not a better fit. `run_backend_delay.sh` now re-runs the column
+deck with the waveform kept -- the same trick `run_waveform_capture.sh` uses
+for the figures -- and the generator replays those samples through a PWL
+source, so the stimulus IS the discharge. The window locates itself: the last
+rising VDD/2 crossing of the dumped `precharge` net is the edge `t_dis_50`
+triggers on, so neither deck counts cycles. The replay stops at 1% of VDD
+(PWL holds its last value; every downstream threshold is an order of magnitude
+above that) and the deck header prints the `t_dis_50`/`t_dis_10` of what it
+replayed, which must match the column log -- that is the proof, at all three
+corners, that it is the same curve. The capture is cached on mtime in
+`char/wave/bl_<corner>.txt` (gitignored, ~2 min a corner).
+
+**The error was not one-sided.** `t_bl2dout`, wrom0, largest load:
+
+| corner | ramp | replayed edge | |
+|---|---|---|---|
+| TT | 1.7321 ns | 1.1678 ns | 48% pessimistic |
+| FF | 1.4854 ns | 0.8093 ns | 84% pessimistic |
+| SS | 1.9117 ns | 2.4829 ns | **23% optimistic** |
+
+A too-flat edge leaves the bitline inverter in its transition region for
+nanoseconds, so part of what `trig`->`targ` measured was how far the output
+had already moved by the time the bitline passed 50%. At SS the back end is
+slow enough (2-2.8 ns of output slew) for that head start to outweigh
+everything else -- i.e. the `.lib` was optimistic at the one corner signoff
+uses. It is the first defect found here that pointed that way.
+
+`access` barely moves, and that is a coincidence worth stating: the back-end
+term shrank by about as much as the array-level C had just added to the
+bitline term (wrom0 TT 17.3271 -> 17.2675 ns). The two are unrelated.
+
+### `JOBS` is a memory question, not a core count
+
+The periphery decks keep the row decoder and hold ~2.6 GB each, so the limit
+is RAM. `JOBS=12` drove this machine into swap on 2026-09-22 (a batch of
+twelve unfinished after 22 minutes); a fixed 4 was right for one machine and
+wrong everywhere else. `common.sh` now defaults to
+`min(cores, MemAvailable / ROM_JOB_MEM_GB)` with a floor of 2 -- the sample is
+taken once and then holds for hours, and on 2026-09-24 a transient squeeze
+(another flow holding 21 GB) computed 0 -> 1 and ran 24 decks serially for two
+hours. An explicit `JOBS=` still wins.
+
+### A testbench meant to be LOOKED AT
+
+Every existing test layer is pass/fail, and layer 6's testbench is built in a
+temporary directory, writes no VCD and drives the model through its violations
+on purpose. `scripts/rom_char/gen_wave_tb.py` writes the opposite instrument:
+`tests/wave/tb_<macro>_wave.v`, legal cycles only, one read per cycle over a
+run of addresses, a VCD and an xsim `.tcl`. Two things in it are deliberate --
+the trace to read the contents off is `dout_cap` (dout0 returns to all ones on
+every falling edge, so half of every cycle is `FFFFFFFF`), and the generator
+writes `<macro>_rom.mem` because `$readmemb` cannot read the raw `.bin` at all
+(it aborts on the first byte and the array stays X).
+
+### Four of the nine README figures are real now
+
+`10-col-deck`, `11-periph-frontend`, `13-coldec` and `17-col-energy` are
+ngspice's own plot window, straight off the decks the README prints commands
+for, each with a caption saying what to read off it. `docs/img/README.md`
+gained a "captured" column so the five that are still placeholders are not
+mistaken for these. `13-coldec` was taken from `periph_active_tt.sp`, which
+carries the same `rom_column_decode` instance; the table and the caption both
+say so. The energy plot command needed `ylimit` as well as `xlimit`: the
+vector is dominated by a 16.1 mA spike 5 ps in, and a plain `plot` autoscales
+to milliamps with every real current flat on zero.
+
+All twelve `.lib` and all four `.v` were regenerated from the re-characterised
+logs and `tests/check_lib.py` passes on all of them. Regenerating from
+unchanged inputs reproduces them byte for byte -- verified after the commit.
+
 ## Findings from the 2026-09-20 audit: what is closed and what is not
 
 ### CLOSED
@@ -1115,46 +1203,46 @@ conducting, is not.
 
 ## Housekeeping
 
-The array-level parasitics and the four re-characterisations are committed and
-pushed (`6020bd3..28ebfbe`); `main` and `origin/main` are level.
+Everything below the 2026-09-24 line is committed; `main` and `origin/main`
+are level at `7405fb7`. The 2026-09-25 work went in as nine commits:
+`946b3e4` (JOBS), `22b8e02` (the replayed bitline edge), `4c47d52..9eff10b`
+(the four re-characterisations, `.lib` and `.v` included), `2b63535` (the
+waveform testbench), `989857a` (the four figures and the docs around them) and
+`7405fb7` (LICENSE, BSD 3-Clause -- the licence OpenRAM itself uses; the
+README's License section also states that `examples/` is OpenRAM's and the
+PDK's output rather than this project's own work).
 
-**IN FLIGHT: the one-time re-stamp run** (started 19:47, 2026-09-24). The
-provenance check landed earlier the same day, so every log produced before it
-is refused -- and four stages had not been re-run since: `run_slew_sweep.sh`
-(36 runs), `run_pin_cap.sh` (12), `run_coldec_delay.sh` (12 + wrom0/tt's other
-seven addresses) and `run_periphery_leak.sh` on wrom3 (5 totals). Until they
-carry stamps `regen_rom_libs.sh` writes NOTHING -- verified, all twelve
-corners refused. Those logs are healthy (no fatal signature in any of them);
-they simply predate the stamp, and there is deliberately no flag to adopt an
-unstamped log. Measured cost: 8 jobs, ~12 minutes a batch, ~2 hours in total.
+The one-time re-stamp run of 2026-09-24 FINISHED. Every log
+`regen_rom_libs.sh` reads is stamped and current: all twelve corners
+regenerate, `tests/check_lib.py` passes 12/12, and `tests/run_tests.sh` is
+green on every layer that can run here (OpenSTA still SKIPs -- no `sta`
+binary).
 
-**THEREFORE the twelve `.lib` and four `.v` in `output/` are STALE and must
-not be shipped**: they were built before the array C landed and carry
-`t_dis_50` = 14.8495 ns at wrom0/TT against the 15.3355 ns the current deck
-measures.
+**The twelve `.lib` and four `.v` in `output/` are CURRENT.** Re-running
+`regen_rom_libs.sh` and `gen_macro_behavioral_v.py` over the committed logs
+reproduces them byte for byte -- checked on 2026-09-25, `git status` clean
+afterwards. wrom0/TT ships `t_dis_50` = 15.3355 ns and `access` = 17.2675 ns.
 
-Uncommitted, packaging work rather than measurement:
+Still open, in the order it would cost to close:
 
-* `LICENSE` -- BSD 3-Clause, the licence OpenRAM itself uses -- and the
-  README's License section, which also states that `examples/` is OpenRAM's
-  and the PDK's output rather than this project's own work.
-* `common.sh`: `JOBS` now defaults to `min(cores, free RAM / ROM_JOB_MEM_GB)`
-  instead of a fixed 4, with the reasoning under Quick start in the README.
-  The limit is memory, not cores -- the periphery decks keep the row decoder
-  and hold ~2.6 GB each -- so a fixed number was right for one machine and
-  wrong everywhere else. Measured while writing it: 8 jobs plateau at 21 GB
-  on a 31 GB machine, which is the edge; the auto-detect picks 7.
-* README and `docs/naming.md`: the energy decks measure the second-to-last
-  cycle, not "cycle 3". The window moved when `--cycles` did (6 on the column
-  deck, 8 on the periphery one) and the docs still named a fixed cycle. The
-  measurement names `q_c2`/`q_c3` are historical and were left alone.
-
-WHERE TO PICK UP: when the re-stamp run finishes, `regen_rom_libs.sh` ->
-`gen_macro_behavioral_v.py` -> `tests/run_tests.sh`, then commit. Expect every
-timing number to move by about +3.3%.
-
-Still open after that: the nine README figures that have no generator
-(`run_waveform_capture.sh` writes 05/05b/06/07 as SVG, the README asks for
-10-18 as PNG; 10/11/12 are the existing three renumbered, the other six need
-new capture cases), and the measurement limitations in docs/limitations.md,
-which are documented rather than pending.
+* **The address hold is measured for wrom0/TT ONLY.** `run_hold_bisect.sh`,
+  `run_addr2wl.sh` and `run_wl_slew.sh` have never run on wrom1-3 or on the
+  other two corners, so eleven of the twelve `.lib` files carry
+  `hold = access` -- pessimistic, and each says so in its own header. Same
+  shape of gap as the column decoder, which is measured at every address on
+  wrom0/TT and at address 0 everywhere else.
+* **Five of the nine README figures have no capture yet**: `12-backend-dout`,
+  `14-pincap`, `15-wl-slew`, `16-slew-sweep`, `18-setup`. The README links
+  them already, so those five render as broken images. Every one has its deck
+  and its `plot` line printed above it in the README and listed in
+  `docs/img/README.md`. Capture is a screenshot of ngspice's own plot window
+  -- nothing generates them.
+* **`docs/img/07-backend-loads.svg` is missing and `docs/measurements.md`
+  links it.** Unlike the five above, this one HAS a generator:
+  `run_waveform_capture.sh` writes 05/05b/06/07 with ngspice's `hardcopy`.
+  Only 05/05b/06 are on disk, and 07 is worth re-running anyway -- it would be
+  the first picture of the back end driven by the replayed edge.
+  `docs/macro.md` links `img/04-column-strip.png`, which has never existed and
+  is marked *(missing)* in `docs/img/README.md`.
+* The measurement limitations in `docs/limitations.md`, which are documented
+  rather than pending.
