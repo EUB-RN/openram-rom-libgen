@@ -40,13 +40,23 @@ jobs:
       # OpenSTA's CMakeLists.txt has an unconditional
       # `find_package(Eigen3 REQUIRED)`, and the GitHub ubuntu runner images
       # do not ship Eigen. cmake failed at configure time, roughly 40 s in.
+      #
+      # libfl-dev is the second one. Debian/Ubuntu split flex: the `flex`
+      # package is the scanner generator, and /usr/include/FlexLexer.h -- the
+      # header the generated C++ scanners include -- lives in libfl-dev.
+      # CMake's FindFLEX looks for that header, and OpenSTA feeds the result
+      # straight into target_include_directories, so without it the generate
+      # step dies on `FLEX_INCLUDE_DIR ... set to NOTFOUND`.
+      #
+      # libreadline-dev backs USE_TCL_READLINE, which OpenSTA defaults to ON.
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             iverilog \
             build-essential cmake git flex bison swig \
-            tcl-dev libeigen3-dev libz-dev
+            tcl-dev libeigen3-dev libz-dev libfl-dev libreadline-dev \
+            autoconf automake libtool
 
       - name: Cache OpenSTA binary
         id: cache-opensta
@@ -57,17 +67,49 @@ jobs:
           # masked by a binary built from the old one.
           key: opensta-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
 
-      - name: Build and install OpenSTA (if not cached)
+      # CUDD is a hard requirement of OpenSTA 3.x -- cmake/FindCUDD.cmake only
+      # reports it as missing, then the generate step fails because CUDD_LIB
+      # is still handed to target_link_libraries. Nobody packages it for
+      # Ubuntu, so it gets built here, static, into /usr/local. Static matters:
+      # the cache below restores one file, /usr/local/bin/sta, onto a runner
+      # where this step never ran, so nothing of CUDD may survive in the
+      # binary's dynamic dependencies.
+      - name: Build and install CUDD (if OpenSTA not cached)
         if: steps.cache-opensta.outputs.cache-hit != 'true'
         run: |
-          git clone --depth=1 https://github.com/The-OpenROAD-Project/OpenSTA.git /tmp/OpenSTA
+          git clone --depth=1 --branch 3.0.0 https://github.com/cuddorg/cudd.git /tmp/cudd
+          cd /tmp/cudd
+          # A fresh checkout has no useful timestamps, so make decides the
+          # shipped aclocal.m4 is out of date and reaches for aclocal-1.14,
+          # which no runner has. Regenerating the autotools files with the
+          # versions that are installed sidesteps that entirely -- hence
+          # autoconf/automake/libtool in the apt list above.
+          autoreconf -fi
+          ./configure --prefix=/usr/local --enable-shared=no
+          make -j"$(nproc)"
+          sudo make install
+
+      - name: Build and install OpenSTA (if not cached)
+        if: steps.cache-opensta.outputs.cache-hit != 'true'
+        env:
+          # Pinned, not `--depth=1` of master. Upstream moved to 3.1.0 and made
+          # CUDD mandatory between two runs of this workflow, and the first
+          # anyone heard of it was a red build on a commit that touched only
+          # Liberty data. A SHA makes that a deliberate bump instead.
+          OPENSTA_SHA: d31c9429cd096d19a1af3e3f1c9fe4a22c310d46
+        run: |
+          mkdir -p /tmp/OpenSTA
           cd /tmp/OpenSTA
+          git init -q
+          git remote add origin https://github.com/The-OpenROAD-Project/OpenSTA.git
+          git fetch -q --depth=1 origin "$OPENSTA_SHA"
+          git checkout -q FETCH_HEAD
           # BUILD_TESTS defaults to ON and pulls in `find_package(GTest
           # REQUIRED)`, which the runner image does not have either. OpenSTA's
           # own unit tests are not what this job validates, so turning them
           # off removes the dependency instead of installing one, and cuts the
           # build down at the same time.
-          cmake -S . -B build -DBUILD_TESTS=OFF
+          cmake -S . -B build -DBUILD_TESTS=OFF -DCUDD_DIR=/usr/local
           cmake --build build -j"$(nproc)"
           sudo cmake --install build
 
