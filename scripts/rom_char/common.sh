@@ -25,7 +25,44 @@ LIB_DIR="$(python3 "$ROM_CHAR_DIR/rom_paths.py" --lib-dir)"
 VERILOG_DIR="$(python3 "$ROM_CHAR_DIR/rom_paths.py" --verilog-dir)"
 
 NG="${NGSPICE_BIN:-ngspice}"
-JOBS="${JOBS:-4}"
+
+# HOW MANY ngspice PROCESSES AT ONCE -- a memory question, not a core count.
+#
+# The periphery decks (pin cap, slew sweep, column decode) keep the row
+# decoder, so each one holds ~2.6 GB. On a 31 GB machine that is ~8 processes
+# no matter how many cores are free: JOBS=12 was tried on 2026-09-22 and drove
+# the machine into swap, where one batch of twelve had not finished in 22
+# minutes. A swapping job is slower than not starting it at all.
+#
+# So the default is min(cores, free RAM / ROM_JOB_MEM_GB) -- whichever runs
+# out first -- and a fixed number was the wrong default for any machine but
+# the one it was written on. An explicit JOBS= still wins; detection that
+# fails falls back to the old 4 rather than guessing.
+ROM_JOB_MEM_GB="${ROM_JOB_MEM_GB:-3}"
+rom_auto_jobs() {
+  _cores=$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null \
+           || sysctl -n hw.ncpu 2>/dev/null) || _cores=""
+  # MemAvailable, not MemFree: the page cache is reclaimable and counting it
+  # as taken would halve the job count on a machine that has merely been used.
+  _avail_kb=$(awk '/^MemAvailable:/ {print $2; exit}' /proc/meminfo 2>/dev/null)
+  [ -z "$_avail_kb" ] && _avail_kb=$(( $(sysctl -n hw.memsize 2>/dev/null || echo 0) / 1024 ))
+  case "$_cores$_avail_kb" in *[!0-9]*|"") echo 4; return;; esac
+  [ "$_cores" -ge 1 ] 2>/dev/null || { echo 4; return; }
+  _by_mem=$(( _avail_kb / 1048576 / ROM_JOB_MEM_GB ))
+  _n="$_cores"; [ "$_by_mem" -lt "$_n" ] && _n="$_by_mem"
+  # FLOOR OF 2, and it is not cosmetic. This is sampled ONCE, at start, and
+  # then holds for a run that can last hours. Free memory is not: another
+  # flow's batch, a browser, a build can own the machine for the one second
+  # this is read. On 2026-09-24 a coldec run started while a slew sweep held
+  # 21 GB, read 2 GB free, computed 0 -> 1, and spent two hours running its
+  # 24 decks ONE AT A TIME -- serial for hours because of a transient that was
+  # gone minutes later. A momentary squeeze may halve the job count; it may
+  # not serialise the run.
+  [ "$_n" -lt 2 ] && _n=2
+  [ "$_cores" -lt "$_n" ] && _n="$_cores"
+  echo "$_n"
+}
+JOBS="${JOBS:-$(rom_auto_jobs)}"
 
 # tag:vdd:temperature:fmax(MHz) -- fmax only feeds the P=E*f summary column;
 # nothing in the .lib is derived from it. The values are 1/minimum_period as
