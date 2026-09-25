@@ -74,8 +74,8 @@ module wrom2 (
   parameter INIT_FILE = "rom_configs/wrom2.bin";
 
   // MEASURED values -- wrom2_SS_1p6V_100C.lib
-  parameter real ACCESS_NS = 42.4165;   // clk0 rising -> dout0 valid
-  parameter real T_PRE_NS  = 13.2468;   // minimum clk0 low phase
+  parameter real ACCESS_NS = 44.3104;   // clk0 rising -> dout0 valid
+  parameter real T_PRE_NS  = 13.6668;   // minimum clk0 low phase
   parameter real SETUP_NS  = 0.0480;   // addr0/cs0 stable before clk0 rises
   // HOLD is not one number. The address may move once the bitline is past the
   // inverter's trip point -- the read is decided there and the back-end delay
@@ -83,8 +83,8 @@ module wrom2 (
   // access. cs0 gets no such relief: it gates the precharge, so losing it
   // turns the precharge PMOS back on and destroys the read at ANY point in
   // the cycle, including the part the address is excused from.
-  parameter real HOLD_NS    = 42.4165;   // addr0 stable after clk0 rises
-  parameter real HOLD_CS_NS = 42.4165;   // cs0 stable after clk0 rises
+  parameter real HOLD_NS    = 44.3104;   // addr0 stable after clk0 rises
+  parameter real HOLD_CS_NS = 44.3104;   // cs0 stable after clk0 rises
 
   // 1 = report violations with $display. The corruption is applied either way
   // -- that is what silicon does; the test is expected to catch the bad result.
