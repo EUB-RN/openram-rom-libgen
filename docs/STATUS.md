@@ -45,7 +45,7 @@ Verified after the fact:
 | settled bitline term in the `.lib` | wrom0 TT `t_dis_50` = 14.8495 ns, `t_dis_50_prev` identical to four decimals |
 | periphery energy agrees across macros | TT 6.2507-6.2637 pJ, SS 4.9935-4.9942, FF 7.2561-7.2586 pJ |
 | `index_1` measured, not flat | `t_clk2pre` 0.7227..0.7642 ns (wrom0 TT) |
-| falling-edge arc complete | 2.4598 ns = 0.7642 + 0.2212 + 1.4744 |
+| falling-edge arc complete | 1.9386 ns = 0.7642 + 0.2212 + 0.9532 |
 | all four macros pre-flight | "All good -- this macro can go through the flow" |
 
 Bitline term, wire resistance ON, settled (ns):
@@ -315,14 +315,15 @@ no progress, so there was no way to tell whether an hour or ten remained. It
 was killed. No result.
 
 Cutting it to one pin would have cut the run time by about a third and the
-memory not at all, and that is the point: **wrom0 is a 1 kbit example**, the
-smallest thing this generator ever builds. The cell array is the one block
-whose size the USER picks. A reference whose cost follows the array is not a
-reference for a generator -- on a real ROM the deck does not run slowly, it
-dies, and a check that only works on the smallest possible macro cannot sit in
-the flow. So `--keep-all`, `--pin-only`'s reference role, `GOLDEN_PINS`,
-`GOLDEN_BAND` and `tests/test_pin_cap.py` (the old 5th test layer) were all
-removed rather than left as a knob nobody can afford to turn.
+memory not at all, and that is the point: **wrom0 is a 34 kbit example** --
+1064 words x 32 bit, the smallest of the four built here. The cell array is
+the one block whose size the USER picks. A reference whose cost follows the
+array is not a reference for a generator -- on a real ROM the deck does not
+run slowly, it dies, and a check that only works on the smallest possible
+macro cannot sit in the flow. So `--keep-all`, `--pin-only`'s reference
+role, `GOLDEN_PINS`, `GOLDEN_BAND` and `tests/test_pin_cap.py` (the old 5th
+test layer) were all removed rather than left as a knob nobody can afford to
+turn.
 
 **What this costs us, stated plainly.** Every remaining check on the pin
 capacitances -- ramp independence, rise vs fall, agreement across the four
@@ -1031,16 +1032,35 @@ the missing-deck case and the fact that `regen_rom_libs.sh` still honours it.
 
 ### NOT DEFECTS -- measurement artefacts that are understood
 
-**4. `t_bl2dout` comes out SMALLER at SS than at TT** (wrom0: 1.4714 tt /
-1.1835 ss / 1.3395 ff; wrom3: 1.2786 / 0.2842 / 1.3093). The back-end deck
-drives the bitline with a ramp whose slope is that corner's own measured
-`t_dis_50`/`t_dis_10`, and the delay is counted from the input crossing VDD/2.
-At SS that ramp is several times slower, so the bitline inverter reaches its
-own trip point *before* the input reaches VDD/2 and the term shrinks. The SUM
-stays ordered, so `access` is right; it is the term-by-term comparison across
-corners that is meaningless. The output slew the same deck reports at SS
-(2.3-3.1 ns against 0.5-0.8 at TT) has the same origin, and that one does land
-in the `.lib` as a declared transition time.
+**4. `t_bl2dout` came out SMALLER at SS than at TT -- FIXED 2026-09-24, and it
+was not only an artefact.** It read wrom0 1.4714 tt / 1.1835 ss / 1.3395 ff and
+wrom3 1.2786 / 0.2842 / 1.3093, because the back-end deck drove the bitline
+with a straight ramp through that corner's measured `t_dis_50`/`t_dis_10`
+instead of the discharge itself. A discharge decelerates, so that secant runs
+2.3-3.2x flatter than the curve does at the inverter's trip point, and at SS
+the ramp was slow enough that the inverter tripped well *before* the input
+reached VDD/2 -- the term shrank.
+
+`run_backend_delay.sh` now re-runs the column deck with the waveform kept and
+replays those samples through a PWL source, so the stimulus IS the discharge;
+each deck prints the `t_dis_50`/`t_dis_10` of the curve it replayed and they
+match the column log to four decimals. The ordering came back on its own
+(smallest load, ns):
+
+| macro | tt | ss | ff |
+|---|---|---|---|
+| wrom0 | 0.9532 | 1.7212 | 0.7113 |
+| wrom1 | 0.9796 | 1.6044 | 0.7469 |
+| wrom2 | 0.9746 | 1.6889 | 0.7454 |
+| wrom3 | 0.7398 | 1.0977 | 0.6086 |
+
+The conclusion above -- "the SUM stays ordered, so `access` is right" -- was
+wrong, and that is the part worth remembering. At TT and FF the ramp was
+pessimistic (wrom0, largest load: 1.7321 -> 1.1678 ns, 1.4854 -> 0.8093 ns),
+but at SS it was **optimistic**: 1.9117 against 2.4829 ns on the real edge.
+Every `.lib` shipped before this date understates `access` by ~0.57 ns at SS,
+the corner signoff uses. The output slew moved with it (SS 2.0-2.8 ns, TT
+0.31-0.59) and that number is declared in the `.lib` directly.
 
 **5. `t_pre_99` is not ordered across corners either** (wrom1: tt 11.31, ss
 10.32, ff 9.76 ns). The 99% target scales with the corner's VDD (1.782 V at TT
@@ -1071,12 +1091,15 @@ now known to be worth about 70 mV and not characterised per macro.
 
 ## Other known gaps
 
-Listed in docs/limitations.md. The biggest one by far is now
-item 1: **array-level parasitics missing from the column deck** (+3 fF against
-the ~5 fF the deck carries, on the largest term of `access`). The back-end and
-periphery decks already have the alive/dead + negative-net-capacitance rule
-that fixes it; porting it into `gen_col_tb_parasitic.py` is the obvious next
-piece of work.
+Listed in docs/limitations.md. The array-level parasitics that used to head
+this list are IN since 2026-09-24 -- `gen_col_tb_parasitic.py` pulls the
+`*_rom_base_array` C elements through the same alive/dead +
+negative-net-capacitance rule the back-end and periphery decks use, worth
++3.07 to +3.32 fF and +3.2 to +3.3% on the bitline term at every corner.
+What is left of item 1 is narrower and cannot be closed by the same move: the
+deck keeps ONE column, so a coupling C to a deleted neighbour becomes a
+capacitance to a node that holds still, while in a real read every column
+switches at once. That is an assumption, not a measurement.
 
 The rest: the ~5% of ramp-time sensitivity left on `addr0[0]` and
 `addr0[6]` after the pin-cap work, one column/one bit generalised, and the
@@ -1092,19 +1115,46 @@ conducting, is not.
 
 ## Housekeeping
 
-The cleanup, the re-characterisation and the column-decode work are committed
-(4b1cb95..156b342 on main). `main` is ahead of `origin/main` and has not been
-pushed.
+The array-level parasitics and the four re-characterisations are committed and
+pushed (`6020bd3..28ebfbe`); `main` and `origin/main` are level.
 
-Uncommitted:
+**IN FLIGHT: the one-time re-stamp run** (started 19:47, 2026-09-24). The
+provenance check landed earlier the same day, so every log produced before it
+is refused -- and four stages had not been re-run since: `run_slew_sweep.sh`
+(36 runs), `run_pin_cap.sh` (12), `run_coldec_delay.sh` (12 + wrom0/tt's other
+seven addresses) and `run_periphery_leak.sh` on wrom3 (5 totals). Until they
+carry stamps `regen_rom_libs.sh` writes NOTHING -- verified, all twelve
+corners refused. Those logs are healthy (no fatal signature in any of them);
+they simply predate the stamp, and there is deliberately no flag to adopt an
+unstamped log. Measured cost: 8 jobs, ~12 minutes a batch, ~2 hours in total.
 
-* the periphery-leakage work (`run_periphery_leak.sh`, `periph_leak_*`, the
-  `--leakage-idle-mw` path in `regen_rom_libs.sh` and `common.sh`) -- a
-  separate line of work, left for its own commit
-* `docs/img/*` (diagrams, not yet referenced from the README)
+**THEREFORE the twelve `.lib` and four `.v` in `output/` are STALE and must
+not be shipped**: they were built before the array C landed and carry
+`t_dis_50` = 14.8495 ns at wrom0/TT against the 15.3355 ns the current deck
+measures.
 
-WHERE TO PICK UP: nothing here is half-finished any more. The one thread that
-was -- the whole-macro golden pin-cap reference -- is closed by REMOVAL, not
-by a result: its cost grows with the array the user chooses, so it was never
-runnable on a real ROM. See "The golden reference: REMOVED" above for what the
-pin capacitances are bounded by instead.
+Uncommitted, packaging work rather than measurement:
+
+* `LICENSE` -- BSD 3-Clause, the licence OpenRAM itself uses -- and the
+  README's License section, which also states that `examples/` is OpenRAM's
+  and the PDK's output rather than this project's own work.
+* `common.sh`: `JOBS` now defaults to `min(cores, free RAM / ROM_JOB_MEM_GB)`
+  instead of a fixed 4, with the reasoning under Quick start in the README.
+  The limit is memory, not cores -- the periphery decks keep the row decoder
+  and hold ~2.6 GB each -- so a fixed number was right for one machine and
+  wrong everywhere else. Measured while writing it: 8 jobs plateau at 21 GB
+  on a 31 GB machine, which is the edge; the auto-detect picks 7.
+* README and `docs/naming.md`: the energy decks measure the second-to-last
+  cycle, not "cycle 3". The window moved when `--cycles` did (6 on the column
+  deck, 8 on the periphery one) and the docs still named a fixed cycle. The
+  measurement names `q_c2`/`q_c3` are historical and were left alone.
+
+WHERE TO PICK UP: when the re-stamp run finishes, `regen_rom_libs.sh` ->
+`gen_macro_behavioral_v.py` -> `tests/run_tests.sh`, then commit. Expect every
+timing number to move by about +3.3%.
+
+Still open after that: the nine README figures that have no generator
+(`run_waveform_capture.sh` writes 05/05b/06/07 as SVG, the README asks for
+10-18 as PNG; 10/11/12 are the existing three renumbered, the other six need
+new capture cases), and the measurement limitations in docs/limitations.md,
+which are documented rather than pending.

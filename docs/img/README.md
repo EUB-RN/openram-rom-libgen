@@ -100,17 +100,26 @@ screenshot of its own deck. These are **not** produced by
 screenshot the plot window. The README prints the exact command above every
 one of them; they are repeated here.
 
-| file | deck | plot |
-|---|---|---|
-| `10-col-deck.png` | `col236_worst_case_parasitic.sp` | `v(precharge) v(bl_0_236)` |
-| `11-periph-frontend.png` | `periph_active_tt.sp` | `v(clk0) v(wrom0_rom_row_decode_0/clk) v(wrom0_rom_row_decode_0/wl_0) v(wrom0_rom_column_decode_0/clk)` |
-| `12-backend-dout.png` | `backend_tt_2756.sp` | `v(wrom0_rom_base_array_0/bl_0_236) v(dout0[2])` |
-| `13-coldec.png` | `coldec_a0_tt.sp` | `v(wrom0_rom_column_decode_0/clk) v(wrom0_rom_column_decode_0/wl_0)` |
-| `14-pincap.png` | `pincap_tt.sp` | `v(clk0) i(vpin1)` |
-| `15-wl-slew.png` | `wlslew_tt.sp` | `v(clk0) v(wrom0_rom_row_decode_0/wl_0)` |
-| `16-slew-sweep.png` | `periph_slew0_tt.sp` | `v(clk0) v(wrom0_rom_column_decode_0/clk)` |
-| `17-col-energy.png` | `col236_energy_tt.sp` | `i(vvdd)` |
-| `18-setup.png` | `periph_setup_tt.sp` | `v(addr0[0]) v(clk0)` |
+| file | deck | plot | captured |
+|---|---|---|---|
+| `10-col-deck.png` | `col236_worst_case_parasitic.sp` | `v(precharge) v(bl_0_236)` | yes |
+| `11-periph-frontend.png` | `periph_active_tt.sp` | `v(clk0) v(wrom0_rom_row_decode_0/clk) v(wrom0_rom_row_decode_0/wl_0) v(wrom0_rom_column_decode_0/clk)` | yes |
+| `12-backend-dout.png` | `backend_tt_2756.sp` | `v(wrom0_rom_base_array_0/bl_0_236) v(dout0[2])` | no |
+| `13-coldec.png` | `coldec_a0_tt.sp` | `v(wrom0_rom_column_decode_0/clk) v(wrom0_rom_column_decode_0/wl_0)` | yes, but from `periph_active_tt.sp` -- see below |
+| `14-pincap.png` | `pincap_tt.sp` | `v(clk0) i(vpin1)` | no |
+| `15-wl-slew.png` | `wlslew_tt.sp` | `v(clk0) v(wrom0_rom_row_decode_0/wl_0)` | no |
+| `16-slew-sweep.png` | `periph_slew0_tt.sp` | `v(clk0) v(wrom0_rom_column_decode_0/clk)` | no |
+| `17-col-energy.png` | `col236_energy_tt.sp` | `i(vvdd)` | yes |
+| `18-setup.png` | `periph_setup_tt.sp` | `v(addr0[0]) v(clk0)` | no |
+
+The committed `13-coldec.png` shows the right two vectors but was taken from
+`periph_active_tt.sp`, which instantiates the same `rom_column_decode` -- its
+window title says so, and the README caption says so too. Re-capture it from
+`coldec_a0_tt.sp` and the caveat in the caption goes away.
+
+The four captured ones are the plot window as ngspice draws it -- black paper,
+title bar and all -- not `hardcopy` output. That is fine per section 1 above;
+`hardcopy` only moves the same picture onto white and into vector form.
 
 Node names are from `wrom0`. The extracted netlist names nodes after
 instances, so on another macro they change -- read them out of the deck's own

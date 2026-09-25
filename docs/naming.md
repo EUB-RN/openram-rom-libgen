@@ -90,7 +90,7 @@ present -- `t_wl1090_0` is the 90-10 slew of wordline 0.
 | `t_pre2sel5_rise` | time, `precharge` -> rising `word_sel[5]` | column-decode deck; must beat `t_dis_50` |
 | `c_cyc0_ff` | capacitance of pin 0 in fF, from one full cycle | pin-cap deck; this is the number that ships in the `.lib` |
 | `c_one_ff` | gate capacitance in fF of a cell storing a one | cell-gate deck; feeds the periphery lumped load |
-| `q_c3` | charge over cycle 3 | energy decks; cycle 3, not cycle 1, so the deck has settled |
+| `q_c3` | charge over the second-to-last cycle | energy decks; the name is historical, the window follows `--cycles` so that the deck has settled |
 | `e_periph_pj` | periphery energy per cycle in pJ | periphery power deck |
 | `p_leak_mw` | leakage power in mW | `.op` leakage decks |
 | `bl_hold_end` | bitline **voltage** at the end of the hold window | address-hold deck; a level, not a time |

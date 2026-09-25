@@ -126,12 +126,12 @@ Ordered by how much they can move a number:
    puts their load back as lumped C; every check listed above runs that same
    reduced deck, so all of them are blind to an error common to all of them.
    The run that could see it -- the whole array simulated, nothing deleted --
-   was built, and on `wrom0`, a *1 kbit* example, it reached 16.4 GB and 2h37m
-   without finishing before it was killed. The array is the one block whose
-   size the user picks, so that cost is unbounded by construction; the check
-   was removed rather than shipped as something only the smallest macro can
-   afford. What bounds the reduction instead is the -4.9% / <0.6% array-load
-   sensitivity above, plus an independent hand calculation from Magic's
+   was built, and on `wrom0` -- a *34 kbit* example, 1064 words x 32 bit --
+   it reached 16.4 GB and 2h37m without finishing before it was killed. The
+   array is the one block whose size the user picks, so that cost is unbounded
+   by construction; the check was removed rather than shipped as something
+   only the smallest macro can afford. What bounds the reduction instead is
+   the -4.9% / <0.6% array-load sensitivity above, plus an independent hand calculation from Magic's
    extracted wire C and the PDK's `Cox*W*L` (the 11 address pins come in at
    0.94..0.99x of it, clk0 and cs0 at 1.35..1.50x, both the expected sign).
 6. **`MAX_CAP`, `MIN_CAP` and `MAX_TRANSITION` are fixed constants**

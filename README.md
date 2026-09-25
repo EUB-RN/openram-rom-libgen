@@ -118,7 +118,7 @@ Each block gets its own reduced deck, and the terms are added back in the
 |---|---|---|
 | `rom_base_array` | **column** `col<N>_worst_case_parasitic*.sp` | one real column -- the one with the most `one_cell`s, chosen by a netlist scan. Every wordline held at DC VDD. Result x column count for energy and leakage. |
 | `rom_control_logic`, `rom_row_decode` | **periphery** `periph_active_<corner>.sp` | the real logic; the array is **deleted and put back as a lump** -- cell gate count x measured gate C + parasitic wire C |
-| `rom_bitline_inverter`, `rom_column_mux_array`, `rom_output_buffer` | **back end** `backend_<corner>_<load>.sp` | the real read path, driven by a bitline edge whose slope comes from the measured `t_dis_50`/`t_dis_10`; run once per `.lib` output load |
+| `rom_bitline_inverter`, `rom_column_mux_array`, `rom_output_buffer` | **back end** `backend_<corner>_<load>.sp` | the real read path, driven by the column deck's OWN discharge waveform replayed sample for sample; run once per `.lib` output load |
 | `rom_column_decode` | **coldec** `coldec_a<addr>_<corner>.sp` | hangs off the same precharge net as the bitline, so the middle term is `max(bitline, column decode)`, not their sum |
 | every repeated block, leakage | **block slices** `periph_leak_cs<n>_<corner>_g<gmin>.sp` | one instance of each block on its own supply source, so a single `.op` reports every block's current on a separate branch; x a count from the netlist |
 | one cell's gate | `cellgate_<corner>.sp` | the lump the periphery deck loads itself with -- `c_one_ff`, `c_zero_ff` |
@@ -177,13 +177,20 @@ phase that has to finish before the next read can start:
 | measurement | what it is | where it lands |
 |---|---|---|
 | `t_dis_50` | precharge -> bitline 50% | **term 2 of `access`**, the largest one (wrom0 TT: 14.8495 of 17.3271 ns) |
-| `t_dis_10` | the 10% point of the same fall | with `t_dis_50` it gives the bitline's SLOPE, which becomes the input ramp of the back-end deck |
+| `t_dis_10` | the 10% point of the same fall | no `.lib` number of its own -- it is the cross-check that the back-end deck is replaying THIS curve: both decks print `t_dis_50`/`t_dis_10` and they must agree |
 | `t_dis_50_prev` | the same discharge one cycle earlier | no `.lib` number -- it is the settling proof. Over 1% apart and the run is a start-up transient, not a steady state, and the deck says so |
 | `t_pre_50` | recharge to 50% | the **falling_edge arc**: `t_clk2pre + t_pre_50 +` smallest-load `t_bl2dout` |
 | `t_pre_99` | recharge to 99% | `min_pulse_width(fall)` and `minimum_period` -- the ROM's *minimum* clock frequency |
 | `t_pre_90` | recharge to 90% | measured, deliberately NOT used: 90% lands ~0.5 ns and would write a `min_pulse_width` 20x too small |
 
 ![Column deck: precharge net and bitline](docs/img/10-col-deck.png)
+
+*`col236_worst_case_parasitic.sp`, ngspice's own plot window. Red is
+`v(precharge)`, blue the bitline `v(bl_0_236)` of wrom0's worst column. The
+bitline sits at VDD while precharge is low, overshoots a little as precharge
+releases at 1.00 us, then falls -- through 50% at ~14.8 ns, which is term 2 of
+`access` and ~85% of it. The long flat tail is the dynamic node holding at 0:
+nothing drives it back up until the next precharge.*
 
 ### The periphery front end: clk0 -> internal clock -> wordline -> precharge
 
@@ -225,6 +232,14 @@ measurement, not assumed.
 
 ![Periphery deck: clock, wordline, precharge](docs/img/11-periph-frontend.png)
 
+*`periph_active_tt.sp`. Red `v(clk0)` rises with the real input slew; blue is
+the row decoder's internal clock, green the column decoder's, orange the
+selected wordline `wl_0`. Two things are measurements rather than assumptions
+here: the internal clock arrives ~0.55 ns after `clk0` crosses, and `wl_0` is
+HIGH for the whole of that edge and only **falls** ~2.5 ns later. That
+polarity -- selected wordline low, all others high -- is why the column deck
+holds every other wordline at VDD.*
+
 ### The back end: bitline -> dout0, at one of the three `.lib` loads
 
 ```bash
@@ -242,12 +257,34 @@ rather than one number copied three times:
 
 | measurement | what it is | where it lands |
 |---|---|---|
-| `t_bl2dout` | bitline -> `dout0`, through the bitline inverter, the 256:32 mux and the output buffer | **term 3 of `access`** (wrom0 TT: 1.4744 .. 1.7134 ns across the three loads). The SMALLEST-load value is also the third term of the falling_edge arc |
+| `t_bl2dout` | bitline -> `dout0`, through the bitline inverter, the 256:32 mux and the output buffer | **term 3 of `access`** (wrom0 TT: 0.9532 .. 1.1678 ns across the three loads). The SMALLEST-load value is also the third term of the falling_edge arc |
 | `t_dout_slew` | the output's own transition time | the `output_transition` tables, and `retaining_rise`/`retaining_fall` take the smallest-load one |
 
-The bitline here is not an ideal ramp: its slope is this corner's own measured
-`t_dis_50`/`t_dis_10` from the column deck, so the back end sees the edge the
-array actually delivers.
+The bitline here is not a stimulus shaped to look like a discharge, it is the
+discharge: `run_backend_delay.sh` re-runs this corner's column deck with the
+waveform kept and the samples are replayed through a PWL source. The deck
+header prints the `t_dis_50`/`t_dis_10` of the curve it replayed, and they
+match the column log to four decimals -- that is the proof it is the same
+curve, at all three corners.
+
+Until 2026-09-24 this was a straight ramp through the measured 50% and 10%
+points instead. It reproduced those two instants and nothing else: a discharge
+decelerates, so the secant between them runs 2.3-3.2x flatter than the curve
+does where the bitline inverter actually trips (wrom0 TT: -0.0382 V/ns against
+-0.1204 V/ns). The error it left behind was **not** one-sided --
+
+| corner | `t_bl2dout` on the ramp | on the real edge | |
+|---|---|---|---|
+| TT | 1.7321 ns | 1.1678 ns | 48% pessimistic |
+| FF | 1.4854 ns | 0.8093 ns | 84% pessimistic |
+| SS | 1.9117 ns | 2.4829 ns | **23% optimistic** |
+
+(largest load, the widest of the three). A too-flat edge leaves the inverter
+in its transition region for nanoseconds, so what the `trig`->`targ` interval
+measures is partly how far the output has already moved by the time the
+bitline passes 50%. At SS the back end is slow enough (2-2.8 ns of output
+slew) for that head start to outweigh everything else, and the `.lib` was
+optimistic at the one corner signoff actually uses.
 
 ![Back-end deck: bitline to dout0](docs/img/12-backend-dout.png)
 
@@ -280,6 +317,15 @@ is the decoder and the script says so.
 
 ![Column decode vs bitline discharge](docs/img/13-coldec.png)
 
+*The column decoder's internal clock (red) against the addressed select
+`wl_0` (blue): the select needs ~1.5 ns to reach VDD after the clock edge.
+Set that against `t_dis_50` in the figure two sections up and the race is not
+close -- the bitline is at 50% long after the select has settled, so `access`
+keeps the discharge as its middle term. Captured from `periph_active_tt.sp`,
+which carries the same `rom_column_decode` instance, so the window title
+names that deck rather than `coldec_a0_tt.sp`; the vectors are the ones the
+`plot` line above asks for.*
+
 ### Leakage and energy: current, not voltage
 
 ```bash
@@ -288,8 +334,25 @@ ngspice examples/wrom0/char/col236_energy_tt.sp
 ```
 ```
 ngspice 1 -> run
-ngspice 2 -> plot i(vvdd)
+ngspice 2 -> plot i(Vvdd) xlimit 800n 1000n ylimit -130u 20u
 ```
+
+Both limits are needed and the `ylimit` is the important half: `xlimit` only
+crops the x window, while the y axis keeps autoscaling over the WHOLE vector.
+That vector is dominated by a 16.1 mA spike 5 ps into the run, so on a plain
+`plot i(Vvdd)` the axis comes out in milliamps and every real current is a
+flat line on zero. Pinning the y range puts the axis in microamps, which is
+where the settled cycle lives -- `+17.3 uA` at 800.01 ns and `-122.7 uA` at
+800.31 ns on the discharge edge, `-57.7 uA` at 911.6 ns on the recharge.
+
+**That opening spike is an artefact of the simulation, not of the ROM.** `uic`
+starts every node at 0 V, so on the very first timestep every parasitic C on
+the supply charges at once; it is picoseconds wide and its height is set by
+the solver's first step, not by the circuit. A real macro comes up on a supply
+ramp and never draws it. It is also the reason the measured window sits on a
+late cycle: the inrush at 5 ps and the slow chain fill-up behind it are five
+orders of magnitude away from the 600 ns where `q_c2` starts, so neither of
+them reaches the `.lib`.
 
 **What comes out of these two decks.** They are the only ones that report a
 CURRENT rather than a voltage, and between them they fill both power sections
@@ -297,16 +360,29 @@ of the `.lib`:
 
 | measurement | deck / log | where it lands |
 |---|---|---|
-| `q_c3` | `col<N>_energy_<corner>.log` | the charge over the settled THIRD cycle -- cycle 1 is never used |
+| `q_c3` | `col<N>_energy_<corner>.log` | the charge over the settled second-to-last cycle -- the early cycles are never used |
 | `e_col_pj` | same | `q_c3 x VDD`: the energy ONE discharging column costs. Multiplied by the zeros in the selected row, it becomes `internal_power` `when "cs0"` |
 | `q_c2` | same | the cycle before it, purely as the settling check |
 | `vvdd#branch` | `col<N>_leak_<corner>.log` (`.op`, no waveform) | the array half of `cell_leakage_power`, times the column count |
 | per-block branch currents | `periph_leak_cs<n>_<corner>.total` | the periphery half, one slice per block times a count from the netlist. Both halves are taken in the SAME idle state (clk0 low) so that they can be added |
 
-Energy is `q_c3 x VDD` -- the charge integrated over the **third** cycle, so
-the deck has settled. Cycle 1 is never used.
+Energy is `q_c3 x VDD` -- the charge integrated over the **second-to-last**
+cycle, so the deck has settled. With `uic` every node starts at 0 and the
+chain fills slowly, so the early cycles are a start-up transient and are never
+used. The window moves with `--cycles` (6 on the column deck, 8 on the
+periphery one) rather than sitting on a fixed cycle number: when the column
+deck gained the array-level parasitics the extra charge made wrom2 at SS miss
+the 1% settling limit at 4 cycles. The names `q_c2`/`q_c3` are historical --
+they are the last two cycles, whichever those are.
 
 ![Column supply current over one cycle](docs/img/17-col-energy.png)
+
+*`col236_energy_tt.sp`: `i(Vvdd)`, the current the column draws from the
+supply, over one cycle. Flat and nearly zero between events -- that floor is
+the leakage the `.op` deck measures separately -- with a single ~58 uA spike
+when precharge pulls the bitline back to VDD. The area under that spike is
+`q_c3`; `q_c3 x VDD` is `e_col_pj`, what one discharging column costs. Energy
+is taken here, not from a voltage, because charge is what the `.lib` wants.*
 
 ### Dynamic read energy: the average of 10 random reads, not the worst case
 
@@ -432,7 +508,8 @@ PIN_TR=2n ./scripts/rom_char/run_pin_cap.sh wrom0     # ramp independence
 
 **There is no whole-macro reference run.** There was one -- a `--keep-all`
 deck with nothing deleted, no lumped load anywhere -- and it was removed. On
-`wrom0`, a 1 kbit example, it ran for hours at ~15 GB and was killed before it
+`wrom0` -- 1064 words x 32 bit, 34 kbit across 134 rows, and the smallest of
+the four examples here -- it ran for hours at ~15 GB and was killed before it
 finished; the cell array is the one block whose size the *user* picks, so on a
 real ROM that deck does not run slowly, it dies. A check that only works on
 the smallest possible macro cannot be part of a generator's flow.
@@ -725,6 +802,21 @@ python3 scripts/rom_char/rom_paths.py --check <macro>   # macro has what the flo
 python3 scripts/rom_char/gen_macro_behavioral_v.py
 ```
 
+**How many simulations run at once is decided for you.** Every `run_*.sh`
+above runs its decks in parallel, and the limit is memory rather than cores:
+the periphery decks keep the row decoder, so each ngspice holds ~2.6 GB. So
+`JOBS` defaults to `min(cores, free RAM / 3 GB)` -- 7 on a 28-core machine
+with 22 GB free, 4 on a 16 GB laptop, 2 on an 8 GB one. Starting more than
+fits drives the machine into swap, where it is slower than not starting them
+at all.
+
+Set `JOBS=<n>` to override it, or `ROM_JOB_MEM_GB=<n>` to change the per-job
+budget. The count is read once, at start, and then holds for the whole run --
+so it never drops below 2 however busy the machine looks at that instant. A
+run that lasts hours must not be serialised by a squeeze that lasts seconds;
+if you are deliberately starting a flow on a loaded machine, say `JOBS=` and
+mean it.
+
 Step detail, per-script logs and troubleshooting:
 [Requirements, the flow, and the files](docs/flow.md). Without a simulator,
 [Understanding the macro](docs/macro.md) works on the netlist alone.
@@ -734,3 +826,18 @@ Step detail, per-script logs and troubleshooting:
 > The waveform figures are ngspice's own output for the example macro named in
 > the command beside them; the layout screenshots in section 1 are
 > representative shots of the same architecture from a different macro.
+
+---
+
+## License
+
+[BSD 3-Clause](LICENSE) -- the same licence OpenRAM itself uses, so the
+generator and the compiler it characterises carry no compatibility question
+between them.
+
+What is under `examples/` is not this project's own work: the four `wrom*`
+macros, their netlists and their layout come out of OpenRAM's `rom_compiler`
+on the SkyWater sky130 PDK, and the `sky130_fd_bd_sram__*.mag` cells are the
+PDK's. They are committed so that every number in `output/` can be traced back
+to the log and the netlist it was measured from. Their own licences apply to
+them.
