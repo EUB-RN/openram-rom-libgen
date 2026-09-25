@@ -1,0 +1,10 @@
+# rom_char provenance v1 -- written by the flow, read by regen_rom_libs.sh
+version	1
+stage	slew-sweep
+context	wrom3 tt slew2
+when	2026-09-24T17:42:40Z
+deck	/home/hpw/openram-rom-libgen/examples/wrom3/char/periph_slew2_tt.sp
+deck_sha	c6e9a6e4da75e15218eb2579a07e2843bf16c75ec589de173662c8d17c725210
+log_sha	f1636417bb5d11ddf31651eeefdab7205d27c70f814daf4038720bc44cf0276b
+src	/home/hpw/openram-rom-libgen/examples/wrom3/wrom3.sp
+src_sha	1b4bd9b990872ad4668fb0152919ca19d6710252e7e9ae3930adb7b68db06adb
