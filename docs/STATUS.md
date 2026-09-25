@@ -1067,6 +1067,31 @@ The figure is evidence of the polarity and the edge shape; the numbers stay in
 `wlslew_<corner>.log`. Same class of caveat as `13-coldec`, and stated the same
 way, in the README caption and in `docs/img/README.md`.
 
+### The OpenSTA layer ran for the first time, and it was passing its files wrong
+
+CI got OpenSTA built -- CUDD from source, static, and the OpenSTA checkout
+pinned to a SHA -- so `tests/run_tests.sh`'s fourth layer stopped SKIPping and
+actually executed. It failed immediately, and not on a `.lib`: the step printed
+OpenSTA's usage text and exited 1.
+
+`sta` takes exactly ONE positional argument, the cmd_file. The call was
+`sta -no_init -no_splash -exit tests/read_liberty.tcl $LIBS`, twelve paths
+after the script name, so the binary rejected the command line and never
+sourced the script at all. The list now travels in `ROM_LIB_LIST`,
+newline-separated, which also keeps a path with a space in it whole.
+
+Worth recording: `read_liberty.tcl` already had a guard against exactly the
+outcome this would otherwise produce -- an empty list, a `foreach` that never
+runs, `exit 0`, a layer reporting success having read nothing. The guard is
+still there and still right, but it could not fire here, because the script
+was never reached. A check that lives inside the thing being checked cannot
+catch the thing not starting.
+
+Reproduced locally before and after with a stand-in `sta` that enforces the
+one-positional-argument rule: the old call prints the same usage text, the new
+one reads all twelve. The real binary still cannot run here, so the layer
+keeps SKIPping locally.
+
 ## Findings from the 2026-09-20 audit: what is closed and what is not
 
 ### CLOSED

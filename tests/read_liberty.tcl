@@ -5,24 +5,37 @@
 # parser the consumer actually uses. run_tests.sh calls it only when an
 # OpenSTA binary is on PATH; there is no way to fake this one.
 #
-#   sta -no_init -no_splash -exit tests/read_liberty.tcl <lib> [<lib> ...]
+#   ROM_LIB_LIST="<lib>\n<lib>..." sta -no_init -no_splash -exit tests/read_liberty.tcl
+#
+# The list arrives in the ENVIRONMENT, not after the script name. OpenSTA
+# takes exactly one positional argument, the cmd_file; hand it a second one
+# and the binary prints its usage and exits 1 having never sourced this file.
+# That is not a hypothetical -- it is how this layer failed the first time it
+# ever got to run, in CI on 2026-09-25, once OpenSTA actually built.
 
-set failed 0
+set paths {}
+if { [info exists ::env(ROM_LIB_LIST)] } {
+    foreach line [split $::env(ROM_LIB_LIST) "\n"] {
+        set line [string trim $line]
+        if { $line ne "" } { lappend paths $line }
+    }
+}
 
-# An empty argv is not an empty job, it is a job that never started: the
-# files are passed after the script name, and if OpenSTA does not forward
-# them the foreach below simply never runs and this exits 0. That would be
-# the worst outcome available -- a layer reporting success having read
-# nothing -- so it is a failure instead.
-if { [llength $argv] == 0 } {
-    puts "  FAIL read_liberty.tcl received no .lib arguments."
-    puts "       The files are passed after the script name; this OpenSTA did"
-    puts "       not forward them, so NOTHING was checked. Pass them another"
-    puts "       way rather than letting the layer pass vacuously."
+# An empty list is not an empty job, it is a job that never started. If the
+# variable does not arrive the foreach below simply never runs and this exits
+# 0 -- a layer reporting success having read nothing, the worst outcome
+# available. So it is a failure instead.
+if { [llength $paths] == 0 } {
+    puts "  FAIL read_liberty.tcl received no .lib paths."
+    puts "       They come in via ROM_LIB_LIST, newline-separated; it was"
+    puts "       empty or unset, so NOTHING was checked. Fix the caller"
+    puts "       rather than letting the layer pass vacuously."
     exit 1
 }
 
-foreach path $argv {
+set failed 0
+
+foreach path $paths {
     if { [catch {read_liberty $path} err] } {
         puts "  FAIL [file tail $path]  OpenSTA refused it: $err"
         incr failed
@@ -44,5 +57,5 @@ if { $failed > 0 } {
     puts "read_liberty: $failed file(s) FAILED"
     exit 1
 }
-puts "read_liberty: [llength $argv] file(s) accepted by OpenSTA"
+puts "read_liberty: [llength $paths] file(s) accepted by OpenSTA"
 exit 0

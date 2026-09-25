@@ -88,7 +88,14 @@ echo
 echo "== OpenSTA =="
 STA="${STA_BIN:-sta}"
 if command -v "$STA" >/dev/null 2>&1; then
-  "$STA" -no_init -no_splash -exit "$HERE/read_liberty.tcl" $LIBS || rc=1
+  # The files go through the environment, NOT after the script name. OpenSTA
+  # takes exactly one positional argument -- the cmd_file -- and anything
+  # after it makes the binary print its usage text and exit 1 without running
+  # the script at all. read_liberty.tcl's own empty-argv guard cannot catch
+  # that: the script never starts. One newline-separated variable also keeps
+  # paths with spaces in one piece, which a bare $LIBS does not.
+  ROM_LIB_LIST="$LIBS" \
+    "$STA" -no_init -no_splash -exit "$HERE/read_liberty.tcl" || rc=1
 else
   echo "  SKIP  '$STA' not found -- set STA_BIN to an OpenSTA binary to run"
   echo "        the generated files through the parser a consumer really uses."
