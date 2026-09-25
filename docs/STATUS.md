@@ -1048,6 +1048,25 @@ that script drew. They are still accurate for what they show, but they are
 the last two figures in the tree that a person did not capture.
 (`05b-col-precharge.svg` was deleted on 2026-09-25.)
 
+### The wordline fall figure is in -- with the caveat the title cannot carry
+
+`15-wl-slew.png` is captured, so seven of the nine README figures are real and
+only `16-slew-sweep` and `18-setup` are still placeholders. It shows `clk0`
+rising against `wl_0` falling: the row decoder's polarity, shown rather than
+asserted, and an edge steep enough next to the delay in front of it to explain
+why `t_wl1090_0` is ~0.12 ns while `t_wlfall0` is 1.5692 ns.
+
+Two things about it had to be written down rather than left to the picture.
+`gen_periphery_power_tb.py` writes `periph_active_<corner>.sp` and
+`wlslew_<corner>.sp` from one template, so both open a window titled
+"periphery energy per cycle -- active (cs0=1)" -- the title does not identify
+the deck, and no reader should take it as doing so. And the window sits on an
+early cycle near 100 ns while the deck's `.measure` lines sample the settled
+cycle at ~1.30 us, so the delay reads longer in the picture than in the log.
+The figure is evidence of the polarity and the edge shape; the numbers stay in
+`wlslew_<corner>.log`. Same class of caveat as `13-coldec`, and stated the same
+way, in the README caption and in `docs/img/README.md`.
+
 ## Findings from the 2026-09-20 audit: what is closed and what is not
 
 ### CLOSED
@@ -1316,12 +1335,15 @@ Still open, in the order it would cost to close:
   circuit in all four macros and the numbers agree to four digits across them,
   so this is cheap rather than risky; a macro whose column decoder differs
   would need the full sweep.
-* **Five of the nine README figures have no capture yet**: `12-backend-dout`,
-  `14-pincap`, `15-wl-slew`, `16-slew-sweep`, `18-setup`. The README links
-  them already, so those five render as broken images. Every one has its deck
-  and its `plot` line printed above it in the README and listed in
-  `docs/img/README.md`. Capture is a screenshot of ngspice's own plot window
-  -- nothing generates them.
+* **Two of the nine README figures have no capture yet**: `16-slew-sweep`
+  and `18-setup`. The README links them already, so those two render as
+  broken images. Both have their deck and their `plot` line printed above
+  them in the README and listed in `docs/img/README.md`. Capture is a
+  screenshot of ngspice's own plot window -- nothing generates them.
+  Two of the seven that ARE captured carry a caveat rather than a gap, and
+  `docs/img/README.md` states both: `13-coldec` was taken from
+  `periph_active_tt.sp` rather than `coldec_a0_tt.sp`, and `15-wl-slew` sits
+  on an early cycle rather than the settled one its `.measure` lines use.
 * **`docs/img/07-backend-loads.svg` is missing and `docs/measurements.md`
   links it**, and it no longer has a generator (see below) -- it is a capture
   like the others now: `backend_tt_{689,2756,17225}.sp`, `v(dout0[2])` at each

@@ -574,6 +574,17 @@ every macro at every corner. Where they are missing the `.lib` keeps
 
 ![Wordline fall, driver and load both real](docs/img/15-wl-slew.png)
 
+*`clk0` (red) rising against the addressed wordline `wl_0` (blue) falling:
+the row decoder's polarity, shown rather than asserted, and the fall itself --
+steep next to the delay that precedes it, which is why `t_wl1090_0` is
+~0.12 ns while `t_wlfall0` is 1.5692 ns at TT. Read the shape here and the
+numbers from `wlslew_<corner>.log`: this window sits on an early cycle near
+100 ns, while the deck's `.measure` lines sample the settled cycle at ~1.30 us,
+so the clk-to-wordline delay looks longer in the picture than the logged
+value. The window title names the periphery energy deck because
+`gen_periphery_power_tb.py` writes both decks with the same title line --
+`wlslew_<corner>.sp` is that generator run under its own name.*
+
 ### Output slew, and the two `.lib` table axes
 
 `t_dout_slew` comes from the same back-end deck as `t_bl2dout`, so the

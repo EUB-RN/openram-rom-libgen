@@ -87,7 +87,7 @@ prints the exact command above every one of them; they are repeated here.
 | `12-backend-dout.png` | `backend_tt_2756.sp` | `v(wrom0_rom_base_array_0/bl_0_236) v(dout0[2])` | yes |
 | `13-coldec.png` | `coldec_a0_tt.sp` | `v(wrom0_rom_column_decode_0/clk) v(wrom0_rom_column_decode_0/wl_0)` | yes, but from `periph_active_tt.sp` -- see below |
 | `14-pincap.png` | `pincap_tt.sp` | `v(clk0) i(vpin1)` | yes |
-| `15-wl-slew.png` | `wlslew_tt.sp` | `v(clk0) v(wrom0_rom_row_decode_0/wl_0)` | no |
+| `15-wl-slew.png` | `wlslew_tt.sp` | `v(clk0) v(wrom0_rom_row_decode_0/wl_0)` | yes, on an early cycle -- see below |
 | `16-slew-sweep.png` | `periph_slew0_tt.sp` | `v(clk0) v(wrom0_rom_column_decode_0/clk)` | no |
 | `17-col-energy.png` | `col236_energy_tt.sp` | `i(vvdd)` | yes |
 | `18-setup.png` | `periph_setup_tt.sp` | `v(addr0[0]) v(clk0)` | no |
@@ -97,7 +97,19 @@ The committed `13-coldec.png` shows the right two vectors but was taken from
 window title says so, and the README caption says so too. Re-capture it from
 `coldec_a0_tt.sp` and the caveat in the caption goes away.
 
-The six captured ones are the plot window as ngspice draws it -- black paper,
+`15-wl-slew.png` carries a different caveat, and the window title is no help
+with it: `gen_periphery_power_tb.py` writes `periph_active_<corner>.sp` and
+`wlslew_<corner>.sp` from the same template, so BOTH of them open a window
+titled "periphery energy per cycle -- active (cs0=1)". The title cannot tell
+you which deck a capture came from; only the run that produced it can. What
+the picture does show is an early cycle -- the edge sits near 100 ns, while
+the deck runs several 200 ns cycles and its `.measure` lines sample the
+settled one at ~1.30 us. So the clk-to-wordline delay reads longer there than
+the 1.5692 ns in `wlslew_tt.log`, and the figure is evidence of the POLARITY
+and the edge shape, not of the number. A re-capture with the plot window
+moved onto the measured cycle would retire the caveat.
+
+The seven captured ones are the plot window as ngspice draws it -- black paper,
 title bar and all -- not `hardcopy` output. That is fine per section 1 above;
 `hardcopy` only moves the same picture onto white and into vector form.
 
