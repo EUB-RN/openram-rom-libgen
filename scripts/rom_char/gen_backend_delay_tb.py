@@ -23,9 +23,13 @@ METHOD (the same "slice x count" idea as the periphery script):
   ideal sources, so their load does not enter this delay -- which is correct,
   that part is already counted in t_dis_50.
 
-  The driven bitline waveform is NOT a guess: it uses the real slope implied by
-  the measured t_dis_50/t_dis_10 (0.4*VDD between the 50% and 10% points), so
-  the inverter sees the slow edge it really sees.
+  The driven bitline waveform is not a model of the discharge, it IS the
+  discharge: the column deck's own samples, replayed through a PWL source.
+  Earlier versions drove a straight ramp through the measured 50% and 10%
+  points, which reproduced those two instants and nothing else -- a discharge
+  decelerates, so that secant runs 3.3x flatter than the curve does where the
+  bitline inverter actually trips, and the back end was measured against an
+  edge no ROM produces.
 
   The NEGATIVE NET CAPACITANCE FIX is the same as in the periphery script and
   just as REQUIRED: without the positive terms of the deleted blocks, Magic's
@@ -37,7 +41,7 @@ OUTPUT: delay as a function of dout0's output load -- the index_2
 
 Usage:
   gen_backend_delay_tb.py <macro> <column> <out.sp>
-      --t-dis-50 <s> --t-dis-10 <s> [--corner tt|ss|ff] [--vdd] [--temp]
+      --bl-wave <char/wave/bl_<corner>.txt> [--corner tt|ss|ff] [--vdd] [--temp]
 """
 import argparse, collections, os, re, sys
 
@@ -49,10 +53,11 @@ ap = argparse.ArgumentParser()
 ap.add_argument("macro")
 ap.add_argument("col", type=int)
 ap.add_argument("out")
-ap.add_argument("--t-dis-50", type=float, required=True,
-                help="measured: precharge 50%% -> bitline 50%% (seconds)")
-ap.add_argument("--t-dis-10", type=float, required=True,
-                help="measured: precharge 50%% -> bitline 10%% (seconds)")
+ap.add_argument("--bl-wave", required=True,
+                help="the column deck's own bitline waveform, as written by "
+                     "run_backend_delay.sh (wrdata: time, v(bitline), time, "
+                     "v(precharge)). The settled discharge in it becomes the "
+                     "stimulus verbatim -- see the module docstring.")
 ap.add_argument("--corner", default="tt", choices=["tt", "ss", "ff"])
 ap.add_argument("--vdd", default="1.8")
 ap.add_argument("--temp", default="25")
@@ -272,10 +277,87 @@ defs = "\n".join(defs)
 
 # --- stimulus -------------------------------------------------------------
 VDD = float(args.vdd)
-# Measured slope: 0.4*VDD falls between the 50% and 10% points. At that slope
-# a full VDD->0 transition takes TFALL. The edge starts at t=TSTART.
-tfall = (args.t_dis_10 - args.t_dis_50) / 0.4
 TSTART = 5e-9
+# The bitline edge is the COLUMN DECK'S OWN WAVEFORM, replayed sample for
+# sample. It used to be a straight ramp through the measured 50% and 10%
+# points, and that ramp was 3.3x too slow where it matters: a bitline
+# discharge decelerates, so the 50%-to-10% secant is far flatter than the
+# curve's actual slope at the inverter's trip point (wrom0 TT: -0.0382 V/ns
+# against -0.1248 V/ns). The back end saw an edge no ROM ever produces and
+# reported t_bl2dout 48% high (1.7321 ns against 1.1677 ns) and t_dout_slew
+# 31% high. Both errors were pessimistic, so no .lib was ever optimistic --
+# but 0.56 ns of the access time was an artefact of the stimulus shape.
+BL_FLOOR = 0.01      # the replay stops here; see read_bl_wave()
+
+def read_bl_wave(path, vdd):
+    """The settled discharge out of the column deck's dump.
+
+    `wrdata` writes one time column per vector, so the file is
+    time, v(bitline), time, v(precharge). The precharge column is what makes
+    the window self-locating: the LAST rising crossing of VDD/2 on it is the
+    edge that t_dis_50 itself triggers on, so the same discharge the .lib's
+    middle term was measured on is the one replayed here -- no cycle number
+    and no TCLK arithmetic to keep in step with the other deck.
+
+    The replay ends once the bitline is under BL_FLOOR*VDD. PWL holds its
+    last value, so the line sits at ~1% of VDD instead of a true zero; every
+    threshold measured downstream (50%, 90%, 10% of VDD) is an order of
+    magnitude above that, and stopping there keeps the deck's runtime where
+    the ramp version had it -- the real tail is asymptotic and would add
+    another ~35% of transient for nothing.
+    """
+    rows = []
+    for ln in open(path):
+        f = ln.split()
+        if len(f) < 4:
+            continue
+        try:
+            rows.append((float(f[0]), float(f[1]), float(f[3])))
+        except ValueError:      # wrdata writes no header, but be safe
+            continue
+    if not rows:
+        sys.exit(f"ERROR: {path} holds no samples")
+    half = vdd / 2.0
+    trig = None
+    for i in range(1, len(rows)):
+        if rows[i-1][2] < half <= rows[i][2]:
+            trig = i
+    if trig is None:
+        sys.exit(f"ERROR: {path} has no rising precharge edge -- is it the "
+                 f"{args.corner} dump of the column deck?")
+    # t0 is the crossing itself, interpolated, not the first sample after it:
+    # ngspice's .measure does the same, and a whole timestep of offset (200 ps
+    # here) would put the t_dis_50 printed in this deck's header 0.2% away
+    # from the column log it is supposed to be checkable against.
+    (ta, _, pa), (tb, _, pb) = rows[trig-1], rows[trig]
+    t0 = ta + (half - pa) / (pb - pa) * (tb - ta)
+    wave = []
+    for t, bl, _ in rows[trig:]:
+        if wave and t <= wave[-1][0]:      # ngspice repeats a breakpoint time
+            continue
+        wave.append((t - t0, bl))
+        if bl <= BL_FLOOR * vdd:
+            break
+    return wave
+
+wave = read_bl_wave(args.bl_wave, VDD)
+tfall = wave[-1][0]
+
+def cross(frac):
+    """When the replayed edge passes frac*VDD, by the same linear
+    interpolation ngspice's .measure uses -- printed in the header so the
+    deck can be checked against the column log it came from."""
+    th = frac * VDD
+    for i in range(1, len(wave)):
+        (ta, va), (tb, vb) = wave[i-1], wave[i]
+        if va > th >= vb:
+            return ta + (va - th) / (va - vb) * (tb - ta)
+    return float("nan")
+
+# 12 significant digits: at a 200 ps sample the times are ~1e-8 with 1e-13
+# steps between them, and %g would collapse neighbouring samples onto the
+# same instant -- PWL then refuses the pair.
+pwl = " ".join(f"{TSTART + t:.12e} {v:.6f}" for t, v in wave)
 
 
 hold_hi = "\n".join(
@@ -301,9 +383,11 @@ tb = f"""* {M} -- BACK END delay: bitline -> dout0  (column {args.col}, {args.co
 *          are driven by ideal sources -- that part is already in t_dis_50)
 * Top-level C: {len(kept_c)} kept, {n_drop} dropped;
 *   negative-net-capacitance fix on {n_fix} nodes / {c_fix*1e15:.1f} fF
-* The driven bitline edge comes from the MEASURED slope:
-*   t_dis_50={args.t_dis_50*1e9:.4f} ns, t_dis_10={args.t_dis_10*1e9:.4f} ns
-*   -> full VDD->0 transition {tfall*1e9:.3f} ns
+* The driven bitline edge is the COLUMN DECK'S OWN WAVEFORM, not a ramp:
+*   {len(wave)} samples replayed from {os.path.basename(args.bl_wave)}
+*   t_dis_50={cross(0.5)*1e9:.4f} ns, t_dis_10={cross(0.1)*1e9:.4f} ns
+*   (these must match the column log -- they are the SAME curve)
+*   replay ends at {BL_FLOOR*100:.0f}% of VDD, {tfall*1e9:.3f} ns in
 * Measured bit: {dout_net}   (select: {sel_net})   output load: {args.load_ff} fF
 
 .lib {rom_paths.sky130_lib()} {args.corner}
@@ -315,8 +399,8 @@ tb = f"""* {M} -- BACK END delay: bitline -> dout0  (column {args.col}, {args.co
 Vvdd {SUPPLY_HI} 0 DC {{VDD}}
 Vgnd {SUPPLY_LO} 0 DC 0
 
-* the measured column's bitline: falls from precharged VDD at the measured slope
-Vsrc {src_net} 0 PWL(0 {{VDD}} {{TSTART}} {{VDD}} '{TSTART:.6e}+{tfall:.6e}' 0)
+* the measured column's bitline: the column deck's discharge, sample for sample
+Vsrc {src_net} 0 PWL(0 {wave[0][1]:.6f} {pwl})
 
 * the other bitlines stay precharged
 {hold_hi}

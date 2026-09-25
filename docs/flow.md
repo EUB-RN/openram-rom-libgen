@@ -41,6 +41,9 @@ python3 scripts/rom_char/gen_resistance_model.py wrom0
 python3 scripts/rom_char/gen_col_tb_parasitic.py wrom0 --with-resistance
 
 # 3) back-end delay + output slew, three corners x three loads
+#    (re-runs step 2's column decks first, keeping the bitline waveform: the
+#     back end is driven by that discharge replayed, not by a ramp fitted to
+#     it. ~2 min a corner, cached in char/wave/bl_<corner>.txt)
 ./scripts/rom_char/run_backend_delay.sh            #  -> backend_<corner>_<load>.log
 
 # 4) periphery energy (active/idle) + cell gate capacitance
