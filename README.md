@@ -176,7 +176,7 @@ phase that has to finish before the next read can start:
 
 | measurement | what it is | where it lands |
 |---|---|---|
-| `t_dis_50` | precharge -> bitline 50% | **term 2 of `access`**, the largest one (wrom0 TT: 14.8495 of 17.3271 ns) |
+| `t_dis_50` | precharge -> bitline 50% | **term 2 of `access`**, the largest one (wrom0 TT: 15.3355 of 17.2675 ns) |
 | `t_dis_10` | the 10% point of the same fall | no `.lib` number of its own -- it is the cross-check that the back-end deck is replaying THIS curve: both decks print `t_dis_50`/`t_dis_10` and they must agree |
 | `t_dis_50_prev` | the same discharge one cycle earlier | no `.lib` number -- it is the settling proof. Over 1% apart and the run is a start-up transient, not a steady state, and the deck says so |
 | `t_pre_50` | recharge to 50% | the **falling_edge arc**: `t_clk2pre + t_pre_50 +` smallest-load `t_bl2dout` |
@@ -269,9 +269,9 @@ curve, at all three corners.
 
 Until 2026-09-24 this was a straight ramp through the measured 50% and 10%
 points instead. It reproduced those two instants and nothing else: a discharge
-decelerates, so the secant between them runs 2.3-3.2x flatter than the curve
+decelerates, so the secant between them runs 2.3-3.1x flatter than the curve
 does where the bitline inverter actually trips (wrom0 TT: -0.0382 V/ns against
--0.1204 V/ns). The error it left behind was **not** one-sided --
+-0.1185 V/ns at the VDD/2 the deck trips on). The error it left behind was **not** one-sided --
 
 | corner | `t_bl2dout` on the ramp | on the real edge | |
 |---|---|---|---|
@@ -411,27 +411,27 @@ python3 scripts/rom_char/gen_random_read_energy.py wrom0 --corner tt
 ```
 wrom0 tt: dynamic read energy, average of 10 random reads
   array        : 134 rows x 256 columns, 1064 words x 8 per row
-  E_column     : 0.4851 pJ per discharged column  (col236_energy_tt.log)
+  E_column     : 0.4966 pJ per discharged column  (col236_energy_tt.log)
   E_periphery  : 6.2581 pJ per cycle              (periph_active_tt.log)
   seed         : 4192668302
 
   read     address      row   discharged       E (pJ)
-  1             45        5          118      63.5009
-  2            860      107          133      70.7775
-  3            542       67          122      65.4413
-  4            297       37          127      67.8669
-  5            351       43          111      60.1051
-  6            877      109          109      59.1349
-  7            388       48          129      68.8371
-  8            202       25          124      66.4115
-  9            487       60          134      71.2626
-  10           752       94          132      70.2924
+  1             45        5          118      64.8608
+  2            860      107          133      72.3103
+  3            542       67          122      66.8474
+  4            297       37          127      69.3305
+  5            351       43          111      61.3844
+  6            877      109          109      60.3911
+  7            388       48          129      70.3238
+  8            202       25          124      67.8406
+  9            487       60          134      72.8070
+  10           752       94          132      71.8137
 
-  average      : 66.3630 pJ   (min 59.1349, max 71.2626, sd 4.3175)
-  worst case   : 130.4458 pJ   (all 256 columns discharging -- 1.97x)
-  whole array  : 67.7945 pJ   (exact mean over all 134 rows, 126.9 of 256
+  average      : 67.7910 pJ   (min 60.3911, max 72.8070, sd 4.4201)
+  worst case   : 133.3962 pJ   (all 256 columns discharging -- 1.97x)
+  whole array  : 69.2564 pJ   (exact mean over all 134 rows, 126.9 of 256
                  columns discharging; per-row spread 0..158). The
-                 sample is -2.11% against it.
+                 sample is -2.12% against it.
 ```
 
 Nothing here simulates. Both energy terms are still the measured ones

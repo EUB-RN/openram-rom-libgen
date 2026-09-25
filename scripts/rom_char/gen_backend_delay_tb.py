@@ -10,7 +10,8 @@ WHY IT IS NEEDED:
       bl_N -> rom_bitline_inverter -> bl_b_N -> rom_column_mux (pass
       transistors) -> rom_out_prebuf_k -> rom_output_buffer -> dout0[k]
   Those three stages were never measured. And since the bitline falls very
-  slowly (13.8 ns from 50% to 10% on wrom0 at TT, ~52 mV/ns) the inverter
+  slowly (18.8 ns from 50% to 10% on wrom0 at TT, and only ~119 mV/ns
+  through the inverter's own trip point) the inverter
   threshold can trip much later or earlier than expected -- not a term you can
   guess.
 
@@ -27,7 +28,7 @@ METHOD (the same "slice x count" idea as the periphery script):
   discharge: the column deck's own samples, replayed through a PWL source.
   Earlier versions drove a straight ramp through the measured 50% and 10%
   points, which reproduced those two instants and nothing else -- a discharge
-  decelerates, so that secant runs 3.3x flatter than the curve does where the
+  decelerates, so that secant runs 3.1x flatter than the curve does where the
   bitline inverter actually trips, and the back end was measured against an
   edge no ROM produces.
 
@@ -280,10 +281,10 @@ VDD = float(args.vdd)
 TSTART = 5e-9
 # The bitline edge is the COLUMN DECK'S OWN WAVEFORM, replayed sample for
 # sample. It used to be a straight ramp through the measured 50% and 10%
-# points, and that ramp was 3.3x too slow where it matters: a bitline
+# points, and that ramp was 3.1x too slow where it matters: a bitline
 # discharge decelerates, so the 50%-to-10% secant is far flatter than the
 # curve's actual slope at the inverter's trip point (wrom0 TT: -0.0382 V/ns
-# against -0.1248 V/ns). The back end saw an edge no ROM ever produces and
+# against -0.1185 V/ns at the VDD/2 the deck trips on). The back end saw an edge no ROM ever produces and
 # reported t_bl2dout 48% high (1.7321 ns against 1.1677 ns) and t_dout_slew
 # 31% high. Both errors were pessimistic, so no .lib was ever optimistic --
 # but 0.56 ns of the access time was an artefact of the stimulus shape.

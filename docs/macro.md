@@ -120,7 +120,8 @@ C to vdd and to gnd. That level is *higher* than what conduction produces, and
 the nodes cannot come back down -- during precharge the foot is off, so they
 can only be charged, never discharged. A longer first precharge does not wash
 it out: wrom0 reads 16.5035 ns on cycle 1 whether the first phase is 25 ns,
-100 ns or 1 us, against 14.8495 ns settled at that same 1 us phase.
+100 ns or 1 us, against 14.8495 ns settled at that same 1 us phase (both
+measured before the array-level C; see the table below).
 
 | | cycle 1 (capacitive divider) | settled |
 |---|---|---|
@@ -143,6 +144,12 @@ the numbers it produces:
 | tt | 16.5035 ns | 14.8495 ns |
 | ss | 41.9709 ns | 36.0231 ns |
 | ff | 8.9101 ns | 8.2893 ns |
+
+Both columns are from the 2026-09-20 deck, before the array-level parasitic C
+landed (2026-09-24); the settled column is 3.2-3.3% faster than the current
+one (TT 15.3355 ns) and the whole table is kept as the measurement of the
+*first-cycle artefact*, which is what it is about. The shipped numbers are in
+`output/lib/`.
 
 The old values were pessimistic for `access`, which is the safe direction, but
 they reached that margin through a state the circuit never occupies -- and for

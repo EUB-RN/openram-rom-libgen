@@ -4,7 +4,7 @@
 # WHY: `access` in the .lib is clk0 -> dout0, while the column deck measures
 # only the bitline discharge (t_dis_50, triggered off the internal `precharge`
 # net). The three stages in between -- bitline inverter, column mux and output
-# buffer -- are measured here. The bitline falls so slowly (~125 mV/ns through
+# buffer -- are measured here. The bitline falls so slowly (~119 mV/ns through
 # the trip point for wrom0 at TT) that this term cannot be guessed.
 #
 # The stimulus is not a model of that edge, it IS the edge: this script
@@ -12,7 +12,7 @@
 # waveform away, exactly as run_waveform_capture.sh does for the figures) and
 # gen_backend_delay_tb.py replays those samples through a PWL source. What
 # stood here before was a straight ramp through the measured 50% and 10%
-# points; a discharge decelerates, so that secant was 3.3x flatter than the
+# points; a discharge decelerates, so that secant was 3.1x flatter than the
 # real curve at the inverter's trip point and t_bl2dout came out 48% high.
 #
 # Running it once per load also makes the index_2 (output load) axis of the

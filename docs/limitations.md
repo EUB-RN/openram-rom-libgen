@@ -161,12 +161,12 @@ Ordered by how much they can move a number:
 
    | term | ns |
    |---|---|
-   | cut time, from the internal evaluate edge | 15.6615 |
+   | cut time, from the internal evaluate edge | 16.1742 |
    | + `t_clk2pre` (clk0 -> that edge) | 0.7642 |
    | - `t_addr2wl` (addr0 -> the wordline) | 1.1875 |
-   | **= hold at the clk0 pin** | **15.2382** |
+   | **= hold at the clk0 pin** | **15.7509** |
 
-   against 17.3271 ns of access: once the bitline is past the inverter's trip
+   against 17.2675 ns of access: once the bitline is past the inverter's trip
    point the address no longer matters. The raw cut time was shipped once and
    was 0.42 ns optimistic; the two corrections nearly cancel, which is a
    coincidence rather than a reason, so the conversion is applied explicitly
@@ -185,7 +185,7 @@ Ordered by how much they can move a number:
    cs0 must last until the data *exists*; what it cannot say is that cs0 must
    last until the data is *captured*, which happens on clk0's fall -- this
    macro has no latch, so the high phase is the whole life of the read. That
-   is not a duration. A cs0 released at the end of a 17.3271 ns `hold_rising`
+   is not a duration. A cs0 released at the end of a 17.2675 ns `hold_rising`
    satisfies the constraint and still re-opens the precharge 0.5 ns before the
    earliest legal capture edge, and with a slower clock the gap is larger
    still, because the requirement stretches with the period while a fixed
