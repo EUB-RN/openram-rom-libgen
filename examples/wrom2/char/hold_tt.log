@@ -1,0 +1,4 @@
+* address hold, scripts/rom_char/run_hold_bisect.sh
+* wordline fall 0.1602 ns, threshold 0.9 x VDD, tolerance 0.05 ns
+* largest cut time that still FAILS: 1.753100e-08
+hold                =  1.758000e-08
