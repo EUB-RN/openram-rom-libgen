@@ -83,7 +83,7 @@ module wrom0 (
   // access. cs0 gets no such relief: it gates the precharge, so losing it
   // turns the precharge PMOS back on and destroys the read at ANY point in
   // the cycle, including the part the address is excused from.
-  parameter real HOLD_NS    = 41.0592;   // addr0 stable after clk0 rises
+  parameter real HOLD_NS    = 35.9700;   // addr0 stable after clk0 rises
   parameter real HOLD_CS_NS = 41.0592;   // cs0 stable after clk0 rises
 
   // 1 = report violations with $display. The corruption is applied either way

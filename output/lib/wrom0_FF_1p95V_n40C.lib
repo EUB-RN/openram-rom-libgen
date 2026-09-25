@@ -20,7 +20,7 @@
  *   t_bl2dout at the smallest load -- because what must be proven
  *   is that the consumer captured BEFORE the data went away.
  *
- * SOURCE: access/t_pre come from ngspice measurements on real Magic parasitic C + that corner's OWN sky130 models; 134x256 array, worst column 236 (series NMOS 82); front end + periphery power char/periph_{active,idle}_ff.log, bitline char/col236_worst_case_parasitic_ff.log, back end + slew char/backend_ff_*.log, leakage char/col236_leak_ff.log + char/periph_leak_cs*_ff.total, column energy char/col236_energy_ff.log, active energy = mean of 10 random reads char/random_energy_ff.log
+ * SOURCE: access/t_pre come from ngspice measurements on real Magic parasitic C + that corner's OWN sky130 models; 134x256 array, worst column 236 (series NMOS 82); front end + periphery power char/periph_{active,idle}_ff.log, bitline char/col236_worst_case_parasitic_ff.log, back end + slew char/backend_ff_*.log, leakage char/col236_leak_ff.log + char/periph_leak_cs*_ff.total, column energy char/col236_energy_ff.log, active energy = mean of 10 random reads char/random_energy_ff.log, address hold char/hold_ff.log
  * -- THIS corner (FF_1p95V_n40C) was simulated separately with its own
  * sky130 model files (tt/ss/ff); no fixed scaling factor was used.
  * Measurement showed that this matters: the old SS x1.85 assumption was
@@ -37,19 +37,62 @@
  * The back-end term covers the bitline inverter, the 256:32 column
  * mux and the output buffer.
  *
- * HOLD IS NOT MEASURED. It is declared equal to access
- * (9.8440 ns) because the row decoder is clocked: an address
- * that moves during evaluate drops a second wordline and that
- * wordline does not come back inside the cycle. Safe, and
- * pessimistic -- scripts/rom_char/run_hold_bisect.sh measures
- * where the real limit is for the ADDRESS. cs0 is a separate
- * question and keeps this window either way: it gates the
- * precharge, so losing it mid-evaluate ends the read outright.
- * cs0 also carries a CLOCK-GATING pair against clk0. It
- * gates the array's internal clock, and the read lives only
- * during the high phase, so the requirement is that cs0 may
- * change only while clk0 is LOW. That is a phase, not a
- * duration, and no setup/hold number can express it.
+ * THE ADDRESS HOLD IS MEASURED: 9.3744 ns on addr0
+ * (scripts/rom_char/run_hold_bisect.sh). The deck cuts the
+ * series chain in mid-evaluate -- what a moving address does
+ * to a CLOCKED row decoder -- and bisects the cut time until
+ * the read still lands within 10% of the rail. It is SHORTER
+ * than access (9.8440 ns): once the bitline has driven bl_b to a
+ * real logic level the read is decided, and the back-end delay
+ * after that point no longer depends on the address.
+ *
+ *   REFERENCED TO THE clk0 PIN, which is what Liberty
+ *   means. The hold deck is the column deck: no clk0 in
+ *   it, so its answer is counted from the INTERNAL
+ *   evaluate edge. Two measured delays carry it across:
+ *     cut from the internal edge     9.5571 ns
+ *     + clk0 -> that edge            0.4725 ns
+ *     - addr0 -> the wordline        0.6552 ns
+ *       (run_addr2wl.sh, measured during evaluate when
+ *        the decoder is transparent)
+ *     = hold at the pin              9.3744 ns
+ *   The two corrections nearly cancel here; shipping the
+ *   raw cut time would have been right by coincidence.
+ *
+ * THE CONTROL INPUTS DO NOT GET THAT NUMBER. cs0 keeps the full
+ * access window, 9.8440 ns, because the experiment above never
+ * exercised it: cs0 is not on the decode path at all. It gates
+ * the precharge itself (precharge = ~NAND(cs0, clk_int)), so
+ * cs0 going away during evaluate turns the precharge PMOS back
+ * ON and the bitline is pulled to VDD -- the read dies at any
+ * point in the cycle, including the late part where the
+ * address no longer matters. Handing it the shorter number
+ * would relax a constraint no measurement covers.
+ *
+ *   THE SETUP/HOLD PAIR CANNOT STATE cs0'S REAL REQUIREMENT,
+ *   so it also carries a CLOCK-GATING pair. The window above
+ *   says cs0 must last until the data EXISTS. What has to be
+ *   said is that it lasts until the data is CAPTURED, on
+ *   clk0's FALL -- this macro has no latch, so the high phase
+ *   is the whole life of the read. A cs0 released at 9.8440 ns
+ *   satisfies hold_rising and still re-opens the precharge
+ *   0.3250 ns before the earliest legal capture edge, and with a
+ *   slower clock the gap only grows. No number fixes it: a
+ *   hold reaches FORWARD from the rise, a setup reaches BACK
+ *   from the fall, and a high phase longer than their sum has
+ *   a middle that neither covers. (hold_falling does not help
+ *   either -- a hold bounds how early a pin may change after a
+ *   PAST edge, so a mid-phase drop is measured against the
+ *   previous fall and passes with room to spare.)
+ *
+ *   cs0 IS A CLOCK GATE ENABLE: precharge = ~NAND(cs0,
+ *   clk_int), i.e. it switches off the array's internal clock.
+ *   clock_gating_setup_rising / clock_gating_hold_falling
+ *   anchor to the two EDGES instead of to a duration and say
+ *   what is actually required -- cs0 may only change while
+ *   clk0 is LOW -- for any clock period. The plain setup/hold
+ *   pair is kept alongside so a tool that ignores gating
+ *   checks still reads a meaningful number rather than none.
  *
  * COLUMN DECODER (measured, run_coldec_delay.sh): precharge ->
  *   column select takes 0.3546 ns against 8.5622 ns for the
@@ -378,14 +421,14 @@ cell (wrom0) {
             timing_type : hold_rising;
             related_pin : "clk0";
             rise_constraint(CONSTRAINT_TABLE) {
-                values("9.8440, 9.8440, 9.8440",\
-                    "9.8440, 9.8440, 9.8440",\
-                    "9.8440, 9.8440, 9.8440");
+                values("9.3744, 9.3744, 9.3744",\
+                    "9.3744, 9.3744, 9.3744",\
+                    "9.3744, 9.3744, 9.3744");
             }
             fall_constraint(CONSTRAINT_TABLE) {
-                values("9.8440, 9.8440, 9.8440",\
-                    "9.8440, 9.8440, 9.8440",\
-                    "9.8440, 9.8440, 9.8440");
+                values("9.3744, 9.3744, 9.3744",\
+                    "9.3744, 9.3744, 9.3744",\
+                    "9.3744, 9.3744, 9.3744");
             }
         }
         }
