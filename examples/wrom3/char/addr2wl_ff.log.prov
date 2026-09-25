@@ -1,0 +1,10 @@
+# rom_char provenance v1 -- written by the flow, read by regen_rom_libs.sh
+version	1
+stage	addr-to-wordline
+context	wrom3 ff
+when	2026-09-25T08:43:08Z
+deck	/home/hpw/openram-rom-libgen/examples/wrom3/char/addr2wl_ff.sp
+deck_sha	a0b93365b996575688cebd162a9f7102d794b4c1a4dc18e9ccdd1708178452dd
+log_sha	a45c524b6dc51770ba4f05ca1133d9f7afb2975be6c4c6faadf0cc2f15474e7a
+src	/home/hpw/openram-rom-libgen/examples/wrom3/wrom3.sp
+src_sha	1b4bd9b990872ad4668fb0152919ca19d6710252e7e9ae3930adb7b68db06adb

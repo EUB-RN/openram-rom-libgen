@@ -1,0 +1,10 @@
+# rom_char provenance v1 -- written by the flow, read by regen_rom_libs.sh
+version	1
+stage	hold-bisect
+context	wrom3 tt
+when	2026-09-25T08:29:48Z
+deck	-
+deck_sha	-
+log_sha	782aa00e5073f7da14e97a5a8721cfd2eee8ef66b2439e6f46d813b17718607d
+src	/home/hpw/openram-rom-libgen/examples/wrom3/wrom3.sp
+src_sha	1b4bd9b990872ad4668fb0152919ca19d6710252e7e9ae3930adb7b68db06adb
