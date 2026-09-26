@@ -14,7 +14,7 @@
 //     low phase  = 13.6668 * PRE_MARGIN
 //     high phase = 44.3104 * EVAL_MARGIN
 //     addr0 lands = 0.0480 * SETUP_MARGIN before the rising edge
-// so the period is roughly 78.1 ns -- this macro is SLOW, do not expect
+// so the period is roughly 61.8 ns -- this macro is SLOW, do not expect
 // the waves to look like a synchronous SRAM.
 //
 // WHAT TO PUT IN THE WAVE WINDOW (top to bottom)
@@ -52,21 +52,25 @@ module tb_wrom2_wave;
   parameter integer START_ADDR = 100;
   parameter integer N_READS    = 64;
 
-  // Margins on the MEASURED minimums. 1.0 would sit exactly on the constraint
-  // and a wave viewer cannot show you whether you are on the right side of an
-  // equality, so they are deliberately above it.
-  parameter real PRE_MARGIN   = 1.50;   // low  phase  = T_PRE_NS * this
-  parameter real EVAL_MARGIN  = 1.30;   // high phase  = ACCESS_NS * this
-  // The address is placed SETUP_NS * this before the rising edge, and NOT a
-  // whole low phase before it. Those are very different pictures: a whole low
-  // phase is 427x the constraint and shows the reader nothing except
-  // that the testbench was generous. At this margin the gap in the wave IS
-  // the .lib's setup_rising, which is the point of looking at it.
+  // ---- margins -------------------------------------------------------------
+  // EVERY edge in this testbench is placed by a .lib constraint times one of
+  // these. Nothing is a round number somebody liked the look of, because a
+  // waveform whose edges come from nowhere demonstrates nothing: what the
+  // picture is supposed to show is WHERE THE LIMITS ARE, and an edge at ten
+  // times the limit shows only that the testbench was generous.
   //
-  // BELOW 1.0 IT IS A VIOLATION, deliberately: regenerate with
-  // --setup-margin 0.6 and the model reports the setup violation on every
-  // cycle. That is the other picture worth taking.
-  parameter real SETUP_MARGIN = 2.00;   // addr0 -> clk0 rise = SETUP_NS * this
+  // 1.0 would sit exactly on the constraint, and a wave viewer cannot show
+  // you which side of an equality you are on, so they sit just above it.
+  //
+  // BELOW 1.0 EACH ONE IS A DELIBERATE VIOLATION and the model reports it
+  // once per cycle -- that is the other picture worth taking:
+  //     gen_wave_tb.py wrom2 --setup-margin 0.6
+  //     gen_wave_tb.py wrom2 --hold-margin 0.5
+  //     gen_wave_tb.py wrom2 --pre-margin 0.8 --eval-margin 0.9
+  parameter real PRE_MARGIN   = 1.05;   // low  phase = T_PRE * this   (min_pulse_width fall)
+  parameter real EVAL_MARGIN  = 1.05;   // high phase = MPW_HIGH * this (min_pulse_width rise)
+  parameter real SETUP_MARGIN = 1.05;   // addr0 before the rise = SETUP * this
+  parameter real HOLD_MARGIN  = 1.05;   // addr0 held after the rise = HOLD * this
 
   // The data the model loads. NOT rom_configs/wrom2.bin: that file is raw
   // binary and $readmemb cannot read it (it aborts on the first byte and the
@@ -79,14 +83,34 @@ module tb_wrom2_wave;
   //     xelab -generic_top "INIT_FILE=/other/path/wrom2_rom.mem" ...
   parameter INIT_FILE = "/home/hpw/openram-rom-libgen/tests/wave/wrom2_rom.mem";
 
-  localparam real T_PRE  = 13.6668;
-  localparam real ACCESS = 44.3104;
-  localparam real SETUP  = 0.0480;
-  localparam real T_LOW  = T_PRE  * PRE_MARGIN;
-  localparam real T_HIGH = ACCESS * EVAL_MARGIN;
-  // The address sits here, inside the low phase -- the bitlines are held at
-  // VDD throughout, so moving the address costs nothing until the edge.
-  localparam real T_SETUP = SETUP * SETUP_MARGIN;
+  // Straight out of wrom2.sv, which took them straight out of the .lib.
+  localparam real T_PRE    = 13.6668;    // min_pulse_width, fall
+  localparam real MPW_HIGH = 45.2354;    // min_pulse_width, rise
+  localparam real ACCESS   = 44.3104;    // clk0 rise -> dout0 valid
+  localparam real SETUP    = 0.0480;    // setup_rising, addr0
+  localparam real HOLD     = 39.2514;    // hold_rising, addr0
+  localparam real T_FALL   = 3.4380;    // falling_edge arc on dout0
+
+  // The high phase is sized from MPW_HIGH, not from ACCESS. They are not the
+  // same number -- the library's minimum pulse carries a guard band on top of
+  // the measured access -- and a phase between them reads correctly while
+  // still failing timing closure. Sizing from access would put this testbench
+  // in that gap at any margin under 1.021.
+  localparam real T_LOW   = T_PRE    * PRE_MARGIN;
+  localparam real T_HIGH  = MPW_HIGH * EVAL_MARGIN;
+  // The address moves inside the low phase -- the bitlines are at VDD
+  // throughout, so it costs nothing until the edge arrives.
+  localparam real T_SETUP = SETUP    * SETUP_MARGIN;
+  // ...and is free again this long after the rise. hold_rising is SHORTER
+  // than access (it is the only constraint here that is): the read is decided
+  // at the bitline inverter's trip point and the back end after it does not
+  // depend on the address. Holding the address for the whole evaluate phase
+  // hides that -- it is the single most specific thing this macro's .lib
+  // says, and the wave should show it.
+  localparam real T_HOLD  = HOLD     * HOLD_MARGIN;
+  // Observation only: how long `mismatch` is left standing after the falling
+  // edge so it can be seen in the window. Part of the low phase, not extra.
+  localparam real T_TAIL  = 1.0;
 
   localparam integer WIDTH     = 32;
   localparam integer ADDR_BITS = 11;
@@ -108,11 +132,20 @@ module tb_wrom2_wave;
   reg  [31:0] dout_cap = {WIDTH{1'b1}};  // value at the capture point
   reg  [31:0] expected = {WIDTH{1'b0}};  // .bin content at addr0
   reg                  mismatch = 1'b0;
+  // 1 = the .lib says addr0 is free to move. Goes high T_HOLD after the rise
+  // and stays high until the next address is placed, so the low stretch in
+  // the wave window is exactly hold_rising.
+  reg                  addr_held = 1'b0;
   reg  [8*9:1]         phase    = "IDLE";
   integer              read_idx = 0;
   integer              errors   = 0;
 
-  always @(*) expected = dut.mem[addr0];
+  // The address the read was STARTED with -- not addr0, which walks off to a
+  // far row once the hold window closes. Comparing against addr0 would make
+  // `expected` follow it and the check would compare the read to the wrong
+  // row for most of the evaluate phase.
+  reg [10:0] addr_rd = {ADDR_BITS{1'b0}};
+  always @(*) expected = dut.mem[addr_rd];
 
   // ---- the run ------------------------------------------------------------
   integer i;
@@ -145,19 +178,43 @@ module tb_wrom2_wave;
       // so at full-cycle zoom the address and the clock edge look
       // simultaneous. THAT IS THE MEASUREMENT: zoom to the edge to see it.
       phase = "PRECHARGE";
-      #(T_LOW - T_SETUP);
-      addr0 = (START_ADDR + i) % DEPTH;
+      // mismatch from the previous cycle stays up a moment so it is visible
+      // in the window, then the rest of the low phase runs.
+      #(T_TAIL);
+      mismatch = 1'b0;
+      #(T_LOW - T_TAIL - T_SETUP);
+      addr0     = (START_ADDR + i) % DEPTH;
+      addr_rd   = addr0;
+      addr_held = 1'b1;
       #(T_SETUP);
 
       clk0  = 1'b1;
       phase = "EVALUATE";
+
+      // HOLD. The address is released the moment the .lib stops requiring
+      // it, and released to a FAR ROW so the release is unmistakable in the
+      // wave window -- half the array away, every bit of the row index
+      // different. The read in flight survives this: that is what
+      // run_hold_bisect.sh measured and it is why hold_rising is
+      // 39.2514 ns rather than the full access window.
+      //
+      // The far row does start discharging its own bitlines, and about one
+      // access time later dout0 would become the AND -- irreversibly, there
+      // is no pull-up in the array. The evaluate phase is over long before
+      // then; gen_wave_tb.py refuses to write a testbench where it is not.
+      #(T_HOLD);
+      addr0     = (START_ADDR + i + DEPTH / 2) % DEPTH;
+      addr_held = 1'b0;
+
       // dout0 is NOT the data yet; the bitlines are still discharging.
-      #(ACCESS);
+      #(ACCESS - T_HOLD);
       phase = "VALID";
       #(T_HIGH - ACCESS);
 
-      // CAPTURE, at the point a real consumer would: just before the fall,
-      // with the address and cs0 still held. The macro does give a little
+      // CAPTURE, at the point a real consumer would: just before the fall.
+      // cs0 is still held -- it has no free window at all, the .lib states
+      // its deadline as this very edge -- while addr0 has been off on a far
+      // row since T_HOLD, which is the whole point. The macro does give a
       // slack past the edge -- T_FALL_NS, the .lib's falling_edge arc on
       // dout0, is how long the precharge PMOS takes to pull the bitlines
       // back up -- but that window is a few nanoseconds and it is not what
@@ -167,16 +224,28 @@ module tb_wrom2_wave;
       if (mismatch) begin
         errors = errors + 1;
         $display("MISMATCH %0t: addr %0d -> dout0 %h, .bin says %h",
-                 $time, addr0, dout0, expected);
+                 $time, addr_rd, dout0, expected);
       end
-      $display("%8t  addr %4d  dout %h", $time, addr0, dout0);
+      $display("%8t  addr %4d  dout %h", $time, addr_rd, dout0);
 
       clk0  = 1'b0;
       phase = "PRECHARGE";
-      #(1.0);
-      mismatch = 1'b0;
-      #(T_LOW - 1.0);
+      // The low phase belongs to the TOP of the next iteration, where the
+      // address is placed against setup_rising. Waiting one here as well --
+      // which this loop used to do -- makes the real precharge 2 * T_LOW and
+      // the printed period a lie about the run.
     end
+
+    // The last read's own low phase. It used to live at the bottom of the
+    // loop; without it here the falling edge and the tail below land in the
+    // SAME timestep, cs0 is released in the same delta as the clock falls,
+    // and whichever of the model's two negedge processes runs first decides
+    // whether a cs0 hold violation is reported. A testbench must not make
+    // the report depend on the simulator's scheduling order.
+    phase = "PRECHARGE";
+    #(T_TAIL);
+    mismatch = 1'b0;
+    #(T_LOW - T_TAIL);
 
     // Tail: one deselected cycle. cs0 low keeps the precharge on through the
     // whole high phase, so dout0 stays at all ones with clk0 toggling -- the

@@ -256,9 +256,24 @@ module wrom0 (
         fork
           begin
             #(ACCESS_NS);
-            // Only if the phase is still open. A precharge in between has
-            // already restored the bitlines and there is nothing to corrupt.
-            if (evaluating && clk0 === 1'b1 && cs0 === 1'b1) begin
+            // Only if THE SAME phase is still open. `evaluating` alone does
+            // not ask that: the wait above is a whole access time, and a
+            // cycle whose high phase is shorter than that ends, precharges
+            // and starts the NEXT evaluate before this block wakes up. It
+            // would then find evaluating high again and report a corruption
+            // against a read it has nothing to do with -- harmless, since
+            // the precharge reset late_row to all ones on the way past, and
+            // therefore a pure false alarm in the log, which is worse than a
+            // real one: it teaches the reader to ignore the message.
+            //
+            // t_eval is stamped once per rising edge, so the phase this block
+            // belongs to is the one that started BEFORE the address moved.
+            // ($realtime - ACCESS_NS is that moment.) No per-invocation state
+            // is needed to ask it, which matters because several of these can
+            // be in flight at once and `automatic` inside fork is not
+            // universally supported.
+            if (evaluating && clk0 === 1'b1 && cs0 === 1'b1
+                && t_eval < ($realtime - ACCESS_NS)) begin
               if (REPORT)
                 $display("ERROR %.3f ns %m: dout0 CORRUPTED by a late address change -- the change at %.3f ns was past the %.3f ns hold window, so the read in flight survived, but the new row has been discharging ever since and the evaluate phase is still open. dout0 is now the AND of the rows.",
                          $realtime, $realtime - ACCESS_NS, HOLD_NS);
