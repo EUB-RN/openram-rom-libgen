@@ -71,6 +71,18 @@ module tb_wrom0_wave;
   parameter real EVAL_MARGIN  = 1.05;   // high phase = MPW_HIGH * this (min_pulse_width rise)
   parameter real SETUP_MARGIN = 1.05;   // addr0 before the rise = SETUP * this
   parameter real HOLD_MARGIN  = 1.05;   // addr0 held after the rise = HOLD * this
+  // cs0 is the one pin with NO free window. The .lib says so twice: the plain
+  // hold_rising is the whole access (41.0592 ns), and
+  // clock_gating_hold_falling is 0.0000 -- a hold of zero against the FALLING
+  // edge, which is not a slack but a different anchor. It means the deadline
+  // is an EVENT, not a duration: cs0 must still be high when clk0 falls, for
+  // any clock period. Dropping it earlier re-opens the precharge PMOS and the
+  // bitline is the only place this macro keeps a read.
+  //
+  // So cs0's margin is on the PHASE, measured from the rising edge: 1.0
+  // releases it exactly on the deadline, above 1.0 is past it, below 1.0 is
+  // inside the evaluate phase and the model reports the violation.
+  parameter real CS_MARGIN    = 1.05;   // cs0 released after the rise = T_HIGH * this
 
   // The data the model loads. NOT rom_configs/wrom0.bin: that file is raw
   // binary and $readmemb cannot read it (it aborts on the first byte and the
@@ -108,6 +120,11 @@ module tb_wrom0_wave;
   // hides that -- it is the single most specific thing this macro's .lib
   // says, and the wave should show it.
   localparam real T_HOLD  = HOLD     * HOLD_MARGIN;
+  // Exactly 1.0 would put the release in the same timestep as the falling
+  // edge, where the model has two negedge processes to run and which one goes
+  // first would decide whether a violation is reported. A testbench must not
+  // hand that to the scheduler.
+  localparam real T_CS    = T_HIGH   * CS_MARGIN;
   // Observation only: how long `mismatch` is left standing after the falling
   // edge so it can be seen in the window. Part of the low phase, not extra.
   localparam real T_TAIL  = 1.0;
@@ -136,6 +153,11 @@ module tb_wrom0_wave;
   // and stays high until the next address is placed, so the low stretch in
   // the wave window is exactly hold_rising.
   reg                  addr_held = 1'b0;
+  // 1 = cs0 is required high. Unlike addr_held this never goes low while the
+  // evaluate phase is open: side by side in the wave window the two signals
+  // are the whole difference between the address's constraint and the chip
+  // select's.
+  reg                  cs_held   = 1'b0;
   reg  [8*9:1]         phase    = "IDLE";
   integer              read_idx = 0;
   integer              errors   = 0;
@@ -146,6 +168,17 @@ module tb_wrom0_wave;
   // row for most of the evaluate phase.
   reg [10:0] addr_rd = {ADDR_BITS{1'b0}};
   always @(*) expected = dut.mem[addr_rd];
+
+  // cs0's release is timed from the RISING edge and driven here rather than
+  // from the sequence below, because where it falls depends on CS_MARGIN: at
+  // the default it is past the falling edge, under 1.0 it is inside the
+  // evaluate phase. One process covers both without the main sequence having
+  // to be re-ordered around it.
+  always @(posedge clk0) begin
+    #(T_CS);
+    cs0     = 1'b0;
+    cs_held = 1'b0;
+  end
 
   // ---- the run ------------------------------------------------------------
   integer i;
@@ -165,7 +198,6 @@ module tb_wrom0_wave;
     cs0   = 1'b0;
     phase = "PRECHARGE";
     #(T_LOW);
-    cs0 = 1'b1;
 
     for (i = 0; i < N_READS; i = i + 1) begin
       read_idx = i;
@@ -186,6 +218,11 @@ module tb_wrom0_wave;
       addr0     = (START_ADDR + i) % DEPTH;
       addr_rd   = addr0;
       addr_held = 1'b1;
+      // The .lib gives cs0 the same setup_rising as addr0 -- 0.0480 ns, and
+      // again as clock_gating_setup_rising -- so it is selected on the same
+      // edge of the same window. It is released by the process above.
+      cs0       = 1'b1;
+      cs_held   = 1'b1;
       #(T_SETUP);
 
       clk0  = 1'b1;
@@ -251,7 +288,7 @@ module tb_wrom0_wave;
     // whole high phase, so dout0 stays at all ones with clk0 toggling -- the
     // shape to recognise when a read "returns 0xFF...F for no reason".
     phase = "IDLE";
-    cs0   = 1'b0;
+    cs0   = 1'b0;   // already low; the loop never re-asserts it from here
     clk0  = 1'b1;
     #(T_HIGH);
     clk0  = 1'b0;

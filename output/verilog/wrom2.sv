@@ -179,11 +179,20 @@ module wrom2 (
       $display("WARNING %.3f ns %m: clk0 min_pulse_width(rise) violation -- high phase %.3f ns, the .lib requires %.3f ns. dout0 did become valid, because access is only %.3f ns; the remaining %.3f ns is the characterisation guard band. Timing closure against the .lib will fail even though this simulation reads correctly.",
                $realtime, $realtime - t_eval, MPW_HIGH_NS, ACCESS_NS,
                MPW_HIGH_NS - ACCESS_NS);
+    // WHEN PRECHARGE BEGAN, which is the FIRST of the two falls, not the
+    // last -- so it is stamped before `evaluating` is torn down below. This
+    // block runs on either edge, and cs0 is normally released a little after
+    // clk0 falls: its deadline is that edge, so anything past it is legal.
+    // Stamping again on the cs0 fall would restart the precharge clock that
+    // clk0 already started, and the next rising edge would then measure a low
+    // phase short by exactly the gap between the two releases and report a
+    // precharge violation that did not happen. `evaluating` is the test: it
+    // is still set only on the fall that ENDS the evaluate phase.
+    if (evaluating) t_fall = $realtime;
     evaluating = 1'b0;
     ready      = 1'b0;
     bl         = {WIDTH{1'b1}};
     late_row   = {WIDTH{1'b1}};
-    t_fall     = $realtime;
   end
 
   // --- EVALUATE ------------------------------------------------------------

@@ -111,6 +111,7 @@ def read_model(v_path):
         "t_pre": num("T_PRE_NS"),
         "setup": num("SETUP_NS"),
         "hold": num("HOLD_NS"),
+        "hold_cs": num("HOLD_CS_NS"),
         "mpw_high": num("MPW_HIGH_NS"),
         "t_fall": num("T_FALL_NS"),
         "init": init.group(1) if init else "",
@@ -215,6 +216,18 @@ module tb_{macro}_wave;
   parameter real EVAL_MARGIN  = {eval_margin:.2f};   // high phase = MPW_HIGH * this (min_pulse_width rise)
   parameter real SETUP_MARGIN = {setup_margin:.2f};   // addr0 before the rise = SETUP * this
   parameter real HOLD_MARGIN  = {hold_margin:.2f};   // addr0 held after the rise = HOLD * this
+  // cs0 is the one pin with NO free window. The .lib says so twice: the plain
+  // hold_rising is the whole access ({hold_cs} ns), and
+  // clock_gating_hold_falling is 0.0000 -- a hold of zero against the FALLING
+  // edge, which is not a slack but a different anchor. It means the deadline
+  // is an EVENT, not a duration: cs0 must still be high when clk0 falls, for
+  // any clock period. Dropping it earlier re-opens the precharge PMOS and the
+  // bitline is the only place this macro keeps a read.
+  //
+  // So cs0's margin is on the PHASE, measured from the rising edge: 1.0
+  // releases it exactly on the deadline, above 1.0 is past it, below 1.0 is
+  // inside the evaluate phase and the model reports the violation.
+  parameter real CS_MARGIN    = {cs_margin:.2f};   // cs0 released after the rise = T_HIGH * this
 
   // The data the model loads. NOT rom_configs/{macro}.bin: that file is raw
   // binary and $readmemb cannot read it (it aborts on the first byte and the
@@ -252,6 +265,11 @@ module tb_{macro}_wave;
   // hides that -- it is the single most specific thing this macro's .lib
   // says, and the wave should show it.
   localparam real T_HOLD  = HOLD     * HOLD_MARGIN;
+  // Exactly 1.0 would put the release in the same timestep as the falling
+  // edge, where the model has two negedge processes to run and which one goes
+  // first would decide whether a violation is reported. A testbench must not
+  // hand that to the scheduler.
+  localparam real T_CS    = T_HIGH   * CS_MARGIN;
   // Observation only: how long `mismatch` is left standing after the falling
   // edge so it can be seen in the window. Part of the low phase, not extra.
   localparam real T_TAIL  = 1.0;
@@ -280,6 +298,11 @@ module tb_{macro}_wave;
   // and stays high until the next address is placed, so the low stretch in
   // the wave window is exactly hold_rising.
   reg                  addr_held = 1'b0;
+  // 1 = cs0 is required high. Unlike addr_held this never goes low while the
+  // evaluate phase is open: side by side in the wave window the two signals
+  // are the whole difference between the address's constraint and the chip
+  // select's.
+  reg                  cs_held   = 1'b0;
   reg  [8*9:1]         phase    = "IDLE";
   integer              read_idx = 0;
   integer              errors   = 0;
@@ -290,6 +313,17 @@ module tb_{macro}_wave;
   // row for most of the evaluate phase.
   reg [{amsb}:0] addr_rd = {{ADDR_BITS{{1'b0}}}};
   always @(*) expected = dut.mem[addr_rd];
+
+  // cs0's release is timed from the RISING edge and driven here rather than
+  // from the sequence below, because where it falls depends on CS_MARGIN: at
+  // the default it is past the falling edge, under 1.0 it is inside the
+  // evaluate phase. One process covers both without the main sequence having
+  // to be re-ordered around it.
+  always @(posedge clk0) begin
+    #(T_CS);
+    cs0     = 1'b0;
+    cs_held = 1'b0;
+  end
 
   // ---- the run ------------------------------------------------------------
   integer i;
@@ -309,7 +343,6 @@ module tb_{macro}_wave;
     cs0   = 1'b0;
     phase = "PRECHARGE";
     #(T_LOW);
-    cs0 = 1'b1;
 
     for (i = 0; i < N_READS; i = i + 1) begin
       read_idx = i;
@@ -330,6 +363,11 @@ module tb_{macro}_wave;
       addr0     = (START_ADDR + i) % DEPTH;
       addr_rd   = addr0;
       addr_held = 1'b1;
+      // The .lib gives cs0 the same setup_rising as addr0 -- 0.0480 ns, and
+      // again as clock_gating_setup_rising -- so it is selected on the same
+      // edge of the same window. It is released by the process above.
+      cs0       = 1'b1;
+      cs_held   = 1'b1;
       #(T_SETUP);
 
       clk0  = 1'b1;
@@ -395,7 +433,7 @@ module tb_{macro}_wave;
     // whole high phase, so dout0 stays at all ones with clk0 toggling -- the
     // shape to recognise when a read "returns 0xFF...F for no reason".
     phase = "IDLE";
-    cs0   = 1'b0;
+    cs0   = 1'b0;   // already low; the loop never re-asserts it from here
     clk0  = 1'b1;
     #(T_HIGH);
     clk0  = 1'b0;
@@ -464,6 +502,11 @@ def main():
     ap.add_argument("--hold-margin", type=float, default=1.05, metavar="K",
                     help="addr0 is released hold_rising * K after the rise "
                          "(default 1.05)")
+    ap.add_argument("--cs-margin", type=float, default=1.05, metavar="K",
+                    help="cs0 is released (high phase) * K after the rise "
+                         "(default 1.05). cs0's deadline is the falling edge "
+                         "itself -- clock_gating_hold_falling is 0 -- so 1.0 "
+                         "is exactly on it and below 1.0 is a violation.")
     ap.add_argument("--endian", choices=("little", "big"), default="little",
                     help="byte order of a word inside the .bin (default: "
                          "little). The .bin carries no byte order of its own; "
@@ -523,6 +566,7 @@ def main():
         t_high = info["mpw_high"] * args.eval_margin
         t_setup = info["setup"] * args.setup_margin
         t_hold = info["hold"] * args.hold_margin
+        t_cs = t_high * args.cs_margin
         period = t_low + t_high
 
         # The testbench has to stay a testbench. Each of these is a way for a
@@ -553,6 +597,15 @@ def main():
                        "corrupt. Lower --eval-margin or raise --hold-margin."
                        % (t_high, t_hold, info["access"],
                           t_hold + info["access"]))
+        # cs0 is released by a process armed on the rising edge, so its wait
+        # must finish inside the cycle that armed it -- otherwise the next
+        # rising edge arrives while the process is still waiting, that edge is
+        # dropped, and cs0 is never re-armed again.
+        if t_cs >= t_high + t_low - t_setup:
+            bad.append("cs0 would still be waiting to be released (%.4f ns "
+                       "after the rise) when the next cycle selects it "
+                       "(%.4f ns) -- lower --cs-margin"
+                       % (t_cs, t_high + t_low - t_setup))
         if bad:
             for b in bad:
                 print("%-7s REFUSED: %s" % (macro, b), file=sys.stderr)
@@ -571,7 +624,8 @@ def main():
             t_fall="%.4f" % info["t_fall"],
             mpw_over_access=info["mpw_high"] / info["access"],
             pre_margin=args.pre_margin, eval_margin=args.eval_margin,
-            setup_margin=args.setup_margin, hold_margin=args.hold_margin)
+            setup_margin=args.setup_margin, hold_margin=args.hold_margin,
+            cs_margin=args.cs_margin, hold_cs="%.4f" % info["hold_cs"])
 
         tb_path = os.path.join(outdir, "tb_%s_wave.v" % macro)
         open(tb_path, "w").write(tb)
@@ -581,11 +635,12 @@ def main():
         viol = [n for n, k in (("pre", args.pre_margin),
                                ("eval", args.eval_margin),
                                ("setup", args.setup_margin),
-                               ("hold", args.hold_margin)) if k < 1.0]
+                               ("hold", args.hold_margin),
+                               ("cs", args.cs_margin)) if k < 1.0]
         print("%-7s written: %s  (%d reads from %d, cycle %.3f = %.3f low + "
-              "%.3f high, setup %.4f, hold %.4f ns%s, %s)"
+              "%.3f high, setup %.4f, hold %.4f, cs %.4f ns%s, %s)"
               % (macro, os.path.relpath(tb_path, REPO), reads, args.start,
-                 period, t_low, t_high, t_setup, t_hold,
+                 period, t_low, t_high, t_setup, t_hold, t_cs,
                  "  <-- VIOLATES " + ",".join(viol) if viol else "",
                  info["corner"]))
         if words:
