@@ -151,6 +151,25 @@ def check_dout_arcs(cell):
     return bad
 
 
+# The header sentence gen_rom_lib.py writes when it ships a flat index_1
+# because run_slew_sweep.sh produced no log. Kept as one string in one place:
+# if the generator's wording changes and this does not, _declares_flat_axis
+# stops recognising the declaration and the standard-mode library FAILS the
+# check -- loudly, and in the safe direction, rather than quietly accepting an
+# axis nobody declared. gen_rom_lib.py carries a comment pointing back here.
+FLAT_AXIS_DECLARATION = "the slew axis was NOT measured"
+
+# Raw bytes of the file currently under check; main() sets it per file. Empty
+# means "no text available", which makes _declares_flat_axis answer False --
+# i.e. an undeclared axis, the failing direction.
+_SOURCE_TEXT = ""
+
+
+def _declares_flat_axis(lib):
+    """Does the library's own header admit its index_1 is a fallback?"""
+    return FLAT_AXIS_DECLARATION in _SOURCE_TEXT
+
+
 def check_slew_axis(cell, lib):
     """index_1 must be measured, monotonic, and agree with max_transition.
 
@@ -182,8 +201,25 @@ def check_slew_axis(cell, lib):
     if rise:
         vals = rows(rise[0].first("cell_rise"))
         if len({tuple(r) for r in vals}) == 1:
-            bad.append("cell_rise is flat along index_1 -- the clk0 slew axis "
-                       "was never measured (run run_slew_sweep.sh)")
+            # A FLAT AXIS IS A DEFECT ONLY WHEN IT IS SILENT.
+            #
+            # `flow.py` without --full does not run run_slew_sweep.sh, so it
+            # ships one number repeated three times -- on purpose, and the
+            # generator says so in the header (and on stderr). What this check
+            # was written to catch is the axis that is flat while the library
+            # claims it was measured: then the macro "appears not to care how
+            # fast its clock arrives" and a consumer has no way to tell.
+            # A library that declares the fallback makes no such claim, so it
+            # is reported as the known fallback rather than failed -- which
+            # keeps `./flow.py <macro>` able to finish on its own output.
+            if _declares_flat_axis(lib):
+                print("  NOTE index_1 is the declared FALLBACK -- one number "
+                      "repeated, the slew axis was not measured "
+                      "(./flow.py <macro> --full measures it)")
+            else:
+                bad.append("cell_rise is flat along index_1 and the header "
+                           "does not declare it -- the clk0 slew axis was "
+                           "never measured (run_slew_sweep.sh, or --full)")
         else:
             # A NOISE TOLERANCE, with a number behind it. The front-end
             # term is measured in a transient whose timestep (TCLK/steps =
@@ -579,6 +615,14 @@ def main(argv):
         base = os.path.basename(path)
         try:
             lib = parse_file(path)
+            # The parser drops comments, and the header is a comment block --
+            # but it is where the generator states which terms are fallbacks.
+            # A check that has to ask "did this library declare it?" needs the
+            # bytes. libparse.Group has __slots__, so they cannot ride on the
+            # parsed object; they go in a module global set per file instead,
+            # right next to the parse that produced it.
+            global _SOURCE_TEXT
+            _SOURCE_TEXT = open(path).read()
         except (LibertyError, OSError) as exc:
             print("  FAIL %s  cannot parse: %s" % (base, exc))
             failures += 1

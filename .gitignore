@@ -46,3 +46,4 @@ user/*
 # the diagnosis survives for inspection. It is a transient artefact of a
 # broken run, never an input to anything.
 *.log.term
+tmp_cap_fix/

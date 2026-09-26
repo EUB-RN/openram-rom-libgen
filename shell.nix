@@ -1,4 +1,9 @@
-{ pkgs ? import <nixpkgs> {} }:
+# nix/nixpkgs.nix uses the <nixpkgs> channel when one exists and falls back to
+# the revision pinned in flake.lock when it does not -- so `nix-shell` works on
+# a flakes-first install with no channels configured, which is where
+# `import <nixpkgs>` used to fail with "file 'nixpkgs' was not found in the Nix
+# search path". flake.nix passes `pkgs` in explicitly and never reaches this.
+{ pkgs ? import (import ./nix/nixpkgs.nix) {} }:
 
 let
   # The usual places a sky130 PDK lands, in the order they are tried.
@@ -34,7 +39,16 @@ in pkgs.mkShell {
     # docs/flow.md lists Magic 8.3+ as a requirement. Without it this shell
     # cannot run the flow it advertises -- every later deck needs the
     # <macro>_cap_only.spice that step writes.
-    magic
+    #
+    # The attribute is magic-vlsi, NOT magic. nixpkgs has no `magic` at all
+    # (only magic-enum, magicrescue and friends), so `magic` here was an
+    # undefined variable and BOTH entry points died on it:
+    #
+    #     error: undefined variable 'magic' at shell.nix:42:5
+    #
+    # and they died at evaluation time, i.e. after fetching nixpkgs and before
+    # building anything -- which is why it looked like a download problem.
+    magic-vlsi
   ];
 
   shellHook = ''

@@ -15,7 +15,7 @@ is ngspice's own plot of its own simulation.
 | deliverable | path | written by |
 |---|---|---|
 | Liberty, three corners per macro | `output/lib/<macro>_<CORNER>.lib` | `regen_rom_libs.sh` -> `gen_rom_lib.py` |
-| behavioural model with measured timing | `output/verilog/<macro>.v` | `gen_macro_behavioral_v.py` |
+| behavioural model with measured timing | `output/verilog/<macro>.sv` | `gen_macro_behavioral_v.py` |
 
 Deeper reading: [the macro](docs/macro.md) · [measurement names](docs/naming.md)
 · [what is measured](docs/measurements.md) · [flow and files](docs/flow.md)
@@ -23,7 +23,174 @@ Deeper reading: [the macro](docs/macro.md) · [measurement names](docs/naming.md
 
 ---
 
+## How to use
+
+### What you need
+
+**Every command on this page is run from the root of this repository** -- the
+directory that holds `flow.py`. Never from inside a macro's own directory, and
+never from `scripts/`.
+
+There are **no Python packages to install**: every script uses the standard
+library only, so there is no `requirements.txt` and nothing for `pip`. What
+the flow needs is four external tools and a PDK:
+
+| | why | without it |
+|---|---|---|
+| `python3` | every generator (CI runs 3.10) | nothing runs |
+| `ngspice` | every measurement | no logs, so no `.lib` |
+| `magic` 8.3+ | parasitic extraction, flow step 1 | no `<macro>_cap_only.spice`, so no column deck |
+| `iverilog` | simulates the generated `.v` in the testsuite | that test layer SKIPs |
+| a **sky130 PDK** | the transistor models ngspice reads | not one deck will run |
+
+### Getting that environment
+
+**If you already have those four on your `$PATH` and a sky130 PDK on disk,
+you need nothing else.** Three exports and you are done:
+
+```bash
+export PDK_ROOT=$HOME/OpenLane/pdks      # the directory CONTAINING sky130A/
+export ROM_MACROS_DIR=$(pwd)/user
+export ROM_OUT_DIR=$(pwd)/output
+```
+
+**Check it took, before spending hours on it:**
+
+```bash
+./flow.py <macro> --check-only
+```
+
+That answers both halves of "can this run here" in one table -- the macro
+(does it have the files and sub-circuits the decks expect) and the machine:
+
+```text
+  tool       status   what it is for
+  ✓ python3    the generators
+  ✗ ngspice    MISSING -- every measurement
+  ✓ sky130     the transistor models
+  ⚠ magic      not found -- parasitic extraction (--with-extract) (that part is skipped)
+  ✓ iverilog   simulates the generated .v in the testsuite
+```
+
+Anything marked `✗` stops the flow and the command exits non-zero, naming what
+to install or which variable to export -- for a missing PDK it prints the exact
+path it looked for. A `⚠` only narrows the run: that part is skipped and the
+rest still produces a library.
+
+`SKY130_LIB`, `NGSPICE_BIN`, `MAGIC_BIN`, `IVERILOG_BIN` and `VVP_BIN` are
+optional overrides -- each is derived from `PDK_ROOT` or from `$PATH` when
+unset, so set them only if the binary you want is not the first one on the
+path.
+
+**Or let Nix supply the tools**, if you would rather not install them:
+
+```bash
+nix develop        # flakes -- pins nixpkgs itself, needs no channel
+nix-shell          # classic
+```
+
+Either drops you into a shell with the four tools, looks for a sky130 PDK in
+the usual places, and exports `ROM_MACROS_DIR`, `ROM_OUT_DIR` and
+`NGSPICE_BIN` for you. If the banner says `no sky130 PDK found`, export
+`PDK_ROOT` yourself before going on -- Nix does not ship the PDK.
+
+> **The first run is heavy; every run after it is not.** Measured on a machine
+> that already had all four tools: ~50 MB of nixpkgs package definitions, then
+> **92 store paths -- 210 MiB downloaded, 630 MiB on disk** in `/nix/store`.
+> Entering the same shell a second time took **2.4 seconds**, because
+> `/nix/store` is content-addressed and global: the cost is once per machine,
+> and shared with any other project on the same nixpkgs.
+>
+> Almost none of that is compilation. Those 92 paths come prebuilt from
+> `cache.nixos.org`; only the trivial shell-environment derivation is built
+> locally. That is the same bargain OpenLane and LibreLane make -- they are
+> Nix flakes too, and add their own Cachix binary cache so nothing compiles on
+> your machine either (OpenLane 1 used a Docker image: different tool, same
+> idea -- someone else did the build). Nobody avoids the first download; what
+> they avoid is building from source. **If you ever see Nix reporting a large
+> number of packages to *build* rather than copy, that is the problem** -- it
+> means the pinned revision is not in the cache yet.
+>
+> The size is the graphics stack rather than the tools: `magic-vlsi` is a
+> Tcl/Tk application and nixpkgs builds `ngspice` with X11 plotting, so
+> between them they pull ~30 X11, Tcl and font packages (that is the
+> `fontconfig` line in the progress output). Neither is trimmable here -- the
+> figures in this README *are* ngspice's own plot window, and Magic needs Tk.
+>
+> You are buying a reproducible, pinned toolchain, not a light one. If you
+> already have the four tools, use the exports above and skip all of it.
+
+> **Seeing `file 'nixpkgs' was not found in the Nix search path`?** It means
+> your Nix has no nixpkgs channel, which is normal on a flakes-first install.
+> It is never a missing package. Where it appears decides whether it matters:
+>
+> * **From `shell.nix` itself** (the trace names `shell.nix:1`) the shell does
+>   not start. A checkout from before `nix/nixpkgs.nix` and `flake.lock`
+>   existed does this; pull and retry, or use `nix develop`.
+> * **From `(import <nixpkgs> {}).bashInteractive`** (the trace names
+>   `«string»:1`) it is `nix-shell`'s own lookup for an interactive bash, not
+>   this repository's code. It is **harmless**: the next line says
+>   `uses bash from your environment`, the shell opens, and ngspice, Magic,
+>   iverilog and python3 all still come from the pinned nixpkgs -- only the
+>   bash around them is your system's. `nix develop` does not print it. To
+>   silence it and keep `nix-shell`:
+>
+>   ```bash
+>   nix-shell -I nixpkgs="$(nix-instantiate --eval --expr 'toString (import ./nix/nixpkgs.nix)' | tr -d '"')"
+>   ```
+
+### Running it
+
+Put your macro in `user/<macro>/` (at least `<macro>.sp` and `<macro>.lef`,
+named after the directory), then run **one command**:
+
+```bash
+python3 scripts/rom_char/rom_paths.py --check <macro>     # can it go through the flow?
+./flow.py <macro>                                        # <- the whole thing
+```
+
+That runs pre-flight, every SPICE measurement, the `.lib` and `.v`
+generators and the full testsuite, in that order, and writes:
+
+```text
+output/lib/<macro>_TT_1p8V_25C.lib      typical
+output/lib/<macro>_SS_1p6V_100C.lib     slow    <- sign-off corner
+output/lib/<macro>_FF_1p95V_n40C.lib    fast
+output/verilog/<macro>.sv                behavioural model, measured delays
+```
+
+**There are two modes.** Same command, one flag:
+
+| | command | cost | what it measures |
+|---|---|---|---|
+| standard | `./flow.py <macro>` | tens of minutes | everything except the address hold and the clock-slew axis, which ship as safe, declared fallbacks |
+| full | `./flow.py <macro> --full` | ~an afternoon | the same plus those two, so no term is a fallback |
+
+Both are safe to sign off with; the standard mode is conservative where it
+approximates, never optimistic. **[Why the split exists, with the
+numbers](#the-two-modes-and-why-the-second-one-exists)** -- the address hold
+comes out 3-12% shorter under `--full`, and the slew axis moves `access` by
+0.24%.
+
+Useful flags: `--from-logs` rebuilds the `.lib` and `.v` from logs already on
+disk without re-simulating, `--check-only` stops after pre-flight, `--all`
+(or no macro name) processes every macro in the tree, `--jobs <n>` overrides
+the automatic parallelism.
+
+Step-by-step version with the directory layout, the environment and what to
+do when pre-flight complains:
+**[Using it on your own ROM](#using-it-on-your-own-rom)**.
+
+---
+
 ## Contents
+
+**Start here:** [How to use](#how-to-use) ·
+[Using it on your own ROM](#using-it-on-your-own-rom) ·
+[The two modes](#the-two-modes-and-why-the-second-one-exists) ·
+[Running the measurements one by one](#running-the-measurements-one-by-one)
+
+How it works:
 
 1. [The ROM macro](#1-the-rom-macro)
 2. [How each block is modelled](#2-how-each-block-is-modelled)
@@ -46,8 +213,6 @@ Deeper reading: [the macro](docs/macro.md) · [measurement names](docs/naming.md
    - [Why](#why-it-is-generated)
    - [How](#how-it-is-generated)
    - [Syntax check](#syntax-check)
-
-[Quick start](#quick-start)
 
 ---
 
@@ -637,6 +802,9 @@ ngspice 2 -> plot v(addr0[0]) v(clk0)
 | `t_addr2dec0` .. `t_addr2dec7` | each address buffer -> the decoder NAND input it drives | the WORST of them becomes `setup_rising`, on `addr0` and on `cs0` |
 | `t_clk2int` | clk0 -> the clock that gates that same NAND | not shipped: with `t_addr2dec` it gives the real requirement at the pin, `0.0307 - 0.3255 = -0.2948 ns`. The library ships the positive path delay anyway, and the header states both |
 
+**Why setup is physically smaller (or negative), but kept positive for safety.**
+Physically, the address only has to beat the internal clock to the decoder NAND gate (`t_addr2dec - t_clk2int`). Because the internal clock driver introduces a substantial delay (~0.33 ns) compared to the address buffer (~0.03 ns), the true race margin at the pin is negative (~ -0.29 ns) — meaning an address arriving slightly *after* `clk0` rises would still be captured correctly. While an iterative Newton/bisection search could pinpoint this ultimate failure threshold, declaring a negative or zero setup in the `.lib` would surrender that internal margin to external logic. Under process, voltage, and temperature (PVT) variations, any clock acceleration or address delay could quickly wipe out that margin and cause silent misreads. By shipping the conservative positive buffer delay (`+t_addr2dec`) instead, the macro requires external logic to deliver the address cleanly before the clock edge, keeping the internal clock delay as a safe, uncompromised timing cushion in silicon.
+
 #### Why `cs0` inherits that number instead of getting its own
 
 `cs0` ships the *address* setup, and its own path is never simulated. That is
@@ -704,6 +872,7 @@ to that corner, so multiplying would double count.
 | output slew tables | `t_dout_slew` |
 | `min_pulse_width` rise / fall, `minimum_period` | evaluate window; `t_pre_99` |
 | `setup_rising` | worst `t_addr2dec*` |
+| `hold_rising` | bisected chain cut (`run_hold_bisect.sh` with `tf` from `run_wl_slew.sh`) |
 | `capacitance` per input pin | `c_cyc<i>_ff` |
 | leakage | column `.op` x columns + periphery block slices, same clk0 state so they add |
 | energy, active and idle | active: mean of 10 random reads, `<zeros in the selected row>` x `e_col_pj` + `e_periph_pj`; idle from the `!cs0` deck |
@@ -714,6 +883,20 @@ if it held its output, and reports a false pass.
 
 `t_pre` uses `t_pre_99`, not `t_pre_90` -- 90% recharge comes out ~0.5 ns and
 would write a `min_pulse_width(fall)` 20x too small.
+
+### Visualizing the timing: Liberty arcs on the simulation waveform
+
+Every timing constraint and delay arc in the `.lib` corresponds directly to an event in a real read cycle (here shown on `wrom0` at the SS corner, via `tb_wrom0_wave.v`):
+
+![OpenRAM ROM Waveform & Liberty (.lib) Timing Mappings](docs/img/19-waveform-timing.png)
+
+* **`setup_rising (addr0)`**: Address must arrive and settle before `clk0` rises (~50 ps).
+* **`hold_rising (addr0)`**: Address must remain stable after `clk0` rises (35.97 ns at SS). Once this window closes, the address is free to move (here stepping to row `278`) without corrupting the read in flight.
+* **`access time` (`cell_fall / cell_rise`)**: From `clk0` rise until `dout0` transitions from precharge `FFFFFFFF` to valid data (`0c1af939`, 41.06 ns at SS).
+* **`dout hold` (`retain_rise/fall`)**: Minimum duration previous data is guaranteed held at output after clock rise (~2.2 ns).
+* **`falling_edge arc`**: When `clk0` falls, the precharge PMOS pulls bitlines high, returning `dout0` to `FFFFFFFF` within 3.49 ns (unlatched ROM output invalidation).
+* **`min_pulse_width` (rise & fall)**: Required evaluate (high phase, 41.98 ns) and precharge recharge (low phase, 14.88 ns) durations.
+* **`cs0 clock_gating_hold_falling`**: `cs0` must remain high for the entire evaluate high phase; releasing it early would re-open precharge and destroy the read in flight.
 
 ### Checked
 
@@ -794,8 +977,8 @@ The Verilog is **simulation only** -- not synthesizable; the ASIC flow reads
 `<macro>_bbox.v`. Check it with any simulator, e.g.:
 
 ```bash
-iverilog -g2012 -o /tmp/rom.vvp output/verilog/wrom0.v && echo "syntax OK"
-# or run the full testsuite (tests all .lib files, OpenSTA, and all .v models):
+iverilog -g2012 -o /tmp/rom.vvp output/verilog/wrom0.sv && echo "syntax OK"
+# or run the full testsuite (tests all .lib files, OpenSTA, and all .sv models):
 ./tests/run_tests.sh
 ```
 
@@ -803,7 +986,252 @@ All Liberty and Verilog validation checks are automated on every push/PR via Git
 
 ---
 
-## Quick start
+## Using it on your own ROM
+
+One command takes an OpenRAM ROM macro to a `.lib` and a `.v`. **Every command
+on this page is typed at the root of this repository** -- the directory holding
+`flow.py` -- and your macro goes under `user/` inside it. Nothing is ever run
+from inside the macro's own directory.
+
+For a ROM named `rom_1024x32`, the whole of it:
+
+```bash
+cd /path/to/openram-rom-libgen        # the repo root: flow.py is here
+mkdir -p user/rom_1024x32
+cp /wherever/rom_1024x32.sp  user/rom_1024x32/
+cp /wherever/rom_1024x32.lef user/rom_1024x32/
+cp /wherever/rom_1024x32.gds user/rom_1024x32/      # optional
+nix-shell                                            # tools + env, still at the repo root
+python3 scripts/rom_char/rom_paths.py --check rom_1024x32
+./flow.py rom_1024x32
+ls output/lib output/verilog
+```
+
+The rest of this section is those seven lines explained. The
+[next section](#running-the-measurements-one-by-one) is the same flow taken
+apart, for when you want a single measurement.
+
+### 1. Put the macro under `user/`, at the repo root
+
+`user/` is the macro tree `shell.nix` points `ROM_MACROS_DIR` at, so a macro
+placed there is found with no further configuration. You create it; the repo
+ships the directory empty. One sub-directory per ROM, named after the macro,
+and the files inside named after it too:
+
+```text
+user/
+└── <macro>/
+    ├── <macro>.sp           REQUIRED  netlist -- geometry and the critical path
+    ├── <macro>.lef          REQUIRED  pin list, directions, area
+    ├── <macro>.gds          OPTIONAL  only for real parasitic extraction
+    ├── config/<macro>.py    OPTIONAL  word_size / words_per_row cross-check
+    └── rom_configs/<macro>.bin  OPTIONAL  contents; word count for the model
+```
+
+The macro name is whatever the sub-directory is called, and `<macro>.sp` and
+`<macro>.lef` must match it -- that name is what you pass to every command
+below, and what the output files are named after.
+
+`examples/` is study material, not the place to put your own macro. To
+characterise those instead, point `ROM_MACROS_DIR` at that tree by hand.
+
+### 2. Enter the environment, from the repo root
+
+```bash
+nix develop        # flakes -- pins nixpkgs itself, needs no channel
+nix-shell          # classic
+```
+
+Either brings ngspice, Magic, iverilog and python3, finds a sky130 PDK in the
+usual places, and exports `ROM_MACROS_DIR=$(pwd)/user`,
+`ROM_OUT_DIR=$(pwd)/output` and `NGSPICE_BIN`. If it prints
+`no sky130 PDK found`, export `PDK_ROOT` yourself before going on -- without
+the device models not one deck will run. Without Nix, install those four and
+set the same variables by hand; there are no Python packages to install, so
+there is nothing for `pip`. Full list and the `nixpkgs`-not-found case:
+[What you need](#what-you-need).
+
+### 3. Check the macro before spending hours on it
+
+Still at the repo root -- the path below is relative to it:
+
+```bash
+python3 scripts/rom_char/rom_paths.py --check <macro>
+```
+
+It names every file it wants and every sub-circuit the decks expect, one line
+each, and says whether the macro can go through the flow at all. A missing
+sub-circuit here is an architecture mismatch, not a typo -- see
+[docs/your-rom.md](docs/your-rom.md).
+
+### 4. Run it
+
+```bash
+./flow.py <macro>
+```
+
+`<macro>` is the directory name from step 1, not a path -- `flow.py` looks it
+up under `user/` itself. It runs pre-flight, the SPICE sweep, both generators
+and the full testsuite, in that order, and takes hours: the simulations are
+the flow. `./flow.py` with no macro name processes **every** macro under the
+tree.
+`--from-logs` rebuilds the `.lib` and `.v` from logs already on disk without
+re-simulating; `--check-only` stops after pre-flight.
+
+There is a second mode, and it is the same command with one flag:
+
+```bash
+./flow.py <macro> --full
+```
+
+Both modes measure everything the `.lib` declares. `--full` additionally
+measures the two terms the standard mode leaves on a safe approximation --
+the address hold and the `index_1` clock-slew axis -- and costs about an
+afternoon per macro instead of tens of minutes. **Why that split exists is
+[its own section](#the-two-modes-and-why-the-second-one-exists)**, because
+the reasoning is the point rather than the flag.
+
+### 5. What comes out
+
+Written under `output/` at the repo root, named after the macro:
+
+```text
+output/lib/<macro>_TT_1p8V_25C.lib      typical
+output/lib/<macro>_SS_1p6V_100C.lib     slow
+output/lib/<macro>_FF_1p95V_n40C.lib    fast
+output/verilog/<macro>.sv                behavioural model, measured delays
+```
+
+### The two modes, and why the second one exists
+
+**No script in this repository is meant to be run by hand.** Every number that
+reaches a `.lib` comes out of a log `flow.py` produced, checked against the
+netlist it was measured on, by content hash -- an unstamped or stale log is
+refused rather than read. The `run_*.sh` files are stages of the flow, not a
+toolbox; the
+[section below](#running-the-measurements-one-by-one) takes them apart so you
+can watch one of them work, not so you can assemble a library out of them.
+
+What the two modes differ in is how many of those stages run:
+
+| | `./flow.py <macro>` | `./flow.py <macro> --full` |
+|---|---|---|
+| every `.lib` term except the two below | measured | measured |
+| the address hold | `hold = access`, pessimistic | **measured** and converted to the `clk0` pin's frame |
+| the `index_1` (clk0 slew) axis | one flat axis | **measured**, three points |
+| extra stages | -- | `run_wl_slew.sh`, `run_hold_bisect.sh`, `run_addr2wl.sh`, `run_slew_sweep.sh` |
+| cost per macro | tens of minutes | roughly an afternoon |
+
+Both produce a library that is safe to sign off with. `--full` produces one
+with nothing left in it that a fallback wrote.
+
+#### Why the slew axis is not in the standard mode: it moves nothing
+
+`index_1` is the input-slew axis of every delay table, and `run_slew_sweep.sh`
+measures it by running the front end at 0.05, 0.2 and 0.5 ns of `clk0` edge.
+The reason it can be left out is that **this macro barely responds to it**.
+`access` is a sum of three terms and only the first can see `clk0` at all:
+
+```text
+access = t_clk2pre + max(t_dis_50, t_coldec) + t_bl2dout
+         ^^^^^^^^^   ^^^^^^^^^^^^^^^^^^^^^^   ^^^^^^^^^^
+         sees clk0    triggers off the         triggers off
+                      precharge net            the bitline
+```
+
+Over a **10x** change in the clock edge, `t_clk2pre` stretches by 5.7% --
+0.7227 to 0.7642 ns at TT -- and `access` moves from 17.2260 to 17.2675 ns.
+That is **0.24%**, well under one percent, because 15.34 ns of that sum is a
+bitline discharge with no path back to `clk0`. The output-transition table is
+flat along the axis for the same reason.
+
+So the standard mode ships a flat axis: three identical rows, which is what
+the measurement produces anyway to within a quarter of a percent. The cost of
+proving that on *your* macro is `<corners> x <slew points>` full periphery
+runs, and `--full` is where you pay it -- worth doing if your ROM's array is
+small enough that the front-end term stops being a rounding error in the sum.
+
+#### Why the hold is not in the standard mode: the fallback is already safe
+
+This is the address hold -- how long `addr0` must stay put after the clock
+edge -- and the standard mode ships `hold = access`, the full read window.
+
+That is not a guess with a hopeful number attached. It is the honest statement
+of what the circuit does before anyone measures it: the row decoder is
+clocked, so an address that moves during evaluate drops a second wordline,
+that wordline cannot come back inside the cycle, and the cut chain leaves the
+bitline wherever it happened to be. Holding the address for the whole read is
+sufficient, by construction.
+
+**It is also the direction it is safe to be wrong in.** A hold constraint that
+is too long makes a timing tool reject a design that would in fact have
+worked; it can never accept one that would have failed. You lose margin, not
+correctness -- which is exactly why this measurement could be moved out of the
+default flow and into a mode you opt into. Nothing about the standard library
+is unsound without it.
+
+What `--full` buys is the real number. `run_hold_bisect.sh` cuts the series
+chain at the cell nearest the bitline -- the worst place to cut -- and bisects
+the cut time until the read still lands within 10% of the rail; the smallest
+passing cut *is* the requirement. It turns out the read is decided once the
+bitline is through the bitline inverter's trip point, so the tail of `access`
+does not constrain the address at all:
+
+| wrom0, TT | ns |
+|---|---|
+| cut time, in the column deck's own frame | 16.1742 |
+| + `t_clk2pre` (`clk0` -> the internal evaluate edge) | 0.7642 |
+| - `t_addr2wl` (`addr0` -> the wordline it drops) | 1.1875 |
+| **= `hold_rising` at the `clk0` pin** | **15.7509** |
+| against `access` | 17.2675 |
+
+Three of the mode's four stages are that one number: `run_wl_slew.sh` measures
+the wordline edge the bisect deck cuts with (without it the deck uses an ideal
+step, and the answer comes back pessimistic again), `run_hold_bisect.sh` finds
+the cut time, and `run_addr2wl.sh` supplies the term that carries it out of
+the deck's frame and into Liberty's, which is referenced to the `clk0` pin.
+Across the four example macros it lands at 88-95% of `access`: the fallback
+was pessimistic by 5-12%.
+
+**Two things `--full` does not relax.** `cs0` keeps the full access window in
+both modes -- it is not on the decode path at all, it gates the precharge, so
+losing it during evaluate pulls the bitline back to VDD and kills the read at
+*any* point in the cycle, including the late part the address is excused from.
+And `cs0` keeps its `hold_falling = 0` arc, which says it must survive to the
+capture edge. Those are different constraints that happen to be written in the
+same field, and the measurement above touches neither.
+
+#### What is in both modes, and is not a choice
+
+`run_early_path.sh` runs in **both**. It measures the *best* column -- the
+shortest chain -- to give `retain_rise`/`retain_fall`, the earliest dout0 can
+leave its previous value.
+
+It is not a mode because it has no pessimistic reading. The hold and the slew
+axis both fall back to a number that is merely too conservative; this one
+falls back to **no arcs at all**, and a timing tool with no `retain_*` believes
+the previous cycle's data is held right up to the access time. A race that
+eats the old value before it is captured then passes silently. A missing
+constraint is not a conservative constraint, so there is no version of the
+flow that omits it.
+
+`regen_rom_libs.sh` names every term it had to fall back on, in the `.lib`
+header and on stderr, in either mode -- so a library never quietly passes off
+a fallback as a measurement.
+
+Longer version, with the directory layout explained and the two ways in
+compared: [`user/README.md`](user/README.md) and
+[docs/your-rom.md](docs/your-rom.md).
+
+---
+
+## Running the measurements one by one
+
+**This is what `./flow.py` runs, listed one stage at a time.** It is here so
+you can open a single deck and watch it work -- every section below prints the
+deck it builds and an `ngspice` line that plots the waveform it measures. It
+is *not* a second way to produce a library: use `./flow.py`, which runs these
+in this order, in parallel, and refuses a log it did not stamp itself.
 
 ```bash
 export ROM_MACROS_DIR=/path/to/your/macros     # default: <repo>/examples
@@ -812,8 +1240,10 @@ export PDK_ROOT=$HOME/OpenLane/pdks OPENRAM_TECH=$HOME/OpenRAM/technology
 
 python3 scripts/rom_char/rom_paths.py --check <macro>   # macro has what the flow needs?
 
+# both modes -- ./flow.py <macro>
 ./scripts/rom_char/run_cap_extract.sh <macro>  # 1  parasitics (Magic, slow)
 ./scripts/rom_char/run_col_timing.sh           # 2  bitline discharge + precharge
+./scripts/rom_char/run_early_path.sh           # 2b best column -> retain_rise/fall
 ./scripts/rom_char/run_backend_delay.sh        # 3  bitline -> dout, x3 loads
 ./scripts/rom_char/run_periphery_power.sh      # 4  periphery energy + cell gate C
 ./scripts/rom_char/run_addr_setup.sh           # 5  address setup
@@ -822,10 +1252,24 @@ python3 scripts/rom_char/rom_paths.py --check <macro>   # macro has what the flo
 ./scripts/rom_char/run_periphery_leak.sh       # 6b periphery leakage, gmin-swept
 ./scripts/rom_char/run_coldec_delay.sh         # 7  column decode vs discharge
 ./scripts/rom_char/run_pin_cap.sh              # 7  pin capacitances
+
+# --full only -- ./flow.py <macro> --full
+./scripts/rom_char/run_wl_slew.sh              # 7b the wordline fall edge
+./scripts/rom_char/run_hold_bisect.sh          # 7c the address hold, bisected
+./scripts/rom_char/run_addr2wl.sh              # 7d that hold in the clk0 frame
+./scripts/rom_char/run_slew_sweep.sh           # 7e the measured index_1 axis
+
 ./scripts/rom_char/regen_rom_libs.sh           # 8  write the .lib files
 ./tests/run_tests.sh                           # 9  validate them
 python3 scripts/rom_char/gen_macro_behavioral_v.py
 ```
+
+The order is a dependency order, not a preference. `run_early_path.sh` needs
+the extraction from step 1; `run_wl_slew.sh`, `run_addr2wl.sh` and
+`run_slew_sweep.sh` each read `cellgate_<corner>.log` from step 4; and
+`run_hold_bisect.sh` reads `wlslew_<corner>.log` from `run_wl_slew.sh` -- run
+without it, it cuts the chain with an ideal step and hands back a pessimistic
+hold, which is the fallback `--full` exists to retire.
 
 **How many simulations run at once is decided for you.** Every `run_*.sh`
 above runs its decks in parallel, and the limit is memory rather than cores:
