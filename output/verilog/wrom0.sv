@@ -3,7 +3,7 @@
 // Word size: 32
 // Word per Row: 8
 // Data Type: bin
-// Data File: rom_configs/wrom1.bin
+// Data File: rom_configs/wrom0.bin
 //
 // ^^^ THE SIX LINES ABOVE ARE KEPT IN OpenRAM FORMAT -- DO NOT DELETE THEM.
 // Both this script (read_geometry) and the .bin converters in simulation
@@ -11,37 +11,42 @@
 // converter typically falls back to 8 bits and loads only the low 8 bits of
 // every word -- the ROM contents then come out SILENTLY wrong.
 // ---------------------------------------------------------------------------
-// wrom1 -- REAL BEHAVIOURAL MODEL -- gen_macro_behavioral_v.py
+// wrom0 -- REAL BEHAVIOURAL MODEL -- gen_macro_behavioral_v.py
 //
 // This file is a DELIVERABLE generated from measurements; it is written to
 // the repository's output/verilog directory, not into the macro directory,
 // so a later OpenRAM run cannot overwrite it. To regenerate:
-//     python3 scripts/rom_char/gen_macro_behavioral_v.py wrom1
+//     python3 scripts/rom_char/gen_macro_behavioral_v.py wrom0
 //
 // WHY OpenRAM'S OWN MODEL IS NOT USED
 // -----------------------------------
 // The model OpenRAM generates comes from the SRAM template and assumes:
 //     "All inputs are registers"                  -> address latched inside
 //     always @(negedge clk0) dout0 <= mem[...]     -> data holds for the cycle
-// BOTH ARE FALSE. This macro's extracted cell inventory (wrom1/*.ext) has no
+// BOTH ARE FALSE. This macro's extracted cell inventory (wrom0/*.ext) has no
 // dff / latch / sense_amp / replica_column / delay_chain at all; the read
 // element is a plain inverter (rom_bitline_inverter). The same OpenRAM's SRAM
 // does contain row_addr_dff, col_addr_dff, data_dff, sense_amp,
 // replica_column and delay_chain -- those assumptions hold THERE, not here.
 //
-// REAL BEHAVIOUR (values MEASURED with ngspice, from wrom1's own .lib)
+// REAL BEHAVIOUR (values MEASURED with ngspice, from wrom0's own .lib)
 // ---------------------------------------------------------------------------
 //   clk0 = 0 : PRECHARGE. The bitlines are pulled to VDD -> dout0 = all ones.
 //              This phase must last at least T_PRE_NS.
 //   clk0 = 1 : EVALUATE. The "0" bits of the selected row discharge their
-//              bitline through 88 series NMOS (worst column 214).
+//              bitline through 82 series NMOS (worst column 236).
 //              dout0 becomes valid ACCESS_NS after the rising edge.
-//   clk0 1->0: precharge restarts and THE DATA IS ERASED.
+//   clk0 1->0: precharge restarts and THE DATA IS ERASED -- but not at the
+//              edge. The precharge PMOS takes T_FALL_NS to pull the bitlines
+//              back to VDD, which is the .lib's falling_edge arc on dout0 and
+//              is exactly the window a consumer capturing on that edge lives
+//              in. Erasing at the edge instead would make this model and the
+//              library disagree by a whole arc.
 //   cs0  = 0 : precharge stays on; the bitlines sit at VDD, dout0 = all ones.
 //              (Netlist: NAND(CS,clk) -> inverter chain -> prechrg, and the
 //              precharge PMOS conducts while its gate is low, i.e.
 //              prechrg = CS AND clk. Confirmed from the merge chain in
-//              wrom1_rom_control_logic.ext.)
+//              wrom0_rom_control_logic.ext.)
 //
 //   IRREVERSIBLE DISCHARGE: every device in the array is an NMOS; the only
 //   PMOS in the macro is in the precharge cell. Outside precharge a bitline
@@ -52,13 +57,19 @@
 //
 // GEOMETRY : 1064 words x 32 bit, words_per_row 8
 //            11 address bits, 134 rows x 256 columns
-// TIMING   : SS_1p6V_100C corner (the worst one). Source: wrom1_SS_1p6V_100C.lib
+// TIMING   : SS_1p6V_100C corner (the worst one). Source: wrom0_SS_1p6V_100C.lib
 //
-// SIMULATION ONLY. Not synthesizable; the ASIC flow reads wrom1_bbox.v.
+// SIMULATION ONLY. Not synthesizable; the ASIC flow reads wrom0_bbox.v.
+//
+// The extension is .sv because this file IS SystemVerilog -- the late-address
+// corruption below needs fork/join_none. Handed to a tool as .v it is parsed
+// as Verilog-2001, join_none is not a keyword there, and what gets reported
+// is a syntax error on the following `end`. In Vivado, if the file must keep
+// a .v name: set_property file_type SystemVerilog [get_files wrom0.v].
 // ---------------------------------------------------------------------------
 `timescale 1ns / 1ps
 
-module wrom1 (
+module wrom0 (
 `ifdef USE_POWER_PINS
     inout  vccd1,
     inout  vssd1,
@@ -71,11 +82,11 @@ module wrom1 (
 
   parameter DEPTH     = 1064;
   parameter WIDTH     = 32;
-  parameter INIT_FILE = "rom_configs/wrom1.bin";
+  parameter INIT_FILE = "rom_configs/wrom0.bin";
 
-  // MEASURED values -- wrom1_SS_1p6V_100C.lib
-  parameter real ACCESS_NS = 43.3153;   // clk0 rising -> dout0 valid
-  parameter real T_PRE_NS  = 12.8748;   // minimum clk0 low phase
+  // MEASURED values -- wrom0_SS_1p6V_100C.lib
+  parameter real ACCESS_NS = 41.0592;   // clk0 rising -> dout0 valid
+  parameter real T_PRE_NS  = 14.8779;   // minimum clk0 low phase
   parameter real SETUP_NS  = 0.0480;   // addr0/cs0 stable before clk0 rises
   // HOLD is not one number. The address may move once the bitline is past the
   // inverter's trip point -- the read is decided there and the back-end delay
@@ -83,8 +94,19 @@ module wrom1 (
   // access. cs0 gets no such relief: it gates the precharge, so losing it
   // turns the precharge PMOS back on and destroys the read at ANY point in
   // the cycle, including the part the address is excused from.
-  parameter real HOLD_NS    = 38.3781;   // addr0 stable after clk0 rises
-  parameter real HOLD_CS_NS = 43.3153;   // cs0 stable after clk0 rises
+  parameter real HOLD_NS    = 35.9700;   // addr0 stable after clk0 rises
+  parameter real HOLD_CS_NS = 41.0592;   // cs0 stable after clk0 rises
+
+  // The shortest LEGAL evaluate phase, from the .lib's min_pulse_width(rise).
+  // It is deliberately LONGER than ACCESS_NS: characterisation puts an
+  // analytic guard band on top of the measured delay. A high phase between
+  // the two hands this model valid data and still fails timing closure
+  // against the library, so the phase is checked against the library's
+  // number rather than against the model's own access.
+  parameter real MPW_HIGH_NS = 41.9842;   // minimum clk0 high phase
+  // The .lib's falling_edge arc on dout0. The precharge PMOS has to charge
+  // the bitline back up; until it has, dout0 still carries the read.
+  parameter real T_FALL_NS   = 3.4930;   // clk0 falling -> dout0 back at VDD
 
   // 1 = report violations with $display. The corruption is applied either way
   // -- that is what silicon does; the test is expected to catch the bad result.
@@ -101,11 +123,24 @@ module wrom1 (
   reg [WIDTH-1:0] late_row;    // mask owed by address changes past the hold window
   reg             evaluating;
   reg             ready;        // has the access time elapsed?
-  time            t_eval, t_fall, t_addr_chg;
+  // REAL, not `time`. `time` is an integer in units of the timescale, so
+  // with `timescale 1ns/1ps every stamp taken through $time rounds to a whole
+  // nanosecond -- and the constraints this model checks are not whole
+  // nanoseconds. SETUP_NS is 0.048 ns and the gap between access and the
+  // .lib's minimum high pulse is under 1 ns; quantised to 1 ns both checks
+  // are noise. $realtime carries the timescale's precision (1 ps here).
+  real            t_eval, t_fall, t_addr_chg;
+
+  // dout0 is driven from here rather than straight off `bl`, because the two
+  // directions have different delays: becoming valid is timed by ACCESS_NS
+  // from the rising edge, going back to all ones by T_FALL_NS from the
+  // falling one. A single continuous assignment cannot say both.
+  reg [WIDTH-1:0] dout_r;
 
   initial begin
     bl         = {WIDTH{1'b1}};
     late_row   = {WIDTH{1'b1}};
+    dout_r     = {WIDTH{1'b1}};
     evaluating = 1'b0;
     ready      = 1'b0;
     t_eval     = 0;
@@ -113,7 +148,7 @@ module wrom1 (
     t_addr_chg = 0;
   end
 
-  always @(addr0) t_addr_chg = $time;
+  always @(addr0) t_addr_chg = $realtime;
 
   // --- PRECHARGE: clk0 low OR cs0 low --------------------------------------
   always @(negedge clk0 or negedge cs0) begin
@@ -127,33 +162,41 @@ module wrom1 (
     // the same thing with hold_falling = 0 -- the only form of the statement
     // that survives a change of clock period.
     if (REPORT && evaluating && clk0 === 1'b1 && cs0 !== 1'b1)
-      $display("ERROR %0t %m: cs0 HOLD violation -- deselected %0t after clk0 rose, with the evaluate phase still open. cs0 must reach clk0's FALLING edge (the capture point): the precharge PMOS turns back on and the read is lost, valid or not. hold_rising is %.3f ns, but the real deadline is the falling edge.",
-               $time, $time - t_eval, HOLD_CS_NS);
+      $display("ERROR %.3f ns %m: cs0 HOLD violation -- deselected %.3f ns after clk0 rose, with the evaluate phase still open. cs0 must reach clk0's FALLING edge (the capture point): the precharge PMOS turns back on and the read is lost, valid or not. hold_rising is %.3f ns, but the real deadline is the falling edge.",
+               $realtime, $realtime - t_eval, HOLD_CS_NS);
     // IF THE EVALUATE PHASE IS SHORTER THAN ACCESS the data never becomes
     // valid and dout0 stays at its precharge value (all ones). That is a
     // SILENT failure -- the output looks plausible, it is just always 0xFF --
     // so it is reported explicitly.
     if (REPORT && evaluating && !ready)
-      $display("ERROR %0t %m: evaluate phase SHORTER than access -- high phase %0t, need %.3f ns. dout0 never became valid (stuck at the precharge value).",
-               $time, $time - t_eval, ACCESS_NS);
+      $display("ERROR %.3f ns %m: evaluate phase SHORTER than access -- high phase %.3f ns, need %.3f ns. dout0 never became valid (stuck at the precharge value).",
+               $realtime, $realtime - t_eval, ACCESS_NS);
+    // Long enough to read, too short for the library. The data is good here
+    // and the macro still does not close timing: the .lib's minimum high
+    // phase carries a guard band the model has no way to reproduce, so the
+    // only honest thing the model can do is say so.
+    else if (REPORT && evaluating && ($realtime - t_eval) < MPW_HIGH_NS)
+      $display("WARNING %.3f ns %m: clk0 min_pulse_width(rise) violation -- high phase %.3f ns, the .lib requires %.3f ns. dout0 did become valid, because access is only %.3f ns; the remaining %.3f ns is the characterisation guard band. Timing closure against the .lib will fail even though this simulation reads correctly.",
+               $realtime, $realtime - t_eval, MPW_HIGH_NS, ACCESS_NS,
+               MPW_HIGH_NS - ACCESS_NS);
     evaluating = 1'b0;
     ready      = 1'b0;
     bl         = {WIDTH{1'b1}};
     late_row   = {WIDTH{1'b1}};
-    t_fall     = $time;
+    t_fall     = $realtime;
   end
 
   // --- EVALUATE ------------------------------------------------------------
   always @(posedge clk0) begin
     if (cs0 === 1'b1) begin
-      if (REPORT && t_fall > 0 && ($time - t_fall) < T_PRE_NS)
-        $display("ERROR %0t %m: precharge phase TOO SHORT (%0t, need %.3f ns) -- the bitlines did not fully recharge",
-                 $time, $time - t_fall, T_PRE_NS);
-      if (REPORT && t_addr_chg > 0 && ($time - t_addr_chg) < SETUP_NS)
-        $display("ERROR %0t %m: addr0 SETUP violation (address changed at %0t, need %.3f ns) -- the wrong wordline may open",
-                 $time, t_addr_chg, SETUP_NS);
+      if (REPORT && t_fall > 0 && ($realtime - t_fall) < T_PRE_NS)
+        $display("ERROR %.3f ns %m: precharge phase TOO SHORT (%.3f ns, need %.3f ns) -- the bitlines did not fully recharge",
+                 $realtime, $realtime - t_fall, T_PRE_NS);
+      if (REPORT && t_addr_chg > 0 && ($realtime - t_addr_chg) < SETUP_NS)
+        $display("ERROR %.3f ns %m: addr0 SETUP violation (address changed at %.3f ns, need %.3f ns) -- the wrong wordline may open",
+                 $realtime, t_addr_chg, SETUP_NS);
 
-      t_eval     = $time;
+      t_eval     = $realtime;
       evaluating = 1'b1;
       bl         = bl & mem[addr0];
 
@@ -200,10 +243,10 @@ module wrom1 (
   // to be wrong in.
   always @(addr0) begin
     if (evaluating && cs0 === 1'b1 && clk0 === 1'b1) begin
-      if (($time - t_eval) < HOLD_NS) begin
+      if (($realtime - t_eval) < HOLD_NS) begin
         if (REPORT)
-          $display("ERROR %0t %m: addr0 HOLD violation -- changed %0t after clk0 rose, need %.3f ns. The bitlines are permanently corrupted; the read becomes the AND of the rows.",
-                   $time, $time - t_eval, HOLD_NS);
+          $display("ERROR %.3f ns %m: addr0 HOLD violation -- changed %.3f ns after clk0 rose, need %.3f ns. The bitlines are permanently corrupted; the read becomes the AND of the rows.",
+                   $realtime, $realtime - t_eval, HOLD_NS);
         bl = bl & mem[addr0];
       end else begin
         // Accumulated rather than overwritten: the corruption is monotonic
@@ -217,8 +260,8 @@ module wrom1 (
             // already restored the bitlines and there is nothing to corrupt.
             if (evaluating && clk0 === 1'b1 && cs0 === 1'b1) begin
               if (REPORT)
-                $display("ERROR %0t %m: dout0 CORRUPTED by a late address change -- the change at %0t was past the %.3f ns hold window, so the read in flight survived, but the new row has been discharging ever since and the evaluate phase is still open. dout0 is now the AND of the rows.",
-                         $time, $time - ACCESS_NS, HOLD_NS);
+                $display("ERROR %.3f ns %m: dout0 CORRUPTED by a late address change -- the change at %.3f ns was past the %.3f ns hold window, so the read in flight survived, but the new row has been discharging ever since and the evaluate phase is still open. dout0 is now the AND of the rows.",
+                         $realtime, $realtime - ACCESS_NS, HOLD_NS);
               bl = bl & late_row;
             end
           end
@@ -229,6 +272,22 @@ module wrom1 (
 
   // --- OUTPUT --------------------------------------------------------------
   // While precharged, and before access has elapsed, the bitlines are at VDD.
-  assign dout0 = ready ? bl : {WIDTH{1'b1}};
+  //
+  // Live read: dout_r follows the bitlines with no delay of its own -- the
+  // delay is already in `ready`, which the evaluate block sets ACCESS_NS
+  // after the rising edge. `bl` can still move after that (a late address
+  // change discharges more bits) and dout0 has to follow it, so this cannot
+  // be a one-shot capture.
+  always @(*) if (ready) dout_r = bl;
+
+  // Invalidation: T_FALL_NS after clk0 falls, NOT at the edge. This is the
+  // .lib's falling_edge arc, and it is the reason a consumer is allowed to
+  // capture on the falling edge at all. The evaluate state (`ready`, `bl`)
+  // is torn down at the edge by the precharge block above -- that is the
+  // array; this is the pin catching up with it.
+  always @(negedge clk0 or negedge cs0)
+    #(T_FALL_NS) dout_r = {WIDTH{1'b1}};
+
+  assign dout0 = dout_r;
 
 endmodule

@@ -3,19 +3,26 @@
 
 WHAT THIS DOES
 --------------
-The generated `<macro>.v` files in output/verilog/ are SIMULATION ONLY models
-carrying measured timing parameters:
-    ACCESS_NS  : clk0 rising -> dout0 valid
-    T_PRE_NS   : minimum precharge duration (clk0 low)
-    SETUP_NS   : minimum address setup before clk0 posedge
-    HOLD_NS    : how long addr0 must stay put after clk0 posedge
-    HOLD_CS_NS : the same for cs0 -- NOT the same number, see below
+The generated `<macro>.sv` files in output/verilog/ are SIMULATION ONLY models
+carrying measured timing parameters, every one of them read straight out of
+the macro's .lib so the two cannot state different numbers:
+    ACCESS_NS   : clk0 rising -> dout0 valid
+    T_PRE_NS    : minimum precharge duration (clk0 low)
+    SETUP_NS    : minimum address setup before clk0 posedge
+    HOLD_NS     : how long addr0 must stay put after clk0 posedge
+    HOLD_CS_NS  : the same for cs0 -- NOT the same number, see below
+    MPW_HIGH_NS : the .lib's min_pulse_width(rise) -- LONGER than access
+    T_FALL_NS   : the .lib's falling_edge arc on dout0
 
 They model non-trivial dynamic behaviour that synthesis tools do not support:
     - Precharge phase: clk0=0 pulls bitlines high (dout0 = all ones)
     - Evaluate phase: discharge through series NMOS chain, dout0 becomes valid
       only after ACCESS_NS has elapsed
-    - Invalidation on clk0 fall: falling edge restarts precharge, erasing dout0
+    - Invalidation on clk0 fall: the falling edge restarts precharge, and
+      dout0 is back at all ones T_FALL_NS later -- not at the edge. That
+      delay is the .lib's falling_edge arc and it is what makes capturing on
+      the falling edge legal; a model that erased at the edge would disagree
+      with its own library by a whole arc, so both halves are checked.
     - Chip select gating: cs0=0 inhibits evaluate, dout0 remains all ones
     - HOLD: an address change INSIDE the hold window destroys the read and it
       does not recover -- the array has no pull-up outside precharge, so a
@@ -33,7 +40,7 @@ iverilog + vvp to prove that the model simulates and behaves correctly.
 USAGE
 -----
     tests/test_verilog_model.py                    # test all models in output/verilog
-    tests/test_verilog_model.py output/verilog/wrom1.v
+    tests/test_verilog_model.py output/verilog/wrom1.sv
 """
 
 from __future__ import annotations
@@ -71,12 +78,30 @@ def parse_model(v_path):
     setup_m = re.search(r"parameter\s+real\s+SETUP_NS\s*=\s*([\d.]+);", txt)
     hold_m = re.search(r"parameter\s+real\s+HOLD_NS\s*=\s*([\d.]+);", txt)
     hold_cs_m = re.search(r"parameter\s+real\s+HOLD_CS_NS\s*=\s*([\d.]+);", txt)
+    mpw_m = re.search(r"parameter\s+real\s+MPW_HIGH_NS\s*=\s*([\d.]+);", txt)
+    t_fall_m = re.search(r"parameter\s+real\s+T_FALL_NS\s*=\s*([\d.]+);", txt)
 
     if not (width_m and addr_m and access_m and t_pre_m and setup_m):
         return None
     # HOLD is what makes an address change during evaluate destroy the read;
     # a model without it is silent about the largest constraint the macro has.
     if not (hold_m and hold_cs_m):
+        return None
+    # The two numbers the model used to leave on the floor. Without them it
+    # checks its own access instead of the library's minimum pulse, and it
+    # erases dout0 at the falling edge instead of one arc after it -- exactly
+    # the two places where the model and the .lib used to disagree. A model
+    # that cannot state them is a model to regenerate, not one to test.
+    if not (mpw_m and t_fall_m):
+        return None
+    # The testbench takes its waits from these parameters, so a model that
+    # zeroed T_FALL_NS would make the falling-edge check wait 0 ns and pass
+    # itself. Both numbers come from the .lib and both are non-zero there:
+    # the arc is a real delay, and min_pulse_width(rise) carries a guard band
+    # ON TOP of access. Anything else is a model built from a broken .lib.
+    if float(t_fall_m.group(1)) <= 0.0:
+        return None
+    if float(mpw_m.group(1)) <= float(access_m.group(1)):
         return None
 
     return {
@@ -88,6 +113,8 @@ def parse_model(v_path):
         "setup": float(setup_m.group(1)),
         "hold": float(hold_m.group(1)),
         "hold_cs": float(hold_cs_m.group(1)),
+        "mpw_high": float(mpw_m.group(1)),
+        "t_fall": float(t_fall_m.group(1)),
     }
 
 
@@ -100,6 +127,7 @@ def generate_testbench(info):
     t_pre = info["t_pre"]
     setup = info["setup"]
     hold = info["hold"]
+    t_fall = info["t_fall"]
 
     all_ones_hex = hex((1 << width) - 1)[2:].upper()
     # The array has no pull-up outside precharge, so a second row selected in
@@ -160,11 +188,24 @@ module tb_{macro};
       $finish(1);
     end
 
-    // 3. Falling edge invalidation: clk0 falls -> data is erased immediately
+    // 3. Falling edge invalidation, in TWO halves -- the .lib states an arc
+    //    here (falling_edge cell_rise = {t_fall:.4f} ns) and a model that
+    //    erased at the edge would contradict it.
+    //
+    //    3a. The data is STILL THERE just after the edge. This is what a
+    //        consumer capturing on the falling edge depends on, and it is
+    //        the half a model erasing at the edge gets wrong.
     clk0 = 0;
-    #(0.1);
+    #({t_fall * 0.5});
+    if (dout0 !== {width}'h12345678) begin
+      $display("FAIL %m: dout0 erased at the clk0 falling edge -- the .lib gives it {t_fall:.4f} ns (expected 12345678, got %h)", dout0);
+      $finish(1);
+    end
+
+    //    3b. And it IS gone once the arc has elapsed.
+    #({t_fall * 0.6});
     if (dout0 !== {width}'h{all_ones_hex}) begin
-      $display("FAIL %m: output not invalidated on clk0 falling edge (got %h)", dout0);
+      $display("FAIL %m: output not invalidated {t_fall:.4f} ns after the clk0 falling edge (got %h)", dout0);
       $finish(1);
     end
 
@@ -283,7 +324,7 @@ def test_model(v_path, iv, vvp):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("models", nargs="*", help="Optional specific .v models to test")
+    parser.add_argument("models", nargs="*", help="Optional specific .sv models to test")
     args = parser.parse_args()
 
     iv, vvp = find_tools()
@@ -303,7 +344,7 @@ def main():
         targets = args.models
     else:
         out_dir = os.environ.get("ROM_OUT_DIR") or os.path.join(REPO, "output")
-        targets = sorted(glob.glob(os.path.join(out_dir, "verilog", "*.v")))
+        targets = sorted(glob.glob(os.path.join(out_dir, "verilog", "*.sv")))
 
     if not targets:
         print("  SKIP  no Verilog models found to simulate")

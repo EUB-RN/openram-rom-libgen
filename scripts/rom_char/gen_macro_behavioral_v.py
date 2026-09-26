@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a `<macro>.v` that models each ROM macro's REAL behaviour.
+"""Generate a `<macro>.sv` that models each ROM macro's REAL behaviour.
 
 WHY
 ---
@@ -24,7 +24,7 @@ changing in the middle of evaluate, nor the data disappearing when clk0 falls.
 
 WHAT IT PRODUCES
 ----------------
-One `<macro>.v` per macro in $ROM_OUT_DIR/verilog (default <repo>/output/
+One `<macro>.sv` per macro in $ROM_OUT_DIR/verilog (default <repo>/output/
 verilog), carrying that macro's own contents file and its own MEASURED timing.
 Nothing is typed by hand; the values are read from the macro's own .lib files:
 
@@ -59,16 +59,21 @@ SIGNATURE = "REAL BEHAVIOURAL MODEL -- gen_macro_behavioral_v.py"
 DEFAULT_CORNER = "SS_1p6V_100C"
 
 
-def _cell_rise_max(txt):
-    """Worst cell_rise on the rising_edge arc of dout0, in ns.
+def _cell_rise_max(txt, edge="rising_edge"):
+    """Worst cell_rise on the `edge` arc of dout0, in ns.
 
-    That IS the access time: the largest entry of the CELL_TABLE (slowest
-    clk0 edge, heaviest output load). It is read from the DATA the tool
-    reads, not from the banner comment above it -- the banner is prose and
-    rewording it must not change this model.
+    On the rising_edge arc that IS the access time: the largest entry of the
+    CELL_TABLE (slowest clk0 edge, heaviest output load). On the falling_edge
+    arc it is how long dout0 takes to get back to the precharge value once
+    clk0 has fallen -- the precharge PMOS is not instantaneous either, and a
+    consumer capturing ON the falling edge is relying on exactly that delay.
+
+    Either way it is read from the DATA the tool reads, not from the banner
+    comment above it -- the banner is prose and rewording it must not change
+    this model.
     """
     best = None
-    for m in re.finditer(r"timing_type\s*:\s*rising_edge\s*;", txt):
+    for m in re.finditer(r"timing_type\s*:\s*%s\s*;" % re.escape(edge), txt):
         tail = txt[m.end():m.end() + 4000]
         vm = re.search(r"cell_rise\s*\([^)]*\)\s*\{(.*?)\);", tail, re.S)
         if not vm:
@@ -81,9 +86,17 @@ def _cell_rise_max(txt):
 
 
 def read_lib_timing(lib_path):
-    """Return (access, t_pre, setup) in ns; None for anything not found."""
+    """Return the model's timing as a dict of ns; None for anything not found.
+
+    Keys: access, t_pre, setup, hold, hold_cs, mpw_high, t_fall. Everything
+    here comes out of the .lib the flow ships, so the model and the library
+    cannot state different numbers -- that is the whole point of reading them
+    rather than restating them.
+    """
+    empty = dict.fromkeys(("access", "t_pre", "setup", "hold", "hold_cs",
+                           "mpw_high", "t_fall"))
     if not os.path.exists(lib_path):
-        return None, None, None, None, None
+        return empty
     txt = open(lib_path).read()
 
     # access comes from the cell_rise table. The banner line the generator
@@ -104,12 +117,29 @@ def read_lib_timing(lib_path):
               "says %.4f ns -- using the table"
               % (os.path.basename(lib_path), banner, access), file=sys.stderr)
 
+    # min_pulse_width: fall = the precharge phase, rise = the evaluate phase.
+    # The rise number is NOT access -- gen_rom_lib adds an analytic margin on
+    # top of the measurement (pw_high = access + 0.5*dscale). A high phase
+    # between the two produces valid data and still violates the library, so
+    # the model has to carry both numbers to say the same thing the .lib says.
     t_pre = None
     m = re.search(r'timing_type\s*:\s*"min_pulse_width".*?'
                   r'fall_constraint\(scalar\)\s*\{\s*values\("([\d.]+)"\)',
                   txt, re.S)
     if m:
         t_pre = float(m.group(1))
+
+    mpw_high = None
+    m = re.search(r'timing_type\s*:\s*"min_pulse_width".*?'
+                  r'rise_constraint\(scalar\)\s*\{\s*values\("([\d.]+)"\)',
+                  txt, re.S)
+    if m:
+        mpw_high = float(m.group(1))
+
+    # The falling_edge arc of dout0: clk0 falls -> dout0 back at the precharge
+    # value. Modelling this as zero is what made the model and the .lib
+    # disagree by a whole arc.
+    t_fall = _cell_rise_max(txt, "falling_edge")
 
     setup = None
     m = re.search(r"timing_type\s*:\s*setup_rising.*?values\(\"([\d.]+)", txt, re.S)
@@ -135,13 +165,14 @@ def read_lib_timing(lib_path):
     hold = _hold_after("bus(addr0)")
     hold_cs = _hold_after("pin(cs0)")
 
-    return access, t_pre, setup, hold, hold_cs
+    return dict(access=access, t_pre=t_pre, setup=setup, hold=hold,
+                hold_cs=hold_cs, mpw_high=mpw_high, t_fall=t_fall)
 
 
 def read_geometry(macro_dir, macro):
     """Return (words, width, addr_bits, wpr).
 
-    GEOMETRY COMES FROM THE LEF AND THE .bin, never from a `<macro>.v` header:
+    GEOMETRY COMES FROM THE LEF AND THE .bin, never from a `<macro>.sv` header:
     this script writes that file, so reading it back would be a self-locking
     loop (after one run there is no original header left to read). The LEF and
     the .bin are OpenRAM outputs and stay put.
@@ -214,7 +245,12 @@ TEMPLATE = '''// OpenROM ROM model
 //   clk0 = 1 : EVALUATE. The "0" bits of the selected row discharge their
 //              bitline through {chain} series NMOS (worst column {wcol}).
 //              dout0 becomes valid ACCESS_NS after the rising edge.
-//   clk0 1->0: precharge restarts and THE DATA IS ERASED.
+//   clk0 1->0: precharge restarts and THE DATA IS ERASED -- but not at the
+//              edge. The precharge PMOS takes T_FALL_NS to pull the bitlines
+//              back to VDD, which is the .lib's falling_edge arc on dout0 and
+//              is exactly the window a consumer capturing on that edge lives
+//              in. Erasing at the edge instead would make this model and the
+//              library disagree by a whole arc.
 //   cs0  = 0 : precharge stays on; the bitlines sit at VDD, dout0 = all ones.
 //              (Netlist: NAND(CS,clk) -> inverter chain -> prechrg, and the
 //              precharge PMOS conducts while its gate is low, i.e.
@@ -233,6 +269,12 @@ TEMPLATE = '''// OpenROM ROM model
 // TIMING   : {corner} corner (the worst one). Source: {libname}
 //
 // SIMULATION ONLY. Not synthesizable; the ASIC flow reads {macro}_bbox.v.
+//
+// The extension is .sv because this file IS SystemVerilog -- the late-address
+// corruption below needs fork/join_none. Handed to a tool as .v it is parsed
+// as Verilog-2001, join_none is not a keyword there, and what gets reported
+// is a syntax error on the following `end`. In Vivado, if the file must keep
+// a .v name: set_property file_type SystemVerilog [get_files {macro}.v].
 // ---------------------------------------------------------------------------
 `timescale 1ns / 1ps
 
@@ -264,6 +306,17 @@ module {macro} (
   parameter real HOLD_NS    = {hold};   // addr0 stable after clk0 rises
   parameter real HOLD_CS_NS = {hold_cs};   // cs0 stable after clk0 rises
 
+  // The shortest LEGAL evaluate phase, from the .lib's min_pulse_width(rise).
+  // It is deliberately LONGER than ACCESS_NS: characterisation puts an
+  // analytic guard band on top of the measured delay. A high phase between
+  // the two hands this model valid data and still fails timing closure
+  // against the library, so the phase is checked against the library's
+  // number rather than against the model's own access.
+  parameter real MPW_HIGH_NS = {mpw_high};   // minimum clk0 high phase
+  // The .lib's falling_edge arc on dout0. The precharge PMOS has to charge
+  // the bitline back up; until it has, dout0 still carries the read.
+  parameter real T_FALL_NS   = {t_fall};   // clk0 falling -> dout0 back at VDD
+
   // 1 = report violations with $display. The corruption is applied either way
   // -- that is what silicon does; the test is expected to catch the bad result.
   parameter REPORT = 1;
@@ -279,11 +332,24 @@ module {macro} (
   reg [WIDTH-1:0] late_row;    // mask owed by address changes past the hold window
   reg             evaluating;
   reg             ready;        // has the access time elapsed?
-  time            t_eval, t_fall, t_addr_chg;
+  // REAL, not `time`. `time` is an integer in units of the timescale, so
+  // with `timescale 1ns/1ps every stamp taken through $time rounds to a whole
+  // nanosecond -- and the constraints this model checks are not whole
+  // nanoseconds. SETUP_NS is 0.048 ns and the gap between access and the
+  // .lib's minimum high pulse is under 1 ns; quantised to 1 ns both checks
+  // are noise. $realtime carries the timescale's precision (1 ps here).
+  real            t_eval, t_fall, t_addr_chg;
+
+  // dout0 is driven from here rather than straight off `bl`, because the two
+  // directions have different delays: becoming valid is timed by ACCESS_NS
+  // from the rising edge, going back to all ones by T_FALL_NS from the
+  // falling one. A single continuous assignment cannot say both.
+  reg [WIDTH-1:0] dout_r;
 
   initial begin
     bl         = {{WIDTH{{1'b1}}}};
     late_row   = {{WIDTH{{1'b1}}}};
+    dout_r     = {{WIDTH{{1'b1}}}};
     evaluating = 1'b0;
     ready      = 1'b0;
     t_eval     = 0;
@@ -291,7 +357,7 @@ module {macro} (
     t_addr_chg = 0;
   end
 
-  always @(addr0) t_addr_chg = $time;
+  always @(addr0) t_addr_chg = $realtime;
 
   // --- PRECHARGE: clk0 low OR cs0 low --------------------------------------
   always @(negedge clk0 or negedge cs0) begin
@@ -305,33 +371,41 @@ module {macro} (
     // the same thing with hold_falling = 0 -- the only form of the statement
     // that survives a change of clock period.
     if (REPORT && evaluating && clk0 === 1'b1 && cs0 !== 1'b1)
-      $display("ERROR %0t %m: cs0 HOLD violation -- deselected %0t after clk0 rose, with the evaluate phase still open. cs0 must reach clk0's FALLING edge (the capture point): the precharge PMOS turns back on and the read is lost, valid or not. hold_rising is %.3f ns, but the real deadline is the falling edge.",
-               $time, $time - t_eval, HOLD_CS_NS);
+      $display("ERROR %.3f ns %m: cs0 HOLD violation -- deselected %.3f ns after clk0 rose, with the evaluate phase still open. cs0 must reach clk0's FALLING edge (the capture point): the precharge PMOS turns back on and the read is lost, valid or not. hold_rising is %.3f ns, but the real deadline is the falling edge.",
+               $realtime, $realtime - t_eval, HOLD_CS_NS);
     // IF THE EVALUATE PHASE IS SHORTER THAN ACCESS the data never becomes
     // valid and dout0 stays at its precharge value (all ones). That is a
     // SILENT failure -- the output looks plausible, it is just always 0xFF --
     // so it is reported explicitly.
     if (REPORT && evaluating && !ready)
-      $display("ERROR %0t %m: evaluate phase SHORTER than access -- high phase %0t, need %.3f ns. dout0 never became valid (stuck at the precharge value).",
-               $time, $time - t_eval, ACCESS_NS);
+      $display("ERROR %.3f ns %m: evaluate phase SHORTER than access -- high phase %.3f ns, need %.3f ns. dout0 never became valid (stuck at the precharge value).",
+               $realtime, $realtime - t_eval, ACCESS_NS);
+    // Long enough to read, too short for the library. The data is good here
+    // and the macro still does not close timing: the .lib's minimum high
+    // phase carries a guard band the model has no way to reproduce, so the
+    // only honest thing the model can do is say so.
+    else if (REPORT && evaluating && ($realtime - t_eval) < MPW_HIGH_NS)
+      $display("WARNING %.3f ns %m: clk0 min_pulse_width(rise) violation -- high phase %.3f ns, the .lib requires %.3f ns. dout0 did become valid, because access is only %.3f ns; the remaining %.3f ns is the characterisation guard band. Timing closure against the .lib will fail even though this simulation reads correctly.",
+               $realtime, $realtime - t_eval, MPW_HIGH_NS, ACCESS_NS,
+               MPW_HIGH_NS - ACCESS_NS);
     evaluating = 1'b0;
     ready      = 1'b0;
     bl         = {{WIDTH{{1'b1}}}};
     late_row   = {{WIDTH{{1'b1}}}};
-    t_fall     = $time;
+    t_fall     = $realtime;
   end
 
   // --- EVALUATE ------------------------------------------------------------
   always @(posedge clk0) begin
     if (cs0 === 1'b1) begin
-      if (REPORT && t_fall > 0 && ($time - t_fall) < T_PRE_NS)
-        $display("ERROR %0t %m: precharge phase TOO SHORT (%0t, need %.3f ns) -- the bitlines did not fully recharge",
-                 $time, $time - t_fall, T_PRE_NS);
-      if (REPORT && t_addr_chg > 0 && ($time - t_addr_chg) < SETUP_NS)
-        $display("ERROR %0t %m: addr0 SETUP violation (address changed at %0t, need %.3f ns) -- the wrong wordline may open",
-                 $time, t_addr_chg, SETUP_NS);
+      if (REPORT && t_fall > 0 && ($realtime - t_fall) < T_PRE_NS)
+        $display("ERROR %.3f ns %m: precharge phase TOO SHORT (%.3f ns, need %.3f ns) -- the bitlines did not fully recharge",
+                 $realtime, $realtime - t_fall, T_PRE_NS);
+      if (REPORT && t_addr_chg > 0 && ($realtime - t_addr_chg) < SETUP_NS)
+        $display("ERROR %.3f ns %m: addr0 SETUP violation (address changed at %.3f ns, need %.3f ns) -- the wrong wordline may open",
+                 $realtime, t_addr_chg, SETUP_NS);
 
-      t_eval     = $time;
+      t_eval     = $realtime;
       evaluating = 1'b1;
       bl         = bl & mem[addr0];
 
@@ -378,10 +452,10 @@ module {macro} (
   // to be wrong in.
   always @(addr0) begin
     if (evaluating && cs0 === 1'b1 && clk0 === 1'b1) begin
-      if (($time - t_eval) < HOLD_NS) begin
+      if (($realtime - t_eval) < HOLD_NS) begin
         if (REPORT)
-          $display("ERROR %0t %m: addr0 HOLD violation -- changed %0t after clk0 rose, need %.3f ns. The bitlines are permanently corrupted; the read becomes the AND of the rows.",
-                   $time, $time - t_eval, HOLD_NS);
+          $display("ERROR %.3f ns %m: addr0 HOLD violation -- changed %.3f ns after clk0 rose, need %.3f ns. The bitlines are permanently corrupted; the read becomes the AND of the rows.",
+                   $realtime, $realtime - t_eval, HOLD_NS);
         bl = bl & mem[addr0];
       end else begin
         // Accumulated rather than overwritten: the corruption is monotonic
@@ -395,8 +469,8 @@ module {macro} (
             // already restored the bitlines and there is nothing to corrupt.
             if (evaluating && clk0 === 1'b1 && cs0 === 1'b1) begin
               if (REPORT)
-                $display("ERROR %0t %m: dout0 CORRUPTED by a late address change -- the change at %0t was past the %.3f ns hold window, so the read in flight survived, but the new row has been discharging ever since and the evaluate phase is still open. dout0 is now the AND of the rows.",
-                         $time, $time - ACCESS_NS, HOLD_NS);
+                $display("ERROR %.3f ns %m: dout0 CORRUPTED by a late address change -- the change at %.3f ns was past the %.3f ns hold window, so the read in flight survived, but the new row has been discharging ever since and the evaluate phase is still open. dout0 is now the AND of the rows.",
+                         $realtime, $realtime - ACCESS_NS, HOLD_NS);
               bl = bl & late_row;
             end
           end
@@ -407,7 +481,23 @@ module {macro} (
 
   // --- OUTPUT --------------------------------------------------------------
   // While precharged, and before access has elapsed, the bitlines are at VDD.
-  assign dout0 = ready ? bl : {{WIDTH{{1'b1}}}};
+  //
+  // Live read: dout_r follows the bitlines with no delay of its own -- the
+  // delay is already in `ready`, which the evaluate block sets ACCESS_NS
+  // after the rising edge. `bl` can still move after that (a late address
+  // change discharges more bits) and dout0 has to follow it, so this cannot
+  // be a one-shot capture.
+  always @(*) if (ready) dout_r = bl;
+
+  // Invalidation: T_FALL_NS after clk0 falls, NOT at the edge. This is the
+  // .lib's falling_edge arc, and it is the reason a consumer is allowed to
+  // capture on the falling edge at all. The evaluate state (`ready`, `bl`)
+  // is torn down at the edge by the precharge block above -- that is the
+  // array; this is the pin catching up with it.
+  always @(negedge clk0 or negedge cs0)
+    #(T_FALL_NS) dout_r = {{WIDTH{{1'b1}}}};
+
+  assign dout0 = dout_r;
 
 endmodule
 '''
@@ -446,8 +536,10 @@ def main():
             continue
 
         libname = "%s_%s.lib" % (macro, args.corner)
-        access, t_pre, setup, hold, hold_cs = read_lib_timing(
-            os.path.join(libdir, libname))
+        t = read_lib_timing(os.path.join(libdir, libname))
+        access, t_pre, setup = t["access"], t["t_pre"], t["setup"]
+        hold, hold_cs = t["hold"], t["hold_cs"]
+        mpw_high, t_fall = t["mpw_high"], t["t_fall"]
         words, width, addr_bits, wpr = read_geometry(mdir, macro)
 
         # A missing hold falls back to the full access window -- the rule the
@@ -465,7 +557,14 @@ def main():
                 hold = access
             if hold_cs is None:
                 hold_cs = access
-        missing = [n for n, v in (("access", access), ("t_pre", t_pre), ("setup", setup))
+        # min_pulse_width(rise) and the falling_edge arc are not optional:
+        # without them the model would silently go back to checking its own
+        # access and erasing dout0 at the edge, which is the disagreement
+        # with the .lib this reader exists to close. A .lib old enough to
+        # lack them is a .lib to regenerate.
+        missing = [n for n, v in (("access", access), ("t_pre", t_pre),
+                                  ("setup", setup), ("min_pulse_width(rise)", mpw_high),
+                                  ("falling_edge cell_rise", t_fall))
                    if v is None]
         if missing:
             print("%-7s WARNING: could not read %s from %s -- the .lib may not "
@@ -489,14 +588,18 @@ def main():
             rows=rows, cols=cols, wcol=wcol, chain=chain,
             amsb=addr_bits - 1, dmsb=width - 1,
             access="%.4f" % access, t_pre="%.4f" % t_pre, setup="%.4f" % setup,
-            hold="%.4f" % hold, hold_cs="%.4f" % hold_cs)
+            hold="%.4f" % hold, hold_cs="%.4f" % hold_cs,
+            mpw_high="%.4f" % mpw_high, t_fall="%.4f" % t_fall)
 
-        path = os.path.join(outdir, macro + ".v")
+        # .sv, not .v: the model uses fork/join_none, which is SystemVerilog.
+        # Under a .v name Vivado parses it as Verilog-2001, does not know
+        # join_none, and reports a syntax error on the next `end` instead.
+        path = os.path.join(outdir, macro + ".sv")
         open(path, "w").write(out)
         print("%-7s written: %s  (access %.4f / t_pre %.4f / setup %.4f / "
-              "hold %.4f addr, %.4f cs0 ns, %s)"
+              "hold %.4f addr, %.4f cs0 / mpw_high %.4f / t_fall %.4f ns, %s)"
               % (macro, os.path.relpath(path, REPO), access, t_pre, setup,
-                 hold, hold_cs, args.corner))
+                 hold, hold_cs, mpw_high, t_fall, args.corner))
 
     return rc
 
