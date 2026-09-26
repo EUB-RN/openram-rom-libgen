@@ -41,6 +41,11 @@ What has to be installed, what each step of the flow produces, and which script 
 python3 scripts/rom_char/gen_resistance_model.py wrom0
 python3 scripts/rom_char/gen_col_tb_parasitic.py wrom0 --with-resistance
 
+# 2c) the same deck on the BEST column -- the early bound, retain_rise/fall.
+#     In both modes: with no log here the .lib carries no retain_* at all, and
+#     a missing arc is not a conservative one the way a too-long hold is.
+./scripts/rom_char/run_early_path.sh               #  -> col<N>_best_case_parasitic*.log
+
 # 3) back-end delay + output slew, three corners x three loads
 #    (re-runs step 2's column decks first, keeping the bitline waveform: the
 #     back end is driven by that discharge replayed, not by a ramp fitted to
@@ -64,13 +69,15 @@ JOBS=4 ./scripts/rom_char/run_periphery_power.sh   #  -> periph_{active,idle}_<c
 ./scripts/rom_char/run_coldec_delay.sh             #  -> coldec_a<addr>_<corner>.log
 ./scripts/rom_char/run_pin_cap.sh                  #  -> pincap_<corner>.log
 
-# 6d) OPTIONAL, and expensive. Every .lib term below has a pessimistic
-#     fallback that regen_rom_libs.sh announces when it fires, so skipping
-#     these gives a conservative library rather than a wrong one.
-./scripts/rom_char/run_slew_sweep.sh               #  -> periph_slew<n>_<corner>.log
+# 6d) --full ONLY, and expensive. Every .lib term below has a pessimistic
+#     fallback that regen_rom_libs.sh announces when it fires, so the standard
+#     mode gives a conservative library rather than a wrong one. `./flow.py
+#     <macro> --full` runs these four in this order; run_hold_bisect needs
+#     wlslew, and the other three need cellgate_<corner>.log from step 4.
 ./scripts/rom_char/run_wl_slew.sh                  #  -> wlslew_<corner>.log
 ./scripts/rom_char/run_hold_bisect.sh              #  -> hold_<corner>.log   (needs wlslew)
 ./scripts/rom_char/run_addr2wl.sh                  #  -> addr2wl_<corner>.log
+./scripts/rom_char/run_slew_sweep.sh               #  -> periph_slew<n>_<corner>.log
 
 # 7) write the .lib files (reads every log; nothing is entered by hand)
 ./scripts/rom_char/regen_rom_libs.sh               #  -> output/lib/<macro>_<CORNER>.lib
@@ -80,7 +87,7 @@ JOBS=4 ./scripts/rom_char/run_periphery_power.sh   #  -> periph_{active,idle}_<c
 ./tests/run_tests.sh
 
 # 8) behavioural Verilog
-python3 scripts/rom_char/gen_macro_behavioral_v.py #  -> output/verilog/<macro>.v
+python3 scripts/rom_char/gen_macro_behavioral_v.py #  -> output/verilog/<macro>.sv
 ```
 
 Figures are not step 10. Nothing in this flow draws one: a waveform figure is

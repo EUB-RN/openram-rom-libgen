@@ -1,6 +1,6 @@
 # Where the work stands
 
-Last updated: 2026-09-25. Keep this file current when stopping mid-task.
+Last updated: 2026-09-26. Keep this file current when stopping mid-task.
 
 ## Done and verified
 
@@ -884,6 +884,379 @@ does not. `run_col_energy.sh` now reports both totals as well (`E_worst` and a
 flat-50% `E_avg` estimate), and says which of the two `P@fmax` is quoted for.
 
 All twelve `.lib` files were regenerated and pass `tests/check_lib.py`.
+
+## 2026-09-26
+
+### No stage is run by hand any more: `--full` is a mode, not a list of commands
+
+Six `run_*.sh` were outside `flow.py`, and `regen_rom_libs.sh` READ the output
+of four of them -- so the documented way to get a complete `.lib` was to run
+those four by hand and then `--from-logs`. That is exactly the gesture the
+provenance work of 2026-09-24 exists to make unnecessary: a number reaches a
+`.lib` because a flow produced it, not because someone remembered a command.
+
+**`run_early_path.sh` is now in the default flow**, and it is not part of the
+choice. The other stages outside `flow.py` all fall back to a value that is
+merely too conservative; this one falls back to NO `retain_rise`/`retain_fall`
+at all, and a tool with no retain arc believes the previous cycle's data is
+held up to the access time -- a race that eats the old value before capture
+passes silently. A missing constraint is not a conservative constraint, so
+there is no version of the flow that omits it. It sits next to
+`run_col_timing.sh`: same deck, same `*_cap_only.spice` prerequisite, the
+other column.
+
+**`--full` is the second mode**, and it adds the four stages that retire the
+two remaining fallbacks:
+
+| stage | closes | standard mode ships |
+|---|---|---|
+| `run_wl_slew.sh` | the edge the hold deck cuts with | an ideal step, pessimistic |
+| `run_hold_bisect.sh` | the address hold | `hold = access` |
+| `run_addr2wl.sh` | that hold in the `clk0` frame | as above |
+| `run_slew_sweep.sh` | the measured `index_1` axis | a flat axis |
+
+`run_wl_slew.sh` is in that list although it writes no file
+`regen_rom_libs.sh` reads. `run_hold_bisect.sh` reads `wlslew_<corner>.log`
+and without it cuts the chain with an ideal step, which hands back a
+pessimistic hold -- the very fallback the mode exists to retire. A mode that
+measures the hold and then measures it pessimistically would be a mode in
+name only.
+
+**Why these two and not the others.** Both are safe to leave out and neither
+is safe to get wrong, which is a different statement. The slew axis moves
+`access` by **0.24%** over a 10x change in the clock edge, because only
+`t_clk2pre` can see `clk0` and 15.34 ns of the sum is a bitline discharge that
+cannot -- so the flat axis the standard mode ships is the measurement to
+within a quarter of a percent. The hold ships as `hold = access`, which is
+what the circuit guarantees by construction (the decoder is clocked, a moving
+address drops a second wordline, the cut chain stops the bitline where it is)
+and is wrong only in the direction that REJECTS a working design. Measuring it
+buys 5-12% of margin back, not correctness. Neither is a soundness question,
+so neither has to be paid for by default -- and that is the whole argument for
+two modes rather than one.
+
+Order inside step 2 is a dependency order and is asserted by the code rather
+than by a comment: `run_wl_slew`/`run_addr2wl`/`run_slew_sweep` each read
+`cellgate_<corner>.log` from `run_periphery_power.sh`, and `run_hold_bisect`
+reads `run_wl_slew`'s log. Verified by intercepting the subprocess calls in
+both modes: 14 stages standard, 18 with `--full`, in that order.
+`--full` with `--from-logs` or `--check-only` warns that it does nothing,
+since neither mode simulates.
+
+The three remaining scripts nobody calls stay uncalled and that is correct:
+`run_addr_hold.sh` is the exploratory sweep `run_hold_bisect.sh` replaced
+(its artefacts are never read back), `gen_power_tb.py` is the whole-macro deck
+whose cost follows the array, and `rom_explore.py` / `gen_wave_tb.py` are
+inspection tools. None of them writes a number a `.lib` reads.
+
+Docs follow the code in three places, so the split is described once and the
+same way: the README gains *The two modes, and why the second one exists*
+(with the 0.24% and the hold conversion table), `user/README.md` points at it
+instead of listing the four commands, and `docs/flow.md` marks the block
+`--full ONLY` and gains `run_early_path.sh` as step 2c. The
+*Running the measurements one by one* section now says outright that it is
+there to watch one deck work, not to assemble a library.
+
+### The README never said how to run the thing, and `nix-shell` did not start
+
+Two separate reports from the same attempt to actually use this on a new ROM,
+and both were the repository's fault rather than the user's.
+
+**There was no "How to use".** The one-command run lived at line 809 of a
+1150-line README, behind five sections of circuit analysis, and `## Contents`
+numbered only those five -- the usage links were a single unnumbered line
+tacked on at the bottom of the table of contents. A reader with a macro in
+hand had to scroll past 800 lines of bitline physics to find `./flow.py`.
+
+`## How to use` is now the FIRST section after the intro: what you need, how
+to get the environment, the one command, both modes in a table with their
+cost, the useful flags, and a link to the step-by-step version. `## Contents`
+opens with a **Start here** row pointing at it. The detail section further
+down is unchanged -- it is the long version, not the only version.
+
+**`nix-shell` failed before doing anything:**
+
+    error: file 'nixpkgs' was not found in the Nix search path
+
+`shell.nix` opened with `{ pkgs ? import <nixpkgs> {} }`, and `<nixpkgs>`
+resolves through `NIX_PATH`, i.e. through a CHANNEL. A flakes-first Nix
+install -- the default for some time -- configures no channels, so `NIX_PATH`
+is empty and the shell died on its first line. The message reads like a
+missing dependency and is nothing of the kind, which is what made it worth
+fixing rather than documenting away.
+
+`nix/nixpkgs.nix` now resolves it: `builtins.tryEval <nixpkgs>` when a channel
+exists (verified that tryEval does catch this particular failure), and
+otherwise the revision `flake.lock` pins -- the same nixpkgs `nix develop`
+builds from, so the two entry points cannot drift. `flake.nix` passes `pkgs`
+in explicitly and never reaches the fallback. `flake.lock` is committed for
+the first time, which is what makes the pin exist at all.
+
+**Then `nix develop` failed too, and on a second, unrelated defect:**
+
+    error: undefined variable 'magic' at shell.nix:42:5
+
+`buildInputs` asked for `magic`. **nixpkgs has no such attribute** -- checked
+in the fetched source rather than guessed: `pkgs/by-name/ma/` carries
+`magic-enum`, `magicrescue`, `magic-wormhole-rs` and the one actually wanted,
+**`magic-vlsi`**. So this shell could never have started, by either entry
+point, since the day Magic was added to it. Nobody had run it.
+
+Worth keeping in mind for the next report of this shape: the failure is an
+EVALUATION error, raised after nixpkgs has been fetched and before anything is
+built. On screen it arrives at the end of a long download, which makes a typo
+in a package name look like a network or dependency problem.
+
+Verified after the fix, all three offline against the fetched nixpkgs:
+
+| check | result |
+|---|---|
+| does `magic` exist in the pinned nixpkgs | no; `magic-vlsi` does |
+| `nix-instantiate shell.nix` with **`NIX_PATH=`** (no channel) | exit 0 -> `...-openram-rom-libgen-env.drv` |
+| `nix flake check --no-build` | `all checks passed!` |
+
+The second and third rows produce the **same derivation hash**
+(`npfyglr9vw1973yd5z1bf8mi73yzigd2`), which is the real result: `nix-shell`
+without a channel and `nix develop` now build the identical environment, so
+the fallback cannot silently diverge from the flake.
+
+What was NOT done is a full `nix build` of that derivation -- it would fetch
+Magic, X11, Tcl/Tk and the rest, which is exactly the download the *Getting
+that environment* rewrite tells a reader with local tools to avoid. The error
+reported was at evaluation; evaluation is what was fixed and verified.
+
+**Nix was also being presented as the way in, and it is the expensive one.**
+The README opened the environment section with `nix-shell`, so a reader who
+already had the tools was steered into fetching ~50 MB of nixpkgs package
+definitions and then Nix's own copies of python3, ngspice, iverilog and Magic
+-- Magic pulling X11, Tcl and Tk behind it. Nix shares nothing with the host
+by design; that is the point of it, and it is also why it is the wrong default
+to put first. On the machine this came up on, all four tools and a sky130 PDK
+were already installed, so the entire download bought nothing.
+
+So *Getting that environment* now leads with the three exports
+(`PDK_ROOT`, `ROM_MACROS_DIR`, `ROM_OUT_DIR`) and says outright that nothing
+else is needed when the tools are on `$PATH`; Nix follows as the option for
+people who would rather not install them, with what it costs stated next to
+it. Verified on that machine rather than asserted: `rom_paths` resolves
+`$PDK_ROOT/sky130A/libs.tech/ngspice/sky130.lib.spice`, `flow.py --check-only`
+passes, and a minimal sky130 deck handed to the local ngspice loads the models
+and solves.
+
+**And there is no `requirements.txt`, because there is nothing to put in it.**
+Checked rather than assumed: every import across `scripts/rom_char/`, `tests/`
+and `flow.py` is either the standard library (`argparse`, `collections`,
+`glob`, `json`, `os`, `random`, `re`, `shutil`, `statistics`, `subprocess`,
+`sys`, `tempfile`, `zlib`) or a module of this repository. The real
+requirement list is four external TOOLS -- python3, ngspice, magic 8.3+,
+iverilog -- plus a sky130 PDK, and that is now a table in *What you need*
+saying what each one is for and what breaks without it. The README also says
+outright, in a place a reader hits before any command, that everything is run
+from the repository root.
+
+### A macro with no `.mag` files ran for an hour and then failed four stages away
+
+The first outside macro brought to this flow (`user/random_2k`, exported as
+`.sp`/`.lef`/`.gds` with no layout files) produced this, after an hour:
+
+    ERROR: .../char/col68_worst_case_parasitic.sp does not exist
+    ✗ Simulation failed during: run_col_power.sh
+
+`run_col_power.sh` is the sixth stage. The failure was in the second, and
+every stage in between ran against a column deck that did not exist.
+
+**The chain, in order.** `gen_resistance_model.py` needs
+`<macro>_rom_base_one_cell.mag`: both of its paths start from that file --
+Magic on that ONE cell, and, where even that segfaults, the same file's
+geometry times the PDK sheet resistance. (The CHAIN resistance is never
+extracted from Magic at all; whole-macro `extresist` segfaults, limitation 3.)
+With no `.mag` in the directory it records `"no .mag file"` per cell, writes
+`{"cells": {}}` -- **and exits 0**. So `run_col_timing.sh`'s existing
+`|| RFLAG=--no-resistance` fallback, which is there for exactly this, never
+fired. `gen_col_tb_parasitic.py` then died on the empty model, correctly and
+non-zero -- and **line 68 did not check its status**, so the stage wrote no
+deck and returned success. `flow.py` only stops on a non-zero stage, so it
+carried on.
+
+**Two guards, and the first is the interesting one.** Checking the exit code
+of `gen_col_tb_parasitic.py` was the obvious half. The half worth writing
+down is that the resistance model is now judged **by its contents, not by the
+exit status of the script that wrote it**: a run that succeeds at producing
+nothing is the failure mode the `|| fallback` idiom cannot see, and it is the
+same shape as item 2c (a log that exists is not a log this flow produced) and
+as the `.measure`-succeeded-with-no-circuit case in the error-reporting work.
+Three different places now, same lesson: ask the artefact, not the process.
+
+Both failures go through `ng_fail`, so they land in the ledger, `ng_summary`
+exits non-zero, and `flow.py` stops in the stage that broke. The message names
+the missing file, says why neither path can start, and gives the way out --
+`NO_RESISTANCE=1` -- together with what it costs, since that is not a
+formality: +15% at TT, +6.6% at SS, +28% at FF on the bitline term.
+
+Verified both directions. The four example macros have `.mag` files and the
+guard passes on all of them (`one_cell` = 505.37 ohm); `random_2k` fails with
+exit 1 and the message above; and `NO_RESISTANCE=1` then carries `random_2k`
+through all three corners with stamped logs
+(`t_dis_50` = 4.84 ns at TT, settled to 0.00%).
+
+**Still open on that macro**, and separate: the periphery decks abort with
+`Timestep too small ... trouble with node ...nand2_dec_1...#body` -- a genuine
+convergence failure in the row decoder's address-control buffer, not a
+resource problem. That one was detected and reported correctly (nine `.term`
+files kept, every row `FAILED` in the table); what it needs is investigation
+of the deck, not of the reporting.
+
+### The machine was never checked, only the macro
+
+`rom_paths.py --check` has always verified the MACRO. Nothing verified the
+machine, and someone who had just cloned this found out about the five things
+they needed one at a time, each as a failure partway into a run: a missing
+ngspice ended the flow at once, a missing PDK only WARNED and then every deck
+died on a model file it could not load, and Magic and iverilog were not
+checked at all -- their absence surfaced as a dead extraction step or a test
+layer that silently skipped.
+
+`flow.py` now runs `check_environment()` before launching anything, and
+`--check-only` runs it too, so one command answers both halves of "can this
+run here":
+
+```text
+  tool       status   what it is for
+  ✓ python3    the generators
+  ✗ ngspice    MISSING -- every measurement
+  ✓ sky130     the transistor models
+  ⚠ magic      not found -- parasitic extraction (--with-extract) (that part is skipped)
+  ✓ iverilog   simulates the generated .v in the testsuite
+```
+
+The distinction the table draws is the useful part: `✗` STOPS the flow (and
+exits non-zero, so `--check-only` works as a gate in a script), `⚠` only
+narrows it. A missing PDK moved from warning to fatal, because every deck
+fails without the models -- and the message prints the exact path that was
+looked for plus both variables that fix it. `--from-logs` is deliberately
+exempt: it needs no tool and no PDK, and that is verified (three `.lib` built
+with `PATH=/usr/bin:/bin` and `HOME` pointed at nothing).
+
+**A buffering bug surfaced while testing it, and it was not new.** `log_err`
+writes to stderr, which is unbuffered, while stdout is BLOCK-buffered the
+moment it is not a terminal. So `./flow.py ... > log 2>&1` put
+`ngspice MISSING` on line 1 of the file -- above the banner, detached from the
+table it belongs to. On a terminal both streams are line-buffered and the
+order looks right, which is why it had never been noticed: it is wrong only in
+the logs people actually send you. `log_err` now flushes stdout before it
+writes, which fixes every call site at once.
+
+### The standard mode failed the test suite it runs itself
+
+Checking the two modes against each other found this, and it was blocking:
+`tests/test_rom_lib.py`'s `check_slew_axis` fails a flat `index_1` outright --
+*"cell_rise is flat along index_1 -- the clk0 slew axis was never measured"* --
+and a flat `index_1` is exactly what the standard mode produces. `flow.py`
+runs that suite as its own step 5, so `./flow.py <macro>` on a fresh macro
+built a correct library and then **rejected it**, exiting 1. It had never
+shown up because every committed `.lib` was built with the slew logs present,
+from the by-hand runs.
+
+The check was right about the defect it was written for and wrong about this
+case, and the distinction is the one the whole flow is built on: **a flat axis
+is a defect only when it is SILENT.** The generator already writes
+*"the slew axis was NOT measured"* into the header and prints it on stderr, so
+nothing is passing itself off as measured. What the check exists to catch is
+the axis that is flat while the library claims otherwise -- then the macro
+"appears not to care how fast its clock arrives" and a consumer cannot tell.
+
+So the check now keys on the declaration: a declared flat axis is reported as
+`NOTE index_1 is the declared FALLBACK`, an undeclared one still fails.
+`FLAT_AXIS_DECLARATION` holds the sentence in one place, `gen_rom_lib.py`
+carries a comment pointing back at it, and if the two ever drift the standard
+mode starts FAILING rather than quietly accepting -- the safe direction.
+Verified the way a check has to be: with the sentence edited out of a
+standard-mode `.lib` header, the failure comes back.
+
+(The parser drops comments and `libparse.Group` has `__slots__`, so the raw
+text cannot ride on the parsed object; `main()` puts it in a module global
+next to the parse that produced it.)
+
+### What the two modes actually differ by, measured
+
+Run on a copy of `wrom0` so the committed corpus was never written to: the
+full log set built one library, the four `--full` stages' logs were moved
+aside, and the same `regen_rom_libs.sh` built the other. Both then went
+through `check_lib.py`, `test_rom_lib.py`, `gen_macro_behavioral_v.py` and the
+iverilog testbench.
+
+| | result |
+|---|---|
+| structure | **identical** -- 72 value tables in both, same pin / timing_type / group, same order. No arc appears or disappears |
+| tables that differ | only `dout0` `cell_rise`/`cell_fall` + `retain_rise`/`retain_fall` (the `index_1` axis) and `addr0` `hold_rising` |
+| direction | **std >= full in every cell, every corner** -- the standard mode is conservative everywhere, never optimistic |
+| `cs0` hold | **unchanged by `--full`**, as documented: the experiment never touched cs0 |
+| `retain_*` | present in BOTH, confirming `run_early_path.sh` is in the default flow |
+| fallbacks | announced on stderr per corner: *"no slew sweep -> index_1 stays FLAT"*, *"no hold log -> hold = access (pessimistic in STA)"* |
+| behavioural `.v` | both simulate and pass -- std `hold 41.06/41.06` addr/cs0, full `hold 35.97/41.06` |
+
+**The numbers, over all four macros and all three corners.** Both libraries
+were built for every macro from the same log tree, the four `--full` stages'
+logs moved aside for the second build. The address hold comes out SHORTER
+under `--full` in 12 of 12 pairs, and by more at the slow corner, which is the
+physically expected direction -- the slower the bitline, the more of `access`
+is tail the address is excused from:
+
+| macro | hold std = access | hold `--full` | | | |
+|---|---|---|---|---|---|
+| | **FF** | | **TT** | | **SS** |
+| wrom0 | 9.8440 -> 9.3744 (-4.8%) | | 17.2675 -> 15.7509 (-8.8%) | | 41.0592 -> 35.9700 (-12.4%) |
+| wrom1 | 10.4466 -> 10.0604 (-3.7%) | | 18.2794 -> 16.8393 (-7.9%) | | 43.3153 -> 38.3781 (-11.4%) |
+| wrom2 | 10.6342 -> 10.1891 (-4.2%) | | 18.6640 -> 17.1508 (-8.1%) | | 44.3104 -> 39.2514 (-11.4%) |
+| wrom3 | 9.5052 -> 9.1882 (-3.3%) | | 16.7012 -> 15.3536 (-8.1%) | | 39.8293 -> 35.4509 (-11.0%) |
+
+`cs0`'s hold is bit-identical between the two modes in all twelve, as it has
+to be: nothing in `--full` touches it.
+
+The slew axis is the same story in the other table. The standard mode's one
+repeated number is **exactly the full mode's slowest-slew row** and at or
+above the other two, in all twelve pairs -- wrom0 TT: 17.0529 flat against a
+measured 17.0114 / 17.0293 / 17.0529. So the flat axis is not an approximation
+sitting near the measurement, it is the worst row of it replicated. That is
+why the two modes' `access` maxima agree to the last digit while their smaller
+`index_1` rows do not, and why no cell in either table is ever optimistic.
+
+### A macro tree copied with its timestamps silently redirects the whole flow
+
+Found while setting the comparison up, and it is **older than this work and
+independent of it**. `rom_paths.geometry()` caches to
+`<macro>/char/.geometry.json`, keyed on the netlist's mtime + size -- and the
+cached dict stores `dir` and `char` as ABSOLUTE paths. `cp -a` (or `rsync -a`,
+`tar -p`, a restored backup) preserves mtime, so the stamp still matches and
+the cache answers with the paths of the tree it was copied FROM.
+
+The effect is not subtle: with `ROM_MACROS_DIR` pointed at the copy,
+`rom_paths.py --check <macro>` correctly reported the copy while
+`rom_paths.py <macro> --sh` -- the call `load_geom` makes, i.e. what every
+`run_*.sh` and `regen_rom_libs.sh` actually uses -- returned
+`examples/wrom0/char`. The first comparison run therefore read the repo's own
+logs and produced two byte-identical libraries, which is what exposed it.
+
+This is the same class of defect as item 2c, and the same reasoning applies:
+mtimes record when a file arrived, not what is in it. `.geometry.json` is
+`.gitignore`d and untracked, so a fresh **clone** regenerates it correctly and
+the shipped flow is unaffected -- it bites a characterised macro tree that is
+copied or moved. **Not fixed here**, because it is outside what was being
+checked; the fix is to re-derive `dir`/`char`/`sp`/`lef` from the resolved
+location after a cache hit instead of trusting the stored strings.
+
+Not re-run: no `--full` simulation was executed against `examples/`. Killing a
+stage mid-run leaves its log unstamped, and `regen_rom_libs.sh` then refuses
+that corner -- so smoke-testing the new stages on the committed corpus would
+have broken the very data the byte-for-byte check depends on. What was
+verified instead: the call order in both modes, that every new stage takes a
+macro argument and reports a missing one the way the existing stages do
+(printed error, exit 0, gated ahead of it by `flow.py`'s pre-flight), that
+`--from-logs` still reproduces all twelve `.lib` and four `.v` byte for byte,
+and that the test suite is green. The committed `examples/` logs already carry
+`hold_*`, `addr2wl_*` and `periph_slew*` from the by-hand runs, so the shipped
+libraries are `--full` libraries in content -- what changed is that there is
+now a command that produces them.
 
 ## 2026-09-25
 

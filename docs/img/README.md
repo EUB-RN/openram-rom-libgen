@@ -91,6 +91,7 @@ prints the exact command above every one of them; they are repeated here.
 | `16-slew-sweep.png` | `periph_slew0_tt.sp` | `v(clk0) v(wrom0_rom_column_decode_0/clk)` | no |
 | `17-col-energy.png` | `col236_energy_tt.sp` | `i(vvdd)` | yes |
 | `18-setup.png` | `periph_setup_tt.sp` | `v(addr0[0]) v(clk0)` | no |
+| `19-waveform-timing.png` | `tb_wrom0_wave.v` | `clk0 cs0 addr0 dout0` with `.lib` timing arcs | yes |
 
 The committed `13-coldec.png` shows the right two vectors but was taken from
 `periph_active_tt.sp`, which instantiates the same `rom_column_decode` -- its
