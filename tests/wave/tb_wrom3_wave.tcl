@@ -3,7 +3,7 @@
 # This is the tcl xsim itself runs, not a Vivado project script. The three
 # commands around it, from the repository root:
 #
-#   xvlog -sv output/verilog/wrom3.v tests/wave/tb_wrom3_wave.v
+#   xvlog -sv output/verilog/wrom3.sv tests/wave/tb_wrom3_wave.v
 #   xelab -debug typical tb_wrom3_wave -s tb_wrom3_wave_sim
 #   xsim tb_wrom3_wave_sim -tclbatch tests/wave/tb_wrom3_wave.tcl
 #

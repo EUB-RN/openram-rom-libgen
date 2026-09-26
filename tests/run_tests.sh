@@ -108,10 +108,13 @@ IV="${IVERILOG_BIN:-iverilog}"
 VERILOG_DIR="${ROM_OUT_DIR:-$REPO/output}/verilog"
 if command -v "$IV" >/dev/null 2>&1; then
   v_count=0
-  for v in "$VERILOG_DIR"/*.v; do
+  # .sv: the models use fork/join_none, so they are SystemVerilog and are
+  # named accordingly. .v is still swept up, both for a tree generated before
+  # the rename and for a hand-written model someone dropped in.
+  for v in "$VERILOG_DIR"/*.sv "$VERILOG_DIR"/*.v; do
     [ -f "$v" ] || continue
     v_count=$((v_count + 1))
-    mod=$(basename "$v" .v)
+    mod=$(basename "$v"); mod=${mod%.*}
     if "$IV" -g2012 -s "$mod" "$v" -o /dev/null >/dev/null 2>&1; then
       echo "  ok   $(basename "$v")"
     else

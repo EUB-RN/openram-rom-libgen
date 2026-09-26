@@ -8,12 +8,12 @@
 // low for the whole simulation -- what you are meant to be looking at is the
 // DATA, not a failure.
 //
-// Timing below is MEASURED (SS_1p6V_100C corner, via wrom3.v):
-//     access 37.8895 ns / precharge 16.3381 ns / setup 0.0480 ns
+// Timing below is MEASURED (SS_1p6V_100C corner, via wrom3.sv):
+//     access 39.8293 ns / precharge 16.5034 ns / setup 0.0480 ns
 // The cycle built from it:
-//     low phase  = 16.3381 * PRE_MARGIN
-//     high phase = 37.8895 * EVAL_MARGIN
-// so the period is roughly 73.8 ns -- this macro is SLOW, do not expect
+//     low phase  = 16.5034 * PRE_MARGIN
+//     high phase = 39.8293 * EVAL_MARGIN
+// so the period is roughly 76.5 ns -- this macro is SLOW, do not expect
 // the waves to look like a synchronous SRAM.
 //
 // WHAT TO PUT IN THE WAVE WINDOW (top to bottom)
@@ -27,20 +27,20 @@
 //
 // VIVADO, batch from the repository root -- this is the one that ends with a
 // wave database you can open:
-//     xvlog -sv output/verilog/wrom3.v tests/wave/tb_wrom3_wave.v
+//     xvlog -sv output/verilog/wrom3.sv tests/wave/tb_wrom3_wave.v
 //     xelab -debug typical tb_wrom3_wave -s tb_wrom3_wave_sim
 //     xsim tb_wrom3_wave_sim -tclbatch tests/wave/tb_wrom3_wave.tcl
 //     xsim --gui tb_wrom3_wave_sim.wdb
 // -debug typical is not optional: without it nothing is logged and the wave
 // window is empty.
 //
-// VIVADO GUI: add wrom3.v and this file to a simulation fileset, set
+// VIVADO GUI: add wrom3.sv and this file to a simulation fileset, set
 // tb_wrom3_wave as the simulation top, Run Behavioral Simulation. Set
 // `phase` to ASCII radix and addr0 to unsigned once the window is up.
 //
 // iverilog, for the same waves without Vivado:
 //     iverilog -g2012 -o /tmp/wrom3_wave.vvp \
-//              output/verilog/wrom3.v tests/wave/tb_wrom3_wave.v
+//              output/verilog/wrom3.sv tests/wave/tb_wrom3_wave.v
 //     vvp /tmp/wrom3_wave.vvp && gtkwave tb_wrom3_wave.vcd
 // ---------------------------------------------------------------------------
 `timescale 1ns / 1ps
@@ -68,8 +68,8 @@ module tb_wrom3_wave;
   //     xelab -generic_top "INIT_FILE=/other/path/wrom3_rom.mem" ...
   parameter INIT_FILE = "/home/hpw/openram-rom-libgen/tests/wave/wrom3_rom.mem";
 
-  localparam real T_PRE  = 16.3381;
-  localparam real ACCESS = 37.8895;
+  localparam real T_PRE  = 16.5034;
+  localparam real ACCESS = 39.8293;
   localparam real SETUP  = 0.0480;
   localparam real T_LOW  = T_PRE  * PRE_MARGIN;
   localparam real T_HIGH = ACCESS * EVAL_MARGIN;
@@ -137,8 +137,11 @@ module tb_wrom3_wave;
       #(T_HIGH - ACCESS);
 
       // CAPTURE, at the point a real consumer would: just before the fall,
-      // with the address and cs0 still held. After the fall there is nothing
-      // left to capture -- precharge erases it.
+      // with the address and cs0 still held. The macro does give a little
+      // slack past the edge -- T_FALL_NS, the .lib's falling_edge arc on
+      // dout0, is how long the precharge PMOS takes to pull the bitlines
+      // back up -- but that window is a few nanoseconds and it is not what
+      // a testbench should be spending. Capture before the edge.
       dout_cap = dout0;
       mismatch = (dout0 !== expected);
       if (mismatch) begin

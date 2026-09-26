@@ -61,10 +61,10 @@ Layer 4 is skipped with a notice when no OpenSTA is installed. Layers 1–3 are
 our parser checking our writer, which is a closed loop; this opens it using the
 parser a consumer really uses. Point `STA_BIN` at a binary to run it.
 
-Layer 5 validates all behavioural Verilog models (`output/verilog/*.v`) using
+Layer 5 validates all behavioural Verilog models (`output/verilog/*.sv`) using
 `iverilog` if available, asserting error-free syntax and elaboration.
 Layer 6 (`test_verilog_model.py`) runs dynamic simulation testbenches against
-all behavioural Verilog models (`output/verilog/*.v`) using `iverilog` + `vvp`.
+all behavioural Verilog models (`output/verilog/*.sv`) using `iverilog` + `vvp`.
 It asserts that the simulated output holds all ones during precharge, delays
 valid data until `ACCESS_NS` has elapsed, erases data immediately on the falling
 clock edge, and remains idle when `cs0 = 0`.
