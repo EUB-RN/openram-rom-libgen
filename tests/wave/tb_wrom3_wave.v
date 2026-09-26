@@ -79,10 +79,13 @@ module tb_wrom3_wave;
   // any clock period. Dropping it earlier re-opens the precharge PMOS and the
   // bitline is the only place this macro keeps a read.
   //
-  // So cs0's margin is on the PHASE, measured from the rising edge: 1.0
-  // releases it exactly on the deadline, above 1.0 is past it, below 1.0 is
-  // inside the evaluate phase and the model reports the violation.
-  parameter real CS_MARGIN    = 1.05;   // cs0 released after the rise = T_HIGH * this
+  // So cs0's margin is on the PHASE, measured from the rising edge, and it
+  // DEFAULTS TO 1.0 where the other four sit above 1.0. There is no equality
+  // to be on the wrong side of here: the deadline is an edge, and cs0 is
+  // released on it. Padding it would put slack in the picture that the .lib
+  // does not ask for. Above 1.0 is past the deadline, below 1.0 is inside
+  // the evaluate phase and the model reports the violation.
+  parameter real CS_MARGIN    = 1.00;   // cs0 released after the rise = T_HIGH * this
 
   // The data the model loads. NOT rom_configs/wrom3.bin: that file is raw
   // binary and $readmemb cannot read it (it aborts on the first byte and the
@@ -120,11 +123,14 @@ module tb_wrom3_wave;
   // hides that -- it is the single most specific thing this macro's .lib
   // says, and the wave should show it.
   localparam real T_HOLD  = HOLD     * HOLD_MARGIN;
-  // Exactly 1.0 would put the release in the same timestep as the falling
-  // edge, where the model has two negedge processes to run and which one goes
-  // first would decide whether a violation is reported. A testbench must not
-  // hand that to the scheduler.
-  localparam real T_CS    = T_HIGH   * CS_MARGIN;
+  // At CS_MARGIN 1.0 this is the falling edge, and cs0 is released in the
+  // same statement as clk0 rather than after a wait of its own -- see the
+  // note in gen_wave_tb.py: computing the same instant twice does not give
+  // the same instant, and being one picosecond early here is a violation.
+  localparam real T_CS      = T_HIGH * CS_MARGIN;
+  // How much of the low phase cs0 has already spent by staying selected past
+  // the falling edge. Zero at the default, where it is released ON the edge.
+  localparam real T_CS_PAST = 0.0;
   // Observation only: how long `mismatch` is left standing after the falling
   // edge so it can be seen in the window. Part of the low phase, not extra.
   localparam real T_TAIL  = 1.0;
@@ -169,17 +175,6 @@ module tb_wrom3_wave;
   reg [10:0] addr_rd = {ADDR_BITS{1'b0}};
   always @(*) expected = dut.mem[addr_rd];
 
-  // cs0's release is timed from the RISING edge and driven here rather than
-  // from the sequence below, because where it falls depends on CS_MARGIN: at
-  // the default it is past the falling edge, under 1.0 it is inside the
-  // evaluate phase. One process covers both without the main sequence having
-  // to be re-ordered around it.
-  always @(posedge clk0) begin
-    #(T_CS);
-    cs0     = 1'b0;
-    cs_held = 1'b0;
-  end
-
   // ---- the run ------------------------------------------------------------
   integer i;
   initial begin
@@ -214,7 +209,7 @@ module tb_wrom3_wave;
       // in the window, then the rest of the low phase runs.
       #(T_TAIL);
       mismatch = 1'b0;
-      #(T_LOW - T_TAIL - T_SETUP);
+      #(T_LOW - T_CS_PAST - T_TAIL - T_SETUP);
       addr0     = (START_ADDR + i) % DEPTH;
       addr_rd   = addr0;
       addr_held = 1'b1;
@@ -228,24 +223,20 @@ module tb_wrom3_wave;
       clk0  = 1'b1;
       phase = "EVALUATE";
 
-      // HOLD. The address is released the moment the .lib stops requiring
-      // it, and released to a FAR ROW so the release is unmistakable in the
-      // wave window -- half the array away, every bit of the row index
-      // different. The read in flight survives this: that is what
-      // run_hold_bisect.sh measured and it is why hold_rising is
-      // 35.4509 ns rather than the full access window.
-      //
-      // The far row does start discharging its own bitlines, and about one
-      // access time later dout0 would become the AND -- irreversibly, there
-      // is no pull-up in the array. The evaluate phase is over long before
-      // then; gen_wave_tb.py refuses to write a testbench where it is not.
       #(T_HOLD);
+      // HOLD. The address is released the moment the .lib stops
+      // requiring it, and to a FAR ROW so the release is
+      // unmistakable in the window -- half the array away. The
+      // read in flight survives it: that is what
+      // run_hold_bisect.sh measured, and it is why hold_rising
+      // is 35.4509 ns rather than the full access window.
       addr0     = (START_ADDR + i + DEPTH / 2) % DEPTH;
       addr_held = 1'b0;
 
-      // dout0 is NOT the data yet; the bitlines are still discharging.
       #(ACCESS - T_HOLD);
+      // dout0 only becomes the data here.
       phase = "VALID";
+
       #(T_HIGH - ACCESS);
 
       // CAPTURE, at the point a real consumer would: just before the fall.
@@ -266,6 +257,10 @@ module tb_wrom3_wave;
       $display("%8t  addr %4d  dout %h", $time, addr_rd, dout0);
 
       clk0  = 1'b0;
+      // clock_gating_hold_falling is 0.0000 -- the
+      // deadline IS this edge, so cs0 goes with it.
+      cs0       = 1'b0;
+      cs_held   = 1'b0;
       phase = "PRECHARGE";
       // The low phase belongs to the TOP of the next iteration, where the
       // address is placed against setup_rising. Waiting one here as well --
