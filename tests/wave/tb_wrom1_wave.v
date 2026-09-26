@@ -13,6 +13,7 @@
 // The cycle built from it:
 //     low phase  = 12.8748 * PRE_MARGIN
 //     high phase = 43.3153 * EVAL_MARGIN
+//     addr0 lands = 0.0480 * SETUP_MARGIN before the rising edge
 // so the period is roughly 75.6 ns -- this macro is SLOW, do not expect
 // the waves to look like a synchronous SRAM.
 //
@@ -54,8 +55,18 @@ module tb_wrom1_wave;
   // Margins on the MEASURED minimums. 1.0 would sit exactly on the constraint
   // and a wave viewer cannot show you whether you are on the right side of an
   // equality, so they are deliberately above it.
-  parameter real PRE_MARGIN  = 1.50;   // low  phase = T_PRE_NS  * this
-  parameter real EVAL_MARGIN = 1.30;   // high phase = ACCESS_NS * this
+  parameter real PRE_MARGIN   = 1.50;   // low  phase  = T_PRE_NS * this
+  parameter real EVAL_MARGIN  = 1.30;   // high phase  = ACCESS_NS * this
+  // The address is placed SETUP_NS * this before the rising edge, and NOT a
+  // whole low phase before it. Those are very different pictures: a whole low
+  // phase is 402x the constraint and shows the reader nothing except
+  // that the testbench was generous. At this margin the gap in the wave IS
+  // the .lib's setup_rising, which is the point of looking at it.
+  //
+  // BELOW 1.0 IT IS A VIOLATION, deliberately: regenerate with
+  // --setup-margin 0.6 and the model reports the setup violation on every
+  // cycle. That is the other picture worth taking.
+  parameter real SETUP_MARGIN = 2.00;   // addr0 -> clk0 rise = SETUP_NS * this
 
   // The data the model loads. NOT rom_configs/wrom1.bin: that file is raw
   // binary and $readmemb cannot read it (it aborts on the first byte and the
@@ -73,6 +84,9 @@ module tb_wrom1_wave;
   localparam real SETUP  = 0.0480;
   localparam real T_LOW  = T_PRE  * PRE_MARGIN;
   localparam real T_HIGH = ACCESS * EVAL_MARGIN;
+  // The address sits here, inside the low phase -- the bitlines are held at
+  // VDD throughout, so moving the address costs nothing until the edge.
+  localparam real T_SETUP = SETUP * SETUP_MARGIN;
 
   localparam integer WIDTH     = 32;
   localparam integer ADDR_BITS = 11;
@@ -122,12 +136,18 @@ module tb_wrom1_wave;
 
     for (i = 0; i < N_READS; i = i + 1) begin
       read_idx = i;
-      addr0    = (START_ADDR + i) % DEPTH;
 
-      // SETUP: the address is placed, then the edge -- never together. The
-      // wait is far longer than SETUP_NS so the separation is visible.
+      // The low phase runs with the PREVIOUS address still on the pins; the
+      // new one goes on T_SETUP before the edge, so the gap you measure in
+      // the wave window is the .lib's setup_rising and nothing else.
+      //
+      // T_SETUP is tens of picoseconds and the cycle is tens of nanoseconds,
+      // so at full-cycle zoom the address and the clock edge look
+      // simultaneous. THAT IS THE MEASUREMENT: zoom to the edge to see it.
       phase = "PRECHARGE";
-      #(T_LOW);
+      #(T_LOW - T_SETUP);
+      addr0 = (START_ADDR + i) % DEPTH;
+      #(T_SETUP);
 
       clk0  = 1'b1;
       phase = "EVALUATE";

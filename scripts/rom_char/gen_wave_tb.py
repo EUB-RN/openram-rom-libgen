@@ -155,6 +155,7 @@ TB_TEMPLATE = '''// ------------------------------------------------------------
 // The cycle built from it:
 //     low phase  = {t_pre} * PRE_MARGIN
 //     high phase = {access} * EVAL_MARGIN
+//     addr0 lands = {setup} * SETUP_MARGIN before the rising edge
 // so the period is roughly {period_ns} ns -- this macro is SLOW, do not expect
 // the waves to look like a synchronous SRAM.
 //
@@ -196,8 +197,18 @@ module tb_{macro}_wave;
   // Margins on the MEASURED minimums. 1.0 would sit exactly on the constraint
   // and a wave viewer cannot show you whether you are on the right side of an
   // equality, so they are deliberately above it.
-  parameter real PRE_MARGIN  = 1.50;   // low  phase = T_PRE_NS  * this
-  parameter real EVAL_MARGIN = 1.30;   // high phase = ACCESS_NS * this
+  parameter real PRE_MARGIN   = 1.50;   // low  phase  = T_PRE_NS * this
+  parameter real EVAL_MARGIN  = 1.30;   // high phase  = ACCESS_NS * this
+  // The address is placed SETUP_NS * this before the rising edge, and NOT a
+  // whole low phase before it. Those are very different pictures: a whole low
+  // phase is {setup_ratio:.0f}x the constraint and shows the reader nothing except
+  // that the testbench was generous. At this margin the gap in the wave IS
+  // the .lib's setup_rising, which is the point of looking at it.
+  //
+  // BELOW 1.0 IT IS A VIOLATION, deliberately: regenerate with
+  // --setup-margin 0.6 and the model reports the setup violation on every
+  // cycle. That is the other picture worth taking.
+  parameter real SETUP_MARGIN = {setup_margin:.2f};   // addr0 -> clk0 rise = SETUP_NS * this
 
   // The data the model loads. NOT rom_configs/{macro}.bin: that file is raw
   // binary and $readmemb cannot read it (it aborts on the first byte and the
@@ -215,6 +226,9 @@ module tb_{macro}_wave;
   localparam real SETUP  = {setup};
   localparam real T_LOW  = T_PRE  * PRE_MARGIN;
   localparam real T_HIGH = ACCESS * EVAL_MARGIN;
+  // The address sits here, inside the low phase -- the bitlines are held at
+  // VDD throughout, so moving the address costs nothing until the edge.
+  localparam real T_SETUP = SETUP * SETUP_MARGIN;
 
   localparam integer WIDTH     = {width};
   localparam integer ADDR_BITS = {addr_bits};
@@ -264,12 +278,18 @@ module tb_{macro}_wave;
 
     for (i = 0; i < N_READS; i = i + 1) begin
       read_idx = i;
-      addr0    = (START_ADDR + i) % DEPTH;
 
-      // SETUP: the address is placed, then the edge -- never together. The
-      // wait is far longer than SETUP_NS so the separation is visible.
+      // The low phase runs with the PREVIOUS address still on the pins; the
+      // new one goes on T_SETUP before the edge, so the gap you measure in
+      // the wave window is the .lib's setup_rising and nothing else.
+      //
+      // T_SETUP is tens of picoseconds and the cycle is tens of nanoseconds,
+      // so at full-cycle zoom the address and the clock edge look
+      // simultaneous. THAT IS THE MEASUREMENT: zoom to the edge to see it.
       phase = "PRECHARGE";
-      #(T_LOW);
+      #(T_LOW - T_SETUP);
+      addr0 = (START_ADDR + i) % DEPTH;
+      #(T_SETUP);
 
       clk0  = 1'b1;
       phase = "EVALUATE";
@@ -360,6 +380,11 @@ def main():
                     help="how many addresses to sweep (default: 16)")
     ap.add_argument("--start", type=int, default=0,
                     help="first address (default: 0)")
+    ap.add_argument("--setup-margin", type=float, default=2.0, metavar="K",
+                    help="place addr0 SETUP_NS*K before the rising edge "
+                         "(default 2.0). Below 1.0 is a deliberate setup "
+                         "violation -- the model reports one per cycle, which "
+                         "is the picture that shows where the limit is.")
     ap.add_argument("--endian", choices=("little", "big"), default="little",
                     help="byte order of a word inside the .bin (default: "
                          "little). The .bin carries no byte order of its own; "
@@ -424,16 +449,26 @@ def main():
             width=info["width"], addr_bits=info["addr_bits"],
             depth=info["depth"], amsb=info["addr_bits"] - 1,
             dmsb=info["width"] - 1, init=init,
-            start=args.start, reads=reads)
+            start=args.start, reads=reads,
+            setup_margin=args.setup_margin,
+            # What the old testbench did instead, so the header can say how
+            # far off the constraint a whole low phase actually is.
+            setup_ratio=(info["t_pre"] * 1.50 / info["setup"]
+                         if info["setup"] else 0.0))
 
         tb_path = os.path.join(outdir, "tb_%s_wave.v" % macro)
         open(tb_path, "w").write(tb)
         tcl_path = os.path.join(outdir, "tb_%s_wave.tcl" % macro)
         open(tcl_path, "w").write(TCL_TEMPLATE.format(macro=macro, sig=SIGNATURE))
 
-        print("%-7s written: %s  (%d reads from %d, cycle ~%.1f ns, %s)"
+        setup_gap = info["setup"] * args.setup_margin
+        print("%-7s written: %s  (%d reads from %d, cycle ~%.1f ns, "
+              "addr0 %.4f ns before the edge%s, %s)"
               % (macro, os.path.relpath(tb_path, REPO), reads, args.start,
-                 period, info["corner"]))
+                 period, setup_gap,
+                 " -- A VIOLATION, setup is %.4f ns" % info["setup"]
+                 if args.setup_margin < 1.0 else "",
+                 info["corner"]))
         if words:
             print("%-7s          %s  (%d x %d bit, %s-endian)"
                   % ("", os.path.relpath(mem_path, REPO), words,
