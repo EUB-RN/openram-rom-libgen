@@ -64,8 +64,59 @@ for m in $(macro_list "$@"); do
         echo "  $m: resistance model failed -- falling back to capacitance only"
         RFLAG=--no-resistance
       }
+      # AN EXIT CODE OF 0 IS NOT THE SAME AS A USABLE MODEL.
+      #
+      # gen_resistance_model.py reads the per-cell geometry out of the macro's
+      # .mag files. A macro directory that has none -- which is every macro
+      # exported as .sp/.lef/.gds only -- makes it write {"cells": {}} and
+      # return SUCCESS, so the fallback above never fired and
+      # gen_col_tb_parasitic.py then died on the empty model three lines
+      # later. The flow carried on regardless and the first symptom the user
+      # saw was "col<N>_worst_case_parasitic.sp does not exist" four stages
+      # downstream, after an hour of simulation. Ask the model whether it
+      # actually has the number, not whether the script returned.
+      if [ -z "$RFLAG" ] && ! python3 - "$G_CHAR/resistance_model.json" "$m" <<'PY'
+import json, sys
+try:
+    cells = json.load(open(sys.argv[1]))["cells"]
+except (OSError, ValueError, KeyError):
+    sys.exit(1)
+sys.exit(0 if cells.get("%s_rom_base_one_cell" % sys.argv[2], {}).get("series_ohm")
+         else 1)
+PY
+      then
+        echo "  $m: the resistance model has no one_cell series resistance."
+        echo "       Both ways of getting it start from"
+        echo "       <macro>_rom_base_one_cell.mag -- Magic on that ONE cell,"
+        echo "       and, where even that segfaults, the same file's geometry"
+        echo "       times the PDK sheet resistance. (The CHAIN resistance is"
+        echo "       never extracted: Magic segfaults on whole-macro extresist,"
+        echo "       docs/limitations.md item 3.) This macro directory has no"
+        echo "       .mag files at all, so neither path can start. OpenRAM"
+        echo "       writes them next to the .gds; copy them in."
+        echo "       To characterise WITHOUT it, re-run with NO_RESISTANCE=1."
+        echo "       That is a real difference, not a formality: wire resistance"
+        echo "       moves the bitline term by +15% at TT, +6.6% at SS and +28%"
+        echo "       at FF on the example macros (docs/limitations.md item 3)."
+        ng_fail "col-timing" "$m" "$G_CHAR/resistance_model.json" \
+                "$G_CHAR/resistance_model.json" 1 \
+                "resistance model has no one_cell (no .mag files in the macro directory)" \
+                "set NO_RESISTANCE=1 to characterise without wire resistance"
+        continue
+      fi
     fi
-    python3 "$ROM_CHAR_DIR/gen_col_tb_parasitic.py" "$m" "$G_WORST_COL" $RFLAG
+    # The generator EXITS NON-ZERO when it cannot build the deck, and this
+    # used to be thrown away: the stage then produced no .sp, printed nothing
+    # more, and returned success, so flow.py ran every later stage against a
+    # column deck that did not exist.
+    if ! python3 "$ROM_CHAR_DIR/gen_col_tb_parasitic.py" "$m" "$G_WORST_COL" $RFLAG; then
+      ng_fail "col-timing" "$m tt" \
+              "$G_CHAR/${G_COLTAG}_worst_case_parasitic.sp" \
+              "$G_CHAR/${G_COLTAG}_worst_case_parasitic.log" $? \
+              "gen_col_tb_parasitic.py could not build the column deck" \
+              "every later stage reads this deck -- see the error above"
+      continue
+    fi
     # The TT deck is built AND RUN by the generator, so its log never passes
     # through run_ng and would carry no provenance stamp -- which downstream
     # means "not from this flow" and is refused. Judge and stamp it here by the

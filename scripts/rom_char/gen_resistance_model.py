@@ -339,6 +339,24 @@ def main():
              "%s_rom_base_zero_cell" % args.macro,
              "%s_precharge_cell" % args.macro]
 
+    # WHERE THE .mag FILES LIVE.
+    #
+    # Only four are ever read -- the three cells above and the array, for the
+    # wordline pitch -- and they are not a per-macro choice: they are the
+    # first four entries of rom_paths.REQUIRED_SUBCKTS, i.e. sub-circuits
+    # pre-flight already demands of every macro. So the set is fixed and
+    # generic; only the <macro>_ prefix changes.
+    #
+    # The example macros carry their .mag at the macro root (they arrived
+    # that way and are tracked there), while a macro whose layout this flow
+    # writes itself gets them in <macro>/mags/ -- a whole GDS hierarchy is
+    # ~90 files and does not belong loose in the directory the netlist and
+    # the LEF live in. Look in mags/ first, fall back to the root, so both
+    # layouts work and nothing existing has to move.
+    def mag_path(name):
+        sub = os.path.join(mdir, "mags", name + ".mag")
+        return sub if os.path.exists(sub) else os.path.join(mdir, name + ".mag")
+
     magic_bin = os.environ.get("MAGIC_BIN", "magic")
     pdk = os.environ.get("PDK_ROOT", os.path.expanduser("~/OpenLane/pdks"))
     tech_file = os.path.join(pdk, "sky130A", "libs.tech", "magic", "sky130A.tech")
@@ -349,7 +367,7 @@ def main():
     rows = []
     try:
         for cell in cells:
-            mag = os.path.join(mdir, cell + ".mag")
+            mag = mag_path(cell)
             if not os.path.exists(mag):
                 rows.append((cell, None, None, "no .mag file"))
                 continue
@@ -382,9 +400,9 @@ def main():
             shutil.rmtree(workdir, ignore_errors=True)
 
     # wordline poly per cell pitch, for reference
-    one_mag = os.path.join(mdir, "%s_rom_base_one_cell.mag" % args.macro)
+    one_mag = mag_path("%s_rom_base_one_cell" % args.macro)
     pitch = None
-    arr_mag = os.path.join(mdir, "%s_rom_base_array.mag" % args.macro)
+    arr_mag = mag_path("%s_rom_base_array" % args.macro)
     if os.path.exists(arr_mag):
         xs = [int(l.split()[3]) for l in open(arr_mag) if l.startswith("transform ")]
         deltas = collections.Counter(abs(a - b) for a, b in zip(xs, xs[1:]) if a != b)

@@ -812,11 +812,17 @@ def gen_lib(name, area, buses, scalars, corner, args):
           % max_transition)
         w(" * the library cannot declare a slew it was never measured at.")
     elif be:
+        # THIS SENTENCE IS READ BACK. tests/test_rom_lib.py keys on
+        # "the slew axis was NOT measured" (FLAT_AXIS_DECLARATION) to tell a
+        # flat axis this generator DECLARED from one it shipped silently: the
+        # first is the standard mode's documented fallback, the second is the
+        # defect the check exists for. Change the wording there too, or the
+        # standard flow starts failing its own output.
         w(" *")
         w(" * WARNING: index_1 (clk0 slew) carries ONE number repeated three")
         w(" * times -- the slew axis was NOT measured. Run"
           )
-        w(" * scripts/rom_char/run_slew_sweep.sh and pass --t-front a,b,c.")
+        w(" * scripts/rom_char/run_slew_sweep.sh, or ./flow.py <macro> --full.")
     if retain_rows:
         w(" *")
         w(" * EARLY PATH (retain_rise/retain_fall on dout0): dout0 keeps the")
