@@ -23,6 +23,11 @@ A human runs the deck, looks at the plot window and keeps the picture.
 Until a file exists its reference in the README shows as a broken image --
 that is intentional, it says what is still missing.
 
+Current inventory: layout screenshots `01`-`03` exist and
+`04-column-strip.png` is still missing. Waveforms `05` and `06` exist;
+`07-backend-loads.svg` is still missing. All per-block PNG figures `10`-`19`
+exist, with the provenance caveats for `13` and `15` described below.
+
 ---
 
 ## 1. Waveforms -- you take them at the simulator
@@ -88,9 +93,9 @@ prints the exact command above every one of them; they are repeated here.
 | `13-coldec.png` | `coldec_a0_tt.sp` | `v(wrom0_rom_column_decode_0/clk) v(wrom0_rom_column_decode_0/wl_0)` | yes, but from `periph_active_tt.sp` -- see below |
 | `14-pincap.png` | `pincap_tt.sp` | `v(clk0) i(vpin1)` | yes |
 | `15-wl-slew.png` | `wlslew_tt.sp` | `v(clk0) v(wrom0_rom_row_decode_0/wl_0)` | yes, on an early cycle -- see below |
-| `16-slew-sweep.png` | `periph_slew0_tt.sp` | `v(clk0) v(wrom0_rom_column_decode_0/clk)` | no |
+| `16-slew-sweep.png` | `periph_slew0_tt.sp` | `v(clk0) v(wrom0_rom_column_decode_0/clk)` | yes |
 | `17-col-energy.png` | `col236_energy_tt.sp` | `i(vvdd)` | yes |
-| `18-setup.png` | `periph_setup_tt.sp` | `v(addr0[0]) v(clk0)` | no |
+| `18-setup.png` | `periph_setup_tt.sp` | `v(addr0[0]) v(clk0)` | yes |
 | `19-waveform-timing.png` | `tb_wrom0_wave.v` | `clk0 cs0 addr0 dout0` with `.lib` timing arcs | yes |
 
 The committed `13-coldec.png` shows the right two vectors but was taken from
@@ -110,9 +115,9 @@ the 1.5692 ns in `wlslew_tt.log`, and the figure is evidence of the POLARITY
 and the edge shape, not of the number. A re-capture with the plot window
 moved onto the measured cycle would retire the caveat.
 
-The seven captured ones are the plot window as ngspice draws it -- black paper,
-title bar and all -- not `hardcopy` output. That is fine per section 1 above;
-`hardcopy` only moves the same picture onto white and into vector form.
+The ten per-block captures are the plot window as ngspice draws it -- black
+paper, title bar and all -- not `hardcopy` output. That is fine per section 1
+above; `hardcopy` only moves the same picture onto white and into vector form.
 
 Node names are from `wrom0`. The extracted netlist names nodes after
 instances, so on another macro they change -- read them out of the deck's own

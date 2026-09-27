@@ -1,8 +1,43 @@
 # Where the work stands
 
-Last updated: 2026-09-26. Keep this file current when stopping mid-task.
+Last updated: 2026-09-27. Keep this file current when stopping mid-task.
 
-## Done and verified
+## Current work: `random_2k` ngspice failure — investigation in progress
+
+The current stopping point is `random_2k`: its ngspice analyses fail, and
+the cause is still being investigated. The owner confirmed this on
+2026-09-27. Its missing figures are a consequence of those failed analyses;
+capturing them is waiting on the simulation problem being resolved.
+
+The earlier investigation below recorded periphery decks aborting with
+`Timestep too small ... trouble with node ...nand2_dec_1...#body` in the
+row decoder's address-control buffer. This is the recorded failure symptom,
+not a confirmed root cause of the current blocker. The separate missing
+`.mag` / empty resistance-model failure was already diagnosed; running with
+`NO_RESISTANCE=1` got the column measurements through all three corners,
+but did not resolve the periphery failure. Resume by inspecting the failing
+deck and ngspice logs and establishing why the analysis fails, then rerun
+the affected characterization before regenerating outputs and figures.
+
+### Validation checked on 2026-09-27
+
+* `ROM_TESTS_STRICT=1 tests/run_tests.sh` now **passes in `nix develop`**.
+  All 15 Liberty files pass the structural and ROM-semantic checks, including
+  corner ordering, and all 15 are accepted by the Nix-pinned OpenSTA 2.7.0.
+* All five `.sv` models (`random_2k` and `wrom0`–`wrom3`) pass compilation and
+  behavioural simulation. The checker fixtures and simulation-error reporting
+  tests also pass; no validation layer is skipped in the strict Nix run.
+* This validates the generated files currently in `output/`; it does not by
+  itself prove that the upstream `random_2k` ngspice failure described above
+  has been diagnosed or that every characterization stage was rerun cleanly.
+* `docs/img/16-slew-sweep.png` and `18-setup.png` now exist. The older
+  missing-capture notes below describe an earlier state, not the current
+  `random_2k` blocker.
+
+The dated sections below retain the history of the example-macro work;
+their successful-run claims do not imply that `random_2k` is complete.
+
+## Done and verified for the four example macros
 
 * The flow is size independent: macro list, worst column, best column, chain
   length, column count, address/data width are all derived (`rom_paths.py`);
@@ -26,10 +61,10 @@ Last updated: 2026-09-26. Keep this file current when stopping mid-task.
   hard-coded pair `vccd1`/`vssd1`.
 * `tests/` reads the generated `.lib` back: 15 deliberately broken fixtures,
   the generic Liberty structure, the ROM semantics, and OpenSTA's
-  `read_liberty` where a binary is installed. `regen_rom_libs.sh` runs the
-  structural pass itself and exits non-zero if it fails. `tests/` is now
-  tracked; the OpenSTA step still SKIPs here because no `sta` binary is
-  installed.
+  `read_liberty`. `regen_rom_libs.sh` runs the structural pass itself and exits
+  non-zero if it fails. `tests/` is tracked, and `nix develop` now supplies the
+  pinned `sta` binary so strict validation runs this layer instead of skipping
+  it.
 
 ## The 2026-09-20 re-characterisation: FINISHED
 
@@ -1442,10 +1477,11 @@ way, in the README caption and in `docs/img/README.md`.
 
 ### The OpenSTA layer ran for the first time, and it was passing its files wrong
 
-CI got OpenSTA built -- CUDD from source, static, and the OpenSTA checkout
-pinned to a SHA -- so `tests/run_tests.sh`'s fourth layer stopped SKIPping and
-actually executed. It failed immediately, and not on a `.lib`: the step printed
-OpenSTA's usage text and exited 1.
+The former CI setup got OpenSTA built -- CUDD from source, static, and the
+OpenSTA checkout pinned to a SHA -- so `tests/run_tests.sh`'s fourth layer
+stopped SKIPping and actually executed. It failed immediately, and not on a
+`.lib`: the step printed OpenSTA's usage text and exited 1. OpenSTA is now
+provided by `nix develop`; the workflow itself has since been removed.
 
 `sta` takes exactly ONE positional argument, the cmd_file. The call was
 `sta -no_init -no_splash -exit tests/read_liberty.tcl $LIBS`, twelve paths
@@ -1702,7 +1738,11 @@ TT). What is left open there is that only the idle state (clk0 low) is
 characterised; the evaluate phase, with one wordline low and the chain feet
 conducting, is not.
 
-## Housekeeping
+## Housekeeping — historical checkpoint (2026-09-25)
+
+The commit positions, log reproducibility and green-suite result in this
+checkpoint were recorded on 2026-09-25, not reverified on 2026-09-27. See
+the current-work section above for today's validation and active blocker.
 
 Everything below the 2026-09-24 line is committed; `main` and `origin/main`
 are level at `7405fb7`. The 2026-09-25 work went in as nine commits:
@@ -1719,26 +1759,23 @@ regenerate, `tests/check_lib.py` passes 12/12, and `tests/run_tests.sh` is
 green on every layer that can run here (OpenSTA still SKIPs -- no `sta`
 binary).
 
-**The twelve `.lib` and four `.v` in `output/` are CURRENT**, and all twelve
+**The twelve example `.lib` and four models were current at this checkpoint**, and all twelve
 now carry a measured address hold rather than the `hold = access` fallback.
 Re-running `regen_rom_libs.sh` and `gen_macro_behavioral_v.py` over the
 committed logs reproduces them byte for byte -- checked on 2026-09-25,
 `git status` clean afterwards. wrom0/TT ships `t_dis_50` = 15.3355 ns,
 `access` = 17.2675 ns and `hold` = 15.7509 ns on addr0.
 
-Still open, in the order it would cost to close:
+Other follow-ups (figure presence updated on 2026-09-27):
 
 * The column decoder is measured at every address on wrom0/TT and at address
   0 -- the slowest select -- everywhere else. The periphery is the same
   circuit in all four macros and the numbers agree to four digits across them,
   so this is cheap rather than risky; a macro whose column decoder differs
   would need the full sweep.
-* **Two of the nine README figures have no capture yet**: `16-slew-sweep`
-  and `18-setup`. The README links them already, so those two render as
-  broken images. Both have their deck and their `plot` line printed above
-  them in the README and listed in `docs/img/README.md`. Capture is a
-  screenshot of ngspice's own plot window -- nothing generates them.
-  Two of the seven that ARE captured carry a caveat rather than a gap, and
+* `16-slew-sweep.png` and `18-setup.png` are now present in `docs/img/`;
+  their previously reported missing captures are no longer pending.
+  Two other captures carry a caveat rather than a gap, and
   `docs/img/README.md` states both: `13-coldec` was taken from
   `periph_active_tt.sp` rather than `coldec_a0_tt.sp`, and `15-wl-slew` sits
   on an early cycle rather than the settled one its `.measure` lines use.
