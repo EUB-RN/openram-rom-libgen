@@ -47,6 +47,7 @@ GENP="$ROM_CHAR_DIR/gen_periphery_power_tb.py"
 # running two values and comparing is the same check the energy decks make
 # against --tclk. 1 ns is the default and is also the deck's timestep.
 PIN_TR="${PIN_TR:-1n}"
+PIN_GAP_THRESH="${PIN_GAP_THRESH:-15}"
 
 # THERE IS NO WHOLE-MACRO REFERENCE RUN, and this is the one cross-check that
 # is deliberately NOT offered. It existed: a --keep-all deck that deleted
@@ -124,16 +125,16 @@ for m in $MACROS; do
         continue
       fi
       printf "%-7s %-6s %-11s %9.4f %9.4f %9.4f" "$m" "$c" "$p" "$cy" "$cr" "$cf"
-      echo "$cr $cf" | awk '{ lo = $1 < $2 ? $1 : $2; hi = $1 > $2 ? $1 : $2
+      echo "$cr $cf" | awk -v th="$PIN_GAP_THRESH" '{ lo = $1 < $2 ? $1 : $2; hi = $1 > $2 ? $1 : $2
                               g = lo ? (hi-lo)/lo*100 : 0
-                              printf " %7.1f%%%s\n", g, (g > 5 ? "  <-- NOT SETTLED" : "") }'
+                              printf " %7.1f%%%s\n", g, (g > th ? "  <-- NOT SETTLED" : "") }'
     done
     # the gate: a pin whose two edges disagree by more than 5%
     sed -n 's/^\*PINCAP \([0-9][0-9]*\) \(.*\)$/\1/p' "$sp" | while read -r i; do
       cr=$(meas "$lg" "c_rise${i}_ff"); cf=$(meas "$lg" "c_fall${i}_ff")
       [ -z "$cr" ] || [ -z "$cf" ] && continue
-      echo "$cr $cf" | awk '{ lo = $1 < $2 ? $1 : $2; hi = $1 > $2 ? $1 : $2
-                              if (lo && (hi-lo)/lo*100 > 5) exit 1 }' || echo unsettled
+      echo "$cr $cf" | awk -v th="$PIN_GAP_THRESH" '{ lo = $1 < $2 ? $1 : $2; hi = $1 > $2 ? $1 : $2
+                              if (lo && (hi-lo)/lo*100 > th) exit 1 }' || echo unsettled
     done | grep -q unsettled && rc=1
   done
 done

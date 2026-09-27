@@ -486,6 +486,52 @@ for i_fx, (n, v) in enumerate(sorted(node_c.items())):
     n_fix += 1
     c_fix_tot += -v
 
+# --- audit the capacitance of exposed nodes THROUGH retained hierarchy ---
+# The top-level extraction is only one contribution to an exported node.
+# A decoder port can also carry negative substrate corrections inside its
+# subcircuits. The top-level cancellation above cannot see those terms.
+# Keep the existing reduction, then regularize only exposed nodes whose full
+# explicit-capacitance sum still falls below the floor. Device-model
+# capacitances are not counted; this is a numerical floor, not a measurement
+# or a proof that the complete capacitance matrix is positive definite.
+CAP_FLOOR = 0.05e-15
+full_node_c = collections.Counter()
+
+
+def count_caps(lines, mapping):
+    for line in lines:
+        t = line.split()
+        if not t:
+            continue
+        if t[0].startswith("C") and len(t) >= 4:
+            a, b = mapping.get(t[1]), mapping.get(t[2])
+            # Aliased ports can make a capacitor a self-loop: it contributes
+            # no charge, even when its two local names differ.
+            if a == b:
+                continue
+            value = to_float(t[3])
+            if a is not None:
+                full_node_c[a] += value
+            if b is not None:
+                full_node_c[b] += value
+        elif t[0].startswith("X") and t[-1] in B:
+            body = B[t[-1]]
+            ports = body[0].split()[2:]
+            child_map = dict(zip(ports, (mapping.get(n) for n in t[1:-1])))
+            count_caps(body[1:], child_map)
+
+
+count_caps(keep + kept_c + [line for line in load_lines if line.startswith("C")], {n: n for n in alive})
+hierarchy_fixes = []
+for node in sorted(alive - driven):
+    value = full_node_c[node]
+    if value < CAP_FLOOR:
+        correction = CAP_FLOOR - value
+        hierarchy_fixes.append(
+            f"C_hier{len(hierarchy_fixes)} {node} {SUPPLY_LO} "
+            f"{correction*1e15:.12g}f")
+kept_c.extend(hierarchy_fixes)
+
 # --- sub-circuit definitions: only the ones ACTUALLY used ----------------
 # Emitting unused definitions makes ngspice do pointless work (the column
 # decoder / mux / bitline inverter blocks are ~10k lines).
@@ -971,7 +1017,8 @@ if args.pin_cap:
 *       back into the address pins.
 * Top-level C: {len(kept_c)} kept/merged, {n_drop} dropped (both ends dead),
 *              {clamped} negative sums clamped (Magic substrate correction)
-* Negative NET capacitance fix: {n_fix} nodes, {c_fix_tot*1e15:.1f} fF total
+* Top-level negative C compensation: {n_fix} nodes, {c_fix_tot*1e15:.1f} fF total
+* Retained-hierarchy C floor: {len(hierarchy_fixes)} exposed nodes, {CAP_FLOOR*1e15:g} fF minimum
 *
 * ONE PIN AT A TIME: pin i ramps up over {args.pin_tr}, holds, ramps back down
 * and stays down, so every pin is measured from the SAME quiescent state (all
@@ -1044,7 +1091,8 @@ else:
 *            + the array's internal parasitic wire C (lumped)
 * Top-level C: {len(kept_c)} kept/merged, {n_drop} dropped (both ends dead),
 *              {clamped} negative sums clamped (Magic substrate correction)
-* Negative NET capacitance fix: {n_fix} nodes, {c_fix_tot*1e15:.1f} fF total
+* Top-level negative C compensation: {n_fix} nodes, {c_fix_tot*1e15:.1f} fF total
+* Retained-hierarchy C floor: {len(hierarchy_fixes)} exposed nodes, {CAP_FLOOR*1e15:g} fF minimum
 * cs0={args.cs}: {'precharge toggles' if args.cs else 'precharge STUCK AT 0 -- only the clk_int tree runs'}
 * The energy must be FREQUENCY INDEPENDENT; verify by changing --tclk.
 

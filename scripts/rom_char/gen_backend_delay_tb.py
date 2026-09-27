@@ -259,6 +259,52 @@ for i, (n, v) in enumerate(sorted(node_c.items())):
     kept_c.append(f"C_fx{i} {n} {SUPPLY_LO} {-v*1e15:.5f}f")
     n_fix += 1; c_fix += -v
 
+# --- audit the capacitance of exposed nodes THROUGH retained hierarchy ---
+# The top-level extraction is only one contribution to an exported node.
+# A decoder port can also carry negative substrate corrections inside its
+# subcircuits. The top-level cancellation above cannot see those terms.
+# Keep the existing reduction, then regularize only exposed nodes whose full
+# explicit-capacitance sum still falls below the floor. Device-model
+# capacitances are not counted; this is a numerical floor, not a measurement
+# or a proof that the complete capacitance matrix is positive definite.
+CAP_FLOOR = 0.05e-15
+full_node_c = collections.Counter()
+
+
+def count_caps(lines, mapping):
+    for line in lines:
+        t = line.split()
+        if not t:
+            continue
+        if t[0].startswith("C") and len(t) >= 4:
+            a, b = mapping.get(t[1]), mapping.get(t[2])
+            # Aliased ports can make a capacitor a self-loop: it contributes
+            # no charge, even when its two local names differ.
+            if a == b:
+                continue
+            value = to_float(t[3])
+            if a is not None:
+                full_node_c[a] += value
+            if b is not None:
+                full_node_c[b] += value
+        elif t[0].startswith("X") and t[-1] in B:
+            body = B[t[-1]]
+            ports = body[0].split()[2:]
+            child_map = dict(zip(ports, (mapping.get(n) for n in t[1:-1])))
+            count_caps(body[1:], child_map)
+
+
+count_caps(keep + kept_c + [], {n: n for n in alive})
+hierarchy_fixes = []
+for node in sorted(alive - driven):
+    value = full_node_c[node]
+    if value < CAP_FLOOR:
+        correction = CAP_FLOOR - value
+        hierarchy_fixes.append(
+            f"C_hier{len(hierarchy_fixes)} {node} {SUPPLY_LO} "
+            f"{correction*1e15:.12g}f")
+kept_c.extend(hierarchy_fixes)
+
 # --- sub-circuit definitions actually used -------------------------------
 need, seen = set(l.split()[-1] for l in keep), set()
 while need - seen:
@@ -383,7 +429,8 @@ tb = f"""* {M} -- BACK END delay: bitline -> dout0  (column {args.col}, {args.co
 * Deleted: cell array / decoders / control logic (the nodes they leave behind
 *          are driven by ideal sources -- that part is already in t_dis_50)
 * Top-level C: {len(kept_c)} kept, {n_drop} dropped;
-*   negative-net-capacitance fix on {n_fix} nodes / {c_fix*1e15:.1f} fF
+*   top-level negative C compensation on {n_fix} nodes / {c_fix*1e15:.1f} fF
+* Retained-hierarchy C floor: {len(hierarchy_fixes)} exposed nodes, {CAP_FLOOR*1e15:g} fF minimum
 * The driven bitline edge is the COLUMN DECK'S OWN WAVEFORM, not a ramp:
 *   {len(wave)} samples replayed from {os.path.basename(args.bl_wave)}
 *   t_dis_50={cross(0.5)*1e9:.4f} ns, t_dis_10={cross(0.1)*1e9:.4f} ns

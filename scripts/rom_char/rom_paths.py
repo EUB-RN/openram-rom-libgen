@@ -333,6 +333,21 @@ def find_pdk_root():
     if os.path.isdir(os.path.join(openlane_pdk, "sky130A")):
         return openlane_pdk
 
+    # 2b. OpenLane with ciel package manager
+    ciel_base = os.path.expanduser("~/OpenLane/pdks/ciel/sky130/versions")
+    if os.path.isdir(ciel_base):
+        try:
+            versions = sorted(
+                [os.path.join(ciel_base, d) for d in os.listdir(ciel_base)],
+                key=os.path.getmtime,
+                reverse=True
+            )
+            for v in versions:
+                if os.path.isdir(os.path.join(v, "sky130A")):
+                    return v
+        except OSError:
+            pass
+
     # 3. System pdk
     sys_pdk = "/usr/local/share/pdk"
     if os.path.isdir(os.path.join(sys_pdk, "sky130A")):

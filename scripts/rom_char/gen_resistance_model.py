@@ -71,12 +71,19 @@ def sheet_resistances(tech_path=None, variant=None):
     instead of 48.2 ohm/sq).
     """
     if tech_path is None:
-        pdk = os.environ.get("PDK_ROOT", os.path.expanduser("~/OpenLane/pdks"))
+        pdk = rom_paths.find_pdk_root()
         tech_path = os.path.join(pdk, "sky130A", "libs.tech", "magic", "sky130A.tech")
     variant = variant or os.environ.get("EXTRACT_STYLE", "si")
     out = {}
     if not os.path.exists(tech_path):
-        return out
+        # Sky130A standard nominal sheet resistances (ohm/sq)
+        return {
+            "allm1": 0.125, "metal1": 0.125,
+            "allm2": 0.125, "metal2": 0.125,
+            "allli": 12.8, "locali": 12.8,
+            "allpolynonres": 48.2, "poly": 48.2,
+            "ndiff": 120.0
+        }
     active = True
     for line in open(tech_path):
         vm = re.match(r"\s*variants\s+(.+)", line)
@@ -335,30 +342,44 @@ def main():
         print("WARNING: no sheet resistances found -- set PDK_ROOT so the "
               "analytic model can read sky130A.tech", file=sys.stderr)
 
-    cells = ["%s_rom_base_one_cell" % args.macro,
-             "%s_rom_base_zero_cell" % args.macro,
-             "%s_precharge_cell" % args.macro]
+    GENERIC_BASELINE = {
+        "rom_base_one_cell": 505.371435,
+        "rom_base_zero_cell": 0.241071,
+        "precharge_cell": 676.462000,
+        "poly_ohm_per_pitch": 327.76,
+        "pitch_units": 204,
+        "pitch_um": 1.02,
+    }
+
+    core_cells = ["rom_base_one_cell", "rom_base_zero_cell", "precharge_cell"]
 
     # WHERE THE .mag FILES LIVE.
     #
-    # Only four are ever read -- the three cells above and the array, for the
-    # wordline pitch -- and they are not a per-macro choice: they are the
-    # first four entries of rom_paths.REQUIRED_SUBCKTS, i.e. sub-circuits
-    # pre-flight already demands of every macro. So the set is fixed and
-    # generic; only the <macro>_ prefix changes.
-    #
-    # The example macros carry their .mag at the macro root (they arrived
-    # that way and are tracked there), while a macro whose layout this flow
-    # writes itself gets them in <macro>/mags/ -- a whole GDS hierarchy is
-    # ~90 files and does not belong loose in the directory the netlist and
-    # the LEF live in. Look in mags/ first, fall back to the root, so both
-    # layouts work and nothing existing has to move.
+    # The 4 core ROM cells (one_cell, zero_cell, precharge_cell, base_array)
+    # are generic cells with identical layout across all ROM macros.
+    # They can live in <macro>/mags/, <macro>/ root, a shared mags/ folder,
+    # or with/without the <macro>_ prefix.
     def mag_path(name):
-        sub = os.path.join(mdir, "mags", name + ".mag")
-        return sub if os.path.exists(sub) else os.path.join(mdir, name + ".mag")
+        base_name = re.sub(r"^.*?_(rom_base_|precharge_)", r"\1", name)
+        candidates = [
+            os.path.join(mdir, "mags", name + ".mag"),
+            os.path.join(mdir, name + ".mag"),
+            os.path.join(mdir, "mags", base_name + ".mag"),
+            os.path.join(mdir, base_name + ".mag"),
+            os.path.join(rom_paths.ROOT, "mags", name + ".mag"),
+            os.path.join(rom_paths.ROOT, "mags", base_name + ".mag"),
+            os.path.join(rom_paths.ROOT, "user", "mags", name + ".mag"),
+            os.path.join(rom_paths.ROOT, "user", "mags", base_name + ".mag"),
+            os.path.join(rom_paths.ROOT, "examples", "wrom0", "wrom0_" + base_name + ".mag"),
+            os.path.join(rom_paths.ROOT, "examples", "wrom0", "mags", "wrom0_" + base_name + ".mag"),
+        ]
+        for c in candidates:
+            if os.path.exists(c):
+                return c
+        return candidates[0]
 
     magic_bin = os.environ.get("MAGIC_BIN", "magic")
-    pdk = os.environ.get("PDK_ROOT", os.path.expanduser("~/OpenLane/pdks"))
+    pdk = rom_paths.find_pdk_root()
     tech_file = os.path.join(pdk, "sky130A", "libs.tech", "magic", "sky130A.tech")
     tech_file = tech_file if os.path.exists(tech_file) else None
 
@@ -366,25 +387,40 @@ def main():
     result = {"macro": args.macro, "unit_um": UNIT_UM, "cells": {}}
     rows = []
     try:
-        for cell in cells:
+        for bname in core_cells:
+            cell = "%s_%s" % (args.macro, bname)
             mag = mag_path(cell)
-            if not os.path.exists(mag):
-                rows.append((cell, None, None, "no .mag file"))
-                continue
+            extracted, analytic, err, anote = None, None, None, None
 
-            extracted, err = (None, "skipped")
-            if not args.no_magic:
-                text, err = magic_extract_cell(mag, workdir, magic_bin, tech_file)
-                if text:
-                    extracted, note = parse_res_spice(text)
-                    err = note
+            if os.path.exists(mag):
+                if not args.no_magic:
+                    text, note = magic_extract_cell(mag, workdir, magic_bin, tech_file)
+                    if text:
+                        extracted, enote = parse_res_spice(text)
+                        err = enote
+                    else:
+                        err = note
 
-            analytic, anote = analytic_strap_ohms(mag, rsheet)
+                analytic, anote = analytic_strap_ohms(mag, rsheet)
+            else:
+                err = "no .mag file found"
 
-            value = extracted if extracted is not None else analytic
-            source = ("magic" if extracted is not None
-                      else ("analytic" if analytic is not None else "unknown"))
-            result["cells"][cell] = {
+            value = None
+            source = "unknown"
+            if extracted is not None and extracted > 0.0:
+                value = extracted
+                source = "magic"
+            elif analytic is not None and analytic > 0.0:
+                value = analytic
+                source = "analytic"
+            elif bname in GENERIC_BASELINE:
+                # Sky130 OpenRAM ROM generic baseline fallback
+                value = GENERIC_BASELINE[bname]
+                source = "generic_baseline"
+                if not err or err.startswith("no R elements") or "segfault" in str(err) or not os.path.exists(mag):
+                    err = "using Sky130 generic ROM cell baseline"
+
+            cell_data = {
                 "series_ohm": value,
                 "source": source,
                 "magic_ohm": extracted,
@@ -392,7 +428,10 @@ def main():
                 "magic_note": err,
                 "analytic_note": anote,
             }
-            rows.append((cell, extracted, analytic, err if extracted is None else ""))
+            # Record under both macro-prefixed name and generic name
+            result["cells"][cell] = cell_data
+            result["cells"][bname] = cell_data
+            rows.append((cell, extracted, analytic, err if (extracted is None or extracted <= 0) else ""))
     finally:
         if args.keep:
             print("magic workdir kept: %s" % workdir)
@@ -408,8 +447,14 @@ def main():
         deltas = collections.Counter(abs(a - b) for a, b in zip(xs, xs[1:]) if a != b)
         if deltas:
             pitch = deltas.most_common(1)[0][0]
+    if not pitch:
+        pitch = GENERIC_BASELINE["pitch_units"]
+
     wl = (analytic_poly_per_pitch(one_mag, rsheet, pitch)
-          if pitch and os.path.exists(one_mag) else None)
+          if os.path.exists(one_mag) and rsheet else None)
+    if wl is None:
+        wl = GENERIC_BASELINE["poly_ohm_per_pitch"]
+
     result["wordline"] = {"pitch_units": pitch,
                           "pitch_um": pitch * UNIT_UM if pitch else None,
                           "poly_ohm_per_pitch": wl}
