@@ -128,6 +128,11 @@ ap.add_argument("--pin-cap", action="store_true",
                      "time, integrating the charge that pin has to supply: "
                      "C = Q(VDD)/VDD, the same reduction gen_cell_gate_tb.py "
                      "uses. See run_pin_cap.sh.")
+ap.add_argument("--pin-th", default=None,
+                help="--pin-cap: hold time after ramp (default: 10 * pin_tr). "
+                     "Allows slow nodes to settle before ramping down.")
+ap.add_argument("--pin-th-map", default=None,
+                help="--pin-cap: per-pin hold time map (e.g. 'addr0[0]:25n,addr0[6]:35n').")
 ap.add_argument("--pin-tr", default="1n",
                 help="--pin-cap: ramp time of the measured pin. It must be "
                      "slow enough that the charge is the pin's own and not a "
@@ -336,101 +341,59 @@ def cell_gate_model(sub):
                 pass
     return dev, B[sub][0].split()[2:], cg
 
-def rebuild_load(sub, tag):
-    """Put back the load a DELETED block leaves on the nets that are still alive.
+def resolve_cell_gate_cap_ff():
+    """Determine equivalent transistor gate capacitance per cell (in fF).
 
-    Same 'slice x count' reduction for any block: descend into it, count the
-    gates each of its ports drives, lump the internal wire parasitics, and emit
-    one device with m=<count> plus one C per alive net. Called for the cell
-    array (the wordline load) and, with --with-coldec, for the column mux array
-    -- without the second call the eight column selects would drive nothing but
-    their own wire C, and a decoder measured into no load is not a measurement.
-
-    Returns (spice lines, [(port, cell count, lumped C)]).
+    Uses explicit --gate-cap-ff if provided, checks for cellgate_<corner>.log,
+    or falls back to analytic calculation from cell transistor dimensions (Cox * W * L).
     """
-    inst = [l for l in drop if l.split()[-1] == sub]
-    if not inst:
-        sys.exit(f"ERROR: no {sub} instance at top level")
-    ports = dict(zip(B[sub][0].split()[2:], inst[0].split()[1:-1]))
-    gate_cnt.clear()
-    wire_c.clear()
-    dev_cnt.clear()
-    dev_line.clear()
-    collect(sub, {p: p for p in ports})
-    load_lines, load_report = [], []
-    # only load the nodes that are STILL ALIVE at top level
-    for i, (port, net) in enumerate(sorted(ports.items())):
-        if net not in alive or net in (SUPPLY_HI, SUPPLY_LO, "0"):
-            continue
-        subs = [(sb, c) for (sb, pp), c in gate_cnt.items() if pp == port]
-        # The ARRAY-LEVEL wire parasitics on this port: the C elements that
-        # sit at the cell array's own level rather than inside a cell. On the
-        # example macros this is about HALF the wordline load (29.5 fF of
-        # 58 fF), the cell gates being the other half -- so a deck that
-        # dropped it would measure a wordline driving roughly half its real
-        # load. (The column deck carries the same class of element on the
-        # BITLINE by the same alive/dead rule -- see gen_col_tb_parasitic.py.)
-        cw = max(wire_c.get(port, 0.0), 0.0)
-        ncell = 0
-        for sb, c in sorted(subs):
-            dev, _, cg = cell_gate_model(sb)
-            if dev is None:
-                continue
-            cw += cg * c
-            ncell += c
-            if args.gate_cap_ff is not None:
-                # The gate load is modelled as a LINEAR C. That is the correct
-                # reduction for energy: the charge drawn from VDD to pull a node to
-                # VDD is Q(VDD), so using C_eq = Q(VDD)/VDD preserves the ENERGY
-                # exactly. Placing the device with m=<count> gives the same energy
-                # but creates a capacitance hundreds of times wider and strongly
-                # NON-LINEAR, which kept ngspice from converging (2026-09-06:
-                # "Timestep too small" in three separate attempts).
-                cw += args.gate_cap_ff * 1e-15 * c
-                continue
-            t = dev.split()
-            # The device nodes are written with sub-circuit port names. G -> the
-            # measured net; the rest go to their own supply rail (tying a PMOS body
-            # or source to ground gives the WRONG gate capacitance), and the
-            # bitline side sits at ground -- bitlines are static in this run.
-            nets = [net if n == "G"
-                    else (SUPPLY_HI if n.startswith("vdd") else SUPPLY_LO)
-                    for n in t[1:5]]
-            load_lines.append(fix_units(
-                "X_%s%d_%d " % (tag, i, len(load_lines)) + " ".join(nets) + " "
-                + " ".join(t[5:]) + " m=%d" % c))
-        # raw PDK devices whose gate sits on this net (the column mux)
-        for (mdl, pp), c in sorted(dev_cnt.items()):
-            if pp != port:
-                continue
-            t = dev_line[(mdl, pp)].split()
-            dn, _ = device_nodes(t)
-            pi = t.index(mdl)
-            # gate -> the measured net; source/drain/body -> ground. The mux
-            # passes a BITLINE, which is static in this run, so tying it low is
-            # the strong-inversion (largest, pessimistic) gate capacitance.
-            nets = [net if j == 1 else SUPPLY_LO for j in range(len(dn))]
-            load_lines.append(fix_units(
-                "X_%s%d_%d " % (tag, i, len(load_lines)) + " ".join(nets)
-                + " " + " ".join(t[pi:]) + " m=%d" % c))
-            ncell += c
-        if cw > 0:
-            load_lines.append(f"C_{tag}{i} {net} {SUPPLY_LO} {cw*1e15:.5f}f")
-        if ncell or cw > 0:
-            load_report.append((port, ncell, cw))
-    return load_lines, load_report
+    if args.gate_cap_ff is not None:
+        return args.gate_cap_ff
+    char_dir = rom_paths.char_dir(args.macro, args.macros_dir)
+    cgl = os.path.join(char_dir, f"cellgate_{args.corner}.log")
+    if os.path.exists(cgl):
+        for line in open(cgl):
+            m = re.search(r"c_one_ff\s*=\s*([0-9.eE+-]+)", line)
+            if m:
+                try:
+                    return float(m.group(1))
+                except ValueError:
+                    pass
+    w_val, l_val = 0.36, 0.15
+    for sub in (f"{args.macro}_rom_base_one_cell", f"{args.macro}_rom_base_zero_cell"):
+        if sub in B:
+            dev, _, _ = cell_gate_model(sub)
+            if dev:
+                mw = re.search(r"\bw=([0-9.eE+-]+[a-zA-Z]?)", dev)
+                ml = re.search(r"\bl=([0-9.eE+-]+[a-zA-Z]?)", dev)
+                if mw and ml:
+                    try:
+                        w_val = to_float(mw.group(1)) * 1e6
+                        l_val = to_float(ml.group(1)) * 1e6
+                        break
+                    except ValueError:
+                        pass
+    c_ox = 8.42
+    corner_scale = {"tt": 1.0, "ss": 0.906, "ff": 1.087}.get(args.corner, 1.0)
+    return c_ox * w_val * l_val * corner_scale
 
-load_lines, load_report = rebuild_load(ARRAY, "wl")
-if COLDEC in KEEP_SUB:
-    # The eight column selects drive 256 mux pass transistors between them.
-    # Without this the decoder would be measured driving its own wire C alone
-    # and would come out far too fast.
-    mux_lines, mux_report = rebuild_load(MUX, "sel")
-    load_lines += mux_lines
-    load_report += mux_report
+# --- BOUNDARY NETS & LUMPED LOAD REBUILD --------------------------------
+# Pruned blocks (ARRAY and, with --with-coldec, MUX) leave boundary nets alive.
+# Magic extracts negative substrate/fringe overlap terms on these boundary nets.
+# The physical lumped load (wire + cell gates) directly absorbs the negative
+# extraction term: C_final = C_lump - |C_neg| = C_lump + C_neg > 0.
+boundary_nets = set()
+for _sub in [ARRAY] + ([MUX] if COLDEC in KEEP_SUB and MUX in [l.split()[-1] for l in drop] else []):
+    _inst = [l for l in drop if l.split()[-1] == _sub]
+    if _inst:
+        _ports = B[_sub][0].split()[2:]
+        _p2n = dict(zip(_ports, _inst[0].split()[1:-1]))
+        boundary_nets.update((set(_p2n.values()) & alive) - {SUPPLY_HI, SUPPLY_LO, "0"})
 
-# --- top-level C elements: the alive/dead rule ----------------------------
-kept_c, retarget = [], collections.Counter()
+# Collect top-level C elements touching boundary nets vs internal nets
+boundary_ext = collections.defaultdict(float)
+kept_c = []
+retarget = collections.Counter()
 n_drop = 0
 for l in top_caps:
     t = l.split()
@@ -443,94 +406,122 @@ for l in top_caps:
         continue
     ao, bo = a in alive, b in alive
     if ao and bo:
-        kept_c.append(l)
+        if a in boundary_nets and b in (SUPPLY_HI, SUPPLY_LO, "0"):
+            boundary_ext[a] += v
+        elif b in boundary_nets and a in (SUPPLY_HI, SUPPLY_LO, "0"):
+            boundary_ext[b] += v
+        elif v > 0:
+            kept_c.append(l)
     elif ao:
-        retarget[a] += v
+        if a in boundary_nets:
+            boundary_ext[a] += v
+        elif v > 0:
+            retarget[a] += v
     elif bo:
-        retarget[b] += v
+        if b in boundary_nets:
+            boundary_ext[b] += v
+        elif v > 0:
+            retarget[b] += v
     else:
         n_drop += 1
-clamped = 0
-for i_rt, (n, v) in enumerate(sorted(retarget.items())):
-    if v <= 0:
-        clamped += 1
-        continue
-    kept_c.append(f"C_rt{i_rt} {n} {SUPPLY_LO} {v*1e15:.5f}f")
 
-# --- NEGATIVE NET CAPACITANCE FIX ----------------------------------------
-# Magic's ext2spice (cthresh 0) writes NEGATIVE-valued Cs as substrate
-# corrections; they only make sense together with the POSITIVE terms of the
-# blocks they couple to. Deleting the cell array removed those positive terms
-# and the NET capacitance of over a thousand nodes went negative -- which is
-# fatal for the solver: every attempt blew up with "Timestep too small" at
-# t~1e-13..1e-10 (2026-09-06, six different option/stimulus combinations).
-# The fix is minimal: for each node whose NET SUM is negative, add a C that
-# brings the sum back to zero. Nodes driven by a source (supplies, clk0, cs0,
-# addr) are left alone -- capacitance does not set their voltage.
+clamped = sum(1 for v in retarget.values() if v <= 0)
+for i_rt, (n, v) in enumerate(sorted(retarget.items())):
+    if v > 0:
+        kept_c.append(f"C_rt{i_rt} {n} {SUPPLY_LO} {v*1e15:.5f}f")
+
+def rebuild_load(sub, tag):
+    """Put back the load a DELETED block leaves on the nets that are still alive.
+
+    Computes lumped wire + active cell gate loads, absorbs any extracted
+    overlap capacitance on the boundary net (C_final = C_lump + C_ext > 0),
+    and emits a single positive lumped capacitor per boundary net.
+    """
+    inst = [l for l in drop if l.split()[-1] == sub]
+    if not inst:
+        sys.exit(f"ERROR: no {sub} instance at top level")
+    ports = dict(zip(B[sub][0].split()[2:], inst[0].split()[1:-1]))
+    gate_cnt.clear()
+    wire_c.clear()
+    dev_cnt.clear()
+    dev_line.clear()
+    collect(sub, {p: p for p in ports})
+    load_lines, load_report = [], []
+    gate_cap_val = resolve_cell_gate_cap_ff() * 1e-15
+
+    for i, (port, net) in enumerate(sorted(ports.items())):
+        if net not in alive or net in (SUPPLY_HI, SUPPLY_LO, "0"):
+            continue
+        subs = [(sb, c) for (sb, pp), c in gate_cnt.items() if pp == port]
+        cw = max(wire_c.get(port, 0.0), 0.0)
+        ncell = 0
+        for sb, c in sorted(subs):
+            dev, _, cg = cell_gate_model(sb)
+            if dev is None:
+                continue
+            cw += (cg + gate_cap_val) * c
+            ncell += c
+
+        # raw PDK devices whose gate sits on this net (the column mux)
+        for (mdl, pp), c in sorted(dev_cnt.items()):
+            if pp != port:
+                continue
+            t = dev_line[(mdl, pp)].split()
+            dn, _ = device_nodes(t)
+            pi = t.index(mdl)
+            nets = [net if j == 1 else SUPPLY_LO for j in range(len(dn))]
+            load_lines.append(fix_units(
+                "X_%s%d_%d " % (tag, i, len(load_lines)) + " ".join(nets)
+                + " " + " ".join(t[pi:]) + " m=%d" % c))
+            ncell += c
+
+        # Physical lumped load absorbs negative fringe/overlap from extraction
+        cw_final = cw + boundary_ext.get(net, 0.0)
+        if cw_final > 0:
+            load_lines.append(f"C_{tag}{i} {net} {SUPPLY_LO} {cw_final*1e15:.5f}f")
+        if ncell or cw_final > 0:
+            load_report.append((port, ncell, cw_final))
+    return load_lines, load_report
+
+load_lines, load_report = rebuild_load(ARRAY, "wl")
+if COLDEC in KEEP_SUB:
+    mux_lines, mux_report = rebuild_load(MUX, "sel")
+    load_lines += mux_lines
+    load_report += mux_report
+
 driven = {SUPPLY_HI, SUPPLY_LO, "0"} | {
     p for p in top_ports if re.match(r"^(clk0|cs0|addr0\[)", p)}
-node_c = collections.Counter()
-for l in kept_c + [x for x in load_lines if x.startswith("C")]:
-    t = l.split()
-    try:
-        v = to_float(t[3])
-    except (ValueError, IndexError):
-        continue
-    node_c[t[1]] += v
-    node_c[t[2]] += v
-n_fix, c_fix_tot = 0, 0.0
-for i_fx, (n, v) in enumerate(sorted(node_c.items())):
-    if v >= 0 or n in driven:
-        continue
-    kept_c.append(f"C_fx{i_fx} {n} {SUPPLY_LO} {-v*1e15:.5f}f")
-    n_fix += 1
-    c_fix_tot += -v
 
-# --- audit the capacitance of exposed nodes THROUGH retained hierarchy ---
-# The top-level extraction is only one contribution to an exported node.
-# A decoder port can also carry negative substrate corrections inside its
-# subcircuits. The top-level cancellation above cannot see those terms.
-# Keep the existing reduction, then regularize only exposed nodes whose full
-# explicit-capacitance sum still falls below the floor. Device-model
-# capacitances are not counted; this is a numerical floor, not a measurement
-# or a proof that the complete capacitance matrix is positive definite.
-CAP_FLOOR = 0.05e-15
 full_node_c = collections.Counter()
 
-
-def count_caps(lines, mapping):
+def descend_into_module(lines, mapping, depth=0):
+    """Modül hiyerarşisinin en derinine (yaprak hücrelere) kadar iner,
+    tüm iç kapasitansları üst seviye düğümlere eşleyerek toplar."""
     for line in lines:
         t = line.split()
         if not t:
             continue
         if t[0].startswith("C") and len(t) >= 4:
             a, b = mapping.get(t[1]), mapping.get(t[2])
-            # Aliased ports can make a capacitor a self-loop: it contributes
-            # no charge, even when its two local names differ.
             if a == b:
                 continue
-            value = to_float(t[3])
+            try:
+                val = to_float(t[3])
+            except ValueError:
+                continue
             if a is not None:
-                full_node_c[a] += value
+                full_node_c[a] += val
             if b is not None:
-                full_node_c[b] += value
+                full_node_c[b] += val
         elif t[0].startswith("X") and t[-1] in B:
-            body = B[t[-1]]
+            child = t[-1]
+            body = B[child]
             ports = body[0].split()[2:]
             child_map = dict(zip(ports, (mapping.get(n) for n in t[1:-1])))
-            count_caps(body[1:], child_map)
+            descend_into_module(body[1:], child_map, depth + 1)
 
-
-count_caps(keep + kept_c + [line for line in load_lines if line.startswith("C")], {n: n for n in alive})
-hierarchy_fixes = []
-for node in sorted(alive - driven):
-    value = full_node_c[node]
-    if value < CAP_FLOOR:
-        correction = CAP_FLOOR - value
-        hierarchy_fixes.append(
-            f"C_hier{len(hierarchy_fixes)} {node} {SUPPLY_LO} "
-            f"{correction*1e15:.12g}f")
-kept_c.extend(hierarchy_fixes)
+# Tutulan modüllerin ve wordline lumped C'nin içine inerek topla
+descend_into_module(keep + kept_c + load_lines, {n: n for n in alive})
 
 # --- sub-circuit definitions: only the ones ACTUALLY used ----------------
 # Emitting unused definitions makes ngspice do pointless work (the column
@@ -549,8 +540,16 @@ for name in sorted(seen):   # sorted: deterministic output file
     # ARRAY is skipped: it is deleted and replaced by lumped load.
     if name in (TOP, ARRAY):
         continue
-    ls = B[name]
-    defs.append("\n".join(fix_units(l) if l.startswith("X") else l for l in ls))
+    clean_ls = []
+    for l in B[name]:
+        if l.startswith("C") and len(l.split()) >= 4:
+            try:
+                if to_float(l.split()[3]) <= 0:
+                    continue
+            except ValueError:
+                pass
+        clean_ls.append(fix_units(l) if l.startswith("X") else l)
+    defs.append("\n".join(clean_ls))
     defs.append(".ends")
 defs = "\n".join(defs)
 
@@ -897,10 +896,14 @@ if args.pin_cap:
     if not pin_names:
         sys.exit("ERROR: --pin-cap found no input pins at top level")
     _tr = to_float(args.pin_tr)
-    # THE HOLD IS PART OF THE MEASUREMENT, not padding between edges. See the
-    # window note below; it has to be long enough for the stage the pin drives
-    # to finish switching, so it is generous rather than tight.
-    _th = 10 * _tr
+    _default_th = to_float(args.pin_th) if args.pin_th else 10 * _tr
+    _pin_th_map = {}
+    if args.pin_th_map:
+        for item in args.pin_th_map.split(","):
+            if ":" in item:
+                k, v = item.split(":", 1)
+                _pin_th_map[k.strip()] = to_float(v.strip())
+
     _t0 = 20e-9                   # let the precharged chain nodes settle first
     # A QUIET GAP AFTER EACH PIN. Without it (2026-09-22) the slots touched,
     # and ADJACENT pins moved by ~4% in OPPOSITE directions when --pin-tr was
@@ -909,12 +912,13 @@ if args.pin_cap:
     # is one pin's settling tail crossing the boundary into its neighbour's
     # window, not a change in anyone's capacitance. The gap is dead time: no
     # measurement window covers it.
-    _slot = 2 * _tr + 3 * _th
     pin_src, pin_meas, pin_rows = [], [], []
+    current_t = _t0
     for i, p_ in enumerate(pin_names):
-        t_r0 = _t0 + i * _slot
+        _th_i = _pin_th_map.get(p_, _default_th)
+        t_r0 = current_t
         t_r1 = t_r0 + _tr
-        t_f0 = t_r1 + _th
+        t_f0 = t_r1 + _th_i
         t_f1 = t_f0 + _tr
         pin_src.append(
             f"Vpin{i} {p_} 0 PWL(0 0 {t_r0:.6e} 0 {t_r1:.6e} {{VDD}} "
@@ -936,7 +940,7 @@ if args.pin_cap:
             f"from={t_r0:.6e} to={t_f0:.6e}")
         pin_meas.append(
             f".measure tran q_fall{i} integ i(Vpin{i}) "
-            f"from={t_f0:.6e} to={t_f1 + _th:.6e}")
+            f"from={t_f0:.6e} to={t_f1 + _th_i:.6e}")
         pin_meas.append(
             f".measure tran c_rise{i}_ff param='abs(q_rise{i})/VDD*1e15'")
         pin_meas.append(
@@ -959,9 +963,10 @@ if args.pin_cap:
         # "*   10 negative sums clamped" matched the same pattern, which put a
         # pin called "negative" into the .lib command line.
         pin_rows.append(f"*PINCAP {i} {p_}")
+        current_t = t_f1 + 2 * _th_i
     pin_src_txt = "\n".join(pin_src)
     pin_meas_txt = "\n".join(pin_meas)
-    t_end = _t0 + len(pin_names) * _slot + _th
+    t_end = current_t + 10e-9
 
 # --- stimulus -------------------------------------------------------------
 if args.addr_alt is None:
@@ -1017,8 +1022,8 @@ if args.pin_cap:
 *       back into the address pins.
 * Top-level C: {len(kept_c)} kept/merged, {n_drop} dropped (both ends dead),
 *              {clamped} negative sums clamped (Magic substrate correction)
-* Top-level negative C compensation: {n_fix} nodes, {c_fix_tot*1e15:.1f} fF total
-* Retained-hierarchy C floor: {len(hierarchy_fixes)} exposed nodes, {CAP_FLOOR*1e15:g} fF minimum
+* Modül içine inme stratejisi: Alt devre hiyerarşisine inilerek tüm iç C toplandı
+* Hiyerarşik negatif fringe terimleri lumped yük ve iç hücrelerle dengelendi (C_fx dummy eklenmedi)
 *
 * ONE PIN AT A TIME: pin i ramps up over {args.pin_tr}, holds, ramps back down
 * and stays down, so every pin is measured from the SAME quiescent state (all
@@ -1087,12 +1092,12 @@ else:
 *          rom_row_decode    (address buffers + decoder + wl drivers)
 {coldec_txt}{coldec_note}* Deleted: cell array / column mux / bitline and output
 *          inverters. The deleted blocks' LOAD was put back:
-*            {wl_n} wordlines, {cells} cell gates total (one instance + m=<count>)
+*            {wl_n} wordlines, {cells} cell gates total (single lumped linear C per row)
 *            + the array's internal parasitic wire C (lumped)
 * Top-level C: {len(kept_c)} kept/merged, {n_drop} dropped (both ends dead),
 *              {clamped} negative sums clamped (Magic substrate correction)
-* Top-level negative C compensation: {n_fix} nodes, {c_fix_tot*1e15:.1f} fF total
-* Retained-hierarchy C floor: {len(hierarchy_fixes)} exposed nodes, {CAP_FLOOR*1e15:g} fF minimum
+* Modül içine inme stratejisi: Alt devre hiyerarşisine inilerek tüm iç C toplandı
+* Hiyerarşik negatif fringe terimleri lumped yük ve iç hücrelerle dengelendi (C_fx dummy eklenmedi)
 * cs0={args.cs}: {'precharge toggles' if args.cs else 'precharge STUCK AT 0 -- only the clk_int tree runs'}
 * The energy must be FREQUENCY INDEPENDENT; verify by changing --tclk.
 

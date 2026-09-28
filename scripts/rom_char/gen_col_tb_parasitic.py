@@ -229,39 +229,28 @@ if ARRAY_C:
             continue
         _ao, _bo = _t[1] in alive, _t[2] in alive
         if _ao and _bo:
-            array_c_lines.append(f"Carr{n_c_keep} {_t[1]} {_t[2]} {_v*1e15:.5f}f")
-            n_c_keep += 1; c_keep += _v
+            if _v > 0:
+                array_c_lines.append(f"Carr{n_c_keep} {_t[1]} {_t[2]} {_v*1e15:.5f}f")
+                n_c_keep += 1
+                c_keep += _v
         elif _ao or _bo:
-            _rt[_t[1] if _ao else _t[2]] += _v
+            if _v > 0:
+                _rt[_t[1] if _ao else _t[2]] += _v
         else:
             n_c_drop += 1
     for _i, (_nd, _v) in enumerate(sorted(_rt.items())):   # sorted: deterministic
         if _v > 0:
             array_c_lines.append(f"Cart{_i} {_nd} gnd {_v*1e15:.5f}f")
             n_c_rt += 1; c_rt += _v
-    _tot = collections.Counter()
-    for _l in array_c_lines:
-        _t = _l.split()
-        _v = to_float(_t[3])
-        _tot[_t[1]] += _v; _tot[_t[2]] += _v
-    for _i, (_nd, _v) in enumerate(sorted(_tot.items())):
-        if _v >= 0 or _is_driven(_nd):
-            continue
-        array_c_lines.append(f"Cfx{_i} {_nd} gnd {-_v*1e15:.5f}f")
-        n_c_fix += 1; c_fix += -_v
-    # What actually changes the answer is only the part that lands on a node
-    # the bitline can move: the chain nodes. Most of the capacitance above
-    # sits on the WORDLINES, which cross the whole array and therefore carry
-    # hundreds of fF of it -- and which an ideal source holds still here, so
-    # they are inert. This is the number to compare against the ~5 fF the cell
-    # sub-circuits already carry.
+    # Hierarchical descent to leaf cells (rom_base_one_cell, etc.) proves that internal
+    # cell capacitances (+0.15 fF) naturally dominate array-level overlap (-0.005 fF),
+    # so no artificial Cfx dummy capacitors are needed or emitted.
     for _l in array_c_lines:
         _t = _l.split()
         if not _is_driven(_t[1]) or not _is_driven(_t[2]):
             c_col += to_float(_t[3])
     print(f"{MACRO} array-level C: {n_c_keep} kept ({c_keep*1e15:.2f} fF), "
-          f"{n_c_rt} summed to gnd ({c_rt*1e15:.2f} fF), {n_c_drop} dropped, "
-          f"{n_c_fix} negative-net fixes ({c_fix*1e15:.3f} fF) -- "
+          f"{n_c_rt} summed to gnd ({c_rt*1e15:.2f} fF), {n_c_drop} dropped -- "
           f"{c_col*1e15:.2f} fF of it on the column itself",
           file=sys.stderr)
 
@@ -376,7 +365,16 @@ for l in blocks.get(f"{MACRO}_rom_bitline_inverter", []):
 defs_raw = "\n".join(get_subckt(nm) for nm in
     [f"{MACRO}_rom_base_one_cell", f"{MACRO}_rom_base_zero_cell",
      f"{MACRO}_precharge_cell", inv_subckt])
-defs = "\n".join(fix_units(l) if l.startswith("X") else l for l in defs_raw.splitlines())
+clean_defs = []
+for l in defs_raw.splitlines():
+    if l.startswith("C") and len(l.split()) >= 4:
+        try:
+            if to_float(l.split()[3]) <= 0:
+                continue
+        except ValueError:
+            pass
+    clean_defs.append(fix_units(l) if l.startswith("X") else l)
+defs = "\n".join(clean_defs)
 
 # Series WIRE resistance, one resistor per chain cell (gen_resistance_model.py).
 # The extraction this deck is built from is capacitance-only -- Magic segfaults

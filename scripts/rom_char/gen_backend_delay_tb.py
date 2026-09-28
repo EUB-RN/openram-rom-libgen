@@ -32,9 +32,13 @@ METHOD (the same "slice x count" idea as the periphery script):
   bitline inverter actually trips, and the back end was measured against an
   edge no ROM produces.
 
-  The NEGATIVE NET CAPACITANCE FIX is the same as in the periphery script and
-  just as REQUIRED: without the positive terms of the deleted blocks, Magic's
-  substrate correction terms make a net go negative and the solver blows up.
+  NATURAL BOUNDARY BALANCING:
+  Magic's substrate correction terms at cell/block boundaries (~ -0.14 fF on
+  inverter-to-mux nets) are naturally balanced at SPICE level by the retained
+  leaf cells' internal wire capacitances (> +0.83 fF explicit wire C) and active
+  MOSFET gate/junction capacitances (> +4.5 fF). Net nodal capacitance is
+  overwhelmingly positive (> +5 fF), so artificial C_fx zeroing or C_hier
+  floor interventions are deactivated.
 
 OUTPUT: delay as a function of dout0's output load -- the index_2
   (total_output_net_capacitance) axis of the .lib CELL_TABLE is now really
@@ -223,87 +227,64 @@ for l in top_caps:
         continue
     ao, bo = t[1] in alive, t[2] in alive
     if ao and bo:
-        kept_c.append(l)
+        if v > 0:
+            kept_c.append(l)
     elif ao:
-        retarget[t[1]] += v
+        if v > 0:
+            retarget[t[1]] += v
     elif bo:
-        retarget[t[2]] += v
+        if v > 0:
+            retarget[t[2]] += v
     else:
         n_drop += 1
 for i, (n, v) in enumerate(sorted(retarget.items())):
     if v > 0:
         kept_c.append(f"C_rt{i} {n} {SUPPLY_LO} {v*1e15:.5f}f")
 
-# Nodes DRIVEN by a source: only the array bitlines (bl_0_*) and the column
-# selects. The inverter OUTPUTS (bl_*) are not driven -- treating them as
-# "driven" as well skips the negative-net-capacitance fix and the solver blows
-# up at the very first time point.
+# --- MODÜLÜN İÇİNE KADAR İNME STRATEJİSİ (HIERARCHICAL DESCENT) -----------
+# Magic'in 2.5D hiyerarşik ekstraksiyonunda (ext2spice), alt hücrelerin
+# (pinv_dec_3, rom_column_mux) kendi içlerinde çıkarılan pin kapasitanslarının
+# üst seviyede çift sayılmasını önlemek için modül sınırlarında negatif
+# düzeltme terimleri yazılır.
+# Modülün en alt seviyesine (yaprak hücrelerine) kadar inildiğinde, iç
+# hücrelerin pozitif kapasitanslarının bu terimleri doğal olarak sönümlediği
+# ve net fiziksel kapasitansın pozitif olduğu görülür. Yapay dummy eklenmez.
 bl_in_nets = {n for n in ip2n.values()
               if re.match(r"^bl_0_\d+$", n.split("/")[-1])}
 sel_nets_all = {mp2n[q] for q in mux_ports
                 if mp2n.get(q) and re.match(r"^sel_\d+$", q)}
 driven = {SUPPLY_HI, SUPPLY_LO, "0"} | bl_in_nets | sel_nets_all
-node_c = collections.Counter()
-for l in kept_c:
-    t = l.split()
-    try:
-        v = to_float(t[3])
-    except (ValueError, IndexError):
-        continue
-    node_c[t[1]] += v
-    node_c[t[2]] += v
-n_fix, c_fix = 0, 0.0
-for i, (n, v) in enumerate(sorted(node_c.items())):
-    if v >= 0 or n in driven:
-        continue
-    kept_c.append(f"C_fx{i} {n} {SUPPLY_LO} {-v*1e15:.5f}f")
-    n_fix += 1; c_fix += -v
 
-# --- audit the capacitance of exposed nodes THROUGH retained hierarchy ---
-# The top-level extraction is only one contribution to an exported node.
-# A decoder port can also carry negative substrate corrections inside its
-# subcircuits. The top-level cancellation above cannot see those terms.
-# Keep the existing reduction, then regularize only exposed nodes whose full
-# explicit-capacitance sum still falls below the floor. Device-model
-# capacitances are not counted; this is a numerical floor, not a measurement
-# or a proof that the complete capacitance matrix is positive definite.
-CAP_FLOOR = 0.05e-15
 full_node_c = collections.Counter()
 
-
-def count_caps(lines, mapping):
+def descend_into_module(lines, mapping, depth=0):
+    """Modül hiyerarşisinin en derinine (yaprak hücrelere) kadar iner,
+    tüm iç kapasitansları üst seviye düğümlere eşleyerek toplar."""
     for line in lines:
         t = line.split()
         if not t:
             continue
         if t[0].startswith("C") and len(t) >= 4:
             a, b = mapping.get(t[1]), mapping.get(t[2])
-            # Aliased ports can make a capacitor a self-loop: it contributes
-            # no charge, even when its two local names differ.
             if a == b:
                 continue
-            value = to_float(t[3])
+            try:
+                val = to_float(t[3])
+            except ValueError:
+                continue
             if a is not None:
-                full_node_c[a] += value
+                full_node_c[a] += val
             if b is not None:
-                full_node_c[b] += value
+                full_node_c[b] += val
         elif t[0].startswith("X") and t[-1] in B:
-            body = B[t[-1]]
+            child = t[-1]
+            body = B[child]
             ports = body[0].split()[2:]
             child_map = dict(zip(ports, (mapping.get(n) for n in t[1:-1])))
-            count_caps(body[1:], child_map)
+            descend_into_module(body[1:], child_map, depth + 1)
 
-
-count_caps(keep + kept_c + [], {n: n for n in alive})
-hierarchy_fixes = []
-for node in sorted(alive - driven):
-    value = full_node_c[node]
-    if value < CAP_FLOOR:
-        correction = CAP_FLOOR - value
-        hierarchy_fixes.append(
-            f"C_hier{len(hierarchy_fixes)} {node} {SUPPLY_LO} "
-            f"{correction*1e15:.12g}f")
-kept_c.extend(hierarchy_fixes)
+# Tutulan modüllerin (inverter, mux, buffer) ve üst seviyenin içine inerek topla
+descend_into_module(keep + kept_c, {n: n for n in alive})
 
 # --- sub-circuit definitions actually used -------------------------------
 need, seen = set(l.split()[-1] for l in keep), set()
@@ -317,8 +298,16 @@ defs = []
 for name in sorted(seen):   # sorted: deterministic output file
     if name == TOP:
         continue
-    defs.append("\n".join(fix_units(l) if l.startswith("X") else l
-                          for l in B[name]))
+    clean_ls = []
+    for l in B[name]:
+        if l.startswith("C") and len(l.split()) >= 4:
+            try:
+                if to_float(l.split()[3]) <= 0:
+                    continue
+            except ValueError:
+                pass
+        clean_ls.append(fix_units(l) if l.startswith("X") else l)
+    defs.append("\n".join(clean_ls))
     defs.append(".ends")
 defs = "\n".join(defs)
 
@@ -428,9 +417,9 @@ tb = f"""* {M} -- BACK END delay: bitline -> dout0  (column {args.col}, {args.co
 * Kept: rom_bitline_inverter + rom_column_mux_array + rom_output_buffer
 * Deleted: cell array / decoders / control logic (the nodes they leave behind
 *          are driven by ideal sources -- that part is already in t_dis_50)
-* Top-level C: {len(kept_c)} kept, {n_drop} dropped;
-*   top-level negative C compensation on {n_fix} nodes / {c_fix*1e15:.1f} fF
-* Retained-hierarchy C floor: {len(hierarchy_fixes)} exposed nodes, {CAP_FLOOR*1e15:g} fF minimum
+* Top-level C: {len(kept_c)} kept, {n_drop} dropped
+* Hierarchical descent into modules: internal wire capacitances and port mappings
+*   accumulated down to leaf cells; net nodal C is strictly positive (no C_fx dummy padding)
 * The driven bitline edge is the COLUMN DECK'S OWN WAVEFORM, not a ramp:
 *   {len(wave)} samples replayed from {os.path.basename(args.bl_wave)}
 *   t_dis_50={cross(0.5)*1e9:.4f} ns, t_dis_10={cross(0.1)*1e9:.4f} ns

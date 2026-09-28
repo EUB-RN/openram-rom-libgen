@@ -47,7 +47,17 @@ GENP="$ROM_CHAR_DIR/gen_periphery_power_tb.py"
 # running two values and comparing is the same check the energy decks make
 # against --tclk. 1 ns is the default and is also the deck's timestep.
 PIN_TR="${PIN_TR:-1n}"
-PIN_GAP_THRESH="${PIN_GAP_THRESH:-15}"
+PIN_TH="${PIN_TH:-}"
+PIN_TH_MAP="${PIN_TH_MAP:-}"
+PIN_GAP_THRESH="${PIN_GAP_THRESH:-1.0}"
+PIN_MAX_ITER="${PIN_MAX_ITER:-5}"
+PIN_STEP_TH="${PIN_STEP_TH:-1.5}"
+PIN_MAX_TH="${PIN_MAX_TH:-80n}"
+
+# If invoked with --iter or PIN_ITER=1, dispatch to the standalone iterative engine
+if [ "$PIN_ITER" = "1" ] || echo "$*" | grep -q -- "--iter"; then
+  exec python3 "$ROM_CHAR_DIR/run_pin_cap_iter.py" "$@"
+fi
 
 # THERE IS NO WHOLE-MACRO REFERENCE RUN, and this is the one cross-check that
 # is deliberately NOT offered. It existed: a --keep-all deck that deleted
@@ -89,8 +99,11 @@ for m in $MACROS; do
     fi
     sp="$G_CHAR/pincap_${c}.sp"
     lg="$G_CHAR/pincap_${c}.log"
+    th_arg=""
+    [ -n "$PIN_TH" ] && th_arg="--pin-th $PIN_TH"
+    [ -n "$PIN_TH_MAP" ] && th_arg="$th_arg --pin-th-map $PIN_TH_MAP"
     python3 "$GENP" "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
-            --gate-cap-ff "$cg" --pin-cap --pin-tr "$PIN_TR" >/dev/null
+            --gate-cap-ff "$cg" --pin-cap --pin-tr "$PIN_TR" $th_arg >/dev/null
     job_slot
     run_ng "pin-cap" "$sp" "$lg" "$m $c" & job_add $!
     n=$((n+1))
@@ -98,13 +111,59 @@ for m in $MACROS; do
 done
 job_drain
 
+# --- Iterative Settling Refinement ----------------------------------------
+# Each macro/corner is evaluated against PIN_GAP_THRESH. If any pin has a
+# rise/fall settling gap exceeding the quota, hold times are increased
+# iteratively for those pins and re-simulated until all pins converge.
+rc=0
+for m in $MACROS; do
+  load_geom "$m" || continue
+  for ck in $CORNERS; do
+    c=$(echo "$ck" | cut -d: -f1); v=$(echo "$ck" | cut -d: -f2)
+    t=$(echo "$ck" | cut -d: -f3)
+    cg=$(meas "$G_CHAR/cellgate_${c}.log" c_one_ff)
+    [ -z "$cg" ] && continue
+    sp="$G_CHAR/pincap_${c}.sp"
+    lg="$G_CHAR/pincap_${c}.log"
+    [ ! -f "$lg" ] || [ ! -f "$sp" ] && continue
+
+    cur_map="$PIN_TH_MAP"
+    iter=1
+    while [ $iter -lt $PIN_MAX_ITER ]; do
+      step_out=$(python3 "$ROM_CHAR_DIR/pincap_settle_step.py" "$sp" "$lg" \
+                  --thresh "$PIN_GAP_THRESH" --current-map "$cur_map" \
+                  --iteration "$iter" --max-iter "$PIN_MAX_ITER" \
+                  --step-th "$PIN_STEP_TH" --max-th "$PIN_MAX_TH" 2>&1)
+      step_rc=$?
+      if [ $step_rc -eq 0 ]; then
+        if [ $iter -gt 1 ]; then
+          echo "  $m $c: all pins settled within ${PIN_GAP_THRESH}% quota at iteration $iter."
+        fi
+        break
+      elif [ $step_rc -eq 1 ]; then
+        next_map=$(echo "$step_out" | tail -n 1)
+        echo "$step_out" | sed '$d'
+        iter=$((iter + 1))
+        cur_map="$next_map"
+        th_arg="--pin-th-map $cur_map"
+        python3 "$GENP" "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
+                --gate-cap-ff "$cg" --pin-cap --pin-tr "$PIN_TR" $th_arg >/dev/null
+        run_ng "pin-cap" "$sp" "$lg" "$m $c"
+      else
+        echo "$step_out"
+        rc=1
+        break
+      fi
+    done
+  done
+done
+
 # --- Summary --------------------------------------------------------------
 # The pin index -> name mapping is a *PINCAP marker the generator writes into
 # the deck, so the table names real pins rather than indices.
 echo
 printf "%-7s %-6s %-11s %9s %9s %9s %8s\n" \
        macro corner pin c_cyc c_rise c_fall gap
-rc=0
 for m in $MACROS; do
   load_geom "$m" || continue
   for ck in $CORNERS; do
@@ -129,7 +188,7 @@ for m in $MACROS; do
                               g = lo ? (hi-lo)/lo*100 : 0
                               printf " %7.1f%%%s\n", g, (g > th ? "  <-- NOT SETTLED" : "") }'
     done
-    # the gate: a pin whose two edges disagree by more than 5%
+    # the gate: a pin whose two edges disagree by more than PIN_GAP_THRESH
     sed -n 's/^\*PINCAP \([0-9][0-9]*\) \(.*\)$/\1/p' "$sp" | while read -r i; do
       cr=$(meas "$lg" "c_rise${i}_ff"); cf=$(meas "$lg" "c_fall${i}_ff")
       [ -z "$cr" ] || [ -z "$cf" ] && continue
@@ -145,7 +204,7 @@ echo "round trip, over two swings. It is used INSTEAD of either edge because"
 echo "the two edges trade charge across the window boundary when a pin has a"
 echo "deep fanout -- on clk0 they swapped places between two ramp times while"
 echo "their sum held to 0.2%. c_rise and c_fall are kept as the settling"
-echo "proof: a gap over 5% means the tail has not died inside the window and"
+echo "proof: a gap over ${PIN_GAP_THRESH}% means the tail has not died inside the window and"
 echo "that pin's number carries a few percent of ramp-time sensitivity."
 echo
 echo "RAMP INDEPENDENCE is the check this deck cannot make on its own -- the"
