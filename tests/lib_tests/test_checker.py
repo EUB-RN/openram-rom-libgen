@@ -18,7 +18,7 @@ from __future__ import annotations
 import os
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, HERE)
 from check_lib import check_file                       # noqa: E402
 

@@ -51,10 +51,36 @@ export PYTHONDONTWRITEBYTECODE
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(dirname "$HERE")
 
+LIB_DIR="${ROM_OUT_DIR:-$REPO/output}/lib"
+VERILOG_DIR="${ROM_OUT_DIR:-$REPO/output}/verilog"
+
 if [ $# -gt 0 ]; then
-  LIBS="$*"
-else
-  LIB_DIR="${ROM_OUT_DIR:-$REPO/output}/lib"
+  LIBS=""
+  TARGET_SV=""
+  for arg in "$@"; do
+    if [ -f "$arg" ]; then
+      case "$arg" in
+        *.lib) LIBS="$LIBS $arg" ;;
+        *.sv|*.v) TARGET_SV="$TARGET_SV $arg" ;;
+      esac
+    else
+      # Bare macro name, e.g. "random_2k"
+      m_libs=$(ls "$LIB_DIR"/${arg}_*.lib 2>/dev/null || true)
+      if [ -n "$m_libs" ]; then
+        LIBS="$LIBS $m_libs"
+      fi
+      if [ -f "$VERILOG_DIR/${arg}.sv" ]; then
+        TARGET_SV="$TARGET_SV $VERILOG_DIR/${arg}.sv"
+      elif [ -f "$VERILOG_DIR/${arg}.v" ]; then
+        TARGET_SV="$TARGET_SV $VERILOG_DIR/${arg}.v"
+      fi
+    fi
+  done
+  LIBS=$(echo "$LIBS" | xargs)
+  TARGET_SV=$(echo "$TARGET_SV" | xargs)
+fi
+
+if [ -z "$LIBS" ]; then
   LIBS=$(ls "$LIB_DIR"/*.lib 2>/dev/null || true)
   if [ -z "$LIBS" ]; then
     echo "no .lib files in $LIB_DIR -- run scripts/rom_char/regen_rom_libs.sh first"
@@ -69,33 +95,29 @@ rc=0
 # skip is recorded and named at the end.
 skipped=""
 
-echo "== the checker itself =="
-python3 "$HERE/test_checker.py" || rc=1
+"$HERE/scripts_tests/run_scripts_tests.sh" || rc=1
 
 echo
-echo "== a dead simulation is reported, not swallowed =="
-python3 "$HERE/test_error_reporting.py" || rc=1
+echo "================================================================="
+echo "== 2. LIB TESTS (lib_tests/)                                  =="
+echo "================================================================="
+echo "== the checker itself =="
+python3 "$HERE/lib_tests/test_checker.py" || rc=1
 
 echo
 echo "== Liberty structure =="
-python3 "$HERE/check_lib.py" -v $LIBS || rc=1
+python3 "$HERE/lib_tests/check_lib.py" -v $LIBS || rc=1
 
 echo
 echo "== ROM semantics =="
-python3 "$HERE/test_rom_lib.py" $LIBS || rc=1
+python3 "$HERE/lib_tests/test_rom_lib.py" $LIBS || rc=1
 
 echo
 echo "== OpenSTA =="
 STA="${STA_BIN:-sta}"
 if command -v "$STA" >/dev/null 2>&1; then
-  # The files go through the environment, NOT after the script name. OpenSTA
-  # takes exactly one positional argument -- the cmd_file -- and anything
-  # after it makes the binary print its usage text and exit 1 without running
-  # the script at all. read_liberty.tcl's own empty-argv guard cannot catch
-  # that: the script never starts. One newline-separated variable also keeps
-  # paths with spaces in one piece, which a bare $LIBS does not.
   ROM_LIB_LIST="$LIBS" \
-    "$STA" -no_init -no_splash -exit "$HERE/read_liberty.tcl" || rc=1
+    "$STA" -no_init -no_splash -exit "$HERE/lib_tests/read_liberty.tcl" || rc=1
 else
   echo "  SKIP  '$STA' not found -- set STA_BIN to an OpenSTA binary to run"
   echo "        the generated files through the parser a consumer really uses."
@@ -103,15 +125,16 @@ else
 fi
 
 echo
-echo "== Behavioural Verilog models =="
+echo "================================================================="
+echo "== 3. VERILOG TESTS (verilog_tests/)                          =="
+echo "================================================================="
+echo "== Behavioural Verilog models elaboration =="
 IV="${IVERILOG_BIN:-iverilog}"
 VERILOG_DIR="${ROM_OUT_DIR:-$REPO/output}/verilog"
 if command -v "$IV" >/dev/null 2>&1; then
   v_count=0
-  # .sv: the models use fork/join_none, so they are SystemVerilog and are
-  # named accordingly. .v is still swept up, both for a tree generated before
-  # the rename and for a hand-written model someone dropped in.
-  for v in "$VERILOG_DIR"/*.sv "$VERILOG_DIR"/*.v; do
+  v_candidates="${TARGET_SV:-$(ls "$VERILOG_DIR"/*.sv "$VERILOG_DIR"/*.v 2>/dev/null || true)}"
+  for v in $v_candidates; do
     [ -f "$v" ] || continue
     v_count=$((v_count + 1))
     mod=$(basename "$v"); mod=${mod%.*}
@@ -132,8 +155,12 @@ else
   echo "        behavioural Verilog models."
   skipped="$skipped verilog-elaboration"
 fi
+
+echo
 echo "== Behavioural Verilog model simulation testbench =="
-vm_out=$(python3 "$HERE/test_verilog_model.py" 2>&1) || rc=1
+vm_args=""
+[ -n "$TARGET_SV" ] && vm_args="$TARGET_SV"
+vm_out=$(python3 "$HERE/verilog_tests/test_verilog_model.py" $vm_args 2>&1) || rc=1
 printf '%s\n' "$vm_out"
 case "$vm_out" in
   *SKIP*) skipped="$skipped verilog-simulation" ;;

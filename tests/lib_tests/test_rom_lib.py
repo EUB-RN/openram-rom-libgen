@@ -19,7 +19,7 @@ import re
 import sys
 from collections import defaultdict
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 from libparse import LibertyError, parse_file          # noqa: E402
 
 

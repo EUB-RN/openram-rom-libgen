@@ -15,7 +15,7 @@
 
 set paths {}
 if { [info exists ::env(ROM_LIB_LIST)] } {
-    foreach line [split $::env(ROM_LIB_LIST) "\n"] {
+    foreach line [split [regsub -all {[\r\n\t ]+} [string trim $::env(ROM_LIB_LIST)] " "] " "] {
         set line [string trim $line]
         if { $line ne "" } { lappend paths $line }
     }

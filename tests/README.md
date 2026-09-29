@@ -19,15 +19,17 @@ run — a file that does not parse never leaves the generator.
 There are seven checks in total: the provenance/error-reporting guard numbered
 0, followed by layers 1 through 6.
 
-| layer | file | question it answers |
+| suite / directory | file | question it answers |
 |---|---|---|
-| 1 | `test_checker.py` | does the checker still catch the defects it claims to? |
-| 2 | `check_lib.py` | is this valid Liberty? |
-| 3 | `test_rom_lib.py` | does it say what this macro actually does? |
-| 4 | `read_liberty.tcl` | does OpenSTA accept it? |
-| 5 | `iverilog` | do generated behavioural SystemVerilog models (`.sv`) compile and elaborate cleanly? |
-| 6 | `test_verilog_model.py` | do behavioural SystemVerilog models (`.sv`) simulate correctly (precharge, access delay, invalidation, hold, cs0)? |
-| 0 | `test_error_reporting.py` | does a dead, unsettled or *absent* simulation stay loud -- and can a log that this flow did not produce still reach a `.lib`? |
+| `scripts_tests/` | `test_spice_utils.py` | unit tests for SPICE parser, SI units (`to_float`, `fix_units`, `blocks`), and CLI generator execution |
+| `scripts_tests/` | `test_error_reporting.py` | does a dead, unsettled or *absent* simulation stay loud -- and can a log that this flow did not produce still reach a `.lib`? |
+| `scripts_tests/` | `test_flow_resume.py` | does flow recovery, step skipping, and restart logic operate correctly? |
+| `lib_tests/` | `test_checker.py` | does the checker still catch the 15 defects in `lib_tests/fixtures/`? |
+| `lib_tests/` | `check_lib.py` | is this valid Liberty? |
+| `lib_tests/` | `test_rom_lib.py` | does it say what this macro actually does (timing arcs, constraints, corners)? |
+| `lib_tests/` | `read_liberty.tcl` | does OpenSTA accept the generated `.lib` files? |
+| `verilog_tests/` | `iverilog` | do generated behavioural SystemVerilog models (`.sv`) compile and elaborate cleanly? |
+| `verilog_tests/` | `test_verilog_model.py` | do behavioural SystemVerilog models (`.sv`) simulate correctly (precharge, access delay, invalidation, hold, cs0)? |
 
 Layer 0 sits before all of them because it asks about the numbers rather than
 the file: a `.lib` can be perfectly valid Liberty, say exactly what a ROM says,
@@ -47,6 +49,12 @@ three-entry `index_1`, a `related_pin` naming a pin that does not exist, an
 one passes and that each broken one is rejected *for the right reason*, matched
 on the message, so a check that starts firing for some unrelated reason still
 counts as a failure.
+
+The flow guard also runs `test_flow_resume.py`. It uses temporary macro trees
+and fake stage executables to test failure followed by restart with changed
+parameters, skipped earlier steps, full-mode ordering, missing prerequisites,
+and restart commands. It does not run ngspice or change real macro outputs.
+Run it independently with `python3 tests/test_flow_resume.py`.
 
 Layer 2 (`check_lib.py`, on top of the small parser in `libparse.py`) is
 generic — it knows nothing about ROMs. It reports a line number for everything

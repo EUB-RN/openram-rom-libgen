@@ -60,8 +60,8 @@ import subprocess
 import sys
 import tempfile
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-REPO = os.path.dirname(HERE)
+HERE = os.path.dirname(os.path.realpath(__file__))
+REPO = os.path.dirname(os.path.dirname(HERE))
 CHAR = os.path.join(REPO, "scripts", "rom_char")
 
 GOOD = """* healthy deck
