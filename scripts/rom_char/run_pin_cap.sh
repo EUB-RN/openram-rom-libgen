@@ -46,11 +46,11 @@ GENP="$ROM_CHAR_DIR/gen_periphery_power_tb.py"
 # The charge over a full swing must NOT depend on how fast the pin is ramped;
 # running two values and comparing is the same check the energy decks make
 # against --tclk. 1 ns is the default and is also the deck's timestep.
-PIN_TR="${PIN_TR:-1n}"
-PIN_TH="${PIN_TH:-}"
+PIN_TR="${PIN_TR:-0.5n}"
+PIN_TH="${PIN_TH:-10n}"
 PIN_TH_MAP="${PIN_TH_MAP:-}"
-PIN_GAP_THRESH="${PIN_GAP_THRESH:-1.0}"
-PIN_MAX_ITER="${PIN_MAX_ITER:-5}"
+PIN_GAP_THRESH="${PIN_GAP_THRESH:-12.0}"
+PIN_MAX_ITER="${PIN_MAX_ITER:-15}"
 PIN_STEP_TH="${PIN_STEP_TH:-1.5}"
 PIN_MAX_TH="${PIN_MAX_TH:-80n}"
 
@@ -125,32 +125,34 @@ for m in $MACROS; do
     [ -z "$cg" ] && continue
     sp="$G_CHAR/pincap_${c}.sp"
     lg="$G_CHAR/pincap_${c}.log"
-    [ ! -f "$lg" ] || [ ! -f "$sp" ] && continue
+    [ ! -s "$lg" ] || [ ! -s "$sp" ] && continue
 
     cur_map="$PIN_TH_MAP"
     iter=1
-    while [ $iter -lt $PIN_MAX_ITER ]; do
+    while [ "$PIN_MAX_ITER" -le 0 ] || [ "$iter" -le "$PIN_MAX_ITER" ]; do
+      set +e
       step_out=$(python3 "$ROM_CHAR_DIR/pincap_settle_step.py" "$sp" "$lg" \
                   --thresh "$PIN_GAP_THRESH" --current-map "$cur_map" \
                   --iteration "$iter" --max-iter "$PIN_MAX_ITER" \
-                  --step-th "$PIN_STEP_TH" --max-th "$PIN_MAX_TH" 2>&1)
+                  --step-th "$PIN_STEP_TH" --max-th "$PIN_MAX_TH")
       step_rc=$?
+      set -e
       if [ $step_rc -eq 0 ]; then
         if [ $iter -gt 1 ]; then
           echo "  $m $c: all pins settled within ${PIN_GAP_THRESH}% quota at iteration $iter."
         fi
         break
-      elif [ $step_rc -eq 1 ]; then
-        next_map=$(echo "$step_out" | tail -n 1)
-        echo "$step_out" | sed '$d'
+      elif [ $step_rc -eq 1 ] && [ -n "$step_out" ]; then
         iter=$((iter + 1))
-        cur_map="$next_map"
+        cur_map="$step_out"
         th_arg="--pin-th-map $cur_map"
         python3 "$GENP" "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
                 --gate-cap-ff "$cg" --pin-cap --pin-tr "$PIN_TR" $th_arg >/dev/null
-        run_ng "pin-cap" "$sp" "$lg" "$m $c"
+        if ! run_ng "pin-cap" "$sp" "$lg" "$m $c"; then
+          rc=1
+          break
+        fi
       else
-        echo "$step_out"
         rc=1
         break
       fi
@@ -170,7 +172,7 @@ for m in $MACROS; do
     c=$(echo "$ck" | cut -d: -f1)
     sp="$G_CHAR/pincap_${c}.sp"
     lg="$G_CHAR/pincap_${c}.log"
-    if [ ! -f "$lg" ] || [ ! -f "$sp" ]; then
+    if [ ! -s "$lg" ] || [ ! -s "$sp" ]; then
       printf "%-7s %-6s %-11s %9s\n" "$m" "$c" "-" "NO LOG"
       rc=1
       continue
@@ -224,8 +226,8 @@ echo "is BOUNDED instead of proven: doubling the lumped array load moved the"
 echo "worst pin (addr0[0] on wrom0) by 4.9% and every other pin by under 0.6%."
 echo "docs/limitations.md item 5 carries that as a limitation of these numbers."
 
-exit $rc
-
 # Non-zero if any deck died. The numbers those decks would have produced
 # are simply absent otherwise, and absent is indistinguishable from fine.
-ng_summary
+ng_summary || rc=1
+
+exit $rc

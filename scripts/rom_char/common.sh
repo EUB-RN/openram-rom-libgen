@@ -366,8 +366,8 @@ run_ng() {
     return 1
   fi
   _term="${_lg}.term"
-  "$NG" -b -o "$_lg" "$_sp" > "$_term" 2>&1
-  _rc=$?
+  _rc=0
+  "$NG" -b -o "$_lg" "$_sp" > "$_term" 2>&1 || _rc=$?
   # The WHOLE matching line, not just the matched fragment: ngspice puts the
   # useful part around the keyword ("fatal error: can't open library file
   # /nonexistent/..."), and grep -o would throw exactly that away.

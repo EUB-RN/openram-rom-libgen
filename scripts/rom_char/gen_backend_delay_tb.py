@@ -80,47 +80,7 @@ SP = rom_paths.cap_netlist(M, args.macros_dir)
 if not os.path.exists(SP):
     sys.exit(f"ERROR: {SP} does not exist -- run run_cap_extract.sh first")
 
-SUFFIX = {"f": 1e-15, "p": 1e-12, "n": 1e-9, "u": 1e-6, "m": 1e-3, "k": 1e3}
-def to_float(tok):
-    m = re.match(r"^([0-9.eE+-]+)([a-zA-Z]?)$", tok)
-    if not m:
-        raise ValueError(tok)
-    return float(m.group(1)) * SUFFIX.get(m.group(2), 1.0)
-
-def fix_units(line):
-    line = re.sub(r"\b(w|l|pd|ps)=([0-9.eE+-]+[a-zA-Z]?)\b",
-                  lambda m: f"{m.group(1)}={to_float(m.group(2))*1e6:.6g}", line)
-    line = re.sub(r"\b(ad|as)=([0-9.eE+-]+[a-zA-Z]?)\b",
-                  lambda m: f"{m.group(1)}={to_float(m.group(2))*1e12:.6g}u", line)
-    return line
-
-def blocks(path):
-    out, cur, name = collections.OrderedDict(), None, None
-    def flush():
-        nonlocal cur
-        if cur is not None and name is not None:
-            out[name].append(cur)
-        cur = None
-    for raw in open(path):
-        s = raw.rstrip("\n")
-        if not s or s.startswith("*"):
-            continue
-        if s.startswith("+"):
-            if cur is not None:
-                cur += " " + s[1:].strip()
-            continue
-        flush()
-        low = s.lower()
-        if low.startswith(".subckt"):
-            name = s.split()[1]
-            out.setdefault(name, [])
-            cur = s
-        elif low.startswith(".ends"):
-            flush(); name = None
-        else:
-            cur = s
-    flush()
-    return out
+from spice_utils import SUFFIX, blocks, fix_units, to_float
 
 B = blocks(SP)
 TOP = M

@@ -42,17 +42,7 @@ SP = rom_paths.cap_netlist(args.macro, args.macros_dir)
 if not os.path.exists(SP):
     sys.exit(f"ERROR: {SP} does not exist -- run run_cap_extract.sh first")
 
-SUFFIX = {"f": 1e-15, "p": 1e-12, "n": 1e-9, "u": 1e-6, "m": 1e-3, "k": 1e3}
-def to_float(tok):
-    m = re.match(r"^([0-9.eE+-]+)([a-zA-Z]?)$", tok)
-    return float(m.group(1)) * SUFFIX.get(m.group(2), 1.0)
-
-def fix_units(line):
-    line = re.sub(r"\b(w|l|pd|ps)=([0-9.eE+-]+[a-zA-Z]?)\b",
-                  lambda m: f"{m.group(1)}={to_float(m.group(2))*1e6:.6g}", line)
-    line = re.sub(r"\b(ad|as)=([0-9.eE+-]+[a-zA-Z]?)\b",
-                  lambda m: f"{m.group(1)}={to_float(m.group(2))*1e12:.6g}u", line)
-    return line
+from spice_utils import SUFFIX, fix_units, to_float
 
 # grab the bare device line from the cell sub-circuit (written with port names)
 def cell_device(sub):

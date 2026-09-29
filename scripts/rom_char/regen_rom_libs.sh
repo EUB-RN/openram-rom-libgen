@@ -311,8 +311,15 @@ for m in $(macro_list "$@"); do
       pc_list=$(sed -n 's/^\*PINCAP \([0-9][0-9]*\) \(.*\)$/\1 \2/p' "$PCS" \
         | while read -r i p; do
             cy=$(meas "$PCL" "c_cyc${i}_ff")
+            cr=$(meas "$PCL" "c_rise${i}_ff")
+            cf=$(meas "$PCL" "c_fall${i}_ff")
             [ -z "$cy" ] && continue
-            echo "$p $cy" | awk '{printf "%s=%.4f,", $1, $2}'
+            echo "$p $cy $cr $cf" | awk '{
+              cmax = $2;
+              if ($3 > cmax) cmax = $3;
+              if ($4 > cmax) cmax = $4;
+              printf "%s=%.4f,", $1, cmax
+            }'
           done)
       pc_list=${pc_list%,}
       if [ -n "$pc_list" ]; then
@@ -540,7 +547,7 @@ echo "are in <macro>/char/random_energy_<corner>.log."
 # Never hand out a file that was never read back. This is the cheap structural
 # pass (syntax, table shapes, arc completeness); tests/run_tests.sh adds the
 # ROM semantics and, where it is installed, OpenSTA's own reader.
-CHECK="$(cd "$(dirname "$0")/../.." && pwd)/tests/check_lib.py"
+CHECK="$(cd "$(dirname "$0")/../.." && pwd)/tests/lib_tests/check_lib.py"
 if [ -f "$CHECK" ]; then
   echo
   if ! python3 "$CHECK" "$LIB_DIR"/*.lib; then
