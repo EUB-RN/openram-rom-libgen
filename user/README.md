@@ -1,7 +1,8 @@
 # Your own ROM (`user/`)
 
 Put your own OpenRAM ROM macros under this directory and the flow will
-generate the Liberty (`.lib`) and behavioural Verilog (`.v`) models for them.
+generate the Liberty (`.lib`) and behavioural SystemVerilog (`.sv`) models for
+them.
 
 This is the directory `shell.nix` points `ROM_MACROS_DIR` at, so inside
 `nix-shell` a macro placed here is found with no further configuration. The
@@ -20,9 +21,11 @@ user/
     ├── <macro>.sp           REQUIRED: SPICE netlist -- geometry and the critical path come from here
     ├── <macro>.lef          REQUIRED: LEF -- pin list, directions and area
     ├── <macro>.gds          OPTIONAL: needed only for real parasitic C extraction
+    ├── mags/                OPTIONAL: base cell layouts (.mag) -- falls back to repo mags/
     ├── config/<macro>.py    OPTIONAL: word_size / words_per_row cross-check
+    │   or <macro>.py        OPTIONAL: the same config at the macro root
     └── rom_configs/
-        └── <macro>.bin      OPTIONAL: ROM contents; sets the word count for the Verilog model
+        └── <macro>.bin      OPTIONAL: ROM contents; sets the word count for the model
 ```
 
 > **Example:** for a macro named `rom_1024x32`, having
@@ -34,6 +37,9 @@ Check a macro before running anything:
 ```bash
 python3 scripts/rom_char/rom_paths.py --check <macro>
 ```
+
+This pre-flight checks the inputs and expected ROM architecture. It does not
+run DRC/LVS and does not certify that the GDS is physically clean.
 
 ---
 
@@ -74,9 +80,14 @@ The default measures every `.lib` term but two -- the address hold and the
 `index_1` clock-slew axis -- and each of those two falls back to a value that
 is pessimistic rather than wrong, announced in the `.lib` header and on
 stderr. `--full` adds the four stages that measure them (`run_wl_slew.sh`,
-`run_hold_bisect.sh`, `run_addr2wl.sh`, `run_slew_sweep.sh`), so nothing in
-the library is left on a fallback. It costs roughly an afternoon per macro
-against tens of minutes.
+`run_hold_bisect.sh`, `run_addr2wl.sh`, `run_slew_sweep.sh`), so those two
+optional timing terms no longer use fallbacks. Other warnings or fallbacks
+reported by the generated file still have to be resolved. It costs roughly an
+afternoon per macro against tens of minutes.
+
+`--pin-cap-gap <pct>` configures the target rise/fall capacitance settling gap
+quota (default 1.0%), iteratively increasing pin hold times until slow internal
+switching tails finish settling.
 
 Both modes run everything else, `run_early_path.sh` included: it has no
 pessimistic fallback -- without it the `.lib` carries no `retain_*` arcs at
@@ -95,4 +106,9 @@ When the run finishes the deliverables are written to `output/`:
 - **`output/lib/<macro>_TT_1p8V_25C.lib`** — typical (TT) corner
 - **`output/lib/<macro>_SS_1p6V_100C.lib`** — slow (SS) corner
 - **`output/lib/<macro>_FF_1p95V_n40C.lib`** — fast (FF) corner
-- **`output/verilog/<macro>.sv`** — behavioural Verilog carrying the measured delays
+- **`output/verilog/<macro>.sv`** — behavioural SystemVerilog carrying the measured delays
+
+Treat these as usable deliverables only after `tests/run_tests.sh` passes for
+the generated libraries and models. Physical DRC/LVS remains a separate
+requirement; the characterization flow does not turn a failing layout into a
+sign-off-clean macro.

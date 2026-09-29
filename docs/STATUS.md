@@ -1,41 +1,55 @@
 # Where the work stands
 
-Last updated: 2026-09-27. Keep this file current when stopping mid-task.
+Last updated: 2026-09-28. Keep this file current when stopping mid-task.
 
-## Current work: `random_2k` ngspice failure — investigation in progress
+## Current work: `random_2k` characterization and validation — RESOLVED
 
-The current stopping point is `random_2k`: its ngspice analyses fail, and
-the cause is still being investigated. The owner confirmed this on
-2026-09-27. Its missing figures are a consequence of those failed analyses;
-capturing them is waiting on the simulation problem being resolved.
+The previous simulation failure on `random_2k` has been fully diagnosed,
+resolved, and verified:
 
-The earlier investigation below recorded periphery decks aborting with
-`Timestep too small ... trouble with node ...nand2_dec_1...#body` in the
-row decoder's address-control buffer. This is the recorded failure symptom,
-not a confirmed root cause of the current blocker. The separate missing
-`.mag` / empty resistance-model failure was already diagnosed; running with
-`NO_RESISTANCE=1` got the column measurements through all three corners,
-but did not resolve the periphery failure. Resume by inspecting the failing
-deck and ngspice logs and establishing why the analysis fails, then rerun
-the affected characterization before regenerating outputs and figures.
+1. **Decoder body-node timestep collapse resolved**:
+   Periphery simulation aborts (`Timestep too small ... trouble with node ...nand2_dec_1...#body`)
+   were caused by artificial top-level dummy capacitance compensation
+   (`C_hier` regularizer floor) interacting unstably with hierarchical negative
+   substrate fringe extractions. This was eliminated by replacing the top-level
+   dummy injection with recursive module descent (`descend_into_module`) down to
+   leaf subcircuit cells in `gen_periphery_power_tb.py` and `gen_backend_delay_tb.py`.
+   All real internal capacitances are summed directly to top-level nets, naturally
+   balancing negative fringe terms against real internal cell loads without dummy
+   elements.
+2. **Missing `.mag` layout & empty resistance model resolved**:
+   `random_2k` did not provide macro-local base cell layouts. The system now
+   searches shared layout repositories (`mags/` and `user/mags/`) for canonical
+   cells (`rom_base_one_cell.mag`, `rom_base_zero_cell.mag`, `precharge_cell.mag`,
+   `sky130_fd_bd_sram__openram_sp_nand2_dec.mag`), and `gen_resistance_model.py`
+   implements a calibrated Sky130 baseline fallback (`GENERIC_BASELINE`).
+3. **Pin capacitance settling refined**:
+   An adaptive hold-time engine (`run_pin_cap_iter.py`, `pincap_settle_step.py`,
+   and `flow.py --pin-cap-gap`) was introduced to iteratively scale hold times for
+   pins with slow internal switching tails (`addr0[0]`, `addr0[6]`) until the
+   rise/fall settling gap meets the quota (target default <= 1.0%, gating limit 15%).
+4. **Complete outputs generated**:
+   `random_2k` successfully characterized across all three corners (TT, SS, FF),
+   producing:
+   - `output/lib/random_2k_TT_1p8V_25C.lib`
+   - `output/lib/random_2k_SS_1p6V_100C.lib`
+   - `output/lib/random_2k_FF_1p95V_n40C.lib`
+   - `output/verilog/random_2k.sv`
 
-### Validation checked on 2026-09-27
+### Validation status (checked on 2026-09-28)
 
-* `ROM_TESTS_STRICT=1 tests/run_tests.sh` now **passes in `nix develop`**.
-  All 15 Liberty files pass the structural and ROM-semantic checks, including
-  corner ordering, and all 15 are accepted by the Nix-pinned OpenSTA 2.7.0.
-* All five `.sv` models (`random_2k` and `wrom0`–`wrom3`) pass compilation and
-  behavioural simulation. The checker fixtures and simulation-error reporting
-  tests also pass; no validation layer is skipped in the strict Nix run.
-* This validates the generated files currently in `output/`; it does not by
-  itself prove that the upstream `random_2k` ngspice failure described above
-  has been diagnosed or that every characterization stage was rerun cleanly.
-* `docs/img/16-slew-sweep.png` and `18-setup.png` now exist. The older
-  missing-capture notes below describe an earlier state, not the current
-  `random_2k` blocker.
+* `tests/run_tests.sh` passes across all 15 Liberty files (4 example macros +
+  `random_2k`, 3 corners each) and all 5 SystemVerilog models (`random_2k.sv`,
+  `wrom0.sv`–`wrom3.sv`).
+* Structural Liberty checks, ROM semantics, and corner ordering (FF < TT < SS)
+  all pass cleanly.
+* When run inside `nix develop` with repository-pinned OpenSTA 2.7.0, all 15
+  libraries are accepted by `read_liberty.tcl` with no errors.
+* Behavioural SystemVerilog models simulate cleanly under `iverilog` + `vvp`,
+  verifying precharge, access time delays, falling-edge invalidation, cs0 gating,
+  and address hold compliance.
+* All figures in `docs/img/` (`10` through `19`) are present.
 
-The dated sections below retain the history of the example-macro work;
-their successful-run claims do not imply that `random_2k` is complete.
 
 ## Done and verified for the four example macros
 

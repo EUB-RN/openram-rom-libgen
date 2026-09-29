@@ -13,8 +13,11 @@ There are two ways in, and they differ only in where the macro lives:
 * **`user/` + `./flow.py <macro>`** -- drop the macro under `user/`, and one
   command runs pre-flight, the simulations, both generators and the tests.
   This is what `shell.nix` sets up; see [`user/README.md`](../user/README.md).
-  It leaves the optional measurements of step 6d out (see
-  [flow.md](flow.md)), so its library is conservative rather than complete.
+  Standard mode (`./flow.py <macro>`) provides a conservative library in tens
+  of minutes with declared timing fallbacks for address hold and clock slew.
+  Full mode (`./flow.py <macro> --full`) runs all measurements including the
+  6d group (`run_wl_slew.sh`, `run_hold_bisect.sh`, `run_addr2wl.sh`,
+  `run_slew_sweep.sh`), eliminating timing fallbacks.
 * **`ROM_MACROS_DIR` + the `run_*.sh` scripts** -- the step-by-step flow this
   page and [flow.md](flow.md) describe. Use it when you want a single
   measurement, or the optional ones `flow.py` skips.
@@ -26,7 +29,9 @@ Either way a macro directory is expected to look like an OpenRAM ROM output:
   <macro>.sp            netlist          (required -- geometry comes from here)
   <macro>.lef           pins + area      (required -- pin list for the .lib)
   <macro>.gds           layout           (needed for parasitic extraction)
-  config/<macro>.py     word_size, words_per_row   (optional, cross-check)
+  mags/                 base cell layouts (optional -- falls back to repo mags/)
+  config/<macro>.py     word_size, words_per_row (optional, cross-check)
+  or <macro>.py         (optional, same config at macro root)
   rom_configs/<macro>.bin                (optional, word count for the model)
   char/                 generated decks and logs (created for you)
 ```
@@ -59,6 +64,12 @@ emits:
 <macro>_precharge_cell        <macro>_rom_column_mux_array
                               <macro>_rom_output_buffer
 ```
+
+If your macro does not supply local `.mag` files for `rom_base_one_cell`,
+`rom_base_zero_cell`, `precharge_cell`, or
+`sky130_fd_bd_sram__openram_sp_nand2_dec`, the flow automatically resolves them
+from the shared `mags/` directory (or falls back to calibrated Sky130 generic
+baselines).
 
 If your ROM has the same architecture under different names, adjust those names
 in the generators. If it is a **different architecture** -- NOR ROM, latched
@@ -95,16 +106,20 @@ of rows only surfaces in someone else's tool. `tests/` closes that:
 tests/run_tests.sh
 ```
 
-Six layers: the checker's own fixtures (15 deliberately broken Liberty files,
-so a green run means something), the generic Liberty structure, the ROM
-semantics (both `dout0` arcs, the constraints, both power states, FF < TT < SS
-ordering), OpenSTA's own `read_liberty` where it is installed, and two that
-compile and then simulate the generated behavioural Verilog. Each layer that
+Seven checks in total: provenance & error reporting (layer 0), the checker's
+own fixtures (15 deliberately broken Liberty files, layer 1), generic Liberty
+structure (layer 2), ROM semantics (both `dout0` arcs, constraints, power states,
+FF < TT < SS ordering, layer 3), OpenSTA's own `read_liberty` (layer 4, pinned in
+Nix), behavioural SystemVerilog model syntax/elaboration (layer 5), and dynamic
+simulation testbenches asserting precharge, access delay, falling-edge invalidation,
+cs0 gating, and hold violations under iverilog + vvp (layer 6). Each layer that
 could not run is named in the closing banner, so a green run never means more
 than it did.
 `regen_rom_libs.sh` runs the structural pass by itself at the end of every run,
 so a file that does not parse never leaves the generator. Details in
-[`tests/README.md`](../tests/README.md).
+[`tests/README.md`](../tests/README.md). Deliverables land in `output/lib/` and
+`output/verilog/`. Note that characterization validation does not replace physical
+DRC/LVS sign-off.
 
 ## `examples/`
 

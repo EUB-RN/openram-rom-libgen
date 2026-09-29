@@ -56,7 +56,7 @@ The front-end deck also settles the decoder polarity by measurement rather than
 assumption: after clk0 rises, the selected wordline **falls**. That is what
 justifies holding every wordline at VDD in the column deck.
 
-![Back-end delay at three output loads](img/07-backend-loads.svg)
+![Back-end delay under load](img/12-backend-dout.png)
 
 The back-end deck is run once per output load, so the `index_2`
 (`total_output_net_capacitance`) axis of the CELL_TABLE is a real measurement
@@ -65,7 +65,8 @@ either -- it replays the column deck's own discharge waveform sample for
 sample through a PWL source (cached in `char/wave/bl_<corner>.txt`).
 
 Also measured: setup (`t_addr2dec*`), leakage (`.op`), per-column energy and
-periphery energy, active and idle.
+periphery energy (active and idle), and input pin capacitances with adaptive
+settling (`run_pin_cap.sh` / `run_pin_cap_iter.py`).
 
 ### The frequency window this ROM may be driven in
 

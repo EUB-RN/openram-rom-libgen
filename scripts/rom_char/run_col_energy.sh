@@ -28,18 +28,49 @@ GEN="$ROM_CHAR_DIR/gen_col_power_tb.py"
 # One extracted column per deck, ~0.45 GB: bounded by cores, not memory.
 JOBS=$(stage_jobs "$ROM_MEM_COLUMN")
 
-# RUN PASS -- every macro x corner at once. These are the longest decks in
-# the flow (six cycles at a 1 us precharge phase), which is exactly why
-# running them one after another cost the most.
+# Settling threshold & adaptive convergence parameters
+SETTLE_MAX_PCT="${COL_SETTLE_MAX_PCT:-${SETTLE_MAX_PCT:-1.0}}"
+CYCLES_START="${COL_CYCLES_START:-${COL_CYCLES:-6}}"
+MAX_CYCLES="${COL_MAX_CYCLES:-16}"
+CYCLE_STEP="${COL_CYCLE_STEP:-2}"
+
+run_col_energy_deck() {
+  _m="$1"; _c="$2"; _v="$3"; _t="$4"; _sp="$5"; _lg="$6"
+  _cyc="$CYCLES_START"
+  while :; do
+    python3 "$GEN" "$_m" "$G_WORST_COL" active "$_sp" --corner "$_c" --vdd "$_v" --temp "$_t" \
+            --cycles "$_cyc" >/dev/null
+    run_ng "col-energy" "$_sp" "$_lg" "$_m $_c (cyc=$_cyc)" || return 1
+    _q2=$(meas "$_lg" q_c2)
+    _q3=$(meas "$_lg" q_c3)
+    [ -z "$_q3" ] && break
+    _gap=$(echo "$_q2 $_q3" | awk '
+      { q2 = ($1 < 0 ? -$1 : $1); q3 = ($2 < 0 ? -$2 : $2);
+        printf "%.2f", q3 ? (q2-q3 < 0 ? q3-q2 : q2-q3)/q3*100 : 0 }')
+    _ok=$(echo "$_gap $SETTLE_MAX_PCT" | awk '{print ($1+0 <= $2+0) ? 1 : 0}')
+    if [ "$_ok" -eq 1 ]; then
+      break
+    fi
+    if [ "$_cyc" -ge "$MAX_CYCLES" ]; then
+      echo "  $_m $_c: reached max cycles ($_cyc) with gap ${_gap}% > ${SETTLE_MAX_PCT}%" >&2
+      break
+    fi
+    _next_cyc=$((_cyc + CYCLE_STEP))
+    echo "  $_m $_c: gap ${_gap}% > ${SETTLE_MAX_PCT}% -- adaptive settling: retrying with ${_next_cyc} cycles..." >&2
+    _cyc="$_next_cyc"
+  done
+}
+
+# RUN PASS -- every macro x corner at once.
 for m in $(macro_list "$@"); do
   load_geom "$m" || continue
   for ck in $CORNERS; do
     c=$(echo "$ck" | cut -d: -f1); v=$(echo "$ck" | cut -d: -f2)
     t=$(echo "$ck" | cut -d: -f3)
     sp="$G_CHAR/${G_COLTAG}_energy_${c}.sp"
-    python3 "$GEN" "$m" "$G_WORST_COL" active "$sp" --corner "$c" --vdd "$v" --temp "$t" >/dev/null
+    lg="$G_CHAR/${G_COLTAG}_energy_${c}.log"
     job_slot
-    run_ng "col-energy" "$sp" "$G_CHAR/${G_COLTAG}_energy_${c}.log" "$m $c" & job_add $!
+    run_col_energy_deck "$m" "$c" "$v" "$t" "$sp" "$lg" & job_add $!
   done
 done
 job_drain

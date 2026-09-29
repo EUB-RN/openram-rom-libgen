@@ -217,6 +217,13 @@ def main():
         default=int(os.environ.get("JOBS", 4)),
         help="Parallel simulation jobs for ngspice (default: 4)",
     )
+    parser.add_argument(
+        "--pin-cap-gap",
+        type=float,
+        default=float(os.environ.get("PIN_GAP_THRESH", "1.0")),
+        help="Target maximum rise/fall capacitance settling gap quota in percent (default: 1.0%%). "
+             "Iterative hold-time refinement will automatically run until all pins settle within this gap.",
+    )
 
     args = parser.parse_args()
 
@@ -234,6 +241,7 @@ def main():
     if args.out_dir:
         os.environ["ROM_OUT_DIR"] = os.path.abspath(args.out_dir)
     os.environ["JOBS"] = str(args.jobs)
+    os.environ["PIN_GAP_THRESH"] = str(args.pin_cap_gap)
 
     # Resolve macros. Named macros may be given as a bare name or as a path;
     # a path with no --macros-dir sets ROM_MACROS_DIR to its parent, so the
@@ -361,7 +369,7 @@ def main():
             ("Column energy per cycle", "run_col_energy.sh"),
             ("Periphery leakage power (gmin-swept)", "run_periphery_leak.sh"),
             ("Column decoder delay race", "run_coldec_delay.sh"),
-            ("Input pin capacitances", "run_pin_cap.sh"),
+            (f"Input pin capacitances (iterative settling <= {args.pin_cap_gap:g}%)", "run_pin_cap.sh"),
         ])
 
         # --full only, and appended in dependency order rather than in the

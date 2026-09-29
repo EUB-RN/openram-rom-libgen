@@ -6,6 +6,8 @@
 { pkgs ? import (import ./nix/nixpkgs.nix) {} }:
 
 let
+  opensta = pkgs.callPackage ./nix/opensta.nix {};
+
   # The usual places a sky130 PDK lands, in the order they are tried.
   findPdkScript = ''
     if [ -z "$PDK_ROOT" ]; then
@@ -16,6 +18,11 @@ let
         fi
       elif [ -d "$HOME/OpenLane/pdks/sky130A" ]; then
         export PDK_ROOT="$HOME/OpenLane/pdks"
+      elif [ -d "$HOME/OpenLane/pdks/ciel/sky130/versions" ]; then
+        LATEST_CIEL=$(ls -td "$HOME/OpenLane/pdks/ciel/sky130/versions"/* 2>/dev/null | head -n1)
+        if [ -n "$LATEST_CIEL" ] && [ -d "$LATEST_CIEL/sky130A" ]; then
+          export PDK_ROOT="$LATEST_CIEL"
+        fi
       elif [ -d "/usr/local/share/pdk/sky130A" ]; then
         export PDK_ROOT="/usr/local/share/pdk"
       fi
@@ -35,6 +42,7 @@ in pkgs.mkShell {
     python3
     ngspice
     iverilog
+    opensta
     # Step 1 of the flow (run_cap_extract.sh) is a Magic extraction, and
     # docs/flow.md lists Magic 8.3+ as a requirement. Without it this shell
     # cannot run the flow it advertises -- every later deck needs the
@@ -61,12 +69,14 @@ in pkgs.mkShell {
     export ROM_MACROS_DIR="$(pwd)/user"
     export ROM_OUT_DIR="$(pwd)/output"
     export NGSPICE_BIN="${pkgs.ngspice}/bin/ngspice"
+    export STA_BIN="${opensta}/bin/sta"
 
     echo "=================================================================="
     echo "  openram-rom-libgen isolated Nix environment ready"
     echo "=================================================================="
     echo "  * macro tree (ROM): $ROM_MACROS_DIR"
     echo "  * output root     : $ROM_OUT_DIR"
+    echo "  * OpenSTA         : $($STA_BIN -version) ($STA_BIN)"
     if [ -n "$SKY130_LIB" ]; then
       echo "  * sky130 models   : $SKY130_LIB"
     else
@@ -83,4 +93,3 @@ in pkgs.mkShell {
     echo "=================================================================="
   '';
 }
-

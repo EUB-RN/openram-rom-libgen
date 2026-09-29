@@ -75,6 +75,8 @@ present -- `t_wl1090_0` is the 90-10 slew of wordline 0.
 | `cyc` | one full cycle, 0 -> VDD -> 0 |
 | `leak` | a static `.op` current, no switching |
 | `fix` | the negative-net-capacitance correction applied to extracted parasitics |
+| `lump` | lumped boundary capacitance compensation for subcircuits (`C_lump`) |
+| `th` | pin hold time in capacitance settling runs (`--pin-th`, `--pin-th-map`) |
 
 **Worked examples:**
 

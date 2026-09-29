@@ -16,14 +16,17 @@ run — a file that does not parse never leaves the generator.
 
 ## The layers
 
+There are seven checks in total: the provenance/error-reporting guard numbered
+0, followed by layers 1 through 6.
+
 | layer | file | question it answers |
 |---|---|---|
 | 1 | `test_checker.py` | does the checker still catch the defects it claims to? |
 | 2 | `check_lib.py` | is this valid Liberty? |
 | 3 | `test_rom_lib.py` | does it say what this macro actually does? |
 | 4 | `read_liberty.tcl` | does OpenSTA accept it? |
-| 5 | `iverilog` | do generated behavioural Verilog models compile and elaborate cleanly? |
-| 6 | `test_verilog_model.py` | do behavioural Verilog models simulate correctly (precharge, access delay, invalidation, cs0)? |
+| 5 | `iverilog` | do generated behavioural SystemVerilog models (`.sv`) compile and elaborate cleanly? |
+| 6 | `test_verilog_model.py` | do behavioural SystemVerilog models (`.sv`) simulate correctly (precharge, access delay, invalidation, hold, cs0)? |
 | 0 | `test_error_reporting.py` | does a dead, unsettled or *absent* simulation stay loud -- and can a log that this flow did not produce still reach a `.lib`? |
 
 Layer 0 sits before all of them because it asks about the numbers rather than
@@ -59,15 +62,26 @@ access time, since an invalidation after the data is valid says nothing.
 
 Layer 4 is skipped with a notice when no OpenSTA is installed. Layers 1–3 are
 our parser checking our writer, which is a closed loop; this opens it using the
-parser a consumer really uses. Point `STA_BIN` at a binary to run it.
+parser a consumer really uses. `nix develop` supplies the repository-pinned
+OpenSTA; outside that environment, point `STA_BIN` at a binary to run it.
 
-Layer 5 validates all behavioural Verilog models (`output/verilog/*.sv`) using
+Layer 5 validates all behavioural SystemVerilog models (`output/verilog/*.sv`) using
 `iverilog` if available, asserting error-free syntax and elaboration.
 Layer 6 (`test_verilog_model.py`) runs dynamic simulation testbenches against
-all behavioural Verilog models (`output/verilog/*.sv`) using `iverilog` + `vvp`.
+all behavioural SystemVerilog models (`output/verilog/*.sv`) using `iverilog` + `vvp`.
 It asserts that the simulated output holds all ones during precharge, delays
-valid data until `ACCESS_NS` has elapsed, erases data immediately on the falling
-clock edge, and remains idle when `cs0 = 0`.
+valid data until `ACCESS_NS` has elapsed, preserves it through the falling edge
+for the declared falling-edge arc, then invalidates it, and remains idle when
+`cs0 = 0`.
+
+## Scope boundaries
+
+This suite validates every Liberty file it is given and every behavioural
+model that exists in `output/verilog/`. It does not currently require a
+one-to-one `.lib`/`.sv` inventory, so a missing model must also be caught by
+reviewing the output inventory. It does not run Magic DRC or Netgen LVS;
+passing these tests is characterization-model validation, not physical
+sign-off.
 
 ## `wave/` -- the testbench you look at instead of run
 
@@ -98,9 +112,11 @@ every cycle is `FFFFFFFF` and that is the macro being honest. `dout_cap` is the
 value a consumer clocked on the falling edge would capture. The run commands
 for Vivado are in the header of each testbench and in `tb_<macro>_wave.tcl`.
 
-Both OpenSTA and Verilog checks are fully automated in CI via
-`.github/workflows/ci.yml` on every push and pull request touching libraries or
-models.
+Run both OpenSTA and Verilog checks locally through the pinned Nix environment:
+
+```bash
+nix develop --command env ROM_TESTS_STRICT=1 ./tests/run_tests.sh
+```
 
 ## Adding a check
 

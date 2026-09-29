@@ -104,9 +104,14 @@ ROM_MACROS_DIR=/path/to/macros ./scripts/rom_char/regen_rom_libs.sh
 ```
 
 Steps 2-6 are independent of each other (5 depends on 4, and 6d's hold bisect
-depends on its own `wlslew` run); step 7 needs them all. `./flow.py <macro>`
-runs steps 1-7 in one command, except the optional 6d group -- run those by
-hand and re-run `regen_rom_libs.sh` to fold them in. Step 1 is the slow one (tens of minutes); steps 4 and 5 take a few minutes
+depends on its own `wlslew` run); step 7 needs them all.
+`./flow.py <macro>` runs steps 1-7 in one command in standard mode, using safe
+conservative fallbacks for address hold and clock slew.
+`./flow.py <macro> --full` runs all steps including the 6d group, measuring
+the address hold in the pin frame and clock-slew dependence.
+`--pin-cap-gap <pct>` sets the target rise/fall settling gap quota (default 1.0%),
+triggering iterative hold-time refinement if needed.
+Step 1 is the slow one (tens of minutes); steps 4 and 5 take a few minutes
 per corner, the rest are seconds.
 
 ### Step 7 reads only what this flow produced
@@ -155,7 +160,7 @@ until their stage is re-run.
 | `rom_explore.py` | array structure summary, column histogram, row map |
 | `run_cap_extract.sh` | capacitance-only parasitic extraction with Magic |
 | `gen_col_tb_parasitic.py` | isolated testbench for the worst column (graph walk, name independent) |
-| `gen_resistance_model.py` | per-cell series wire resistance: Magic per cell + analytic where it segfaults |
+| `gen_resistance_model.py` | per-cell series wire resistance: Magic per cell + analytic + fallback to shared `mags/` or generic baseline |
 | `make_corner_variant.py` | SS/FF variant of the TT deck (identical circuit) |
 | `run_col_timing.sh` | ties those two together: column timing at three corners |
 | `gen_backend_delay_tb.py` / `run_backend_delay.sh` | bitline -> `dout0` and output slew vs load |
@@ -163,6 +168,7 @@ until their stage is re-run.
 | `gen_periphery_power_tb.py` / `run_periphery_power.sh` | periphery energy (cs0=0/1), front-end delay, setup |
 | `run_addr_setup.sh` | `addr0` -> decoder NAND input setup measurement |
 | `run_pin_cap.sh` | input pin capacitance per pin, `C = Q(VDD)/VDD`, both edges |
+| `pincap_settle_step.py` / `run_pin_cap_iter.py` | iterative pin capacitance settling engine: evaluates rise/fall gap and scales hold time per pin |
 | `run_coldec_delay.sh` | column decode vs bitline discharge -- the race that sets the middle term of `access` |
 | `run_wl_slew.sh` | wordline fall delay and slew, real driver and real load |
 | `run_hold_bisect.sh` | the address hold: bisects the cut time at the cell nearest the bitline |
@@ -175,9 +181,9 @@ until their stage is re-run.
 | `gen_periphery_leak_tb.py` / `run_periphery_leak.sh` | periphery leakage: one slice per block x a count, with a gmin sweep |
 | `gen_power_tb.py` | **not part of the flow** -- a brute-force whole-macro power deck no script calls. Kept only for an occasional by-hand cross-check on a small macro; its cost follows the array, so it is not runnable on a real ROM (see the whole-macro reference note in the README) |
 | `gen_rom_lib.py` | LEF + measured values -> Liberty |
-| `gen_macro_behavioral_v.py` | behavioural `.v` that reports timing violations |
+| `gen_macro_behavioral_v.py` | behavioural SystemVerilog (`.sv`) model that checks constraints and reports timing violations |
 | `regen_rom_libs.sh` | the top-level script that ties the flow together |
-| `tests/` | validation of the generated `.lib` -- see [`tests/README.md`](../tests/README.md) |
+| `tests/` | 7-layer validation of the generated `.lib` and `.sv` models -- see [`tests/README.md`](../tests/README.md) |
 
 Figures live in `docs/img/`. The waveforms are screenshots of ngspice's own
 plot window -- no plotting tool sits between the simulation and the picture,

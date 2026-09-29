@@ -67,10 +67,17 @@ Ordered by how much they can move a number:
    ```
    Because of this, `gen_resistance_model.py` extracts it per cell (where Magic is happy) and
    computes it from the .mag geometry plus the PDK sheet resistances where it
-   is not. On the example macros: 505 ohm per `one_cell`, 0.24 ohm per
-   `zero_cell` strap, 41.5 kohm over the worst chain. It is **included by
-   default** in the column deck and moves the bitline term by **+15% at TT,
-   +6.6% at SS, +28% at FF**; `NO_RESISTANCE=1` (or
+   is not. If a macro directory lacks local `.mag` layout files for base
+   cells (`rom_base_one_cell.mag`, `rom_base_zero_cell.mag`, `precharge_cell.mag`,
+   `sky130_fd_bd_sram__openram_sp_nand2_dec.mag`), the generator searches a sequence of
+   candidate locations including the repository-level `mags/` and `user/mags/` directories.
+   If Magic extraction fails or layout files are absent, it falls back to a calibrated
+   Sky130 generic baseline (`GENERIC_BASELINE`: 505 ohm per `one_cell`, 0.24 ohm per
+   `zero_cell` strap, 41.5 kohm over the worst chain) and records the provenance in the
+   resulting JSON.
+
+   It is **included by default** in the column deck and moves the bitline term by
+   **+15% at TT, +6.6% at SS, +28% at FF**; `NO_RESISTANCE=1` (or
    `gen_col_tb_parasitic.py --no-resistance`) builds the capacitance-only deck
    for comparison. The wordline is not affected: the array straps it to metal
    every 8 columns (33 polycont per row, 8.16 um apart), so only ~1.3 kohm of
@@ -106,21 +113,36 @@ Ordered by how much they can move a number:
    impossible since one drives the other through a NAND. `max_transition` on
    the inputs is the top of the axis, so the library never declares a slew it
    was not characterised at.
-5. **Input pin capacitances are measured, but two of the thirteen pins carry
-   ~5% of uncertainty.** `run_pin_cap.sh` (2026-09-22) replaced the analytic
-   `PIN_CAP` estimate; the old numbers were low by 58-96% (clk0 2.5 -> 4.9 fF,
-   cs0 3.0 -> 5.7 fF, addr0 one flat 6.0 -> a measured 6.6..9.5 fF across the
-   eleven bits). The measurement integrates the charge the pin itself supplies
-   over a full swing, `C = Q(VDD)/VDD`, so it covers the pin's wire C, the gate
-   C of the first stage, and the Miller charge pushed back as that stage
-   switches -- none of which a gate-width formula sees.
-   What is *not* settled: `addr0[0]` and `addr0[6]` are flagged by the deck's
-   own rise-vs-fall settling check in every macro and every corner, they move
-   4-5% when the ramp time is doubled, and `addr0[0]` also moves -4.9% when the
-   deleted array's gate load is doubled (every other pin moves <0.6% under that
-   same 2x perturbation). The other eleven pins reproduce to 0.45% across ramp
-   times and to four significant figures across all four macros. A Liberty bus
-   carries ONE capacitance, so `addr0` ships the worst bit.
+5. **Input pin capacitances are measured, and slow switching tails are managed adaptively.**
+   `run_pin_cap.sh` (2026-09-22) replaced the analytic `PIN_CAP` estimate; the
+   old numbers were low by 58-96% (clk0 2.5 -> 4.9 fF, cs0 3.0 -> 5.7 fF,
+   addr0 one flat 6.0 -> a measured 6.6..9.5 fF across the eleven bits). The
+   measurement integrates the charge the pin itself supplies over a full swing,
+   `C = Q(VDD)/VDD`, so it covers the pin's wire C, the gate C of the first
+   stage, and the Miller charge pushed back as that stage switches -- none of
+   which a gate-width formula sees.
+
+   *The switching tail and settling:* In earlier single-window runs with a
+   fixed 10 ns hold time (`_th = 10 * _tr`), eleven of the thirteen pins
+   reproduced to 0.45% across ramp times and agreed to four significant
+   figures across all macros. However, `addr0[0]` (driving the column
+   multiplexer selection logic) and `addr0[6]` (driving cascaded row-decoder
+   NAND gates) exhibited 4-5% rise-vs-fall settling gaps because their deep
+   internal driven paths had not finished switching within the fixed window.
+   This is now addressed in the flow:
+   - `gen_periphery_power_tb.py` supports adaptive per-pin hold times (`--pin-th`
+     and `--pin-th-map`).
+   - `run_pin_cap_iter.py` and `pincap_settle_step.py` provide an iterative
+     settling engine (integrated into `flow.py --pin-cap-gap`, defaulting to
+     1.0% target gap quota, with `PIN_GAP_THRESH` gating, default 15%).
+     Pins with lingering switching tails automatically have their hold times
+     scaled up (e.g. 15-25+ ns) until their rise and fall charge integrals
+     settle within the quota.
+   - In periphery SPICE deck generation, hierarchical subcircuit capacitance
+     is collected via recursive descent (`descend_into_module`) to leaf modules,
+     naturally balancing negative substrate fringe terms with real internal gate
+     and wire capacitances without injecting artificial dummy regularizers (`C_hier`).
+
    **The reduction itself is never validated against a full-array run, and it
    never will be.** The deck deletes the cell array and the column mux and
    puts their load back as lumped C; every check listed above runs that same
@@ -131,9 +153,10 @@ Ordered by how much they can move a number:
    array is the one block whose size the user picks, so that cost is unbounded
    by construction; the check was removed rather than shipped as something
    only the smallest macro can afford. What bounds the reduction instead is
-   the -4.9% / <0.6% array-load sensitivity above, plus an independent hand calculation from Magic's
-   extracted wire C and the PDK's `Cox*W*L` (the 11 address pins come in at
-   0.94..0.99x of it, clk0 and cs0 at 1.35..1.50x, both the expected sign).
+   the -4.9% / <0.6% array-load sensitivity above, plus an independent hand
+   calculation from Magic's extracted wire C and the PDK's `Cox*W*L` (the 11
+   address pins come in at 0.94..0.99x of it, clk0 and cs0 at 1.35..1.50x, both
+   the expected sign).
 6. **`MAX_CAP`, `MIN_CAP` and `MAX_TRANSITION` are fixed constants**
    (`gen_rom_lib.py`). The first two are the endpoints of the characterised
    output-load axis, so they are at least tied to something measured; the
@@ -269,3 +292,13 @@ Ordered by how much they can move a number:
     that predates `t_pre_50`, `regen_rom_libs.sh` warns and leaves that term
     out -- which makes the arc earlier, i.e. safe; re-running
     `run_col_timing.sh` picks it up.
+12. **Behavioural model deliverables and physical sign-off boundary.**
+    The characterization flow generates Liberty (`.lib`) timing libraries and
+    behavioural SystemVerilog models (`output/verilog/<macro>.sv`). The
+    verification suite (`tests/run_tests.sh`) checks structural syntax, ROM
+    semantics, OpenSTA parsing (layer 4, reproducible via Nix), and behavioural
+    simulation with precharge, access, hold and cs0 assertions (layer 6).
+    However, passing characterization and testsuite validation certifies only
+    the Liberty and behavioural models. It does **not** substitute for
+    physical DRC (Magic) or LVS (Netgen) on the layout. A physically clean
+    macro remains a separate sign-off requirement.

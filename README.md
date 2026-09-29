@@ -8,9 +8,12 @@ just `.sp` / `.v` / `.lef` / `.gds`. This repository builds SPICE decks from
 the macro's own netlist, measures them with ngspice at three corners, and
 writes the files synthesis, STA and simulation need.
 
-**No number in the output is typed by hand** -- every one is read back out of
-a measurement log. **No figure is drawn by a plotting tool** -- every waveform
-is ngspice's own plot of its own simulation.
+Measured timing and power values are read back from simulation logs. When a
+measurement is unavailable, the generators either refuse to publish the
+output or mark the conservative/analytic fallback explicitly in the generated
+file; a file carrying such warnings is not a validated deliverable until
+`tests/run_tests.sh` passes. Waveform figures are screenshots of ngspice's own
+plot window rather than plots regenerated from the measurement logs.
 
 | deliverable | path | written by |
 |---|---|---|
@@ -20,6 +23,18 @@ is ngspice's own plot of its own simulation.
 Deeper reading: [the macro](docs/macro.md) · [measurement names](docs/naming.md)
 · [what is measured](docs/measurements.md) · [flow and files](docs/flow.md)
 · [your own ROM](docs/your-rom.md) · [limitations](docs/limitations.md)
+
+> **Current checkout status:** all fifteen Liberty files (`wrom0`-`wrom3` and
+> `random_2k`, three corners each) and all five matching `.sv` models pass the
+> strict repository test suite, including OpenSTA parsing and behavioural
+> simulation. This is a snapshot, not a permanent guarantee; rerun
+> `tests/run_tests.sh` after changing or regenerating any output. See
+> [`docs/STATUS.md`](docs/STATUS.md) for the resolution and verification details.
+>
+> This repository validates characterization models; it does not make the
+> layout physically clean. The checked-in macro logs currently report DRC
+> violations and LVS pin-matching failures. Resolve or formally waive those
+> results separately before physical sign-off.
 
 ---
 
@@ -33,19 +48,20 @@ never from `scripts/`.
 
 There are **no Python packages to install**: every script uses the standard
 library only, so there is no `requirements.txt` and nothing for `pip`. What
-the flow needs is four external tools and a PDK:
+the flow and complete validation suite need is five external tools and a PDK:
 
 | | why | without it |
 |---|---|---|
-| `python3` | every generator (CI runs 3.10) | nothing runs |
+| `python3` | every generator | nothing runs |
 | `ngspice` | every measurement | no logs, so no `.lib` |
 | `magic` 8.3+ | parasitic extraction, flow step 1 | no `<macro>_cap_only.spice`, so no column deck |
-| `iverilog` | simulates the generated `.v` in the testsuite | that test layer SKIPs |
+| `iverilog` | simulates the generated `.sv` in the testsuite | that test layer SKIPs |
+| `OpenSTA` (`sta`) | reads every generated Liberty with a consumer parser | that test layer SKIPs unless Nix or `STA_BIN` supplies it |
 | a **sky130 PDK** | the transistor models ngspice reads | not one deck will run |
 
 ### Getting that environment
 
-**If you already have those four on your `$PATH` and a sky130 PDK on disk,
+**If you already have those five on your `$PATH` and a sky130 PDK on disk,
 you need nothing else.** Three exports and you are done:
 
 ```bash
@@ -69,7 +85,8 @@ That answers both halves of "can this run here" in one table -- the macro
   ✗ ngspice    MISSING -- every measurement
   ✓ sky130     the transistor models
   ⚠ magic      not found -- parasitic extraction (--with-extract) (that part is skipped)
-  ✓ iverilog   simulates the generated .v in the testsuite
+  ✓ iverilog   simulates the generated .sv in the testsuite
+  ✓ sta         validates Liberty with OpenSTA
 ```
 
 Anything marked `✗` stops the flow and the command exits non-zero, naming what
@@ -77,10 +94,14 @@ to install or which variable to export -- for a missing PDK it prints the exact
 path it looked for. A `⚠` only narrows the run: that part is skipped and the
 rest still produces a library.
 
-`SKY130_LIB`, `NGSPICE_BIN`, `MAGIC_BIN`, `IVERILOG_BIN` and `VVP_BIN` are
-optional overrides -- each is derived from `PDK_ROOT` or from `$PATH` when
-unset, so set them only if the binary you want is not the first one on the
-path.
+Pre-flight checks required files, pins, geometry and expected sub-circuits. It
+does **not** run or certify DRC/LVS, and a pre-flight pass must not be read as a
+physical-verification pass.
+
+`SKY130_LIB`, `NGSPICE_BIN`, `MAGIC_BIN`, `IVERILOG_BIN`, `VVP_BIN` and
+`STA_BIN` are optional overrides -- each is derived from `PDK_ROOT` or from
+`$PATH` when unset, so set them only if the binary you want is not the first
+one on the path.
 
 **Or let Nix supply the tools**, if you would rather not install them:
 
@@ -89,27 +110,28 @@ nix develop        # flakes -- pins nixpkgs itself, needs no channel
 nix-shell          # classic
 ```
 
-Either drops you into a shell with the four tools, looks for a sky130 PDK in
+Either drops you into a shell with all five tools, looks for a sky130 PDK in
 the usual places, and exports `ROM_MACROS_DIR`, `ROM_OUT_DIR` and
-`NGSPICE_BIN` for you. If the banner says `no sky130 PDK found`, export
-`PDK_ROOT` yourself before going on -- Nix does not ship the PDK.
+`NGSPICE_BIN` and `STA_BIN` for you. If the banner says `no sky130 PDK found`,
+export `PDK_ROOT` yourself before going on -- Nix does not ship the PDK.
 
-> **The first run is heavy; every run after it is not.** Measured on a machine
-> that already had all four tools: ~50 MB of nixpkgs package definitions, then
-> **92 store paths -- 210 MiB downloaded, 630 MiB on disk** in `/nix/store`.
+> **The first run is heavy; every run after it is not.** OpenSTA itself occupies
+> about **19 MiB** and its complete runtime closure is about **93 MiB** on a
+> clean store; shared Tcl, CUDD and compiler-runtime paths reduce the actual
+> incremental cost when other Nix tools are already present. The rest of the
+> shell (Python, ngspice, Magic and Icarus Verilog) is larger and varies as the
+> pinned nixpkgs revision changes.
 > Entering the same shell a second time took **2.4 seconds**, because
 > `/nix/store` is content-addressed and global: the cost is once per machine,
 > and shared with any other project on the same nixpkgs.
 >
-> Almost none of that is compilation. Those 92 paths come prebuilt from
-> `cache.nixos.org`; only the trivial shell-environment derivation is built
-> locally. That is the same bargain OpenLane and LibreLane make -- they are
-> Nix flakes too, and add their own Cachix binary cache so nothing compiles on
-> your machine either (OpenLane 1 used a Docker image: different tool, same
-> idea -- someone else did the build). Nobody avoids the first download; what
-> they avoid is building from source. **If you ever see Nix reporting a large
-> number of packages to *build* rather than copy, that is the problem** -- it
-> means the pinned revision is not in the cache yet.
+> Most dependencies come prebuilt from `cache.nixos.org`. Standalone OpenSTA
+> is not available in this pinned nixpkgs, so this repository builds its pinned
+> OpenSTA revision once and then reuses it from `/nix/store`. Nobody avoids the
+> first download/build; Nix makes that build reproducible and avoids repeating
+> it. OpenSTA itself is the expected local build; if Nix wants to build a large
+> part of the remaining toolchain rather than copy it, the pinned nixpkgs
+> revision is probably not in the binary cache yet.
 >
 > The size is the graphics stack rather than the tools: `magic-vlsi` is a
 > Tcl/Tk application and nixpkgs builds `ngspice` with X11 plotting, so
@@ -118,7 +140,7 @@ the usual places, and exports `ROM_MACROS_DIR`, `ROM_OUT_DIR` and
 > figures in this README *are* ngspice's own plot window, and Magic needs Tk.
 >
 > You are buying a reproducible, pinned toolchain, not a light one. If you
-> already have the four tools, use the exports above and skip all of it.
+> already have the five tools, use the exports above and skip all of it.
 
 > **Seeing `file 'nixpkgs' was not found in the Nix search path`?** It means
 > your Nix has no nixpkgs channel, which is normal on a flakes-first install.
@@ -149,7 +171,7 @@ python3 scripts/rom_char/rom_paths.py --check <macro>     # can it go through th
 ./flow.py <macro>                                        # <- the whole thing
 ```
 
-That runs pre-flight, every SPICE measurement, the `.lib` and `.v`
+That runs pre-flight, every SPICE measurement, the `.lib` and `.sv`
 generators and the full testsuite, in that order, and writes:
 
 ```text
@@ -164,15 +186,16 @@ output/verilog/<macro>.sv                behavioural model, measured delays
 | | command | cost | what it measures |
 |---|---|---|---|
 | standard | `./flow.py <macro>` | tens of minutes | everything except the address hold and the clock-slew axis, which ship as safe, declared fallbacks |
-| full | `./flow.py <macro> --full` | ~an afternoon | the same plus those two, so no term is a fallback |
+| full | `./flow.py <macro> --full` | ~an afternoon | the same plus measured address hold and clock-slew axes |
 
-Both are safe to sign off with; the standard mode is conservative where it
-approximates, never optimistic. **[Why the split exists, with the
+For the characterization model, both modes are intended to be conservative
+where they approximate, but only an output with a clean full test run is a
+candidate for timing sign-off. Neither mode replaces DRC/LVS. **[Why the split exists, with the
 numbers](#the-two-modes-and-why-the-second-one-exists)** -- the address hold
 comes out 3-12% shorter under `--full`, and the slew axis moves `access` by
 0.24%.
 
-Useful flags: `--from-logs` rebuilds the `.lib` and `.v` from logs already on
+Useful flags: `--from-logs` rebuilds the `.lib` and `.sv` from logs already on
 disk without re-simulating, `--check-only` stops after pre-flight, `--all`
 (or no macro name) processes every macro in the tree, `--jobs <n>` overrides
 the automatic parallelism.
@@ -672,7 +695,7 @@ thirteen input pins `i`:
 |---|---|---|
 | `q_rise<i>`, `q_fall<i>` | the charge the pin supplies on each edge | the raw integral everything else is derived from |
 | `c_cyc<i>_ff` | `(abs(Q_rise) + abs(Q_fall)) / (2*VDD)` | **the number that ships** as that pin's `capacitance`. A Liberty bus carries one value, so `addr0` gets the WORST bit (0.0095 pF at TT) and the header records the per-bit spread |
-| `c_rise<i>_ff`, `c_fall<i>_ff` | the same split per edge | no `.lib` number -- the settling proof. The two must agree; a gap over 5% means the first stage was still switching when the window closed, and the summary prints it |
+| `c_rise<i>_ff`, `c_fall<i>_ff` | the same split per edge | no `.lib` number -- the settling proof. The two must agree; a gap over the threshold (gating threshold `PIN_GAP_THRESH`, default 15%, or target quota 1.0% via iterative refinement) means the first stage was still switching when the window closed, and the summary prints it |
 
 The cross-check, which produces no number the `.lib` needs -- run the deck
 twice and compare, because the charge over a full swing must not depend on how
@@ -982,13 +1005,18 @@ iverilog -g2012 -o /tmp/rom.vvp output/verilog/wrom0.sv && echo "syntax OK"
 ./tests/run_tests.sh
 ```
 
-All Liberty and Verilog validation checks are automated on every push/PR via GitHub Actions (`.github/workflows/ci.yml`).
+Validation is local and reproducible through Nix. Before committing generated
+outputs, run the strict suite so a missing tool cannot silently skip a layer:
+
+```bash
+nix develop --command env ROM_TESTS_STRICT=1 ./tests/run_tests.sh
+```
 
 ---
 
 ## Using it on your own ROM
 
-One command takes an OpenRAM ROM macro to a `.lib` and a `.v`. **Every command
+One command takes an OpenRAM ROM macro to a `.lib` and a `.sv`. **Every command
 on this page is typed at the root of this repository** -- the directory holding
 `flow.py` -- and your macro goes under `user/` inside it. Nothing is ever run
 from inside the macro's own directory.
@@ -1042,11 +1070,11 @@ nix develop        # flakes -- pins nixpkgs itself, needs no channel
 nix-shell          # classic
 ```
 
-Either brings ngspice, Magic, iverilog and python3, finds a sky130 PDK in the
+Either brings ngspice, Magic, iverilog, OpenSTA and python3, finds a sky130 PDK in the
 usual places, and exports `ROM_MACROS_DIR=$(pwd)/user`,
-`ROM_OUT_DIR=$(pwd)/output` and `NGSPICE_BIN`. If it prints
+`ROM_OUT_DIR=$(pwd)/output`, `NGSPICE_BIN` and `STA_BIN`. If it prints
 `no sky130 PDK found`, export `PDK_ROOT` yourself before going on -- without
-the device models not one deck will run. Without Nix, install those four and
+the device models not one deck will run. Without Nix, install those five and
 set the same variables by hand; there are no Python packages to install, so
 there is nothing for `pip`. Full list and the `nixpkgs`-not-found case:
 [What you need](#what-you-need).
@@ -1075,7 +1103,7 @@ up under `user/` itself. It runs pre-flight, the SPICE sweep, both generators
 and the full testsuite, in that order, and takes hours: the simulations are
 the flow. `./flow.py` with no macro name processes **every** macro under the
 tree.
-`--from-logs` rebuilds the `.lib` and `.v` from logs already on disk without
+`--from-logs` rebuilds the `.lib` and `.sv` from logs already on disk without
 re-simulating; `--check-only` stops after pre-flight.
 
 There is a second mode, and it is the same command with one flag:
@@ -1122,8 +1150,10 @@ What the two modes differ in is how many of those stages run:
 | extra stages | -- | `run_wl_slew.sh`, `run_hold_bisect.sh`, `run_addr2wl.sh`, `run_slew_sweep.sh` |
 | cost per macro | tens of minutes | roughly an afternoon |
 
-Both produce a library that is safe to sign off with. `--full` produces one
-with nothing left in it that a fallback wrote.
+Both modes target a conservative timing model. `--full` removes the two
+optional timing fallbacks in this table; other explicitly reported fallbacks
+or a failing test still make the result incomplete. This statement covers the
+Liberty/behavioural model only, not physical DRC/LVS sign-off.
 
 #### Why the slew axis is not in the standard mode: it moves nothing
 

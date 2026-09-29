@@ -8,17 +8,19 @@
  * Model: precharged NAND-style (series chain) ROM, NO output latch.
  *   clk0 = 0 -> bitlines precharge (dout0 all ones)
  *   clk0 = 1 -> evaluate; the selected cells discharge the bitline
- *   through the series chain;
- *   dout0 valid 1.950 ns later
+ *   worst case through ~45 series NMOS (column 68);
+ *   dout0 valid 2.886 ns later
  *   dout0 becomes INVALID when clk0 falls. The consumer must either
  *   sample on clk0's falling edge, or drive the macro with an inverted
  *   clock (clk0 = ~clk) and capture on the system clock's rising edge.
- *   WARNING: that invalidation is NOT in the Liberty data (no
- *   --t-invalid given). STA will then assume dout0 holds until the
- *   next capture edge and report a FALSE PASS. Pass --t-invalid,
- *   i.e. run through regen_rom_libs.sh.
+ *   That invalidation IS in the data: bus(dout0) carries a second
+ *   timing() group with timing_type : falling_edge and a delay of
+ *   0.9876 ns (clk0 falling -> dout0 leaving its valid level).
+ *   It is the EARLIEST invalidation -- t_clk2pre + t_pre_50 +
+ *   t_bl2dout at the smallest load -- because what must be proven
+ *   is that the consumer captured BEFORE the data went away.
  *
- * SOURCE: access/t_pre come from ngspice measurements on an isolated column
+ * SOURCE: access/t_pre come from ngspice measurements on real Magic parasitic C + that corner's OWN sky130 models; 65x256 array, worst column 68 (series NMOS 45); front end + periphery power char/periph_{active,idle}_ff.log, bitline char/col68_worst_case_parasitic_ff.log, back end + slew char/backend_ff_*.log, leakage char/col68_leak_ff.log + char/periph_leak_cs*_ff.total, column energy char/col68_energy_ff.log, active energy = mean of 10 random reads char/random_energy_ff.log, address hold char/hold_ff.log
  * -- THIS corner (FF_1p95V_n40C) was simulated separately with its own
  * sky130 model files (tt/ss/ff); no fixed scaling factor was used.
  * Measurement showed that this matters: the old SS x1.85 assumption was
@@ -27,41 +29,182 @@
  * (based on a wrong NOR model) -- for sign-off ALWAYS call it with
  * measured values, i.e. through regen_rom_libs.sh.
  *
- * WARNING: access covers only the bitline term. clk0 ->
- * precharge/wordline and bitline -> dout0 (inverter + mux + output
- * buffer) are MISSING. Pass the measured values with --t-front /
- * --backend-ns (scripts/rom_char/gen_backend_delay_tb.py).
+ * ACCESS IS THE SUM OF THREE TERMS (all measured):
+ *   clk0 -> precharge/wordline : 0.4688 ns
+ *   precharge -> bitline 50%   : 2.8865 ns
+ *   bitline -> dout0           : 0.3442 .. 0.4235 ns (vs output load)
+ *   TOTAL (worst load)         : 3.7788 ns
+ * The back-end term covers the bitline inverter, the 256:32 column
+ * mux and the output buffer.
  *
- * WARNING: HOLD IS AN ANALYTIC GUESS -- 2.1000 ns on every input,
- * from the BASE table in gen_rom_lib.py, not from any measurement.
- * It is a LEFTOVER DEFAULT, roughly 5x shorter than the window the
- * macro really needs, and a hold that is too short is the unsafe
- * direction: STA will pass a design that loses its read. The value
- * is only reachable when --backend-ns is absent, because the rule
- * that replaces it (hold = the full access window) cannot be formed
- * without the back-end term. Pass --backend-ns, or better run
- * scripts/rom_char/regen_rom_libs.sh, which refuses to build a
- * .lib with a term missing.
+ * THE ADDRESS HOLD IS MEASURED: 3.3219 ns on addr0
+ * (scripts/rom_char/run_hold_bisect.sh). The deck cuts the
+ * series chain in mid-evaluate -- what a moving address does
+ * to a CLOCKED row decoder -- and bisects the cut time until
+ * the read still lands within 10% of the rail. It is SHORTER
+ * than access (3.7788 ns): once the bitline has driven bl_b to a
+ * real logic level the read is decided, and the back-end delay
+ * after that point no longer depends on the address.
  *
- * INPUT PIN CAPACITANCES ARE ANALYTIC, NOT MEASURED. They come
- * from gate widths in the netlist (PIN_CAP in gen_rom_lib.py) and
- * one value covers every address bit, which the extraction says
- * cannot be right -- the wire load alone varies several-fold
- * across the bus. Run run_pin_cap.sh and pass --pin-cap.
+ *   REFERENCED TO THE clk0 PIN, which is what Liberty
+ *   means. The hold deck is the column deck: no clk0 in
+ *   it, so its answer is counted from the INTERNAL
+ *   evaluate edge. Two measured delays carry it across:
+ *     cut from the internal edge     3.3150 ns
+ *     + clk0 -> that edge            0.4688 ns
+ *     - addr0 -> the wordline        0.4619 ns
+ *       (run_addr2wl.sh, measured during evaluate when
+ *        the decoder is transparent)
+ *     = hold at the pin              3.3219 ns
+ *   The two corrections nearly cancel here; shipping the
+ *   raw cut time would have been right by coincidence.
  *
- * WARNING: no retain_rise/retain_fall -- this file carries LATE
- * data only (worst column). Nothing bounds how SOON dout0 can
- * move, so a hold check against the capture flop cannot fail.
- * Run scripts/rom_char/run_early_path.sh and pass --retain-ns.
- * WARNING: rise/fall_transition NOT MEASURED (fixed guess) --
- * measurement showed that guess was 30-300x too low.
+ * THE CONTROL INPUTS DO NOT GET THAT NUMBER. cs0 keeps the full
+ * access window, 3.7788 ns, because the experiment above never
+ * exercised it: cs0 is not on the decode path at all. It gates
+ * the precharge itself (precharge = ~NAND(cs0, clk_int)), so
+ * cs0 going away during evaluate turns the precharge PMOS back
+ * ON and the bitline is pulled to VDD -- the read dies at any
+ * point in the cycle, including the late part where the
+ * address no longer matters. Handing it the shorter number
+ * would relax a constraint no measurement covers.
  *
- * WARNING: cell_leakage_power covers the CELL ARRAY ONLY. The
- * clock driver, control NAND, precharge driver, address buffers,
- * row and column decoders, the wordline drivers and the whole read
- * back end (bitline inverters, column mux, output buffers) are
- * scored as ZERO. Run scripts/rom_char/run_periphery_leak.sh and
- * pass --leakage-idle-mw.
+ *   THE SETUP/HOLD PAIR CANNOT STATE cs0'S REAL REQUIREMENT,
+ *   so it also carries a CLOCK-GATING pair. The window above
+ *   says cs0 must last until the data EXISTS. What has to be
+ *   said is that it lasts until the data is CAPTURED, on
+ *   clk0's FALL -- this macro has no latch, so the high phase
+ *   is the whole life of the read. A cs0 released at 3.7788 ns
+ *   satisfies hold_rising and still re-opens the precharge
+ *   0.3250 ns before the earliest legal capture edge, and with a
+ *   slower clock the gap only grows. No number fixes it: a
+ *   hold reaches FORWARD from the rise, a setup reaches BACK
+ *   from the fall, and a high phase longer than their sum has
+ *   a middle that neither covers. (hold_falling does not help
+ *   either -- a hold bounds how early a pin may change after a
+ *   PAST edge, so a mid-phase drop is measured against the
+ *   previous fall and passes with room to spare.)
+ *
+ *   cs0 IS A CLOCK GATE ENABLE: precharge = ~NAND(cs0,
+ *   clk_int), i.e. it switches off the array's internal clock.
+ *   clock_gating_setup_rising / clock_gating_hold_falling
+ *   anchor to the two EDGES instead of to a duration and say
+ *   what is actually required -- cs0 may only change while
+ *   clk0 is LOW -- for any clock period. The plain setup/hold
+ *   pair is kept alongside so a tool that ignores gating
+ *   checks still reads a meaningful number rather than none.
+ *
+ * COLUMN DECODER (measured, run_coldec_delay.sh): precharge ->
+ *   column select takes 0.3542 ns against 2.8865 ns for the
+ *   bitline, i.e. the mux is open 8x earlier than the data
+ *   needs it. It shares the precharge edge with the discharge
+ *   rather than following it, so it adds NOTHING to access.
+ *   This used to be an estimate; it is now a measurement.
+ *
+ *
+ * SETUP IS A PATH DELAY, AND IT WINS ITS RACE BY 0.1734 ns.
+ *   addr0 -> the clocked decoder NAND : 0.0204 ns (measured)
+ *   clk0  -> the same gate (clk_int)  : 0.1938 ns (measured)
+ *   so the requirement AT THE PIN is -0.1734 ns -- negative, i.e.
+ *   the address may arrive after clk0 rises and still be in time.
+ *   The library ships the positive path delay instead: it is the
+ *   conservative of the two, and a constraint is not relaxed as a
+ *   side effect of changing what is being counted.
+ *   cs0 CARRIES THE SAME NUMBER AND IS COVERED BY IT. Its path
+ *   has no stage to measure -- in the netlist cs0 goes straight
+ *   to the A gate of rom_control_nand and the extraction keeps it
+ *   as one node -- while the address path has an inverter that
+ *   cs0's does not. cs0's requirement is therefore strictly the
+ *   smaller, and the address's measurement bounds it.
+ *
+ * INPUT PIN CAPACITANCES ARE MEASURED (run_pin_cap.sh):
+ *   C = Q(VDD)/VDD, the charge the pin itself supplies over a full
+ *   swing -- its wire C, the gate C of the first stage it drives,
+ *   and the Miller charge pushed back as that stage switches.
+ *   addr0    0.0078 pF  (worst of 9 bits, 0.0060 .. 0.0078)
+ *   clk0     0.0045 pF
+ *   cs0      0.0056 pF
+ *   A bus carries ONE Liberty capacitance, so the ranged pin
+ *   takes the WORST bit: telling a driver it will find less
+ *   load than it does is the unsafe direction. The per-bit
+ *   spread is above; it is real, not measurement noise.
+ *
+ * BOTH AXES OF THE TABLE ARE MEASURED.
+ *   index_2 (output load)  : the back-end term, 0.3442 .. 0.4235 ns
+ *   index_1 (clk0 slew)    : the front-end term, 0.4254 .. 0.4688 ns
+ *     at clk0 transitions 0.05, 0.2, 0.5 ns
+ * t_front is the only term that depends on the clk0 edge: the
+ * bitline measurement triggers off the internal precharge net and
+ * the back end is driven by the bitline, so neither can see clk0.
+ * That is also why the output transition table stays flat along
+ * index_1.
+ * max_transition on the inputs is 0.5 ns, the top of that axis --
+ * the library cannot declare a slew it was never measured at.
+ *
+ * EARLY PATH (retain_rise/retain_fall on dout0): dout0 keeps the
+ * PREVIOUS cycle's value for 0.9763 .. 1.0197 ns after clk0 rises.
+ * Measured on the FASTEST ARRAY this geometry can hold, where
+ * everything else in this file uses the worst column. A stored 0
+ * is a metal strap and leaves the series path; a stored 1 is a
+ * transistor in it, so the discharge speed is set by the CONTENTS.
+ * The bound therefore comes from the limit case -- every data
+ * cell strapped out, with only the foot transistor left in series
+ * -- and stays valid if this geometry is reprogrammed. At that
+ * limit the bound is set by the fixed circuitry (foot transistor,
+ * precharge PMOS, bitline wire and inverter) rather than by the
+ * array, which is why it must be measured per macro but not
+ * per .bin. Without it the tool believes the old data is held
+ * right up to the access time and a race that eats it before the
+ * capture flop takes it passes silently: a hold check has nothing
+ * to fail on.
+ * retaining_rise/fall is the smallest-load output slew, not a
+ * separate measurement.
+ * Output transition time MEASURED: 0.0967 .. 0.2025 ns
+ *
+ * POWER MODEL: internal_power on clk0 is ENERGY PER CYCLE (pJ);
+ * the power tool applies the frequency (P = E*f*activity).
+ *   when "cs0"  = 53.6477 pJ  (read: column array + periphery)
+ *     MODELLED AS THE AVERAGE OF 10 RANDOM READS, not the
+ *     worst case. A bitline draws recharge current only if
+ *     it discharged, and it discharges only where the
+ *     SELECTED ROW holds a zero -- a stored one is an NMOS
+ *     whose gate has just fallen, which opens the series
+ *     chain and leaves that bitline at VDD. So each
+ *     sampled read is scored as
+ *       <zeros in the selected row> x E_column + E_periphery
+ *     with both energy terms measured and only the activity
+ *     counted from the netlist's own cell types.
+ *     The all-columns-discharge worst case is 102.9512 pJ
+ *     (1.92x this number); use it for a current budget,
+ *     not for an average-power figure.
+ *     The sample is drawn with a seed derived from the
+ *     macro name ALONE, so it is reproducible AND all
+ *     three corners read the same addresses: which
+ *     columns discharge is set by the ROM contents, not
+ *     by the corner, so a per-corner draw would put pure
+ *     sampling noise into the corner ratios.
+ *     The per-read table is in char/random_energy_*.log.
+ *   when "!cs0" = 2.5544 pJ  (IDLE: cs0 only gates the
+ *     precharge; the clk_int tree, the address buffers, the row
+ *     decoder and 65 wordlines switch even when deselected.
+ *     Leave this block out and OpenSTA silently scores it 0.)
+ *
+ * LEAKAGE covers the ARRAY AND THE PERIPHERY, both measured with
+ * .op in the same idle state (clk0 low):
+ *   when "cs0"  = 0.000201 mW
+ *   when "!cs0" = 0.000201 mW
+ *   cell_leakage_power = 0.000201 mW, the worse of the two.
+ *   THE TWO STATES AGREE, and that is a measurement rather
+ *   than a copy: both were run, every block the macro
+ *   instantiates was in both decks, and they came out equal
+ *   to the digits printed here. cs0 gates the precharge PATH,
+ *   so it changes what the macro does on a clock edge -- it
+ *   does not change the static state the idle macro sits in,
+ *   which is what a leakage number describes.
+ * The periphery half is one slice per block times a count from
+ * the netlist (run_periphery_leak.sh), gmin-swept: gmin is added
+ * in parallel with the leakage and at the pA level it becomes the
+ * answer, so each slice is taken where the sweep stops moving.
  * ----------------------------------------------------------------- */
 library (random_2k_FF_1p95V_n40C) {
     delay_model : "table_lookup";
@@ -97,7 +240,7 @@ library (random_2k_FF_1p95V_n40C) {
     default_input_pin_cap    : 1.0;
     default_inout_pin_cap    : 1.0;
     default_output_pin_cap   : 0.0;
-    default_max_transition   : 0.5000;
+    default_max_transition   : 0.2430;
     default_fanout_load      : 1.0;
     default_max_fanout       : 4.0;
     default_connection_class : universal;
@@ -157,10 +300,16 @@ cell (random_2k) {
     }
 
     leakage_power () {
+        when : "cs0";
         related_pg_pin : vccd1;
-        value : 0.050000;
+        value : 0.000201;
     }
-    cell_leakage_power : 0.050000;
+    leakage_power () {
+        when : "!cs0";
+        related_pg_pin : vccd1;
+        value : 0.000201;
+    }
+    cell_leakage_power : 0.000201;
 
     bus(dout0) {
         bus_type : rom_data;
@@ -178,24 +327,69 @@ cell (random_2k) {
             related_pin : "clk0";
             timing_type : rising_edge;
             cell_rise(CELL_TABLE) {
-            values("1.9500, 1.9790, 2.0950",\
-                    "1.9500, 1.9790, 2.0950",\
-                    "1.9500, 1.9790, 2.0950");
+            values("3.6561, 3.6750, 3.7354",\
+                    "3.6707, 3.6896, 3.7500",\
+                    "3.6995, 3.7184, 3.7788");
             }
             cell_fall(CELL_TABLE) {
-            values("1.9500, 1.9790, 2.0950",\
-                    "1.9500, 1.9790, 2.0950",\
-                    "1.9500, 1.9790, 2.0950");
+            values("3.6561, 3.6750, 3.7354",\
+                    "3.6707, 3.6896, 3.7500",\
+                    "3.6995, 3.7184, 3.7788");
             }
             rise_transition(CELL_TABLE) {
-            values("0.0020, 0.0050, 0.0160",\
-                    "0.0020, 0.0050, 0.0160",\
-                    "0.0020, 0.0050, 0.0160");
+            values("0.0967, 0.1189, 0.2025",\
+                    "0.0967, 0.1189, 0.2025",\
+                    "0.0967, 0.1189, 0.2025");
             }
             fall_transition(CELL_TABLE) {
-            values("0.0020, 0.0050, 0.0160",\
-                    "0.0020, 0.0050, 0.0160",\
-                    "0.0020, 0.0050, 0.0160");
+            values("0.0967, 0.1189, 0.2025",\
+                    "0.0967, 0.1189, 0.2025",\
+                    "0.0967, 0.1189, 0.2025");
+            }
+            retain_rise(CELL_TABLE) {
+            values("0.9763, 0.9763, 0.9763",\
+                    "0.9909, 0.9909, 0.9909",\
+                    "1.0197, 1.0197, 1.0197");
+            }
+            retain_fall(CELL_TABLE) {
+            values("0.9763, 0.9763, 0.9763",\
+                    "0.9909, 0.9909, 0.9909",\
+                    "1.0197, 1.0197, 1.0197");
+            }
+            retaining_rise(CELL_TABLE) {
+            values("0.0967, 0.0967, 0.0967",\
+                    "0.0967, 0.0967, 0.0967",\
+                    "0.0967, 0.0967, 0.0967");
+            }
+            retaining_fall(CELL_TABLE) {
+            values("0.0967, 0.0967, 0.0967",\
+                    "0.0967, 0.0967, 0.0967",\
+                    "0.0967, 0.0967, 0.0967");
+            }
+        }
+        timing() {
+            timing_sense : non_unate;
+            related_pin : "clk0";
+            timing_type : falling_edge;
+            cell_rise(CELL_TABLE) {
+            values("0.9876, 0.9876, 0.9876",\
+                    "0.9876, 0.9876, 0.9876",\
+                    "0.9876, 0.9876, 0.9876");
+            }
+            cell_fall(CELL_TABLE) {
+            values("0.9876, 0.9876, 0.9876",\
+                    "0.9876, 0.9876, 0.9876",\
+                    "0.9876, 0.9876, 0.9876");
+            }
+            rise_transition(CELL_TABLE) {
+            values("0.0967, 0.1189, 0.2025",\
+                    "0.0967, 0.1189, 0.2025",\
+                    "0.0967, 0.1189, 0.2025");
+            }
+            fall_transition(CELL_TABLE) {
+            values("0.0967, 0.1189, 0.2025",\
+                    "0.0967, 0.1189, 0.2025",\
+                    "0.0967, 0.1189, 0.2025");
             }
         }
         }
@@ -204,7 +398,7 @@ cell (random_2k) {
     bus(addr0) {
         bus_type : rom_addr;
         direction : input;
-        capacitance : 0.006;
+        capacitance : 0.0077793;
         max_transition : 0.5;
         pin(addr0[8:0]) {
         related_power_pin  : vccd1;
@@ -213,28 +407,28 @@ cell (random_2k) {
             timing_type : setup_rising;
             related_pin : "clk0";
             rise_constraint(CONSTRAINT_TABLE) {
-                values("0.1050, 0.1050, 0.1050",\
-                    "0.1050, 0.1050, 0.1050",\
-                    "0.1050, 0.1050, 0.1050");
+                values("0.0204, 0.0204, 0.0204",\
+                    "0.0204, 0.0204, 0.0204",\
+                    "0.0204, 0.0204, 0.0204");
             }
             fall_constraint(CONSTRAINT_TABLE) {
-                values("0.1050, 0.1050, 0.1050",\
-                    "0.1050, 0.1050, 0.1050",\
-                    "0.1050, 0.1050, 0.1050");
+                values("0.0204, 0.0204, 0.0204",\
+                    "0.0204, 0.0204, 0.0204",\
+                    "0.0204, 0.0204, 0.0204");
             }
         }
         timing() {
             timing_type : hold_rising;
             related_pin : "clk0";
             rise_constraint(CONSTRAINT_TABLE) {
-                values("2.1000, 2.1000, 2.1000",\
-                    "2.1000, 2.1000, 2.1000",\
-                    "2.1000, 2.1000, 2.1000");
+                values("3.3219, 3.3219, 3.3219",\
+                    "3.3219, 3.3219, 3.3219",\
+                    "3.3219, 3.3219, 3.3219");
             }
             fall_constraint(CONSTRAINT_TABLE) {
-                values("2.1000, 2.1000, 2.1000",\
-                    "2.1000, 2.1000, 2.1000",\
-                    "2.1000, 2.1000, 2.1000");
+                values("3.3219, 3.3219, 3.3219",\
+                    "3.3219, 3.3219, 3.3219",\
+                    "3.3219, 3.3219, 3.3219");
             }
         }
         }
@@ -242,7 +436,7 @@ cell (random_2k) {
 
     pin(cs0) {
         direction : input;
-        capacitance : 0.003;
+        capacitance : 0.005557299999999999;
         max_transition : 0.5;
         related_power_pin  : vccd1;
         related_ground_pin : vssd1;
@@ -250,42 +444,42 @@ cell (random_2k) {
             timing_type : setup_rising;
             related_pin : "clk0";
             rise_constraint(CONSTRAINT_TABLE) {
-                values("0.1050, 0.1050, 0.1050",\
-                    "0.1050, 0.1050, 0.1050",\
-                    "0.1050, 0.1050, 0.1050");
+                values("0.0204, 0.0204, 0.0204",\
+                    "0.0204, 0.0204, 0.0204",\
+                    "0.0204, 0.0204, 0.0204");
             }
             fall_constraint(CONSTRAINT_TABLE) {
-                values("0.1050, 0.1050, 0.1050",\
-                    "0.1050, 0.1050, 0.1050",\
-                    "0.1050, 0.1050, 0.1050");
+                values("0.0204, 0.0204, 0.0204",\
+                    "0.0204, 0.0204, 0.0204",\
+                    "0.0204, 0.0204, 0.0204");
             }
         }
         timing() {
             timing_type : hold_rising;
             related_pin : "clk0";
             rise_constraint(CONSTRAINT_TABLE) {
-                values("2.1000, 2.1000, 2.1000",\
-                    "2.1000, 2.1000, 2.1000",\
-                    "2.1000, 2.1000, 2.1000");
+                values("3.7788, 3.7788, 3.7788",\
+                    "3.7788, 3.7788, 3.7788",\
+                    "3.7788, 3.7788, 3.7788");
             }
             fall_constraint(CONSTRAINT_TABLE) {
-                values("2.1000, 2.1000, 2.1000",\
-                    "2.1000, 2.1000, 2.1000",\
-                    "2.1000, 2.1000, 2.1000");
+                values("3.7788, 3.7788, 3.7788",\
+                    "3.7788, 3.7788, 3.7788",\
+                    "3.7788, 3.7788, 3.7788");
             }
         }
         timing() {
             timing_type : clock_gating_setup_rising;
             related_pin : "clk0";
             rise_constraint(CONSTRAINT_TABLE) {
-                values("0.1050, 0.1050, 0.1050",\
-                    "0.1050, 0.1050, 0.1050",\
-                    "0.1050, 0.1050, 0.1050");
+                values("0.0204, 0.0204, 0.0204",\
+                    "0.0204, 0.0204, 0.0204",\
+                    "0.0204, 0.0204, 0.0204");
             }
             fall_constraint(CONSTRAINT_TABLE) {
-                values("0.1050, 0.1050, 0.1050",\
-                    "0.1050, 0.1050, 0.1050",\
-                    "0.1050, 0.1050, 0.1050");
+                values("0.0204, 0.0204, 0.0204",\
+                    "0.0204, 0.0204, 0.0204",\
+                    "0.0204, 0.0204, 0.0204");
             }
         }
         timing() {
@@ -307,21 +501,33 @@ cell (random_2k) {
     pin(clk0) {
         clock : true;
         direction : input;
-        capacitance : 0.0025;
+        capacitance : 0.0044909;
         max_transition : 0.5;
         related_power_pin  : vccd1;
         related_ground_pin : vssd1;
         timing() {
             timing_type : "min_pulse_width";
             related_pin : clk0;
-            rise_constraint(scalar) { values("2.4200"); }
-            fall_constraint(scalar) { values("1.9500"); }
+            rise_constraint(scalar) { values("4.1038"); }
+            fall_constraint(scalar) { values("4.3846"); }
         }
         timing() {
             timing_type : "minimum_period";
             related_pin : clk0;
-            rise_constraint(scalar) { values("4.3700"); }
-            fall_constraint(scalar) { values("4.3700"); }
+            rise_constraint(scalar) { values("8.4884"); }
+            fall_constraint(scalar) { values("8.4884"); }
+        }
+        internal_power() {
+            related_pg_pin : vccd1;
+            when : "cs0";
+            rise_power(scalar) { values("53.6477"); }
+            fall_power(scalar) { values("53.6477"); }
+        }
+        internal_power() {
+            related_pg_pin : vccd1;
+            when : "!cs0";
+            rise_power(scalar) { values("2.5544"); }
+            fall_power(scalar) { values("2.5544"); }
         }
     }
 

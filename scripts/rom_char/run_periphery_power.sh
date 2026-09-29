@@ -34,6 +34,12 @@ GENC="$ROM_CHAR_DIR/gen_cell_gate_tb.py"
 
 MACROS=$(macro_list "$@")
 
+# Settling threshold & adaptive convergence parameters (configurable externally)
+SETTLE_MAX_PCT="${PERIPH_SETTLE_MAX_PCT:-${SETTLE_MAX_PCT:-1.0}}"
+CYCLES_START="${PERIPH_CYCLES_START:-${PERIPH_CYCLES:-8}}"
+MAX_CYCLES="${PERIPH_MAX_CYCLES:-20}"
+CYCLE_STEP="${PERIPH_CYCLE_STEP:-2}"
+
 # --- Step 1: equivalent cell gate capacitance ----------------------------
 echo "== Step 1: equivalent cell gate capacitance (C = Q(VDD)/VDD) =="
 for m in $MACROS; do
@@ -50,9 +56,41 @@ for m in $MACROS; do
   done
 done
 
+# Adaptive worker: runs deck and increases cycles until c2/c3 gap <= SETTLE_MAX_PCT
+run_periph_deck() {
+  _m="$1"; _c="$2"; _v="$3"; _t="$4"; _cg="$5"; _cs="$6"
+  _tag=$([ "$_cs" = 0 ] && echo idle || echo active)
+  _sp="$G_CHAR/periph_${_tag}_${_c}.sp"
+  _lg="$G_CHAR/periph_${_tag}_${_c}.log"
+  _cyc="$CYCLES_START"
+
+  while :; do
+    python3 "$GENP" "$_m" "$_cs" "$_sp" --corner "$_c" --vdd "$_v" --temp "$_t" \
+            --gate-cap-ff "$_cg" --cycles "$_cyc" >/dev/null
+    run_ng "periphery-energy" "$_sp" "$_lg" "$_m $_c cs$_cs (cyc=$_cyc)" || return 1
+    _q2=$(meas "$_lg" q_c2)
+    _q3=$(meas "$_lg" q_c3)
+    [ -z "$_q3" ] && break
+    _gap=$(echo "$_q2 $_q3" | awk '
+      { q2 = ($1 < 0 ? -$1 : $1); q3 = ($2 < 0 ? -$2 : $2);
+        printf "%.2f", q3 ? (q2-q3 < 0 ? q3-q2 : q2-q3)/q3*100 : 0 }')
+    _ok=$(echo "$_gap $SETTLE_MAX_PCT" | awk '{print ($1+0 <= $2+0) ? 1 : 0}')
+    if [ "$_ok" -eq 1 ]; then
+      break
+    fi
+    if [ "$_cyc" -ge "$MAX_CYCLES" ]; then
+      echo "  $_m $_c cs$_cs: reached max cycles ($_cyc) with gap ${_gap}% > ${SETTLE_MAX_PCT}%" >&2
+      break
+    fi
+    _next_cyc=$((_cyc + CYCLE_STEP))
+    echo "  $_m $_c cs$_cs: gap ${_gap}% > ${SETTLE_MAX_PCT}% -- adaptive settling: retrying with ${_next_cyc} cycles..." >&2
+    _cyc="$_next_cyc"
+  done
+}
+
 # --- Step 2: periphery energy --------------------------------------------
 echo
-echo "== Step 2: periphery energy per cycle =="
+echo "== Step 2: periphery energy per cycle (adaptive settling <= ${SETTLE_MAX_PCT}%) =="
 n=0
 for m in $MACROS; do
   load_geom "$m" || continue
@@ -62,13 +100,8 @@ for m in $MACROS; do
     cg=$(meas "$G_CHAR/cellgate_${c}.log" c_one_ff)
     [ -z "$cg" ] && { echo "  $m $c: no C_eq, skipped"; continue; }
     for cs in 0 1; do
-      tag=$([ "$cs" = 0 ] && echo idle || echo active)
-      sp="$G_CHAR/periph_${tag}_${c}.sp"
-      lg="$G_CHAR/periph_${tag}_${c}.log"
-      python3 "$GENP" "$m" "$cs" "$sp" --corner "$c" --vdd "$v" --temp "$t" \
-              --gate-cap-ff "$cg" >/dev/null
       job_slot
-      run_ng "periphery-energy" "$sp" "$lg" "$m $c cs$cs" & job_add $!
+      run_periph_deck "$m" "$c" "$v" "$t" "$cg" "$cs" & job_add $!
       n=$((n+1))
     done
   done
@@ -77,9 +110,7 @@ job_drain
 
 # --- Summary --------------------------------------------------------------
 echo
-printf "%-7s %-6s %-4s %14s %10s %14s\n" macro corner cs0 "E_periph(pJ)" "c2/c3(%)" "P@fmax(mW)"
-# Rows are collected here and judged AFTER the table, so one run still shows
-# every macro and corner before it fails.
+printf "%-7s %-6s %-4s %6s %14s %10s %14s\n" macro corner cs0 "cycles" "E_periph(pJ)" "c2/c3(%)" "P@fmax(mW)"
 rows=""
 for m in $MACROS; do
   load_geom "$m" || continue
@@ -92,43 +123,33 @@ for m in $MACROS; do
       lg="$G_CHAR/periph_${tag}_${c}.log"
       q2=$(meas "$lg" q_c2)
       q3=$(meas "$lg" q_c3)
+      cyc=$(grep -oE '[0-9]+\*TCLK' "$sp" 2>/dev/null | head -1 | cut -d'*' -f1)
+      [ -z "$cyc" ] && cyc="-"
       if [ -z "$q3" ]; then
-        printf "%-7s %-6s %-4s %14s\n" "$m" "$c" "$cs" "FAILED"; continue
+        printf "%-7s %-6s %-4s %6s %14s\n" "$m" "$c" "$cs" "$cyc" "FAILED"; continue
       fi
-      # The gap is computed separately from the row because it is now DATA --
-      # check_settled decides on it. Printed to two decimals for the same
-      # reason: at the 1% limit one decimal cannot show which side of it a
-      # row is on.
       gap=$(echo "$q2 $q3" | awk '
         { q2 = ($1 < 0 ? -$1 : $1); q3 = ($2 < 0 ? -$2 : $2);
           printf "%.2f", q3 ? (q2-q3 < 0 ? q3-q2 : q2-q3)/q3*100 : 0 }')
-      echo "$q3" | awk -v m="$m" -v c="$c" -v cs="$cs" -v v="$v" -v f="$f" -v g="$gap" '
+      echo "$q3" | awk -v m="$m" -v c="$c" -v cs="$cs" -v cyc="$cyc" -v v="$v" -v f="$f" -v g="$gap" '
         { q3 = ($1 < 0 ? -$1 : $1);
           e = q3*v*1e12;
           pmw = e*1e-12*f*1e6*1e3;
-          printf "%-7s %-6s %-4s %14.4f %10.2f %14.4f\n", m, c, cs, e, g, pmw }'
-      # EVERY row is collected, not just the ones that look bad here: the
-      # limit lives in check_settled and must not be spelled a second time.
+          printf "%-7s %-6s %-4s %6s %14.4f %10.2f %14.4f\n", m, c, cs, cyc, e, g, pmw }'
       rows="${rows}$m $c cs$cs|$gap|$lg|$sp
 "
     done
   done
 done
 echo
-echo "NOTE: the c2/c3 gap shows whether the circuit has SETTLED. Over"
-echo "      ${SETTLE_MAX_PCT}% FAILS the run (SETTLE_MAX_PCT to change it): raise --cycles"
-echo "      and re-run. The energy should be frequency independent -- check"
-echo "      with --tclk 400n."
+echo "NOTE: the c2/c3 gap shows whether the circuit has SETTLED. Limit is"
+echo "      ${SETTLE_MAX_PCT}% (SETTLE_MAX_PCT to change it). If un-settled, runs"
+echo "      adaptively increase up to ${MAX_CYCLES} cycles. The energy should be"
+echo "      frequency independent -- check with --tclk 400n."
 
-# Over the limit is a failure, not a remark. It is entered in the same ledger
-# a crash uses, so ng_summary reports both together and the exit code covers
-# both. Done after the table for the reason given at the top of it.
 printf '%s' "$rows" | while IFS='|' read -r cx gap lg sp; do
   [ -n "$cx" ] || continue
   check_settled "periphery-energy" "$lg" "$cx" "$gap" "$sp" || true
 done
 
-# Non-zero if any deck died OR any of them never settled. In the first case
-# the number is simply absent, and absent is indistinguishable from fine; in
-# the second it is present and wrong, which is worse.
 ng_summary
