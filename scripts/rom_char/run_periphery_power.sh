@@ -41,20 +41,22 @@ MAX_CYCLES="${PERIPH_MAX_CYCLES:-20}"
 CYCLE_STEP="${PERIPH_CYCLE_STEP:-2}"
 
 # --- Step 1: equivalent cell gate capacitance ----------------------------
-echo "== Step 1: equivalent cell gate capacitance (C = Q(VDD)/VDD) =="
-for m in $MACROS; do
-  load_geom "$m" || continue
-  for ck in $CORNERS; do
-    c=$(echo "$ck" | cut -d: -f1); v=$(echo "$ck" | cut -d: -f2)
-    t=$(echo "$ck" | cut -d: -f3)
-    sp="$G_CHAR/cellgate_${c}.sp"
-    lg="$G_CHAR/cellgate_${c}.log"
-    python3 "$GENC" "$m" "$sp" --corner "$c" --vdd "$v" --temp "$t" >/dev/null
-    run_ng "cell-gate-cap" "$sp" "$lg" "$m $c" || continue
-    cg=$(meas "$lg" c_one_ff)
-    printf "  %-7s %-6s C_eq = %s fF/cell\n" "$m" "$c" "${cg:-FAILED}"
+if [ "${SKIP_STEP1:-0}" != "1" ]; then
+  echo "== Step 1: equivalent cell gate capacitance (C = Q(VDD)/VDD) =="
+  for m in $MACROS; do
+    load_geom "$m" || continue
+    for ck in $CORNERS; do
+      c=$(echo "$ck" | cut -d: -f1); v=$(echo "$ck" | cut -d: -f2)
+      t=$(echo "$ck" | cut -d: -f3)
+      sp="$G_CHAR/cellgate_${c}.sp"
+      lg="$G_CHAR/cellgate_${c}.log"
+      python3 "$GENC" "$m" "$sp" --corner "$c" --vdd "$v" --temp "$t" >/dev/null
+      run_ng "cell-gate-cap" "$sp" "$lg" "$m $c" || continue
+      cg=$(meas "$lg" c_one_ff)
+      printf "  %-7s %-6s C_eq = %s fF/cell\n" "$m" "$c" "${cg:-FAILED}"
+    done
   done
-done
+fi
 
 # Adaptive worker: runs deck and increases cycles until c2/c3 gap <= SETTLE_MAX_PCT
 run_periph_deck() {
