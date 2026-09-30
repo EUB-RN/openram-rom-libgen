@@ -94,7 +94,7 @@ if not os.path.exists(SP):
     sys.exit(f"ERROR: {SP} does not exist -- run run_cap_extract.sh first")
 START = f"bl_0_{COL}"
 
-from spice_utils import SUFFIX, fix_units, to_float
+from spice_utils import fix_units, to_float
 
 def logical_lines(path):
     cur, name = None, None
@@ -515,6 +515,7 @@ Xbl_inv gnd vdd vdd {START} bl_b {inv_subckt}
 * 200 ps: the step is not a sensitivity here -- 100 ps against 200 ps moves
 * t_dis_50 by 0.007% -- and at a 1 us phase it keeps the run under a few
 * minutes.
+.options klu
 .tran 200p '3*TCLK'
 .end
 """

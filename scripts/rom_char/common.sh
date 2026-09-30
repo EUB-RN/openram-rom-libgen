@@ -279,6 +279,12 @@ prov_adopt() {
     echo "  $1: $(basename "$3") -- $_why" >&2
     return 1
   fi
+  if ! ng_log_uses_klu "$3"; then
+    _why="KLU was not selected -- refusing a legacy SPARSE/fallback result"
+    prov_invalidate "$3" "$_why"
+    echo "  $1: $(basename "$3") -- $_why" >&2
+    return 1
+  fi
   prov_write "$1" "$2" "$3" "${4:-}"
   return 0
 }
@@ -349,6 +355,12 @@ prov_check() {
 # in 0 of the 311 logs as well.
 NG_FATAL='Simulation interrupted|unknown subckt|no such vector|incomplete or empty netlist|Timestep too small|singular|iteration limit|[Ff]atal|Out of memory|MODELNAME|no data saved|analysis not run|can.t parse'
 
+# Successful characterization is KLU-only.  Checking ngspice's own solver
+# banner catches a forgotten `.options klu`, a KLU-less binary and fallback.
+ng_log_uses_klu() {
+  grep -Fq "Using KLU as Direct Linear Solver" "$1" 2>/dev/null
+}
+
 # One ledger per shell, so a failure inside a BACKGROUNDED job still reaches
 # the parent: a subshell cannot set a variable in it, but it can append a line.
 NG_LEDGER="${TMPDIR:-/tmp}/rom_char_ng_fail.$$"
@@ -375,6 +387,9 @@ run_ng() {
          sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | cut -c1-160)
   if [ -z "$_why" ] && [ "$_rc" -ne 0 ]; then
     _why="ngspice exited $_rc with no recognised message -- see the log"
+  fi
+  if [ -z "$_why" ] && ! ng_log_uses_klu "$_lg"; then
+    _why="KLU was not selected -- refusing a legacy SPARSE/fallback result"
   fi
   if [ -n "$_why" ]; then
     # The fatal signature is the VERDICT, but it is often ngspice's last word

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import collections
 import re
-from typing import Dict, Iterable, List, Optional, OrderedDict, Tuple
+from typing import Dict, Iterable, List, Optional, OrderedDict
 
 
 # Standard SPICE engineering / SI suffixes (case-insensitive parsing)

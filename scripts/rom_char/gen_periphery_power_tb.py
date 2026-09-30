@@ -113,6 +113,13 @@ ap.add_argument("--steps", type=int, default=200,
 ap.add_argument("--cycles", type=int, default=8,
                 help="number of cycles to run (at least 4). The last two full "
                      "cycles are measured; equal values prove settling.")
+ap.add_argument("--settle-max-cycles", type=int, default=None,
+                help="keep one transient alive and stop/resume it every two "
+                     "cycles until energy settles or this ceiling is reached")
+ap.add_argument("--settle-thresh", type=float, default=1.0,
+                help="relative q-cycle convergence limit for persistent settling (%%)")
+ap.add_argument("--noise-floor-pj", type=float, default=0.1,
+                help="absolute delta-E convergence limit for persistent settling (pJ)")
 ap.add_argument("--with-coldec", action="store_true",
                 help="also keep rom_column_decode and measure the COLUMN "
                      "SELECT path (precharge -> word_sel_k). The column "
@@ -154,14 +161,28 @@ ap.add_argument("--pin-only", default=None,
                      "pin is re-measured without paying for the other twelve.")
 ap.add_argument("--macros-dir", default=None,
                 help="macro tree (default: ROM_MACROS_DIR / <repo>/examples)")
+ap.add_argument("--paired", action="store_true",
+                help="generate a paired deck: runs active (cs0=1), resets circuit state, "
+                     "alters Vcs=0, and runs idle (cs0=0) in a single netlist parse.")
 args = ap.parse_args()
+
+if args.paired:
+    args.cs = 1
+
+if args.cycles < 4:
+    sys.exit("ERROR: --cycles must be at least 4")
+if args.settle_max_cycles is not None:
+    if args.settle_max_cycles < args.cycles:
+        sys.exit("ERROR: --settle-max-cycles must be >= --cycles")
+    if args.pin_cap or args.with_coldec or args.addr_alt is not None:
+        sys.exit("ERROR: persistent settling is only supported by the normal periphery-energy deck")
 
 M = args.macro
 SP = rom_paths.cap_netlist(M, args.macros_dir)
 if not os.path.exists(SP):
     sys.exit(f"ERROR: {SP} does not exist -- run run_cap_extract.sh first")
 
-from spice_utils import SUFFIX, blocks, fix_units, to_float
+from spice_utils import blocks, fix_units, to_float
 
 B = blocks(SP)
 TOP = M
@@ -562,6 +583,7 @@ wl_meas = [n for k in range(8)
 # measured clock edge; both trig and targ then catch the first crossing after
 # it. A late cycle is used so the circuit has settled.
 _tclk = to_float(args.tclk)
+_vdd = to_float(args.vdd)
 # Vclk below is PULSE(... TD={TCLK/2} ... PER={TCLK}), so clk0 RISES at
 # TCLK/2 + k*TCLK and FALLS at (k+1)*TCLK. _edge is therefore the start of a
 # PRECHARGE phase, not a rising edge -- the rising edge that closes it is half
@@ -805,8 +827,211 @@ if args.addr_alt is not None:
                        f"+                {_pad}TARG v({_n}) VAL='VDD/2' "
                        f"FALL=1 TD={_td:.6e}"]
 fe_txt = "\n".join(fe)
+
+def _controlify(measures):
+    """Turn .measure cards (including '+' continuations) into control commands."""
+    commands = []
+    for line in measures:
+        if line.startswith(".measure "):
+            commands.append("meas " + line[len(".measure "):])
+        elif line.startswith("+") and commands:
+            commands[-1] += " " + line[1:].strip()
+    return commands
+
+
+def _settled_front_end_measures(cycles):
+    """The normal energy deck's timing measurements at a chosen late cycle."""
+    edge = (cycles - 2) * _tclk
+    clk_rise = edge + _tclk / 2.0
+    td_trig = clk_rise - _tclk / 20.0
+    td_targ = clk_rise
+    wl_probe = clk_rise + 0.45 * _tclk
+    measures = []
+
+    def delay(name, node):
+        pad = " " * len(name)
+        return [f".measure tran {name} TRIG v(clk0) VAL={_vdd/2:.9e} RISE=1 TD={td_trig:.6e}",
+                f"+                {pad}TARG v({node}) VAL={_vdd/2:.9e} RISE=1 TD={td_targ:.6e}"]
+
+    if clk_int:
+        measures += delay("t_clk2int", clk_int[0])
+    for k, node in enumerate(wl_meas):
+        measures.append(f".measure tran v_wl{k}_eval FIND v({node}) AT={wl_probe:.6e}")
+        name = f"t_wlfall{k}"
+        pad = " " * len(name)
+        measures += [f".measure tran {name} TRIG v(clk0) VAL={_vdd/2:.9e} RISE=1 TD={td_trig:.6e}",
+                     f"+                {pad}TARG v({node}) VAL={_vdd/2:.9e} FALL=1 TD={td_targ:.6e}"]
+        for lo, hi, name in ((0.8, 0.2, f"t_wlslew{k}"),
+                             (0.9, 0.1, f"t_wl1090_{k}")):
+            pad = " " * len(name)
+            measures += [f".measure tran {name} TRIG v({node}) VAL={lo*_vdd:.9e} FALL=1 TD={td_targ:.6e}",
+                         f"+                {pad}TARG v({node}) VAL={hi*_vdd:.9e} FALL=1 TD={td_targ:.6e}"]
+    if pre_net and args.cs:
+        measures += delay("t_clk2pre", pre_net[0])
+    return _controlify(measures)
+
+
+def _persistent_stages(is_active=True, prefix=""):
+    """Generate nested stop/measure/resume stages without wrapping in .control."""
+    maximum = args.settle_max_cycles
+    if maximum is None:
+        return []
+    candidates = list(range(args.cycles, maximum + 1, 2))
+    if candidates[-1] != maximum:
+        candidates.append(maximum)
+
+    def final_measurements(cycles, indent, settled):
+        p = " " * indent
+        q2_from, q2_to = cycles - 3, cycles - 2
+        q3_from, q3_to = cycles - 2, cycles - 1
+        out = [
+            f"{p}meas tran q_c2 integ i(Vvdd) from={q2_from*_tclk:.9e} to={q2_to*_tclk:.9e}",
+            f"{p}meas tran q_c3 integ i(Vvdd) from={q3_from*_tclk:.9e} to={q3_to*_tclk:.9e}",
+            f"{p}let e_periph_pj = abs(q_c3)*{_vdd:.9e}*1e12",
+            f"{p}print e_periph_pj",
+        ]
+        if is_active:
+            out += [p + command for command in _settled_front_end_measures(cycles)]
+        marker = "PERIPH_SETTLED_CYCLES" if settled else "PERIPH_MAX_CYCLES"
+        out.append(f"{p}echo {marker}={cycles}")
+        return out
+
+    def stage(index, indent=0):
+        cycles = candidates[index]
+        p = " " * indent
+        q2_from, q2_to = cycles - 3, cycles - 2
+        q3_from, q3_to = cycles - 2, cycles - 1
+        tag = f"{prefix}c{cycles}"
+        out = [
+            f"{p}meas tran probe_q2_{tag} integ i(Vvdd) from={q2_from*_tclk:.9e} to={q2_to*_tclk:.9e}",
+            f"{p}meas tran probe_q3_{tag} integ i(Vvdd) from={q3_from*_tclk:.9e} to={q3_to*_tclk:.9e}",
+            f"{p}let probe_gap_{tag} = 999.99",
+            f"{p}if abs(probe_q3_{tag}) > 1e-18",
+            f"{p}  let probe_gap_{tag} = 100*abs(abs(probe_q2_{tag})-abs(probe_q3_{tag}))/abs(probe_q3_{tag})",
+            f"{p}end",
+            f"{p}let probe_delta_e_{tag} = abs(abs(probe_q2_{tag})-abs(probe_q3_{tag}))*{_vdd:.9e}*1e12",
+            f"{p}let probe_settled_{tag} = 0",
+            f"{p}if probe_gap_{tag} <= {args.settle_thresh}",
+            f"{p}  let probe_settled_{tag} = 1",
+            f"{p}end",
+            f"{p}if probe_delta_e_{tag} < {args.noise_floor_pj}",
+            f"{p}  let probe_settled_{tag} = 1",
+            f"{p}end",
+            f"{p}print probe_gap_{tag} probe_delta_e_{tag}",
+        ]
+        if index == len(candidates) - 1:
+            out += [f"{p}if probe_settled_{tag} = 1"]
+            out += final_measurements(cycles, indent + 2, True)
+            out += [f"{p}else"]
+            out += final_measurements(cycles, indent + 2, False)
+            out += [f"{p}end"]
+        else:
+            out += [f"{p}if probe_settled_{tag} = 1"]
+            out += final_measurements(cycles, indent + 2, True)
+            next_cycles = candidates[index + 1]
+            out += [f"{p}else",
+                    f"{p}  stop when time = {next_cycles * _tclk:.9e}",
+                    f"{p}  resume"]
+            out += stage(index + 1, indent + 2)
+            out += [f"{p}end"]
+        return out
+
+    lines = [f"stop when time = {candidates[0] * _tclk:.9e}",
+             "run"]
+    lines += stage(0)
+    return lines
+
+
+def _persistent_settling_control():
+    """Generate nested stop/measure/resume control flow without restarting tran."""
+    if args.settle_max_cycles is None:
+        return ""
+    lines = [".control"] + _persistent_stages(is_active=bool(args.cs)) + ["quit", ".endc"]
+    return "\n".join(lines)
+
+
+persistent_control = _persistent_settling_control()
 caps_txt = "\n".join(kept_c)
 loads_txt = "\n".join(load_lines)
+
+if args.paired:
+    if args.settle_max_cycles is not None:
+        act_lines = _persistent_stages(is_active=True, prefix="act_")
+        idle_lines = _persistent_stages(is_active=False, prefix="idle_")
+        paired_ctrl = [
+            ".control",
+            "set num_threads=4",
+            "echo PAIRED_MODE_BEGIN=active",
+        ] + act_lines + [
+            "echo PAIRED_MODE_END=active",
+            "destroy all",
+            "delete all",
+            "reset",
+            "alter Vcs=0",
+            "echo PAIRED_MODE_BEGIN=idle",
+        ] + idle_lines + [
+            "echo PAIRED_MODE_END=idle",
+            "rusage all",
+            "quit",
+            ".endc"
+        ]
+        # Keep the analysis endpoint one cycle beyond the last stop.  When a
+        # stop condition coincides exactly with the .tran endpoint, ngspice
+        # can leave "pause requested" latched across reset; in paired mode
+        # that makes the idle run stop before it has produced any samples.
+        energy_analysis = f""".tran '{args.tclk}/{args.steps}' '{args.settle_max_cycles + 1}*TCLK' uic
+* Paired active+idle simulation with persistent adaptive settling:
+* Netlist parsed once. Mode 1 (active) adapts from {args.cycles} to {args.settle_max_cycles} cycles.
+* Resets state, alters Vcs=0, then Mode 2 (idle) adapts from {args.cycles} to {args.settle_max_cycles} cycles.
+""" + "\n".join(paired_ctrl)
+    else:
+        energy_analysis = f""".tran '{args.tclk}/{args.steps}' '{args.cycles}*TCLK' uic
+* Paired active+idle simulation: netlist is parsed once.
+* Mode 1 (active, cs0=1) runs first, measuring energy and front-end timing.
+* Then circuit state is reset, Vcs altered to 0, and Mode 2 (idle, cs0=0) runs.
+.measure tran q_c2 integ i(Vvdd) from='{args.cycles - 3}*TCLK' to='{args.cycles - 2}*TCLK'
+.measure tran q_c3 integ i(Vvdd) from='{args.cycles - 2}*TCLK' to='{args.cycles - 1}*TCLK'
+.measure tran e_periph_pj param='abs(q_c3)*VDD*1e12'
+
+* --- front-end delay (the first term of access) ---
+{fe_txt}
+
+.control
+set num_threads=4
+echo PAIRED_MODE_BEGIN=active
+run
+echo PERIPH_SETTLED_CYCLES={args.cycles}
+echo PAIRED_MODE_END=active
+destroy all
+delete all
+reset
+alter Vcs=0
+echo PAIRED_MODE_BEGIN=idle
+run
+echo PERIPH_SETTLED_CYCLES={args.cycles}
+echo PAIRED_MODE_END=idle
+rusage all
+quit
+.endc"""
+elif persistent_control:
+    energy_analysis = f""".tran '{args.tclk}/{args.steps}' '{args.settle_max_cycles + 1}*TCLK' uic
+* One transient is loaded once. The control block pauses at --cycles, checks
+* two completed cycles, and resumes the SAME solver state by two cycles only
+* when needed. No candidate re-parses the deck or recomputes earlier cycles.
+{persistent_control}"""
+else:
+    energy_analysis = f""".tran '{args.tclk}/{args.steps}' '{args.cycles}*TCLK' uic
+* The LAST TWO cycles are measured separately: equal values show the circuit
+* has SETTLED (with uic every node starts at 0). At cs0=1 the precharge network
+* is so heavily loaded that 4 cycles were NOT enough -- on 2026-09-06 the c2/c3
+* gap reached 30%, so the measurement window now moves with --cycles and the
+* default cycle count was raised.
+.measure tran q_c2 integ i(Vvdd) from='{args.cycles - 3}*TCLK' to='{args.cycles - 2}*TCLK'
+.measure tran q_c3 integ i(Vvdd) from='{args.cycles - 2}*TCLK' to='{args.cycles - 1}*TCLK'
+.measure tran e_periph_pj param='abs(q_c3)*VDD*1e12'
+
+* --- front-end delay (the first term of access) ---
+{fe_txt}"""
 
 # --- PIN CAPACITANCE ------------------------------------------------------
 # README limitation 5 until 2026-09-22: `capacitance` on every input pin was
@@ -946,7 +1171,10 @@ else:
                 f"{_t_sw + 100e-12:.6e} {v1})")
     addr_src = "\n".join(_lines)
 cs_val = "{VDD}" if args.cs else "0"
-mode = "ACTIVE (cs0=1)" if args.cs else "IDLE (cs0=0)  -->  when : \"!cs0\""
+if args.paired:
+    mode = "PAIRED (cs0=1 active -> cs0=0 idle)"
+else:
+    mode = "ACTIVE (cs0=1)" if args.cs else "IDLE (cs0=0)  -->  when : \"!cs0\""
 wl_n = sum(1 for p, c, w in load_report if re.match(r"^wl_", p))
 cells = sum(c for p, c, w in load_report if re.match(r"^wl_", p))
 
@@ -1026,7 +1254,7 @@ Vgnd {SUPPLY_LO} 0 DC 0
 * ramp is ~10 uA, four orders above abstol=1e-12.
 * method=gear is kept for the reason it was introduced next door -- trapezoidal
 * ringing on the extracted body nodes lands straight in a charge integral.
-.options gmin=1e-12 abstol=1e-12 reltol=1e-3 itl1=500 itl4=100 method=gear
+.options klu gmin=1e-12 abstol=1e-12 reltol=1e-3 itl1=500 itl4=100 method=gear
 * uic: the precharged decoder chain nodes have no DC path, so .op does not
 * converge (see the energy deck). The first {_t0*1e9:.0f} ns are settling time
 * before the first pin is touched.
@@ -1044,6 +1272,7 @@ Vgnd {SUPPLY_LO} 0 DC 0
 .end
 """
 else:
+    options_line = ".options klu gmin=1e-12 abstol=1e-12 reltol=1e-3 itl1=500 itl4=100 method=gear"
     tb = f"""* {M} -- PERIPHERY energy per cycle -- {mode}
 * Kept:    rom_control_logic (clock driver + control_nand + prechg driver)
 *          rom_row_decode    (address buffers + decoder + wl drivers)
@@ -1112,24 +1341,14 @@ Vclk clk0 0 PULSE(0 {{VDD}} {{TCLK/2}} {slew} {slew} {{TCLK/2-{slew}}} {{TCLK}})
 * Rejected alternatives: cshunt=1e-18 did not stop the abort; relaxing the
 * tolerances (abstol/gmin 1e-10, reltol 1e-2) ran to the end but returned
 * 8.2109 pJ, 31% high -- it breaks the charge integral silently.
-.options gmin=1e-12 abstol=1e-12 reltol=1e-3 itl1=500 itl4=100 method=gear
+{options_line}
 * uic IS REQUIRED: the internal nodes of the precharged decoder have no DC
 * path, so .op does not converge (tried 2026-09-06 -- still at the operating
 * point after 10 minutes). The column measurement uses uic for the same reason.
-.tran '{args.tclk}/{args.steps}' '{args.cycles}*TCLK' uic
-* The LAST TWO cycles are measured separately: equal values show the circuit
-* has SETTLED (with uic every node starts at 0). At cs0=1 the precharge network
-* is so heavily loaded that 4 cycles were NOT enough -- on 2026-09-06 the c2/c3
-* gap reached 30%, so the measurement window now moves with --cycles and the
-* default cycle count was raised.
-.measure tran q_c2 integ i(Vvdd) from='{args.cycles - 3}*TCLK' to='{args.cycles - 2}*TCLK'
-.measure tran q_c3 integ i(Vvdd) from='{args.cycles - 2}*TCLK' to='{args.cycles - 1}*TCLK'
-.measure tran e_periph_pj param='abs(q_c3)*VDD*1e12'
-
-* --- front-end delay (the first term of access) ---
-{fe_txt}
+{energy_analysis}
 .end
 """
 open(args.out, "w").write(tb)
-print(f"written: {args.out}  ({M}, cs0={args.cs}, corner={args.corner}, "
+cs_desc = "paired(1->0)" if args.paired else args.cs
+print(f"written: {args.out}  ({M}, cs0={cs_desc}, corner={args.corner}, "
       f"{wl_n} wordlines / {cells} cell gates, {len(kept_c)} C)")

@@ -26,14 +26,16 @@
 #     wlbuf       0.6925 nA   0.68895    0.68894    -> 1e-15 is enough
 #     abuf        5.62 pA     0.2297     0.2241     -> 1e-12 is 96% artificial
 #     dec        42.2 pA      0.0825     0.0353     -> 1e-15 still 2.3x high
-# So a single gmin cannot serve every slice. This script runs the whole axis
-# and reports, PER SLICE, the value where the answer stops moving; a slice
-# that never settles is printed as NOT CONVERGED and must not be used.
+# So a single gmin cannot serve every slice. This script generates the axis
+# adaptively and reports, PER SLICE, the value where the answer stops moving
+# for two consecutive intervals; a slice that reaches the safety floor without
+# settling is printed as NOT CONVERGED and must not be used.
 #
 # Usage: scripts/rom_char/run_periphery_leak.sh [macro ...]
-#        GMINS="1e-12 1e-15 1e-18 1e-21" scripts/rom_char/run_periphery_leak.sh
-# Output: <macro>/char/periph_leak_cs<n>_<corner>_g<gmin>.log
-#         + <macro>/char/periph_leak_cs<n>_<corner>.total   (nA, converged)
+#        GMIN_START=1e-12 GMIN_FACTOR=1e-3 GMIN_FLOOR=1e-30 ...
+# Output: <macro>/char/periph_leak_paired_<corner>.sp/.log (one parsed deck)
+#         + periph_leak_cs<n>_<corner>_g<gmin>.log (marker-split results)
+#         + periph_leak_cs<n>_<corner>.total       (nA, converged)
 
 set -e
 . "$(dirname "$0")/common.sh"
@@ -41,9 +43,13 @@ need_ngspice
 ng_reset          # clear the failure ledger for this run
 GEN="$ROM_CHAR_DIR/gen_periphery_leak_tb.py"
 
-# The axis reaches two decades past the value the array deck settled on: the
-# proof that a value is converged is the NEXT one down agreeing with it.
-GMINS="${GMINS:-1e-12 1e-15 1e-18 1e-21}"
+# Adaptive axis: no fixed list. Each new point is the previous gmin times the
+# factor. The run stops only after every slice agrees for STABLE_ROUNDS
+# consecutive intervals, or fails at the configurable numerical safety floor.
+GMIN_START="${GMIN_START:-1e-12}"
+GMIN_FACTOR="${GMIN_FACTOR:-1e-3}"
+GMIN_FLOOR="${GMIN_FLOOR:-1e-30}"
+GMIN_STABLE_ROUNDS="${GMIN_STABLE_ROUNDS:-2}"
 # cs0 gates the precharge path, so it changes the control logic's state.
 CS_STATES="${CS_STATES:-0 1}"
 # a slice is converged when two neighbouring gmin values agree this closely
@@ -61,39 +67,66 @@ for m in $(macro_list "$@"); do
     c=$(echo "$ck" | cut -d: -f1)
     v=$(echo "$ck" | cut -d: -f2)
     t=$(echo "$ck" | cut -d: -f3)
+    # Generate and parse ONE deck per corner. The control block changes gmin
+    # and Vcs in place, runs .op, and brackets every result with stable markers.
+    # This grows the gmin axis until convergence while avoiding repeated parses.
+    paired_sp="$G_CHAR/periph_leak_paired_${c}.sp"
+    paired_lg="$G_CHAR/periph_leak_paired_${c}.log"
+    counts=$(python3 "$GEN" "$m" --corner "$c" --vdd "$v" --temp "$t" \
+                     --gmin "$GMIN_START" --paired \
+                     --gmin-start "$GMIN_START" --gmin-factor "$GMIN_FACTOR" \
+                     --gmin-floor "$GMIN_FLOOR" --stable-rounds "$GMIN_STABLE_ROUNDS" \
+                     --settle-tol "$TOL" --zero-na "$ZERO" 2>/dev/null)
+    run_ng "periphery-leak" "$paired_sp" "$paired_lg" \
+           "$m $c paired cs0=0,1 gmin-sweep" || continue
+
     for cs in $CS_STATES; do
-      # the generator prints "count <tag> <n>" -- the multipliers come from
-      # the netlist, never from this file
-      counts=$(python3 "$GEN" "$m" --cs0 "$cs" --corner "$c" --vdd "$v" \
-                       --temp "$t" --gmin "$(echo "$GMINS" | cut -d' ' -f1)" \
-                       2>/dev/null)
-      n=0
-      for g in $GMINS; do
-        python3 "$GEN" "$m" --cs0 "$cs" --corner "$c" --vdd "$v" \
-                --temp "$t" --gmin "$g" >/dev/null 2>&1
-        sp="$G_CHAR/periph_leak_cs${cs}_${c}_g${g}.sp"
+      cslog="$G_CHAR/periph_leak_cs${cs}_${c}_adaptive.log"
+      awk -v cs="$cs" '$0 == "LEAK_CS_BEGIN=" cs, $0 == "LEAK_CS_END=" cs' \
+          "$paired_lg" > "$cslog"
+      if ! grep -q "^LEAK_CS_CONVERGED=$cs$" "$cslog"; then
+        ng_fail "periphery-leak" "$m $c cs$cs adaptive-gmin" "$paired_sp" "$cslog" \
+                "0 (adaptive gmin)" "gmin reached $GMIN_FLOOR without two stable intervals"
+        continue
+      fi
+      gmins=$(awk '/^LEAK_ITER_BEGIN$/ {inside=1; next}
+                   /^LEAK_ITER_END$/ {inside=0}
+                   inside && $1=="g" && $2=="=" {
+                     printf "%s%.0e", sep, $3; sep=" "
+                   }' "$cslog")
+
+      # Keep the legacy per-state/per-gmin LOGS so diagnostics and downstream
+      # readers do not need to know that execution was paired. All of them
+      # point at the one real paired deck in provenance; no duplicate .sp
+      # files are generated.
+      for g in $gmins; do
         lg="$G_CHAR/periph_leak_cs${cs}_${c}_g${g}.log"
-        job_slot
-        run_ng "periphery-leak" "$sp" "$lg" "$m $c cs$cs gmin=$g" & job_add $!
-        n=$((n + 1))
+        awk -v target="$g" '
+          /^LEAK_ITER_BEGIN$/ { capture=1; block=$0 ORS; current=""; next }
+          capture { block=block $0 ORS }
+          capture && $1=="g" && $2=="=" { current=sprintf("%.0e", $3) }
+          /^LEAK_ITER_END$/ {
+            if (current==target) printf "%s", block
+            capture=0
+          }' "$cslog" > "$lg"
+        prov_write "periphery-leak" "$paired_sp" "$lg" "$m $c cs$cs gmin=$g"
       done
-      # a real join, not a throttle: the table below reads these logs
-      job_drain
 
       # per slice: the smallest gmin is the answer, the point above it
       # agreeing is the proof
       echo "== $m $c cs0=$cs =="
       printf "%-8s %-6s" slice count
-      for g in $GMINS; do printf " %12s" "$g"; done
+      for g in $gmins; do printf " %12s" "$g"; done
       printf " %14s %s\n" "converged(nA)" "at"
       total=""
       for tag in $(echo "$counts" | awk '/^count /{print $2}'); do
         cnt=$(echo "$counts" | awk -v t="$tag" '$1=="count" && $2==t {print $3}')
         vals=""
-        for g in $GMINS; do
+        for g in $gmins; do
           lg="$G_CHAR/periph_leak_cs${cs}_${c}_g${g}.log"
           # .op prints the source branch current; into the source is negative
-          i=$(awk -v n="v$tag#branch" '$1==n {printf "%.6g", -$2*1e9}' "$lg")
+          i=$(awk -v n="v$tag#branch" '$1==n {
+                x = ($2 == "=" ? $3 : $2); printf "%.6g", -x*1e9 }' "$lg")
           vals="$vals ${i:-NA}"
         done
         # The ANSWER is the smallest gmin on the axis; the point above it
@@ -101,13 +134,18 @@ for m in $(macro_list "$@"); do
         # deck uses). Also report the first gmin that already lands within
         # TOL of it -- that is the "1e-15 is enough for this slice" fact.
         conv=$(echo "$vals" | awk -v tol="$TOL" -v zero="$ZERO" '{
-            last = $NF; prev = $(NF-1)
-            if (last == "NA" || prev == "NA") { print "NOTCONV", 0; exit }
+            if (NF < 3) { print "NOTCONV", 0; exit }
+            last = $NF; prev = $(NF-1); prev2 = $(NF-2)
+            if (last == "NA" || prev == "NA" || prev2 == "NA") { print "NOTCONV", 0; exit }
             a = (last < 0) ? -last : last
-            if (a < zero) { print last, -1; exit }
-            d = (last == 0) ? 0 : (last - prev) / last * 100
-            if (d < 0) d = -d
-            if (d > tol) { print "NOTCONV", 0; exit }
+            ap = (prev < 0) ? -prev : prev
+            ap2 = (prev2 < 0) ? -prev2 : prev2
+            if (a < zero && ap < zero && ap2 < zero) { print last, -1; exit }
+            d1 = (last == 0) ? 0 : (last - prev) / last * 100
+            d2 = (prev == 0) ? 0 : (prev - prev2) / prev * 100
+            if (d1 < 0) d1 = -d1
+            if (d2 < 0) d2 = -d2
+            if (d1 > tol || d2 > tol) { print "NOTCONV", 0; exit }
             first = NF
             for (i = 1; i <= NF; i++) {
               if ($i == "NA") continue
@@ -121,7 +159,7 @@ for m in $(macro_list "$@"); do
         printf "%-8s %-6s" "$tag" "$cnt"
         for x in $vals; do printf " %12s" "$x"; done
         if [ "$cval" = NOTCONV ]; then
-          printf " %14s %s\n" "NOT CONVERGED" "-- widen GMINS"
+          printf " %14s %s\n" "NOT CONVERGED" "-- reached GMIN_FLOOR"
         else
           if [ "$cidx" = "-1" ]; then
             # under the ZERO floor: the slice passes nothing, and saying
@@ -129,7 +167,7 @@ for m in $(macro_list "$@"); do
             # convergence claim the sweep never made.
             printf " %14.6g %s\n" "$cval" "ZERO (under ${ZERO} nA floor)"
           else
-          gsel=$(echo "$GMINS" | cut -d' ' -f"$cidx")
+          gsel=$(echo "$gmins" | cut -d' ' -f"$cidx")
           printf " %14.6g %s\n" "$cval" "clean from gmin=$gsel"
           fi
           total=$(awk -v s="${total:-0}" -v a="$cval" -v n="$cnt" \

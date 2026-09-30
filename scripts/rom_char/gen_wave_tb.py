@@ -237,9 +237,8 @@ module tb_{macro}_wave;
   // array stays X). {macro}_rom.mem is the same contents as $readmemb text,
   // written by {sig} at the same time as this file.
   //
-  // The path is absolute because a simulator's working directory is its own
-  // business -- Vivado runs from <project>.sim/sim_1/behav/xsim, where a
-  // relative path does not resolve. Override it if the tree moves:
+  // Relative path resolved from the repository root / working directory.
+  // Override it if running from another directory:
   //     xelab -generic_top "INIT_FILE=/other/path/{macro}_rom.mem" ...
   parameter INIT_FILE = "{init}";
 
@@ -528,7 +527,7 @@ def main():
 
         # The model's INIT_FILE is relative to the macro tree, and it points at
         # a raw .bin that $readmemb cannot read. Both are fixed here: the .bin
-        # is converted to text and the TB gets an absolute path to that.
+        # is converted to text and the TB gets a relative path to that.
         mdir = rom_paths.macro_dir(macro, args.macros_dir)
         bin_path = os.path.join(mdir, info["init"]) if info["init"] else ""
         init, words = "", 0
@@ -536,7 +535,10 @@ def main():
         if bin_path and os.path.exists(bin_path):
             words = write_mem(bin_path, mem_path, info["width"], info["depth"],
                               args.endian)
-            init = mem_path
+            try:
+                init = os.path.relpath(mem_path, REPO)
+            except ValueError:
+                init = mem_path
         else:
             print("%-7s WARNING: %s does not exist -- the TB will simulate "
                   "against an empty memory (dout0 all X)."

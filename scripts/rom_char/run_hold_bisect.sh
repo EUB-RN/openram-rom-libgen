@@ -62,7 +62,6 @@
 #          scripts/rom_char/run_hold_bisect.sh wrom0     # the old ideal step
 #
 # Look at the converged answer:
-#   scripts/rom_char/run_addr_hold.sh  -- or --
 #   python3 scripts/rom_char/gen_addr_hold_tb.py <macro> look.sp \
 #       --sweep-ns <lo>,<hold> --wl-slew-ns <tf> && ngspice look.sp
 

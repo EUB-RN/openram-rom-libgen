@@ -22,9 +22,10 @@ those from the extracted netlist separately, so nothing is counted twice.
 Usage: gen_cell_gate_tb.py <macro> <out.sp> [--corner tt|ss|ff]
                            [--vdd 1.8] [--temp 25]
 """
-import argparse, os, re, sys
+import argparse
+import os
+import sys
 
-import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rom_paths
 
@@ -42,7 +43,7 @@ SP = rom_paths.cap_netlist(args.macro, args.macros_dir)
 if not os.path.exists(SP):
     sys.exit(f"ERROR: {SP} does not exist -- run run_cap_extract.sh first")
 
-from spice_utils import SUFFIX, fix_units, to_float
+from spice_utils import fix_units
 
 # grab the bare device line from the cell sub-circuit (written with port names)
 def cell_device(sub):
@@ -87,7 +88,7 @@ Vg1 g1 0 PWL(0 0 {{TR}} {{VDD}})
 
 {devs}
 
-.options gmin=1e-12 abstol=1e-15 reltol=1e-4
+.options klu gmin=1e-12 abstol=1e-15 reltol=1e-4
 .tran 'TR/2000' '1.2*TR' uic
 .measure tran q_one  integ i(Vg0) from=0 to='TR'
 .measure tran q_zero integ i(Vg1) from=0 to='TR'

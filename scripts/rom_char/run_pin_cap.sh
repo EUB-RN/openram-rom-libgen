@@ -54,11 +54,6 @@ PIN_MAX_ITER="${PIN_MAX_ITER:-15}"
 PIN_STEP_TH="${PIN_STEP_TH:-1.5}"
 PIN_MAX_TH="${PIN_MAX_TH:-80n}"
 
-# If invoked with --iter or PIN_ITER=1, dispatch to the standalone iterative engine
-if [ "$PIN_ITER" = "1" ] || echo "$*" | grep -q -- "--iter"; then
-  exec python3 "$ROM_CHAR_DIR/run_pin_cap_iter.py" "$@"
-fi
-
 # THERE IS NO WHOLE-MACRO REFERENCE RUN, and this is the one cross-check that
 # is deliberately NOT offered. It existed: a --keep-all deck that deleted
 # nothing, the full cell array simulated, so the reduction had nothing left to

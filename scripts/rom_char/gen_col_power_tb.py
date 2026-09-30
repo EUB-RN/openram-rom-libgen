@@ -134,7 +134,7 @@ Vprecharge precharge 0 DC 0
 *   gmin=1e-15 -> 0.366 nA
 *   gmin=1e-18 -> 0.366 nA   (same -> converged)
 * 1e-15 is sufficient and safe.
-.options gmin=1e-15 abstol=1e-15 reltol=1e-3 itl1=500
+.options klu gmin=1e-15 abstol=1e-15 reltol=1e-3 itl1=500
 * .op IS USED (NOT a transient): in a transient with "uic" every node starts
 * at 0 and charges slowly through a resistive chain of dozens of transistors;
 * even at 600 ns it had not settled (65 -> 19 -> 8.7 nA, still falling) and the
@@ -174,7 +174,7 @@ Vprecharge precharge 0 PULSE(0 {{VDD}} {{TCLK/2}} 100p 100p {{TCLK/2-100p}} {{TC
 * abstol: 1e-15 belongs to the LEAKAGE branch above, where the currents are
 * nanoamps. Here they are microamps and tightening it only makes convergence
 * harder (the same finding as next door).
-.options gmin=1e-12 abstol=1e-12 reltol=1e-3 itl1=500 itl4=100{" method=gear" if args.integrator == "gear" else ""}
+.options klu gmin=1e-12 abstol=1e-12 reltol=1e-3 itl1=500 itl4=100{" method=gear" if args.integrator == "gear" else ""}
 .tran '{args.tclk}/{args.steps}' '{args.cycles}*TCLK' uic
 * The two cycles before the last one are measured separately: equal values
 * prove the circuit has SETTLED (with uic every node starts at 0 and the chain

@@ -80,7 +80,7 @@ SP = rom_paths.cap_netlist(M, args.macros_dir)
 if not os.path.exists(SP):
     sys.exit(f"ERROR: {SP} does not exist -- run run_cap_extract.sh first")
 
-from spice_utils import SUFFIX, blocks, fix_units, to_float
+from spice_utils import blocks, fix_units, to_float
 
 B = blocks(SP)
 TOP = M
@@ -413,7 +413,7 @@ Vsrc {src_net} 0 PWL(0 {wave[0][1]:.6f} {pwl})
 
 {defs}
 
-.options gmin=1e-12 abstol=1e-12 reltol=1e-3 itl1=500 itl4=100
+.options klu gmin=1e-12 abstol=1e-12 reltol=1e-3 itl1=500 itl4=100
 .ic v({src_net})={{VDD}}
 .tran '(TSTART+TFALL)/2000' '2*(TSTART+TFALL)' uic
 {meas_txt}
