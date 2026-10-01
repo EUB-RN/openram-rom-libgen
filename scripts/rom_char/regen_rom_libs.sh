@@ -127,7 +127,7 @@ corner_inputs() {
   for _t in $(load_tags); do echo "$G_CHAR/backend_${1}_${_t}.log"; done
   _i=0
   for _s in $SLEWS; do echo "$G_CHAR/periph_slew${_i}_${1}.log"; _i=$((_i+1)); done
-  for _a in 0 1 2 3 4 5 6 7; do echo "$G_CHAR/coldec_a${_a}_${1}.log"; done
+  for _a in $(coldec_addresses); do echo "$G_CHAR/coldec_a${_a}_${1}.log"; done
 }
 
 # How many random reads the active-energy average is taken over.
@@ -135,6 +135,20 @@ ROM_ENERGY_READS="${ROM_ENERGY_READS:-10}"
 
 # file-name tag of a .lib CELL_TABLE index_2 point (1.7225 -> 17225)
 load_tags() { for cl in $LOADS; do echo "$cl" | tr -d '.'; done; }
+
+# Address logs intentionally selected by the last successful coldec run.
+# No manifest means a pre-optimization tree, for which checking all eight is
+# the conservative and backward-compatible behaviour. An explicit environment
+# override still wins for manual/full-sweep workflows.
+coldec_addresses() {
+  if [ -n "${COLDEC_ADDRS:-}" ]; then
+    echo "$COLDEC_ADDRS"
+  elif [ -s "$G_CHAR/.coldec_addresses" ]; then
+    cat "$G_CHAR/.coldec_addresses"
+  else
+    echo "0 1 2 3 4 5 6 7"
+  fi
+}
 
 # comma-separated list in ns: $1=char dir  $2=corner  $3=measurement name
 be_list() {
@@ -277,7 +291,7 @@ for m in $(macro_list "$@"); do
     #     library has to survive. Absent logs are reported, not silently
     #     skipped: the .lib then says the block was never simulated.
     cd_ns=""
-    for a in 0 1 2 3 4 5 6 7; do
+    for a in $(coldec_addresses); do
       v=$(awk '/^t_pre2sel[0-9]+_rise /{ if ($3+0 > 0) print $3 }' \
             "$G_CHAR/coldec_a${a}_${c}.log" 2>/dev/null | head -1)
       [ -z "$v" ] && continue

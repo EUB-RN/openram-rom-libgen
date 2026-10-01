@@ -34,28 +34,24 @@
 # -- 32 pass transistors plus 44-79 fF of wire per select. A decoder measured
 # into no load is not a measurement.
 #
-# COST, and MIND THE MEMORY. cs0=1 only (at cs0=0 the precharge net never
-# rises and there is nothing to measure), so it is <corners> x <addresses>
-# runs per macro, each about 6 minutes. Each ngspice holds ~2.6 GB: this deck
-# keeps the row decoder as well, because the precharge edge the decoder sees is
-# produced by the real precharge driver rather than a synthetic ramp. JOBS=12
-# on a 31 GB machine drove it into swap and one batch had not finished in 22
-# minutes (2026-09-22). Budget ~3 GB per job.
+# COST, and why this is ONE TRANSIENT per corner. cs0=1 only (at cs0=0 the
+# precharge net never rises). The deck keeps the row decoder because the real
+# precharge driver and its real shared load set the edge seen by the column
+# decoder. One process therefore holds ~2.9 GB on wrom0.
 #
-# The full 8 x 3 x 4 sweep is over 9 CPU-hours, and most of it is redundant:
-# the eight selects differ only in wire load (44-79 fF on the examples,
-# monotonic from sel_0 down to sel_7), so ONE address is the worst everywhere.
-# The two-phase run below gets the same evidence in about half an hour:
+# The old flow launched one ngspice process per address: 8 addresses x 3
+# corners, parsing and elaborating the same large netlist 24 times per macro.
+# The default full address set is now encoded as eight five-cycle blocks in one
+# continuous transient. Each corner parses once, changes addr0[2:0] only at a
+# precharge boundary, proves one-hot selection with bounded FIND measurements,
+# and checks consecutive-cycle settling before splitting compatibility logs.
+# TT/SS/FF are all swept independently, so there is no assumption that TT's
+# slowest select remains slowest across PVT. Measured wrom0/TT: 594.7 s and
+# 2.86 GB for the integrated sweep, versus roughly 17 minutes and six parallel
+# ~2.6 GB processes for the previous address-by-address run.
 #
-#   # A) which select each address drives, and which one is slowest -- one
-#   #    macro, one corner is enough to establish the pattern
-#   ROM_CORNERS="tt:1.8:25:38.2" JOBS=6 \
-#     scripts/rom_char/run_coldec_delay.sh wrom0
-#   # B) that worst address everywhere -- these are the numbers the .lib uses
-#   COLDEC_ADDRS="0" JOBS=6 scripts/rom_char/run_coldec_delay.sh
-#
-# regen_rom_libs.sh takes the WORST t_pre2sel over whatever coldec_a*_<corner>
-# logs exist, so a partial sweep is honest -- it just has less to choose from.
+# A non-default COLDEC_ADDRS subset or COLDEC_CYCLES other than 5 retains the
+# legacy one-deck-per-address path for targeted diagnostics.
 #
 # Usage: scripts/rom_char/run_coldec_delay.sh [macro ...]
 
@@ -64,6 +60,8 @@ set -e
 need_ngspice
 ng_reset          # clear the failure ledger for this run
 GENP="$ROM_CHAR_DIR/gen_periphery_power_tb.py"
+GENSWEEP="$ROM_CHAR_DIR/gen_coldec_sweep_tb.py"
+SPLITSWEEP="$ROM_CHAR_DIR/split_coldec_sweep_log.py"
 
 # The column decoder takes addr0[0:2]; each of the eight values selects one
 # column select. Sweeping all eight is what turns the "failed" lines into
@@ -75,6 +73,31 @@ ADDRS="${COLDEC_ADDRS:-0 1 2 3 4 5 6 7}"
 CYCLES="${COLDEC_CYCLES:-5}"
 
 MACROS=$(macro_list "$@")
+
+# One KLU parse and one continuous transient for the complete address sweep.
+# The compatibility logs written at the end keep every downstream consumer
+# unchanged: they still see coldec_a<addr>_<corner>.log plus provenance.
+run_sweep_job() {
+  _m="$1"; _c="$2"; _v="$3"; _sp="$4"; _lg="$5"; _char="$6"
+  if ! run_ng "column-decode-sweep" "$_sp" "$_lg" "$_m $_c addr0-7"; then
+    return 0                         # run_ng already recorded the failure
+  fi
+  if ! python3 "$SPLITSWEEP" "$_lg" "$_char" "$_c" --vdd "$_v" \
+          --settle-thresh "$SETTLE_MAX_PCT"; then
+    _why="the one-transient address sweep failed one-hot/settling validation"
+    ng_fail "column-decode-sweep" "$_m $_c addr0-7" "$_sp" "$_lg" \
+            "0 (simulation completed)" "$_why"
+    for _a in 0 1 2 3 4 5 6 7; do
+      prov_invalidate "$_char/coldec_a${_a}_${_c}.log" "$_why"
+    done
+    return 0
+  fi
+  for _a in 0 1 2 3 4 5 6 7; do
+    prov_write "column-decode-sweep" "$_sp" \
+      "$_char/coldec_a${_a}_${_c}.log" "$_m $_c addr$_a"
+  done
+  return 0
+}
 
 echo "== column decode delay: precharge -> column select =="
 echo "   addresses: $ADDRS   cycles: $CYCLES"
@@ -91,19 +114,33 @@ for m in $MACROS; do
       echo "  $m $c: no cellgate log -- run run_periphery_power.sh first, skipped"
       continue
     fi
-    for a in $ADDRS; do
-      sp="$G_CHAR/coldec_a${a}_${c}.sp"
-      lg="$G_CHAR/coldec_a${a}_${c}.log"
-      python3 "$GENP" "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
-              --gate-cap-ff "$cg" --with-coldec --addr "$a" \
-              --cycles "$CYCLES" >/dev/null
+    if [ "$ADDRS" = "0 1 2 3 4 5 6 7" ] && [ "$CYCLES" = 5 ]; then
+      base="$G_CHAR/coldec_sweep_${c}.base.sp"
+      sp="$G_CHAR/coldec_sweep_${c}.sp"
+      lg="$G_CHAR/coldec_sweep_${c}.log"
+      python3 "$GENP" "$m" 1 "$base" --corner "$c" --vdd "$v" --temp "$t" \
+              --gate-cap-ff "$cg" --with-coldec --addr 0 --cycles 5 >/dev/null
+      python3 "$GENSWEEP" "$base" "$sp"
       job_slot
-      run_ng "column-decode" "$sp" "$lg" "$m $c addr$a" & job_add $!
+      run_sweep_job "$m" "$c" "$v" "$sp" "$lg" "$G_CHAR" & job_add $!
       n=$((n+1))
-    done
+    else
+      for a in $ADDRS; do
+        sp="$G_CHAR/coldec_a${a}_${c}.sp"
+        lg="$G_CHAR/coldec_a${a}_${c}.log"
+        python3 "$GENP" "$m" 1 "$sp" --corner "$c" --vdd "$v" --temp "$t" \
+                --gate-cap-ff "$cg" --with-coldec --addr "$a" \
+                --cycles "$CYCLES" >/dev/null
+        job_slot
+        { run_ng "column-decode" "$sp" "$lg" "$m $c addr$a" || :; } & job_add $!
+        n=$((n+1))
+      done
+    fi
   done
 done
-job_drain
+job_drain || :
+sim_rc=0
+ng_summary || sim_rc=1
 
 # --- Summary --------------------------------------------------------------
 # For each address: which select moved, how long it took, and what it has to
@@ -111,7 +148,7 @@ job_drain
 echo
 printf "%-7s %-6s %5s %5s %12s %12s %10s\n" \
        macro corner addr sel "t_pre2sel" "t_dis_50" "margin"
-rc=0
+rc=$sim_rc
 for m in $MACROS; do
   load_geom "$m" || continue
   for ck in $CORNERS; do
@@ -160,6 +197,15 @@ done
 
 echo
 if [ "$rc" = 0 ]; then
+  # Persist the address set that this successful run proved. The optimized
+  # orchestrator first sweeps all addresses at TT, then writes the selected
+  # worst address here while running the remaining corners. regen_rom_libs.sh
+  # reads this manifest, so older logs for deliberately skipped addresses do
+  # not silently re-enter the Liberty result or fail provenance validation.
+  for m in $MACROS; do
+    load_geom "$m" || continue
+    printf '%s\n' "$ADDRS" > "$G_CHAR/.coldec_addresses"
+  done
   echo "Every address drove exactly ONE select, and every one of them was"
   echo "ready before the bitline reached 50%. The column decoder is off the"
   echo "critical path by the margin above -- access stays"
@@ -171,7 +217,3 @@ else
   echo "until that is done."
 fi
 exit $rc
-
-# Non-zero if any deck died. The numbers those decks would have produced
-# are simply absent otherwise, and absent is indistinguishable from fine.
-ng_summary
