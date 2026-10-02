@@ -66,7 +66,7 @@ sample through a PWL source (cached in `char/wave/bl_<corner>.txt`).
 
 Also measured: setup (`t_addr2dec*`), leakage (`.op`), per-column energy and
 periphery energy (active and idle), and input pin capacitances with adaptive
-settling (`run_pin_cap.sh` / `run_pin_cap_iter.py`).
+settling (`run_pin_cap.sh` / `pincap_settle_step.py`).
 
 ### The frequency window this ROM may be driven in
 
@@ -168,10 +168,17 @@ TT:
 
 At 1e-12 the address buffer is **96% artificial** and the decode column 1200x
 too high; 1e-15, the value the column deck settled on, is still 2.3x too high
-for the decode column. So `run_periphery_leak.sh` runs the whole axis and, per
-slice, takes the smallest gmin with the point above it agreeing -- the same
-"two values agree, therefore converged" rule the energy and timing decks use.
-A slice that never settles is printed as NOT CONVERGED and is not used.
+for the decode column. `run_periphery_leak.sh` therefore generates its axis
+adaptively: it multiplies the current `gmin` by `GMIN_FACTOR` and continues
+until every slice agrees for two consecutive intervals. There is no fixed
+final gmin; `GMIN_FLOOR` is only a solver-safety limit. A slice that reaches
+that floor without settling is printed as NOT CONVERGED and is not used.
+
+The adaptive axis and both `cs0` states run in one ngspice session per corner. The deck
+is parsed once, then its control block changes `gmin` with `option`, changes
+`Vcs` with `alter`, and reruns `.op`. Marker-split logs preserve the individual
+`cs0 × gmin` provenance and the convergence calculation above; only repeated
+netlist parsing was removed.
 
 What the periphery actually leaks (wrom0, TT, converged values):
 

@@ -132,9 +132,10 @@ Ordered by how much they can move a number:
    This is now addressed in the flow:
    - `gen_periphery_power_tb.py` supports adaptive per-pin hold times (`--pin-th`
      and `--pin-th-map`).
-   - `run_pin_cap_iter.py` and `pincap_settle_step.py` provide an iterative
-     settling engine (integrated into `flow.py --pin-cap-gap`, defaulting to
-     1.0% target gap quota, with `PIN_GAP_THRESH` gating, default 15%).
+   - `pincap_settle_step.py` provides an iterative settling engine (invoked
+     by `run_pin_cap.sh`). The main flow and `run_pin_cap.sh` use
+     `PIN_GAP_THRESH=12%` by default; `flow.py --pin-cap-gap` changes that same
+     convergence gate.
      Pins with lingering switching tails automatically have their hold times
      scaled up (e.g. 15-25+ ns) until their rise and fall charge integrals
      settle within the quota.
@@ -213,7 +214,7 @@ Ordered by how much they can move a number:
    earliest legal capture edge, and with a slower clock the gap is larger
    still, because the requirement stretches with the period while a fixed
    number does not. Referenced to the falling edge, zero states it exactly for
-   any period. `tests/test_rom_lib.py` refuses a `.lib` whose cs0 hold is
+   any period. `tests/lib_tests/test_rom_lib.py` refuses a `.lib` whose cs0 hold is
    shorter than its access time, and one that has no `hold_falling` at all.
 
    All twelve macro/corner pairs carry a measured address hold since
@@ -295,9 +296,9 @@ Ordered by how much they can move a number:
 12. **Behavioural model deliverables and physical sign-off boundary.**
     The characterization flow generates Liberty (`.lib`) timing libraries and
     behavioural SystemVerilog models (`output/verilog/<macro>.sv`). The
-    verification suite (`tests/run_tests.sh`) checks structural syntax, ROM
-    semantics, OpenSTA parsing (layer 4, reproducible via Nix), and behavioural
-    simulation with precharge, access, hold and cs0 assertions (layer 6).
+    verification suite (`tests/run_tests.sh`) checks script utilities and flow
+    recovery, structural syntax, ROM semantics, OpenSTA parsing, and behavioural
+    simulation with precharge, access, hold and cs0 assertions.
     However, passing characterization and testsuite validation certifies only
     the Liberty and behavioural models. It does **not** substitute for
     physical DRC (Magic) or LVS (Netgen) on the layout. A physically clean

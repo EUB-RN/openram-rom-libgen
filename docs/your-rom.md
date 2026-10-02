@@ -19,8 +19,8 @@ There are two ways in, and they differ only in where the macro lives:
   6d group (`run_wl_slew.sh`, `run_hold_bisect.sh`, `run_addr2wl.sh`,
   `run_slew_sweep.sh`), eliminating timing fallbacks.
 * **`ROM_MACROS_DIR` + the `run_*.sh` scripts** -- the step-by-step flow this
-  page and [flow.md](flow.md) describe. Use it when you want a single
-  measurement, or the optional ones `flow.py` skips.
+  page and [flow.md](flow.md) describe. Use it when you want to inspect or
+  repeat one measurement; standard/full production runs should use `flow.py`.
 
 Either way a macro directory is expected to look like an OpenRAM ROM output:
 
@@ -89,8 +89,9 @@ voltage_map ( VCCD1, 1.80 )      rail name -> voltage
 
 All four links have to exist for a multi-voltage power tool to walk from a
 signal pin to its supply. Declaring `voltage_map` and never referencing it is not an error anywhere in
-the toolchain: the analysis just comes out unattributed. `tests/check_lib.py` now refuses a reference that
-does not resolve, and `tests/test_rom_lib.py` refuses a pin that carries none.
+the toolchain: the analysis just comes out unattributed.
+`tests/lib_tests/check_lib.py` now refuses a reference that does not resolve,
+and `tests/lib_tests/test_rom_lib.py` refuses a pin that carries none.
 
 The pin names are read from the LEF (`USE POWER` / `USE GROUND`) rather than
 being fixed to `vccd1`/`vssd1`, which would name nets a differently-built
@@ -106,15 +107,13 @@ of rows only surfaces in someone else's tool. `tests/` closes that:
 tests/run_tests.sh
 ```
 
-Seven checks in total: provenance & error reporting (layer 0), the checker's
-own fixtures (15 deliberately broken Liberty files, layer 1), generic Liberty
-structure (layer 2), ROM semantics (both `dout0` arcs, constraints, power states,
-FF < TT < SS ordering, layer 3), OpenSTA's own `read_liberty` (layer 4, pinned in
-Nix), behavioural SystemVerilog model syntax/elaboration (layer 5), and dynamic
-simulation testbenches asserting precharge, access delay, falling-edge invalidation,
-cs0 gating, and hold violations under iverilog + vvp (layer 6). Each layer that
-could not run is named in the closing banner, so a green run never means more
-than it did.
+Three suites run eleven checks: script/SPICE helpers, error/provenance handling,
+flow resume, dynamic periphery settling, paired periphery leakage, the checker's 15 deliberately broken Liberty fixtures, generic
+Liberty structure, ROM semantics, OpenSTA parsing, SystemVerilog elaboration,
+and dynamic behavioural simulation. The last group asserts precharge, access
+delay, falling-edge invalidation, cs0 gating and hold behaviour. Every skipped
+external-tool check is named in the closing banner; strict mode turns skips
+into failures.
 `regen_rom_libs.sh` runs the structural pass by itself at the end of every run,
 so a file that does not parse never leaves the generator. Details in
 [`tests/README.md`](../tests/README.md). Deliverables land in `output/lib/` and

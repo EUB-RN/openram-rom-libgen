@@ -1,6 +1,28 @@
 # Where the work stands
 
-Last updated: 2026-09-28. Keep this file current when stopping mid-task.
+Last updated: 2026-09-29. Keep this file current when stopping mid-task.
+
+## 2026-09-29 interface and documentation sync
+
+* `flow.py` now exposes stable restart points through `--list-steps` and
+  `--from-step`; failed stages print a ready-to-edit restart command.
+* Tests are organized under `tests/scripts_tests/`, `tests/lib_tests/`, and
+  `tests/verilog_tests/`. The runner currently executes three suites / eleven
+  checks, including SPICE utility, flow-resume, dynamic periphery-settling
+  and paired periphery-leakage tests.
+* The unified flow defaults to `--jobs 4`; direct `run_*.sh` use retains
+  memory-based auto-sizing when `JOBS` is unset.
+* Periphery energy now uses gap-sized 2/4/6/8-cycle jumps, starts 128-row-and-up
+  macros at 12 cycles, and applies the same relative/noise-floor decision to
+  both retry control and the final provenance verdict.
+* The main pin-capacitance convergence gate is now 12% (`--pin-cap-gap` /
+  `PIN_GAP_THRESH`). Column and periphery energy retain the separate 1%
+  last-two-cycle settling gate and adaptively add cycles when necessary.
+
+Older sections below are an engineering history. Their dated measurements and
+references to the test layout that existed at the time are retained as such;
+use [`tests/README.md`](../tests/README.md) and [`docs/flow.md`](flow.md) for
+the current interface.
 
 ## Current work: `random_2k` characterization and validation — RESOLVED
 
@@ -27,7 +49,8 @@ resolved, and verified:
    An adaptive hold-time engine (`run_pin_cap_iter.py`, `pincap_settle_step.py`,
    and `flow.py --pin-cap-gap`) was introduced to iteratively scale hold times for
    pins with slow internal switching tails (`addr0[0]`, `addr0[6]`) until the
-   rise/fall settling gap meets the quota (target default <= 1.0%, gating limit 15%).
+   rise/fall settling gap meets the configured quota (12% by default in the
+   main flow).
 4. **Complete outputs generated**:
    `random_2k` successfully characterized across all three corners (TT, SS, FF),
    producing:
@@ -480,7 +503,7 @@ evaluate-too-short one, because the cause is a constraint on cs0 rather than a
 clock waveform.
 
 **Both halves are simulated, and both were proved able to fail.**
-`tests/test_verilog_model.py` gained two cases that run under iverilog: an
+`tests/verilog_tests/test_verilog_model.py` gained two cases that run under iverilog: an
 address change at HOLD/2 must corrupt the read to the bit-wise AND of the two
 rows (0x12345678 & 0xA5A5A5A5 = 0x00240420, since the array has no pull-up
 outside precharge and a second row can only discharge more bits), and the same
@@ -563,7 +586,7 @@ gets a meaningful number rather than nothing. It also keeps the analytic
 the hold would not have.
 
 `check_lib.py` already allowed `hold_falling` and its duplicate-arc rule keys
-on (timing_type, related_pin), so the two coexist. `tests/test_rom_lib.py`
+on (timing_type, related_pin), so the two coexist. `tests/lib_tests/test_rom_lib.py`
 now fails a `.lib` whose cs0 lacks the arc -- verified by deleting it from a
 copy. The behavioural Verilog follows the same logic: its cs0 check is no
 longer "deselected within HOLD_CS_NS" but "deselected while the phase is
@@ -625,7 +648,7 @@ cannot set a variable in its parent. Every `run_*.sh` calls `ng_reset` at
 the start and `ng_summary` at the end, so the script exits non-zero and
 names every stage whose numbers are missing from the output.
 
-**Guarded two ways.** `tests/test_error_reporting.py` is a new suite layer:
+**Guarded two ways.** `tests/scripts_tests/test_error_reporting.py` is a new suite layer:
 behaviourally it pins all four cases (exit non-zero, exit ZERO with a fatal
 log, healthy, and an EXPECTED `.measure` failure that must NOT be fatal),
 and statically it fails if any script in `scripts/rom_char/` calls `$NG`
@@ -822,7 +845,7 @@ tables are `access_eff` and the header says the address hold is unmeasured.
 (Those eleven were measured on 2026-09-25 -- see that section. The mechanism
 described here is what made it a data question rather than a code one.)
 
-**What now catches it.** `tests/test_rom_lib.py` gained a check
+**What now catches it.** `tests/lib_tests/test_rom_lib.py` gained a check
 (`cs0 held for the whole read`, the 10th) that fails any `.lib` whose cs0 hold
 is shorter than its own access time. Verified the way a check has to be:
 run against the defective files it reported two failures on wrom0 TT, and
@@ -932,7 +955,7 @@ the ratio, because a peak-current budget needs it and an average-power figure
 does not. `run_col_energy.sh` now reports both totals as well (`E_worst` and a
 flat-50% `E_avg` estimate), and says which of the two `P@fmax` is quoted for.
 
-All twelve `.lib` files were regenerated and pass `tests/check_lib.py`.
+All twelve `.lib` files were regenerated and pass `tests/lib_tests/check_lib.py`.
 
 ## 2026-09-26
 
@@ -1198,7 +1221,7 @@ writes, which fixes every call site at once.
 ### The standard mode failed the test suite it runs itself
 
 Checking the two modes against each other found this, and it was blocking:
-`tests/test_rom_lib.py`'s `check_slew_axis` fails a flat `index_1` outright --
+`tests/lib_tests/test_rom_lib.py`'s `check_slew_axis` fails a flat `index_1` outright --
 *"cell_rise is flat along index_1 -- the clk0 slew axis was never measured"* --
 and a flat `index_1` is exactly what the standard mode produces. `flow.py`
 runs that suite as its own step 5, so `./flow.py <macro>` on a fresh macro
@@ -1385,7 +1408,7 @@ vector is dominated by a 16.1 mA spike 5 ps in, and a plain `plot` autoscales
 to milliamps with every real current flat on zero.
 
 All twelve `.lib` and all four `.v` were regenerated from the re-characterised
-logs and `tests/check_lib.py` passes on all of them. Regenerating from
+logs and `tests/lib_tests/check_lib.py` passes on all of them. Regenerating from
 unchanged inputs reproduces them byte for byte -- verified after the commit.
 
 ### The address hold is measured everywhere now
@@ -1498,7 +1521,7 @@ stopped SKIPping and actually executed. It failed immediately, and not on a
 provided by `nix develop`; the workflow itself has since been removed.
 
 `sta` takes exactly ONE positional argument, the cmd_file. The call was
-`sta -no_init -no_splash -exit tests/read_liberty.tcl $LIBS`, twelve paths
+`sta -no_init -no_splash -exit tests/lib_tests/read_liberty.tcl $LIBS`, twelve paths
 after the script name, so the binary rejected the command line and never
 sourced the script at all. The list now travels in `ROM_LIB_LIST`,
 newline-separated, which also keeps a path with a space in it whole.
@@ -1617,7 +1640,15 @@ is a loose ceiling on the current data rather than a tight one. The gap that
 once read 24-40% was the trapezoidal integrator, not the circuit (item 3) --
 which is the point: the settling column was the signal that detected that
 defect, and it was the one signal with no teeth.
-`tests/test_error_reporting.py` now covers the limit, the boundary, the
+
+As of 2026-09-30 the periphery retry is no longer a retry at all. The generated
+deck uses ngspice batch `stop`/`resume`: it parses and starts one transient,
+checks consecutive-cycle charge at each two-cycle boundary, and resumes the
+same solver state only when needed. A 12 -> 20 decision therefore computes 20
+cycles total rather than throwing 12 away and computing 20 more. The accepted
+branch emits the same `q_c2`, `q_c3`, `e_periph_pj` and late-cycle timing names
+as the former fixed deck, so downstream Liberty consumers are unchanged.
+`tests/scripts_tests/test_error_reporting.py` now covers the limit, the boundary, the
 report's contents and the fact that the script still calls the check.
 
 **2c. `regen_rom_libs.sh` read whatever log was in the tree.** FIXED
@@ -1666,7 +1697,7 @@ against the netlist, not the deck's presence (decks are gitignored and rebuilt
 on demand), so a clone regenerates fine -- but the existing corpus has to be
 re-run once to carry stamps. There is no flag to accept an unstamped log; the
 adoption gesture and the failure it exists to prevent are the same gesture.
-`tests/test_error_reporting.py` covers the stamp, each way of invalidating it,
+`tests/scripts_tests/test_error_reporting.py` covers the stamp, each way of invalidating it,
 the missing-deck case and the fact that `regen_rom_libs.sh` still honours it.
 
 ### NOT DEFECTS -- measurement artefacts that are understood
@@ -1769,7 +1800,7 @@ PDK's output rather than this project's own work).
 
 The one-time re-stamp run of 2026-09-24 FINISHED. Every log
 `regen_rom_libs.sh` reads is stamped and current: all twelve corners
-regenerate, `tests/check_lib.py` passes 12/12, and `tests/run_tests.sh` is
+regenerate, `tests/lib_tests/check_lib.py` passes 12/12, and `tests/run_tests.sh` is
 green on every layer that can run here (OpenSTA still SKIPs -- no `sta`
 binary).
 
@@ -1782,11 +1813,10 @@ committed logs reproduces them byte for byte -- checked on 2026-09-25,
 
 Other follow-ups (figure presence updated on 2026-09-27):
 
-* The column decoder is measured at every address on wrom0/TT and at address
-  0 -- the slowest select -- everywhere else. The periphery is the same
-  circuit in all four macros and the numbers agree to four digits across them,
-  so this is cheap rather than risky; a macro whose column decoder differs
-  would need the full sweep.
+* The checkpoint libraries were measured at every address on wrom0/TT and at
+  address 0 elsewhere. Current reruns no longer make that cross-PVT/cross-macro
+  assumption: the one-transient coldec sweep measures all eight addresses at
+  every requested corner and macro while parsing each corner netlist once.
 * `16-slew-sweep.png` and `18-setup.png` are now present in `docs/img/`;
   their previously reported missing captures are no longer pending.
   Two other captures carry a caveat rather than a gap, and

@@ -8,25 +8,34 @@ What has to be installed, what each step of the flow produces, and which script 
 
 ## Requirements
 
-* Python 3.8+ (no third-party packages)
-* **ngspice** -- for the measurement runs
+* Python 3.10+ (no third-party packages; the CLI uses modern type syntax)
+* **ngspice with KLU** -- every deck selects KLU, and the runner rejects
+  KLU-less builds or legacy-SPARSE fallback results
 * **Magic** 8.3+ -- for parasitic extraction
+* **Icarus Verilog** (`iverilog` + `vvp`) -- for behavioural model checks
+* **OpenSTA** (`sta`) -- for consumer-side Liberty parsing
 * sky130 PDK ngspice models
 * an OpenRAM technology tree, for the extraction step only
 
 | variable | default | purpose |
 |---|---|---|
-| `ROM_MACROS_DIR` | `<repo>/examples` | macro tree |
+| `ROM_MACROS_DIR` | populated `<repo>/user`, otherwise `<repo>/examples` | macro tree; `shell.nix` explicitly selects `<repo>/user` |
 | `ROM_OUT_DIR` | `<repo>/output` | where `lib/` and `verilog/` are written |
 | `NGSPICE_BIN` | `ngspice` | ngspice binary |
 | `MAGIC_BIN` | `magic` | magic binary |
+| `IVERILOG_BIN` / `VVP_BIN` | `iverilog` / `vvp` | behavioural model validation |
+| `STA_BIN` | `sta` | OpenSTA binary |
 | `OPENRAM_TECH` | -- | required by `run_cap_extract.sh` |
 | `PDK_ROOT` | `~/OpenLane/pdks` | where sky130A lives |
 | `SKY130_LIB` | `$PDK_ROOT/sky130A/libs.tech/ngspice/sky130.lib.spice` | model file |
-| `JOBS` | `min(cores, MemAvailable/`$ROM_JOB_MEM_GB`)` | ngspice runs in flight at once. Memory-sized, not core-sized; stages built on one column ask for their own smaller footprint (`stage_jobs`) |
+| `JOBS` | `flow.py`: `4`; direct scripts: `min(cores, MemAvailable / ROM_JOB_MEM_GB)` | ngspice runs in flight. `--jobs`/`JOBS` is a fixed override; only direct scripts with `JOBS` unset use stage-specific auto-sizing |
 | `ROM_JOB_MEM_GB` | `3` | per-job memory budget the default is computed from (the periphery decks' ~2.6 GB) |
 | `LOADS` | `1.7225 6.89 27.56` | `.lib` CELL_TABLE output load points (fF) |
 | `ROM_CORNERS` | `tt:1.8:25:34.1 ss:1.6:100:18.3 ff:1.95:-40:48.2` | corner:VDD:temp:fmax(MHz). `fmax` only scales the `P = E x f` summary column -- the real bound is `minimum_period` in the `.lib` |
+| `PIN_GAP_THRESH` | `12.0` through `flow.py` / `run_pin_cap.sh` | maximum pin rise/fall capacitance gap in percent; `--pin-cap-gap` sets the same value |
+| `SETTLE_MAX_PCT` | `1.0` | energy-cycle convergence limit; `PERIPH_SETTLE_MAX_PCT` and `COL_SETTLE_MAX_PCT` override it per stage |
+| `PERIPH_NOISE_FLOOR_PJ` | `0.10` | periphery-only absolute energy-difference floor; below it, tiny idle energy is settled even when its relative percentage is large |
+| `SKIP_STEP1` | `0` | direct `run_periphery_power.sh` only: set to `1` to reuse existing `cellgate_<corner>.log` files instead of measuring cell-gate C again |
 
 ## The flow
 
@@ -62,11 +71,12 @@ JOBS=4 ./scripts/rom_char/run_periphery_power.sh   #  -> periph_{active,idle}_<c
 ./scripts/rom_char/run_col_power.sh                #  -> col<N>_leak_<corner>.log
 ./scripts/rom_char/run_col_energy.sh               #  -> col<N>_energy_<corner>.log
 
-# 6b) periphery leakage (one slice per block x a count, gmin-swept)
+# 6b) periphery leakage (one deck/corner, cs0 altered in-place, gmin-swept)
 ./scripts/rom_char/run_periphery_leak.sh           #  -> periph_leak_cs<n>_<corner>.total
 
 # 6c) column decode vs the discharge it races, and the input pin capacitances
-./scripts/rom_char/run_coldec_delay.sh             #  -> coldec_a<addr>_<corner>.log
+./scripts/rom_char/run_coldec_delay.sh             #  one transient/corner, 8 addresses
+                                                   #  -> coldec_a<addr>_<corner>.log
 ./scripts/rom_char/run_pin_cap.sh                  #  -> pincap_<corner>.log
 
 # 6d) --full ONLY, and expensive. Every .lib term below has a pessimistic
@@ -82,12 +92,12 @@ JOBS=4 ./scripts/rom_char/run_periphery_power.sh   #  -> periph_{active,idle}_<c
 # 7) write the .lib files (reads every log; nothing is entered by hand)
 ./scripts/rom_char/regen_rom_libs.sh               #  -> output/lib/<macro>_<CORNER>.lib
 
-# 7b) validate what was just written (regen_rom_libs.sh already runs the
-#     structural pass; this adds the ROM semantics and OpenSTA if installed)
-./tests/run_tests.sh
-
-# 8) behavioural Verilog
+# 8) behavioural SystemVerilog
 python3 scripts/rom_char/gen_macro_behavioral_v.py #  -> output/verilog/<macro>.sv
+
+# 9) validate both deliverables (regen_rom_libs.sh already runs the
+#    structural Liberty pass; this adds script, semantic, OpenSTA and SV tests)
+./tests/run_tests.sh
 ```
 
 Figures are not step 10. Nothing in this flow draws one: a waveform figure is
@@ -95,24 +105,33 @@ taken by a person, interactively, at ngspice's own plot window --
 [`docs/img/README.md`](img/README.md) says why and gives the deck and the
 `plot` line for each.
 
-Every script takes macro names as arguments; with none, **every macro in the
-tree** is processed:
+Every measurement/generation script except `run_cap_extract.sh` takes macro
+names as arguments; with none, **every macro in the tree** is processed.
+Extraction accepts exactly one macro, and `flow.py` loops over selected macros:
 
 ```sh
 ./scripts/rom_char/run_backend_delay.sh wrom1 wrom2
 ROM_MACROS_DIR=/path/to/macros ./scripts/rom_char/regen_rom_libs.sh
 ```
 
-Steps 2-6 are independent of each other (5 depends on 4, and 6d's hold bisect
-depends on its own `wlslew` run); step 7 needs them all.
+The displayed order is the supported dependency order: the back end reuses
+the column waveform; setup and pin capacitance need the cell-gate result;
+the full-mode stages need cell-gate or wordline-slew logs. Liberty generation
+needs the required measurement set, SystemVerilog needs Liberty, and the test
+runner validates both.
 `./flow.py <macro>` runs steps 1-7 in one command in standard mode, using safe
 conservative fallbacks for address hold and clock slew.
 `./flow.py <macro> --full` runs all steps including the 6d group, measuring
 the address hold in the pin frame and clock-slew dependence.
-`--pin-cap-gap <pct>` sets the target rise/fall settling gap quota (default 1.0%),
+`--pin-cap-gap <pct>` sets the target rise/fall settling gap quota (default 12%),
 triggering iterative hold-time refinement if needed.
-Step 1 is the slow one (tens of minutes); steps 4 and 5 take a few minutes
-per corner, the rest are seconds.
+Column energy starts at 6 cycles and adds two per retry. Periphery energy starts
+at 8 cycles, or 12 for macros with at least 128 rows, but loads ngspice only
+once: a batch control block pauses at two-cycle boundaries and resumes the same
+transient state until it settles. Earlier cycles are neither re-parsed nor
+recomputed. Periphery accepts either a last-two-cycle gap at most 1% or an
+absolute energy difference below 0.10 pJ. Both stop at their stage limit
+(`COL_MAX_CYCLES=16`, `PERIPH_MAX_CYCLES=20` by default).
 
 ### Step 7 reads only what this flow produced
 
@@ -137,6 +156,32 @@ until their stage is re-run.
 
 ### When something goes wrong
 
+The CLI can restart at a main phase or a named simulation stage:
+
+```sh
+./flow.py --list-steps
+./flow.py <macro> --from-step 2 --jobs 2
+./flow.py <macro> --from-step periphery-power
+./flow.py <macro> --from-step pin-cap
+./flow.py <macro> --full --from-step hold-bisect
+./flow.py <macro> --from-step 3   # Liberty -> SystemVerilog -> tests
+```
+
+Here `1`-`5` mean the **CLI phases** (pre-flight, simulations, Liberty,
+SystemVerilog, tests), not the measurement numbers above. Names select a
+stage within the simulation phase. The selected stage and all subsequent
+stages run again; earlier stages do not. Existing outputs must be retained.
+A named simulation restart requires the extracted netlist; restarting after
+`periphery-power` also checks that the required corner's `cellgate` logs exist,
+and `hold-bisect` requires the earlier `wlslew` logs. These checks detect missing
+files, not whether every earlier measurement matches new parameter choices.
+Liberty generation retains its existing provenance validation.
+
+Change parameters on the restart command, and keep `--full` for a full run.
+If the change affects earlier measurements too, restart from the earliest
+affected stage. No automatic checkpoint or per-corner completion state is
+stored. See [Continuing after a failed step](../README.md#continuing-after-a-failed-step).
+
 | symptom | cause |
 |---|---|
 | `regen_rom_libs.sh` prints `missing measurement (...)` | that step has not been run, or its ngspice run failed -- the message names the term |
@@ -146,7 +191,7 @@ until their stage is re-run.
 | `ERROR: ... _cap_only.spice does not exist` | step 1 has not been run for that macro |
 | `no cellgate log (run run_periphery_power.sh first)` | step 5 was run before step 4 |
 | `no periphery leakage log -> cell_leakage_power covers the ARRAY ONLY` | step 6b has not been run; the clock tree, decoders, wordline drivers and the read back end are scored as zero |
-| a slice prints `NOT CONVERGED` in `run_periphery_leak.sh` | the gmin axis does not reach far enough down -- widen `GMINS` |
+| a slice prints `NOT CONVERGED` in `run_periphery_leak.sh` | the adaptive sweep reached `GMIN_FLOOR` without two stable intervals; inspect the log, then lower the floor only if the solver remains numerically trustworthy |
 | `WARNING: config says ... columns, netlist has ...` | the config and the layout disagree; the netlist is used |
 | a measurement is `FAILED` in a summary table | the ngspice run did not converge -- look at the `.log` in `char/` |
 
@@ -168,22 +213,24 @@ until their stage is re-run.
 | `gen_periphery_power_tb.py` / `run_periphery_power.sh` | periphery energy (cs0=0/1), front-end delay, setup |
 | `run_addr_setup.sh` | `addr0` -> decoder NAND input setup measurement |
 | `run_pin_cap.sh` | input pin capacitance per pin, `C = Q(VDD)/VDD`, both edges |
-| `pincap_settle_step.py` / `run_pin_cap_iter.py` | iterative pin capacitance settling engine: evaluates rise/fall gap and scales hold time per pin |
+| `pincap_settle_step.py` | iterative pin capacitance settling step helper: evaluates rise/fall gap and scales hold time per pin (called by `run_pin_cap.sh`) |
+| `periph_settle_step.py` | periphery energy convergence: relative gap, absolute noise floor and final provenance verdict; the generated deck now owns persistent stop/resume |
 | `run_coldec_delay.sh` | column decode vs bitline discharge -- the race that sets the middle term of `access` |
 | `run_wl_slew.sh` | wordline fall delay and slew, real driver and real load |
 | `run_hold_bisect.sh` | the address hold: bisects the cut time at the cell nearest the bitline |
-| `gen_addr_hold_tb.py` / `run_addr_hold.sh` | exploratory hold sweep; its verdict goes to stdout, the per-point artefacts are not read back |
+| `gen_addr_hold_tb.py` | hold deck generator (used by `run_hold_bisect.sh`) |
 | `run_addr2wl.sh` | `addr0` -> the wordline it drops, which carries the hold into the clk0 pin's time frame |
 | `run_slew_sweep.sh` | the measured `index_1` (clk0 input slew) axis |
 | `run_early_path.sh` | the fastest column, for the early/retain bound |
 | `gen_random_read_energy.py` | active read energy: samples the address space and counts the discharging columns per read from the netlist's own cell types |
 | `gen_col_power_tb.py` / `run_col_power.sh` / `run_col_energy.sh` | column leakage (`.op`) and column energy |
 | `gen_periphery_leak_tb.py` / `run_periphery_leak.sh` | periphery leakage: one slice per block x a count, with a gmin sweep |
-| `gen_power_tb.py` | **not part of the flow** -- a brute-force whole-macro power deck no script calls. Kept only for an occasional by-hand cross-check on a small macro; its cost follows the array, so it is not runnable on a real ROM (see the whole-macro reference note in the README) |
+| `archive/` | retired/standalone prototype scripts (`gen_power_tb.py`, `run_pin_cap_iter.py`, `run_addr_hold.sh`, `run_periphery_power_dynamic.sh`) |
 | `gen_rom_lib.py` | LEF + measured values -> Liberty |
 | `gen_macro_behavioral_v.py` | behavioural SystemVerilog (`.sv`) model that checks constraints and reports timing violations |
 | `regen_rom_libs.sh` | the top-level script that ties the flow together |
-| `tests/` | 7-layer validation of the generated `.lib` and `.sv` models -- see [`tests/README.md`](../tests/README.md) |
+| `spice_utils.py` | shared SPICE parsing, SI-unit conversion and block helpers used by deck generators |
+| `tests/` | three suites / eleven checks for scripts, generated `.lib` files and `.sv` models -- see [`tests/README.md`](../tests/README.md) |
 
 Figures live in `docs/img/`. The waveforms are screenshots of ngspice's own
 plot window -- no plotting tool sits between the simulation and the picture,
