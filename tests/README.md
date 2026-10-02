@@ -14,16 +14,18 @@ Exit status is 1 on any failure, so it can gate a commit or a CI job.
 `regen_rom_libs.sh` also runs the structural pass by itself at the end of every
 run — a file that does not parse never leaves the generator.
 
-## The layers
+## The suites
 
-There are seven checks in total: the provenance/error-reporting guard numbered
-0, followed by layers 1 through 6.
+There are three suites and eleven checks. `tests/run_tests.sh` always runs them
+in this order:
 
 | suite / directory | file | question it answers |
 |---|---|---|
 | `scripts_tests/` | `test_spice_utils.py` | unit tests for SPICE parser, SI units (`to_float`, `fix_units`, `blocks`), and CLI generator execution |
 | `scripts_tests/` | `test_error_reporting.py` | does a dead, unsettled or *absent* simulation stay loud -- and can a log that this flow did not produce still reach a `.lib`? |
 | `scripts_tests/` | `test_flow_resume.py` | does flow recovery, step skipping, and restart logic operate correctly? |
+| `scripts_tests/` | `test_periph_settle.py` | does periphery energy use relative/noise-floor convergence, does ngspice stop/resume one transient, and is the final decision wired into production provenance? |
+| `scripts_tests/` | `test_periphery_leak_paired.py` | does single-parse paired-op sweep correctly vary cs0 and gmin in one ngspice session? |
 | `lib_tests/` | `test_checker.py` | does the checker still catch the 15 defects in `lib_tests/fixtures/`? |
 | `lib_tests/` | `check_lib.py` | is this valid Liberty? |
 | `lib_tests/` | `test_rom_lib.py` | does it say what this macro actually does (timing arcs, constraints, corners)? |
@@ -31,7 +33,7 @@ There are seven checks in total: the provenance/error-reporting guard numbered
 | `verilog_tests/` | `iverilog` | do generated behavioural SystemVerilog models (`.sv`) compile and elaborate cleanly? |
 | `verilog_tests/` | `test_verilog_model.py` | do behavioural SystemVerilog models (`.sv`) simulate correctly (precharge, access delay, invalidation, hold, cs0)? |
 
-Layer 0 sits before all of them because it asks about the numbers rather than
+The error/provenance check asks about the numbers rather than
 the file: a `.lib` can be perfectly valid Liberty, say exactly what a ROM says,
 and carry a measurement of a circuit that no longer exists. It covers the four
 silent failures -- a deck that crashed, one that exited zero having logged an
@@ -40,7 +42,7 @@ the tree by an older netlist or an older run. The last is answered by the
 `<log>.prov` stamp `run_ng` writes and `regen_rom_libs.sh` refuses to work
 without (see [`docs/flow.md`](../docs/flow.md)).
 
-Layer 1 comes first on purpose. A validator nobody validates is worse than no
+The checker fixtures run before generated libraries on purpose. A validator nobody validates is worse than no
 validator: it turns every run green and everyone stops looking. `fixtures/`
 holds one hand-written **valid** Liberty file plus a copy of it per defect,
 each carrying exactly one — an unclosed group, a table with two rows against a
@@ -54,13 +56,14 @@ The flow guard also runs `test_flow_resume.py`. It uses temporary macro trees
 and fake stage executables to test failure followed by restart with changed
 parameters, skipped earlier steps, full-mode ordering, missing prerequisites,
 and restart commands. It does not run ngspice or change real macro outputs.
-Run it independently with `python3 tests/test_flow_resume.py`.
+Run it independently with
+`python3 tests/scripts_tests/test_flow_resume.py`.
 
-Layer 2 (`check_lib.py`, on top of the small parser in `libparse.py`) is
+`tests/lib_tests/check_lib.py` (on top of the small parser in `libparse.py`) is
 generic — it knows nothing about ROMs. It reports a line number for everything
 it rejects.
 
-Layer 3 is where the ROM lives. Each check carries a docstring naming the
+`tests/lib_tests/test_rom_lib.py` is where the ROM lives. Each check carries a docstring naming the
 failure mode it exists to prevent; the one this suite was written for is that
 `dout0` must carry **both** a `rising_edge` and a `falling_edge` arc. There is
 no output latch, so the data dies when `clk0` falls; with only the rising arc,
@@ -68,14 +71,15 @@ STA assumes it holds until the next capture edge and reports a pass the silicon
 does not honour. The test also insists the falling arc lands *earlier* than the
 access time, since an invalidation after the data is valid says nothing.
 
-Layer 4 is skipped with a notice when no OpenSTA is installed. Layers 1–3 are
-our parser checking our writer, which is a closed loop; this opens it using the
-parser a consumer really uses. `nix develop` supplies the repository-pinned
-OpenSTA; outside that environment, point `STA_BIN` at a binary to run it.
+The OpenSTA check is skipped with a notice when no OpenSTA is installed. The
+in-repository parser checking the in-repository writer is a closed loop;
+OpenSTA opens it using the parser a consumer really uses. `nix develop`
+supplies the repository-pinned OpenSTA; outside that environment, point
+`STA_BIN` at a binary to run it.
 
-Layer 5 validates all behavioural SystemVerilog models (`output/verilog/*.sv`) using
+The elaboration check validates all behavioural SystemVerilog models (`output/verilog/*.sv`) using
 `iverilog` if available, asserting error-free syntax and elaboration.
-Layer 6 (`test_verilog_model.py`) runs dynamic simulation testbenches against
+`tests/verilog_tests/test_verilog_model.py` runs dynamic simulation testbenches against
 all behavioural SystemVerilog models (`output/verilog/*.sv`) using `iverilog` + `vvp`.
 It asserts that the simulated output holds all ones during precharge, delays
 valid data until `ACCESS_NS` has elapsed, preserves it through the falling edge
@@ -93,8 +97,8 @@ sign-off.
 
 ## `wave/` -- the testbench you look at instead of run
 
-Every layer above is pass/fail: nothing in them is meant to be opened in a
-wave viewer, and layer 6's testbench is built in a temporary directory, writes
+Every check above is pass/fail: nothing in them is meant to be opened in a
+wave viewer, and the behavioural testbench is built in a temporary directory, writes
 no VCD, and drives the model through its *violations* on purpose.
 
 `wave/` holds the opposite instrument. `tb_<macro>_wave.v` drives only legal
@@ -128,8 +132,11 @@ nix develop --command env ROM_TESTS_STRICT=1 ./tests/run_tests.sh
 
 ## Adding a check
 
-Put generic Liberty rules in `check_lib.py` and anything that depends on this
-macro's behaviour in `test_rom_lib.py`, as a function returning a list of
-failure strings, added to `CHECKS`. If it is a rule the checker enforces, add a
-fixture for it: copy `fixtures/good.lib`, break exactly one thing, and add the
-file with the message substring to `EXPECTED` in `test_checker.py`.
+Put generic Liberty rules in `tests/lib_tests/check_lib.py` and anything that
+depends on this macro's behaviour in `tests/lib_tests/test_rom_lib.py`, as a
+function returning a list of failure strings, added to `CHECKS`. If it is a
+rule the checker enforces, add a fixture: copy
+`tests/lib_tests/fixtures/good.lib`, break exactly one thing, and add the file
+with the message substring to `EXPECTED` in
+`tests/lib_tests/test_checker.py`. Script-level tests belong in
+`tests/scripts_tests/`; behavioural tests belong in `tests/verilog_tests/`.

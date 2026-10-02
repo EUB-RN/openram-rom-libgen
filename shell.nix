@@ -8,6 +8,29 @@
 let
   opensta = pkgs.callPackage ./nix/opensta.nix {};
 
+  # Reject a nixpkgs ngspice build that cannot actually select KLU.  This is
+  # a real solver probe, not only a package-name or configure-flag assumption.
+  ngspiceKlu = pkgs.runCommand "ngspice-klu-${pkgs.ngspice.version}" {
+    nativeBuildInputs = [ pkgs.ngspice ];
+  } ''
+    cat > klu-probe.sp <<'EOF'
+KLU build probe
+V1 in 0 1
+R1 in 0 1k
+.options klu
+.op
+.end
+EOF
+    ${pkgs.ngspice}/bin/ngspice -b -o klu-probe.log klu-probe.sp
+    grep -Fq "Using KLU as Direct Linear Solver" klu-probe.log || {
+      echo "ngspice did not select KLU; refusing this Nix environment" >&2
+      cat klu-probe.log >&2
+      exit 1
+    }
+    mkdir -p "$out/bin"
+    ln -s ${pkgs.ngspice}/bin/ngspice "$out/bin/ngspice"
+  '';
+
   # The usual places a sky130 PDK lands, in the order they are tried.
   findPdkScript = ''
     if [ -z "$PDK_ROOT" ]; then
@@ -40,7 +63,7 @@ in pkgs.mkShell {
 
   buildInputs = with pkgs; [
     python3
-    ngspice
+    ngspiceKlu
     iverilog
     opensta
     # Step 1 of the flow (run_cap_extract.sh) is a Magic extraction, and
@@ -68,7 +91,7 @@ in pkgs.mkShell {
     # ROM_MACROS_DIR at them by hand to work on those instead.
     export ROM_MACROS_DIR="$(pwd)/user"
     export ROM_OUT_DIR="$(pwd)/output"
-    export NGSPICE_BIN="${pkgs.ngspice}/bin/ngspice"
+    export NGSPICE_BIN="${ngspiceKlu}/bin/ngspice"
     export STA_BIN="${opensta}/bin/sta"
 
     echo "=================================================================="
@@ -77,6 +100,7 @@ in pkgs.mkShell {
     echo "  * macro tree (ROM): $ROM_MACROS_DIR"
     echo "  * output root     : $ROM_OUT_DIR"
     echo "  * OpenSTA         : $($STA_BIN -version) ($STA_BIN)"
+    echo "  * ngspice solver  : KLU ($NGSPICE_BIN)"
     if [ -n "$SKY130_LIB" ]; then
       echo "  * sky130 models   : $SKY130_LIB"
     else

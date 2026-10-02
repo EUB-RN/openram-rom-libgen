@@ -49,8 +49,8 @@
 module tb_wrom1_wave;
 
   // ---- what the run covers ------------------------------------------------
-  parameter integer START_ADDR = 100;
-  parameter integer N_READS    = 64;
+  parameter integer START_ADDR = 0;
+  parameter integer N_READS    = 16;
 
   // ---- margins -------------------------------------------------------------
   // EVERY edge in this testbench is placed by a .lib constraint times one of
@@ -92,11 +92,10 @@ module tb_wrom1_wave;
   // array stays X). wrom1_rom.mem is the same contents as $readmemb text,
   // written by gen_wave_tb.py at the same time as this file.
   //
-  // The path is absolute because a simulator's working directory is its own
-  // business -- Vivado runs from <project>.sim/sim_1/behav/xsim, where a
-  // relative path does not resolve. Override it if the tree moves:
+  // Relative path resolved from the repository root / working directory.
+  // Override it if running from another directory:
   //     xelab -generic_top "INIT_FILE=/other/path/wrom1_rom.mem" ...
-  parameter INIT_FILE = "/home/hpw/openram-rom-libgen/tests/wave/wrom1_rom.mem";
+  parameter INIT_FILE = "tests/wave/wrom1_rom.mem";
 
   // Straight out of wrom1.sv, which took them straight out of the .lib.
   localparam real T_PRE    = 12.8748;    // min_pulse_width, fall

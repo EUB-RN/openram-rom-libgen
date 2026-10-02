@@ -133,6 +133,16 @@ recomputed. Periphery accepts either a last-two-cycle gap at most 1% or an
 absolute energy difference below 0.10 pJ. Both stop at their stage limit
 (`COL_MAX_CYCLES=16`, `PERIPH_MAX_CYCLES=20` by default).
 
+### Concurrency, memory budgeting, and job queues
+
+**The unified flow defaults to four concurrent simulations.** Change it with `./flow.py <macro> --jobs <n>` or `JOBS=<n>`. `flow.py` exports that value to every stage, so a flow invocation has one explicit limit throughout.
+
+When a `run_*.sh` stage is invoked directly and `JOBS` is unset, `common.sh` chooses `min(cores, MemAvailable / ROM_JOB_MEM_GB)`, with a 3 GB default budget and a fallback of 4 if detection fails. The count is sampled once and has a floor of two (unless the machine has only one CPU). Starting more jobs than memory can hold drives ngspice into swap and is usually slower.
+
+**Not every deck costs 2.6 GB, and the stages say so.** A deck built out of one extracted column -- the column timing and energy decks, the hold bisection -- holds ~0.45 GB, so the same memory budget affords six times the processes; the back-end deck, which keeps only the read path, sits between them. For direct script use, each stage asks for its own footprint (`stage_jobs` in `common.sh`, `ROM_MEM_COLUMN` / `ROM_MEM_BACKEND` / `ROM_MEM_PERIPHERY`). An explicit `JOBS` -- including the value exported by `flow.py` -- wins over stage-specific auto-sizing.
+
+**Work is taken from a rolling queue, not in batches.** Each stage keeps `JOBS` runs in flight and starts the next one the moment a slot frees. The earlier code launched `JOBS` runs and waited for *all* of them before starting the next batch, so every batch cost as much as its slowest member -- with SS three times slower than FF in the same batch, most of the machine sat idle most of the time. What still cannot overlap is stated where it happens: a bisection picks each point from the previous answer, and the decks a generator runs itself (the TT column and early-path decks) run inside their own macro's turn. The macros themselves never wait for each other.
+
 ### Step 7 reads only what this flow produced
 
 A log in `<macro>/char` outlives the netlist it was measured on, the deck it

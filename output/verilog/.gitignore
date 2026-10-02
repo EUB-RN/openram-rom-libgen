@@ -1,0 +1,4 @@
+# Ignore user-generated Verilog deliverables; keep only baseline example macros (wrom*)
+*
+!wrom*
+!.gitignore

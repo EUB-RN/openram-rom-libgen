@@ -54,7 +54,6 @@ Exit status is 1 if anything failed.
 from __future__ import annotations
 
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -65,6 +64,7 @@ REPO = os.path.dirname(os.path.dirname(HERE))
 CHAR = os.path.join(REPO, "scripts", "rom_char")
 
 GOOD = """* healthy deck
+.options klu
 V1 a 0 PULSE(0 1 0 100p 100p 1n 2n)
 R1 a b 1k
 C1 b 0 1p
@@ -75,6 +75,7 @@ C1 b 0 1p
 
 # exits 1 and says so
 DEAD_LOUD = """* references a model that does not exist
+.options klu
 V1 a 0 DC 1
 X1 a b 0 nonexistent_model w=1u l=1u
 .tran 1n 10n
@@ -87,6 +88,7 @@ X1 a b 0 nonexistent_model w=1u l=1u
 # 1 ("no data saved for Transient analysis"), which the exit code would have
 # caught anyway. This form is the one that returns success.
 DEAD_QUIET = """* a measure against a node that does not exist, and no circuit
+.options klu
 .tran 1n 10n
 .measure tran foo FIND v(nosuchnode) AT=5n
 .end
@@ -99,6 +101,7 @@ DEAD_QUIET = """* a measure against a node that does not exist, and no circuit
 # of this fixture left a node floating at DC and tripped "singular" -- a
 # genuinely degenerate deck, and the fatal list was right to flag it.)
 EXPECTED_MEASURE_FAILURE = """* an unreachable threshold -- the flow's own kind of expected failure
+.options klu
 V1 a 0 PULSE(0 1 0 100p 100p 1n 2n)
 R1 a b 1k
 C1 b 0 1p
@@ -171,6 +174,11 @@ def check_behaviour(tmp):
         bad.append("a healthy deck printed a failure report")
     if "SUM=0" not in out:
         bad.append("ng_summary did not return 0 on a clean run")
+
+    out = run_ng_case(tmp, "legacy-sparse", GOOD.replace(".options klu\n", ""))
+    if "RC=1" not in out or "KLU was not selected" not in out:
+        bad.append("A LEGACY SPARSE RUN WAS ACCEPTED. Every result must carry "
+                   "ngspice's explicit KLU solver confirmation")
 
     # The stamp is written by the REAL run_ng path, not only by the unit
     # test above: a clean deck must leave one, and a dead deck must not leave

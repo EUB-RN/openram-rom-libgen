@@ -47,3 +47,16 @@ user/*
 # broken run, never an input to anything.
 *.log.term
 tmp_cap_fix/
+archive/
+tmp/
+
+# Ignore user-generated ROM deliverables; keep only baseline example macros (wrom*)
+output/lib/*
+!output/lib/wrom*
+!output/lib/.gitignore
+!output/lib/.gitkeep
+
+output/verilog/*
+!output/verilog/wrom*
+!output/verilog/.gitignore
+!output/verilog/.gitkeep

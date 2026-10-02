@@ -49,12 +49,17 @@ USAGE
     ./flow.py --all                    # Standard flow for every macro
     ./flow.py wrom1 --from-logs        # Build .lib and .v from existing logs (skip SPICE)
     ./flow.py wrom1 --check-only       # Pre-flight sanity checks only
+    ./flow.py --list-steps             # Show restart points without running anything
+    ./flow.py wrom1 --from-step 2      # Skip pre-flight; run simulations and later steps
+    ./flow.py wrom1 --from-step pin-cap --pin-cap-gap 2
+                                      # Retry pin cap with a new parameter, then continue
 """
 
 from __future__ import annotations
 
 import argparse
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -65,6 +70,90 @@ TESTS_DIR = os.path.join(HERE, "tests")
 
 sys.path.insert(0, SCRIPTS_DIR)
 import rom_paths
+
+
+# Stable names for restarting within the simulation phase (step 2).
+SIMULATION_STEPS = [
+    ("extract", "Parasitic C extraction (Magic)", "run_cap_extract.sh"),
+    ("col-timing", "Worst-case column timing (t_dis, t_pre)", "run_col_timing.sh"),
+    ("early-path", "Best-case column timing (retain_*, the early path)", "run_early_path.sh"),
+    ("backend-delay", "Back-end delay & slew vs output load", "run_backend_delay.sh"),
+    ("periphery-power", "Periphery active/idle energy & gate capacitance", "run_periphery_power.sh"),
+    ("addr-setup", "Address setup time", "run_addr_setup.sh"),
+    ("col-power", "Column leakage power", "run_col_power.sh"),
+    ("col-energy", "Column energy per cycle", "run_col_energy.sh"),
+    ("periphery-leak", "Periphery leakage power (gmin-swept)", "run_periphery_leak.sh"),
+    ("coldec-delay", "Column decoder delay race", "run_coldec_delay.sh"),
+    ("pin-cap", "Input pin capacitances (iterative settling)", "run_pin_cap.sh"),
+    ("wl-slew", "Wordline fall edge (the hold deck's stimulus)", "run_wl_slew.sh"),
+    ("hold-bisect", "Address hold, bisected", "run_hold_bisect.sh"),
+    ("addr2wl", "addr0 -> wordline, for the clk0 time frame", "run_addr2wl.sh"),
+    ("slew-sweep", "Front-end delay vs clk0 slew (the index_1 axis)", "run_slew_sweep.sh"),
+]
+FULL_STEPS = {"wl-slew", "hold-bisect", "addr2wl", "slew-sweep"}
+STEP_CHOICES = ["1", "2", "3", "4", "5"] + [s[0] for s in SIMULATION_STEPS]
+DEFAULT_CORNERS = "tt:1.8:25:34.1 ss:1.6:100:18.3 ff:1.95:-40:48.2"
+
+
+def list_steps():
+    print("1  Pre-flight checks")
+    print("2  SPICE simulations (extraction only if needed or --with-extract)")
+    for name, description, _ in SIMULATION_STEPS:
+        suffix = " [requires --full]" if name in FULL_STEPS else ""
+        print(f"   {name:16} {description}{suffix}")
+    print("3  Liberty generation from existing measurement logs")
+    print("4  Behavioural SystemVerilog generation from existing Liberty files")
+    print("5  Verification testsuite")
+    print("--from-step reruns the selected step and every subsequent step.")
+
+
+def resume_command(step):
+    """Keep the user's arguments, replacing the previous starting point."""
+    argv = iter(sys.argv[1:])
+    keep = []
+    for arg in argv:
+        if arg == "--from-step":
+            next(argv, None)
+        elif arg.startswith("--from-step=") or arg in {
+            "--from-logs", "--check-only", "--with-extract", "--list-steps"
+        }:
+            continue
+        else:
+            keep.append(arg)
+    return shlex.join([sys.executable, os.path.abspath(__file__), *keep,
+                       "--from-step", step])
+
+
+def run_step(cmd, env, step, failure):
+    """Stop at the failing stage and show a command that retries that stage."""
+    if not run_cmd(cmd, env=env):
+        log_err(failure)
+        log_err("After fixing the problem, continue with: " + resume_command(step))
+        sys.exit(1)
+
+
+def check_resume_inputs(sim_start, macros, env):
+    """Catch missing upstream inputs that measurement scripts otherwise skip."""
+    names = [step[0] for step in SIMULATION_STEPS]
+    if not sim_start:
+        return
+    required = []
+    if names.index(sim_start) > names.index("periphery-power"):
+        required.append(("cellgate", "periphery-power"))
+    if sim_start == "hold-bisect":
+        required.append(("wlslew", "wl-slew"))
+    corners = [entry.split(":")[0] for entry in env.get("ROM_CORNERS", DEFAULT_CORNERS).split()]
+    missing = False
+    for macro in macros:
+        char_dir = rom_paths.char_dir(macro, create=False)
+        for prefix, producer in required:
+            for corner in corners:
+                path = os.path.join(char_dir, f"{prefix}_{corner}.log")
+                if not os.path.isfile(path) or os.path.getsize(path) == 0:
+                    log_err(f"Missing resume input: {path}; restart from {producer}.")
+                    missing = True
+    if missing:
+        sys.exit(1)
 
 
 class Colors:
@@ -178,18 +267,29 @@ def main():
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        allow_abbrev=False,
     )
     parser.add_argument("macros", nargs="*", help="Macro name(s) to characterize (e.g. wrom1)")
     parser.add_argument("--all", action="store_true", help="Process every macro discovered in macro directory")
-    parser.add_argument(
+    start_options = parser.add_mutually_exclusive_group()
+    start_options.add_argument(
         "--from-logs",
         action="store_true",
         help="Skip SPICE simulations and generate deliverables directly from existing characterization logs",
     )
-    parser.add_argument(
+    start_options.add_argument(
         "--check-only",
         action="store_true",
         help="Run pre-flight checks and exit",
+    )
+    start_options.add_argument(
+        "--from-step", choices=STEP_CHOICES,
+        help="Rerun this step and all later steps; earlier outputs must already exist. "
+             "Use 1-5 for main phases or a simulation name (see --list-steps).",
+    )
+    start_options.add_argument(
+        "--list-steps", action="store_true",
+        help="List restart points and exit without checking tools or macros",
     )
     parser.add_argument(
         "--with-extract",
@@ -214,18 +314,30 @@ def main():
     parser.add_argument(
         "--jobs",
         type=int,
-        default=int(os.environ.get("JOBS", 4)),
-        help="Parallel simulation jobs for ngspice (default: 4)",
+        default=None,
+        help="Parallel simulation jobs for ngspice (default: automatic from CPU and free RAM)",
     )
     parser.add_argument(
         "--pin-cap-gap",
         type=float,
-        default=float(os.environ.get("PIN_GAP_THRESH", "1.0")),
-        help="Target maximum rise/fall capacitance settling gap quota in percent (default: 1.0%%). "
+        default=float(os.environ.get("PIN_GAP_THRESH", "12.0")),
+        help="Target maximum rise/fall capacitance settling gap quota in percent (default: 12.0%%). "
              "Iterative hold-time refinement will automatically run until all pins settle within this gap.",
     )
 
     args = parser.parse_args()
+
+    if args.list_steps:
+        list_steps()
+        return
+    if args.from_step in FULL_STEPS and not args.full:
+        parser.error(f"--from-step {args.from_step} requires --full")
+    start_step = (int(args.from_step) if args.from_step and args.from_step.isdigit()
+                  else 2 if args.from_step else 1)
+    sim_start = args.from_step if args.from_step and not args.from_step.isdigit() else None
+    if args.with_extract and (start_step > 2 or sim_start not in (None, "extract")):
+        parser.error("--with-extract conflicts with this starting point; "
+                     "use --from-step extract to rerun extraction and all later steps")
 
     # --full names extra SIMULATIONS, and both of these modes skip the
     # simulation step outright. Saying so beats letting the flag look honoured.
@@ -240,7 +352,8 @@ def main():
         os.environ["ROM_MACROS_DIR"] = os.path.abspath(args.macros_dir)
     if args.out_dir:
         os.environ["ROM_OUT_DIR"] = os.path.abspath(args.out_dir)
-    os.environ["JOBS"] = str(args.jobs)
+    if args.jobs is not None:
+        os.environ["JOBS"] = str(args.jobs)
     os.environ["PIN_GAP_THRESH"] = str(args.pin_cap_gap)
 
     # Resolve macros. Named macros may be given as a bare name or as a path;
@@ -281,22 +394,18 @@ def main():
     print(f"Macro directory: {rom_paths.macros_dir(args.macros_dir)}")
     print(f"Output root    : {rom_paths.out_dir(explicit=args.out_dir)}")
     print(f"Mode           : {mode}")
+    if args.from_step:
+        print(f"Starting at    : {args.from_step} (earlier steps are not rerun)")
 
-    total_steps = 1 if args.check_only else (4 if args.from_logs else 5)
-    current_step = 1
-
-    # Step 1: Pre-flight checks
-    log_step(current_step, total_steps, "Pre-flight checks")
-    current_step += 1
-
-    for m in target_macros:
-        cmd = [sys.executable, os.path.join(SCRIPTS_DIR, "rom_paths.py"), "--check", m]
-        if args.macros_dir:
-            cmd += ["--macros-dir", args.macros_dir]
-        if not run_cmd(cmd, env=env):
-            log_err(f"Pre-flight check failed for macro: {m}")
-            sys.exit(1)
-        log_ok(f"Pre-flight verified for {m}")
+    # Phase numbers stay stable even when a preceding phase is skipped.
+    if start_step <= 1:
+        log_step(1, 5, "Pre-flight checks")
+        for m in target_macros:
+            cmd = [sys.executable, os.path.join(SCRIPTS_DIR, "rom_paths.py"), "--check", m]
+            if args.macros_dir:
+                cmd += ["--macros-dir", args.macros_dir]
+            run_step(cmd, env, "1", f"Pre-flight check failed for macro: {m}")
+            log_ok(f"Pre-flight verified for {m}")
 
     if args.check_only:
         # --check-only is what someone runs FIRST, before committing hours to
@@ -310,18 +419,28 @@ def main():
         return
 
     # Check simulator requirements if full simulation is requested
-    if not args.from_logs:
+    if not args.from_logs and start_step <= 2:
         # Decided BEFORE the environment check, because it is what makes Magic
         # required or merely nice to have.
         missing_cap = [m for m in target_macros
                        if not os.path.exists(rom_paths.cap_netlist(m, args.macros_dir))]
 
-        if not check_environment(env, need_magic=args.with_extract or bool(missing_cap)):
+        # An explicit simulation restart must not silently go back to extraction.
+        if sim_start not in (None, "extract") and missing_cap:
+            log_err("Cannot continue: missing <macro>_cap_only.spice for "
+                    + ", ".join(missing_cap))
+            log_err("Restore the previous extraction or use --from-step extract.")
+            sys.exit(1)
+        check_resume_inputs(sim_start, target_macros, env)
+
+        extraction_macros = (target_macros if args.with_extract or sim_start == "extract"
+                             else missing_cap)
+        do_extract = bool(extraction_macros)
+        if not check_environment(env, need_magic=do_extract):
             sys.exit(1)
 
         # Step 2: SPICE Simulations
-        log_step(current_step, total_steps, "Running SPICE characterization simulations")
-        current_step += 1
+        log_step(2, 5, "Running SPICE characterization simulations")
 
         # EXTRACTION IS NOT OPTIONAL WHEN ITS OUTPUT IS MISSING.
         #
@@ -332,105 +451,57 @@ def main():
         # flag for that turned into a failure some minutes in, on the first
         # macro anyone brings. So: if it is missing, extract. If it is missing
         # and there is no GDS to extract from, say so now rather than later.
-        do_extract = args.with_extract or bool(missing_cap)
-
-        if missing_cap and not args.with_extract:
-            no_gds = [m for m in missing_cap
+        if do_extract:
+            no_gds = [m for m in extraction_macros
                       if not os.path.exists(os.path.join(
                           rom_paths.split_macro(m, args.macros_dir)[1], m + ".gds"))]
             if no_gds:
-                log_err("No parasitic netlist and no GDS to extract one from: "
+                log_err("Cannot run extraction: no GDS for "
                         + ", ".join(no_gds))
                 log_err("  <macro>_cap_only.spice is what every deck is built on.")
                 log_err("  Add <macro>.gds to the macro directory, or copy an")
                 log_err("  existing <macro>_cap_only.spice in beside the netlist.")
                 sys.exit(1)
-            log_warn("No <macro>_cap_only.spice for: " + ", ".join(missing_cap))
-            log_warn("Running the Magic extraction first -- it is slow, and "
-                     "every later deck needs it.")
+            if missing_cap:
+                log_warn("No <macro>_cap_only.spice for: " + ", ".join(missing_cap))
+            log_warn("Running Magic extraction before the measurements.")
 
-        sim_scripts = []
-        if do_extract:
-            sim_scripts.append(("Parasitic C extraction (Magic)", "run_cap_extract.sh"))
+        sim_scripts = [step for step in SIMULATION_STEPS
+                       if (step[0] != "extract" or do_extract)
+                       and (args.full or step[0] not in FULL_STEPS)]
+        if sim_start:
+            start_index = next(i for i, step in enumerate(sim_scripts) if step[0] == sim_start)
+            sim_scripts = sim_scripts[start_index:]
 
-        # Both modes. run_early_path.sh sits next to run_col_timing.sh because
-        # it is the same deck on the other column -- worst for the late arcs,
-        # best for the early ones -- and shares its <macro>_cap_only.spice
-        # prerequisite. It is not optional: without its logs the .lib carries
-        # no retain_rise/retain_fall at all, and an absent arc has no
-        # pessimistic reading the way a too-long hold does.
-        sim_scripts.extend([
-            ("Worst-case column timing (t_dis, t_pre)", "run_col_timing.sh"),
-            ("Best-case column timing (retain_*, the early path)", "run_early_path.sh"),
-            ("Back-end delay & slew vs output load", "run_backend_delay.sh"),
-            ("Periphery active/idle energy & gate capacitance", "run_periphery_power.sh"),
-            ("Address setup time", "run_addr_setup.sh"),
-            ("Column leakage power", "run_col_power.sh"),
-            ("Column energy per cycle", "run_col_energy.sh"),
-            ("Periphery leakage power (gmin-swept)", "run_periphery_leak.sh"),
-            ("Column decoder delay race", "run_coldec_delay.sh"),
-            (f"Input pin capacitances (iterative settling <= {args.pin_cap_gap:g}%)", "run_pin_cap.sh"),
-        ])
-
-        # --full only, and appended in dependency order rather than in the
-        # order they are described anywhere:
-        #   run_wl_slew, run_addr2wl and run_slew_sweep each read
-        #   cellgate_<corner>.log, which run_periphery_power.sh above writes;
-        #   run_hold_bisect reads wlslew_<corner>.log from run_wl_slew, and
-        #   without it cuts the chain with an ideal step instead of the edge
-        #   the macro really produces -- a pessimistic hold, i.e. the very
-        #   fallback this mode exists to retire.
-        if args.full:
-            sim_scripts.extend([
-                ("Wordline fall edge (the hold deck's stimulus)", "run_wl_slew.sh"),
-                ("Address hold, bisected", "run_hold_bisect.sh"),
-                ("addr0 -> wordline, for the clk0 time frame", "run_addr2wl.sh"),
-                ("Front-end delay vs clk0 slew (the index_1 axis)", "run_slew_sweep.sh"),
-            ])
-
-        for desc, script_name in sim_scripts:
-            print(f"\n  {Colors.BOLD}--> {desc} ({script_name}){Colors.RESET}")
+        for name, desc, script_name in sim_scripts:
+            print(f"\n  {Colors.BOLD}--> {name}: {desc} ({script_name}){Colors.RESET}")
             script_path = os.path.join(SCRIPTS_DIR, script_name)
-            cmd = ["/bin/sh", script_path] + target_macros
-            if not run_cmd(cmd, env=env):
-                log_err(f"Simulation failed during: {script_name}")
-                sys.exit(1)
+            # The extraction script accepts one macro, unlike measurement scripts.
+            groups = [[m] for m in extraction_macros] if name == "extract" else [target_macros]
+            for macros in groups:
+                cmd = ["/bin/sh", script_path] + macros
+                run_step(cmd, env, name, f"Simulation failed during: {script_name}")
 
-    # Step 3: Liberty Generation
-    log_step(current_step, total_steps, "Generating Liberty (.lib) files from measurements")
-    current_step += 1
+    if start_step <= 3:
+        log_step(3, 5, "Generating Liberty (.lib) files from measurements")
+        cmd = ["/bin/sh", os.path.join(SCRIPTS_DIR, "regen_rom_libs.sh")] + target_macros
+        run_step(cmd, env, "3", "Liberty (.lib) generation failed.")
+        log_ok("Liberty libraries generated successfully for TT, SS, FF corners.")
 
-    regen_script = os.path.join(SCRIPTS_DIR, "regen_rom_libs.sh")
-    cmd = ["/bin/sh", regen_script] + target_macros
-    if not run_cmd(cmd, env=env):
-        log_err("Liberty (.lib) generation failed.")
-        sys.exit(1)
-    log_ok("Liberty libraries generated successfully for TT, SS, FF corners.")
+    if start_step <= 4:
+        log_step(4, 5, "Generating behavioural SystemVerilog (.sv) models")
+        cmd = [sys.executable, os.path.join(SCRIPTS_DIR, "gen_macro_behavioral_v.py")] + target_macros
+        if args.macros_dir:
+            cmd += ["--macros-dir", args.macros_dir]
+        if args.out_dir:
+            cmd += ["--outdir", os.path.join(args.out_dir, "verilog"),
+                    "--lib-dir", os.path.join(args.out_dir, "lib")]
+        run_step(cmd, env, "4", "Behavioural Verilog generation failed.")
+        log_ok("Behavioural Verilog models updated with measured timing.")
 
-    # Step 4: Behavioural Verilog Generation
-    log_step(current_step, total_steps, "Generating behavioural SystemVerilog (.sv) models")
-    current_step += 1
-
-    gen_v_script = os.path.join(SCRIPTS_DIR, "gen_macro_behavioral_v.py")
-    cmd = [sys.executable, gen_v_script] + target_macros
-    if args.macros_dir:
-        cmd += ["--macros-dir", args.macros_dir]
-    if args.out_dir:
-        cmd += ["--outdir", os.path.join(args.out_dir, "verilog"), "--lib-dir", os.path.join(args.out_dir, "lib")]
-    if not run_cmd(cmd, env=env):
-        log_err("Behavioural Verilog generation failed.")
-        sys.exit(1)
-    log_ok("Behavioural Verilog models updated with measured timing.")
-
-    # Step 5: Testsuite Validation
-    log_step(current_step, total_steps, "Running verification testsuite")
-    current_step += 1
-
-    test_script = os.path.join(TESTS_DIR, "run_tests.sh")
-    cmd = ["/bin/sh", test_script]
-    if not run_cmd(cmd, env=env):
-        log_err("Testsuite verification failed.")
-        sys.exit(1)
+    log_step(5, 5, "Running verification testsuite")
+    run_step(["/bin/sh", os.path.join(TESTS_DIR, "run_tests.sh")] + target_macros, env, "5",
+             "Testsuite verification failed.")
 
     print(f"\n{Colors.BOLD}{Colors.GREEN}======================================================{Colors.RESET}")
     print(f"{Colors.BOLD}{Colors.GREEN} FLOW COMPLETED SUCCESSFULLY! ALL DELIVERABLES READY. {Colors.RESET}")

@@ -10,32 +10,17 @@
 # are supposed to be installed -- CI does -- so that a green run cannot mean
 # "OpenSTA was missing, so we did not check".
 #
-# WHAT RUNS, AND WHY EACH LAYER EXISTS:
-#   1. test_checker  -- proves the checker still catches the 15 defects in
-#                       tests/fixtures/. A validator nobody validates turns
-#                       every run green and everyone stops looking.
-#   1b. test_error_reporting -- a deck that dies must say WHICH STAGE died
-#                       and WHY. The whole flow used to run ngspice as
-#                       `... >/dev/null 2>&1 || true`, so a dead deck left no
-#                       message, no log and a zero exit -- and several .lib
-#                       terms have a fallback for "the log is missing", which
-#                       is indistinguishable from a run that never happened.
-#   2. check_lib     -- is each generated file valid Liberty? (syntax, table
-#                       shapes against their templates, arc completeness)
-#   3. test_rom_lib  -- does it say what this macro actually does? (the
-#                       falling-edge arc, the constraints, both power states,
-#                       corner ordering)
-#   4. OpenSTA       -- our parser checking our writer is a closed loop;
-#                       this opens it, using the parser a consumer really
-#                       uses. Skipped with a notice when sta is not installed.
-#   5. Verilog       -- validates behavioural Verilog models with iverilog if
-#                       installed (syntax and elaboration check). Skipped with
-#                       a notice when iverilog is not installed.
-#   6. test_verilog_model -- executes dynamic simulation testbenches against
-#                       the behavioural Verilog models with iverilog + vvp to
-#                       prove precharge, evaluate access delay, falling edge
-#                       invalidation and chip-select gating. Skipped when
-#                       iverilog/vvp is not installed.
+# WHAT RUNS, AND WHY EACH SUITE EXISTS:
+#   1. scripts_tests/  -- unit and integration tests for deck parsers, generators,
+#                         SPICE utilities, error/provenance handling, flow recovery/resume,
+#                         adaptive periphery settling, and paired-op gmin sweeps.
+#   2. lib_tests/      -- test_checker (fixtures validation), check_lib (Liberty
+#                         syntax, shapes, templates, monotonic axes), test_rom_lib
+#                         (ROM timing arcs, dual-edge dout0, constraints, corner ordering),
+#                         and OpenSTA read_liberty validation.
+#   3. verilog_tests/  -- behavioural SystemVerilog (.sv) elaboration (iverilog)
+#                         and dynamic simulation testbench (precharge, access delay,
+#                         falling-edge invalidation, cs0 gating, hold violations).
 
 set -e
 

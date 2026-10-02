@@ -28,7 +28,7 @@ class ResumeTests(unittest.TestCase):
         self.macros.mkdir()
         self.env = os.environ.copy()
         for key in ("ROM_MACROS_DIR", "ROM_OUT_DIR", "ROM_CORNERS", "JOBS",
-                    "PIN_GAP_THRESH", "FAIL_STAGE"):
+                    "COLDEC_ADDRS", "PIN_GAP_THRESH", "FAIL_STAGE"):
             self.env.pop(key, None)
         self.events = self.root / "events.jsonl"
         self.env.update(ROM_MACROS_DIR=str(self.macros), ROM_OUT_DIR=str(self.root / "output"),
@@ -41,7 +41,20 @@ name = sys.argv[1]
 with open(os.environ["EVENTS"], "a") as f:
     f.write(json.dumps({"stage": name, "args": sys.argv[2:],
                        "gap": os.environ.get("PIN_GAP_THRESH"),
-                       "jobs": os.environ.get("JOBS")}) + "\\n")
+                       "jobs": os.environ.get("JOBS"),
+                       "corners": os.environ.get("ROM_CORNERS"),
+                       "addresses": os.environ.get("COLDEC_ADDRS")}) + "\\n")
+if name == "coldec-delay":
+    corners = os.environ.get("ROM_CORNERS", "tt:1.8:25:34.1 ss:1.6:100:18.3 ff:1.95:-40:48.2").split()
+    addresses = os.environ.get("COLDEC_ADDRS", "0 1 2 3 4 5 6 7").split()
+    for macro in sys.argv[2:]:
+        char = pathlib.Path(os.environ["ROM_MACROS_DIR"]) / macro / "char"
+        for corner in corners:
+            tag = corner.split(":", 1)[0]
+            for address in addresses:
+                delay = 9.0 if address == "3" else float(address) + 1.0
+                (char / f"coldec_a{address}_{tag}.log").write_text(
+                    f"t_pre2sel{address}_rise = {delay}e-10\\n")
 if os.environ.get("FAIL_STAGE") == name:
     print("injected failure: " + name, file=sys.stderr)
     sys.exit(9)
@@ -224,6 +237,28 @@ if __name__ == "__main__":
         (self.macros / "demo" / "char" / "cellgate_ss.log").unlink()
         result = self.run_flow("demo", "--from-step", "pin-cap")
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_coldec_sweeps_all_requested_macros_and_corners_in_one_stage(self):
+        self.add_macro("second")
+        result = self.run_flow("demo", "second", "--from-step", "coldec-delay")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        runs = [r for r in self.records() if r["stage"] == "coldec-delay"]
+        self.assertEqual([(r["args"], r["corners"], r["addresses"]) for r in runs], [
+            (["demo", "second"], None, None),
+        ])
+
+    def test_coldec_explicit_address_override_preserves_single_run(self):
+        self.env["COLDEC_ADDRS"] = "2 5"
+        result = self.run_flow("demo", "--from-step", "coldec-delay")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        runs = [r for r in self.records() if r["stage"] == "coldec-delay"]
+        self.assertEqual(len(runs), 1)
+        self.assertEqual(runs[0]["addresses"], "2 5")
+
+    def test_default_jobs_is_left_unset_for_shell_auto_sizing(self):
+        result = self.run_flow("demo", "--from-step", "coldec-delay")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(all(r["jobs"] is None for r in self.records()))
 
     def test_retry_command_quotes_paths_and_preserves_options(self):
         self.add_macro("space macro")

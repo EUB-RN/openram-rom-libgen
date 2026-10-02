@@ -12,10 +12,7 @@ Validates:
 
 from __future__ import annotations
 
-import io
-import math
 import os
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
@@ -26,7 +23,7 @@ REPO = os.path.dirname(os.path.dirname(HERE))
 CHAR_DIR = os.path.join(REPO, "scripts", "rom_char")
 sys.path.insert(0, CHAR_DIR)
 
-from spice_utils import SUFFIX, blocks, blocks_from_lines, fix_units, to_float  # noqa: E402
+from spice_utils import blocks, blocks_from_lines, fix_units, to_float  # noqa: E402
 
 
 class TestToFloat(unittest.TestCase):

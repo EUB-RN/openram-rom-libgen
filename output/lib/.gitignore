@@ -1,0 +1,4 @@
+# Ignore user-generated ROM deliverables; keep only baseline example macros (wrom*)
+*
+!wrom*
+!.gitignore

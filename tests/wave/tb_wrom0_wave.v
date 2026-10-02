@@ -92,11 +92,10 @@ module tb_wrom0_wave;
   // array stays X). wrom0_rom.mem is the same contents as $readmemb text,
   // written by gen_wave_tb.py at the same time as this file.
   //
-  // The path is absolute because a simulator's working directory is its own
-  // business -- Vivado runs from <project>.sim/sim_1/behav/xsim, where a
-  // relative path does not resolve. Override it if the tree moves:
+  // Relative path resolved from the repository root / working directory.
+  // Override it if running from another directory:
   //     xelab -generic_top "INIT_FILE=/other/path/wrom0_rom.mem" ...
-  parameter INIT_FILE = "/home/hpw/openram-rom-libgen/tests/wave/wrom0_rom.mem";
+  parameter INIT_FILE = "tests/wave/wrom0_rom.mem";
 
   // Straight out of wrom0.sv, which took them straight out of the .lib.
   localparam real T_PRE    = 14.8779;    // min_pulse_width, fall

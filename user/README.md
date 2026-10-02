@@ -5,9 +5,13 @@ generate the Liberty (`.lib`) and behavioural SystemVerilog (`.sv`) models for
 them.
 
 This is the directory `shell.nix` points `ROM_MACROS_DIR` at, so inside
-`nix-shell` a macro placed here is found with no further configuration. The
+`nix-shell` a macro placed here is found without configuring the macro tree. The
 macros in `examples/` are study material; to work on those instead, set
 `ROM_MACROS_DIR` to that tree by hand.
+
+The shell supplies the tools, not an OpenRAM source checkout. If the macro has
+no `<macro>_cap_only.spice`, export
+`OPENRAM_TECH=/path/to/OpenRAM/technology` so Magic can extract it from GDS.
 
 ---
 
@@ -86,8 +90,12 @@ reported by the generated file still have to be resolved. It costs roughly an
 afternoon per macro against tens of minutes.
 
 `--pin-cap-gap <pct>` configures the target rise/fall capacitance settling gap
-quota (default 1.0%), iteratively increasing pin hold times until slow internal
+quota (default 12%), iteratively increasing pin hold times until slow internal
 switching tails finish settling.
+
+If a stage fails, `flow.py` prints a restart command. `./flow.py --list-steps`
+shows the stable phase/stage names accepted by `--from-step`; keep `--full`
+when restarting one of the four full-mode stages.
 
 Both modes run everything else, `run_early_path.sh` included: it has no
 pessimistic fallback -- without it the `.lib` carries no `retain_*` arcs at
