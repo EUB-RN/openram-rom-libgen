@@ -6,11 +6,11 @@ Circuit: * wrom0 -- periphery energy per cycle -- active (cs0=1)
 
 Doing analysis at TEMP = 100.000000 and TNOM = 27.000000
 
-Using SPARSE 1.3 as Direct Linear Solver
+Using KLU as Direct Linear Solver
 Operating point simulation skipped by 'uic',
   now using transient initial conditions.
 
-No. of Data Rows : 1585
+No. of Data Rows : 1523
 
   Measurements for Transient Analysis
 
@@ -154,14 +154,14 @@ Error: measure  t_pre2sel7_rise  trig(TARG) : out of interval
 Error: measure  t_pre2sel7_fall  trig(TARG) : out of interval
  .measure tran t_pre2sel7_fall trig v(wrom0_rom_column_decode_0/clk) val=    8.000000000000000e-01     fall=1 td=7.900000e-07 targ v(wrom0_rom_column_decode_0/wl_7) val=    8.000000000000000e-01     fall=1 td=8.000000e-07 failed!
 
-q_c2                =   -3.60521e-12 from=  4.00000e-07 to=  6.00000e-07
-q_c3                =   -3.57771e-12 from=  6.00000e-07 to=  8.00000e-07
-e_periph_pj         =  5.72434e+00
-t_clk2int           =  5.917549e-10 targ=  7.008418e-07 trig=  7.002500e-07
-v_wl0_eval          =  3.389230e-07
-t_wlfall0           =  3.930594e-09 targ=  7.041806e-07 trig=  7.002500e-07
-t_wlslew0           =  1.574863e-10 targ=  7.042548e-07 trig=  7.040973e-07
-t_wl1090_0          =  2.654702e-10 targ=  7.042959e-07 trig=  7.040304e-07
+q_c2                =   -4.25222e-12 from=  4.00000e-07 to=  6.00000e-07
+q_c3                =   -4.24991e-12 from=  6.00000e-07 to=  8.00000e-07
+e_periph_pj         =  6.79985e+00
+t_clk2int           =  6.429910e-10 targ=  7.008930e-07 trig=  7.002500e-07
+v_wl0_eval          =  3.389229e-07
+t_wlfall0           =  4.541041e-09 targ=  7.047910e-07 trig=  7.002500e-07
+t_wlslew0           =  1.714648e-10 targ=  7.048689e-07 trig=  7.046974e-07
+t_wl1090_0          =  2.723843e-10 targ=  7.049086e-07 trig=  7.046362e-07
 v_wl1_eval          =  1.600000e+00
 v_wl2_eval          =  1.600000e+00
 v_wl3_eval          =  1.600000e+00
@@ -169,22 +169,22 @@ v_wl4_eval          =  1.600000e+00
 v_wl5_eval          =  1.600000e+00
 v_wl6_eval          =  1.600000e+00
 v_wl7_eval          =  1.600000e+00
-t_clk2pre           =  1.401448e-09 targ=  7.016514e-07 trig=  7.002500e-07
-t_pre2sel0_rise     =  1.129722e-09 targ=  7.027812e-07 trig=  7.016514e-07
-t_pre2sel0_fall     =  1.294408e-09 targ=  8.030205e-07 trig=  8.017261e-07
+t_clk2pre           =  1.541675e-09 targ=  7.017917e-07 trig=  7.002500e-07
+t_pre2sel0_rise     =  1.248171e-09 targ=  7.030398e-07 trig=  7.017917e-07
+t_pre2sel0_fall     =  1.340185e-09 targ=  8.031982e-07 trig=  8.018580e-07
 
 
-Total analysis time (seconds) = 155.482
+Total analysis time (seconds) = 40.2607
 
-Total elapsed time (seconds) = 785.241 
+Total elapsed time (seconds) = 486.680 
 
-Total DRAM available = 31789.570 MB.
-DRAM currently available = 1186.016 MB.
-Maximum ngspice program size = 2875.703 MB.
-Current ngspice program size = 2615.613 MB.
+Total DRAM available = 31789.578 MB.
+DRAM currently available = 4104.633 MB.
+Maximum ngspice program size = 2880.617 MB.
+Current ngspice program size = 2802.281 MB.
 
-Shared ngspice pages =   11.211 MB.
+Shared ngspice pages =   11.688 MB.
 Text (code) pages =    6.520 MB.
 Stack = 0 bytes.
-Library pages = 2853.539 MB.
+Library pages = 2858.453 MB.
 

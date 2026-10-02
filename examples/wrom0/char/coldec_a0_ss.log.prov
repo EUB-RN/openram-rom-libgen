@@ -2,9 +2,9 @@
 version	1
 stage	column-decode
 context	wrom0 ss addr0
-when	2026-09-24T17:12:12Z
+when	2026-10-01T10:27:49Z
 deck	/home/hpw/openram-rom-libgen/examples/wrom0/char/coldec_a0_ss.sp
-deck_sha	881c2b41fc08f1e97ac6f878e02e7607fa3e0055a8af8aa0888832c41db1102f
-log_sha	65ab8ee2e823778ba890609fa277c6da4369d9044ba41255ca7304c5b152e1ce
+deck_sha	951ffc6c6f0c72e78f87962e3d0dbabd00e26116b85e3fd597d3050f86a6e2d3
+log_sha	a25e14c21990b4a51bddbd449b6844da24d25c5708ffc65b71e340af9d0dfd4b
 src	/home/hpw/openram-rom-libgen/examples/wrom0/wrom0.sp
 src_sha	bab2cf4cfbc30db63bc8e54b68adf0cfec6bfe0a5559a1d72febca09e34fa192
