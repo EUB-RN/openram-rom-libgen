@@ -41,6 +41,7 @@ NOISE_FLOOR_PJ="${PERIPH_NOISE_FLOOR_PJ:-0.10}"
 MAX_CYCLES="${PERIPH_MAX_CYCLES:-20}"
 PERIPH_PAIRED="${PERIPH_PAIRED:-1}"
 PREDICT_HARD_MAX="${PERIPH_PREDICT_MAX_CYCLES:-64}"
+PERIPH_TCLK="${PERIPH_TCLK:-}"
 
 # Return the later of the active/idle settled markers for one corner.  A MAX
 # marker is deliberately ignored: only observed convergence may train the
@@ -107,7 +108,7 @@ run_periph_deck() {
   python3 "$GENP" "$_m" "$_cs" "$_sp" --corner "$_c" --vdd "$_v" --temp "$_t" \
           --gate-cap-ff "$_cg" --cycles "$_cyc" \
           --settle-max-cycles "$_max_cyc" --settle-thresh "$SETTLE_MAX_PCT" \
-          --noise-floor-pj "$NOISE_FLOOR_PJ" >/dev/null
+          --noise-floor-pj "$NOISE_FLOOR_PJ" ${PERIPH_TCLK:+--tclk "$PERIPH_TCLK"} >/dev/null
   run_ng "periphery-energy" "$_sp" "$_lg" \
          "$_m $_c cs$_cs (persistent $_cyc..$MAX_CYCLES)" || return 1
 
@@ -159,7 +160,8 @@ run_periph_paired_deck() {
   python3 "$GENP" "$_m" 1 "$_sp" --corner "$_c" --vdd "$_v" --temp "$_t" \
           --gate-cap-ff "$_cg" --cycles "$_cyc" \
           --settle-max-cycles "$_max_cyc" --settle-thresh "$SETTLE_MAX_PCT" \
-          --noise-floor-pj "$NOISE_FLOOR_PJ" --paired >/dev/null
+          --noise-floor-pj "$NOISE_FLOOR_PJ" --paired \
+          ${PERIPH_TCLK:+--tclk "$PERIPH_TCLK"} >/dev/null
   cp "$_sp" "$_sp_act"
   cp "$_sp" "$_sp_idle"
 

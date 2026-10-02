@@ -37,10 +37,40 @@ CYCLE_STEP="${COL_CYCLE_STEP:-2}"
 run_col_energy_deck() {
   _m="$1"; _c="$2"; _v="$3"; _t="$4"; _sp="$5"; _lg="$6"
   _cyc="$CYCLES_START"
+
+  # Adaptive cycle period from timing characterization:
+  # The column energy deck integrates charge to measure full C*V^2 switching energy.
+  # If TCLK is too short, high-resistance series NMOS chains (notably in SS corner)
+  # cannot fully discharge before precharge reactivates, causing severe energy
+  # underestimation. We adaptively size TCLK from t_dis_10 and t_pre_99.
+  _tclk="${COL_TCLK:-}"
+  if [ -z "$_tclk" ]; then
+    _sfx=$( [ "$_c" = "tt" ] && echo "" || echo "_$_c" )
+    _tlog="$G_CHAR/${G_COLTAG}_worst_case_parasitic${_sfx}.log"
+    [ ! -f "$_tlog" ] && _tlog="$G_CHAR/${G_COLTAG}_worst_case_parasitic_${_c}.log"
+
+    _tdis10=$(meas "$_tlog" t_dis_10)
+    _tpre99=$(meas "$_tlog" t_pre_99)
+
+    if [ -n "$_tdis10" ]; then
+      [ -z "$_tpre99" ] && _tpre99="20e-9"
+      _tclk=$(awk -v d="$_tdis10" -v p="$_tpre99" 'BEGIN {
+        teval = 1.25 * d;
+        tpre  = 1.25 * p;
+        tphase = (teval > tpre ? teval : tpre);
+        tclk_ns = int((2.0 * tphase * 1e9 + 9) / 10) * 10;
+        if (tclk_ns < 200) tclk_ns = 200;
+        printf "%dns", tclk_ns;
+      }')
+    else
+      _tclk="200n"
+    fi
+  fi
+
   while :; do
     python3 "$GEN" "$_m" "$G_WORST_COL" active "$_sp" --corner "$_c" --vdd "$_v" --temp "$_t" \
-            --cycles "$_cyc" >/dev/null
-    run_ng "col-energy" "$_sp" "$_lg" "$_m $_c (cyc=$_cyc)" || return 1
+            --cycles "$_cyc" --tclk "$_tclk" ${MACROS_DIR:+--macros-dir "$MACROS_DIR"} >/dev/null
+    run_ng "col-energy" "$_sp" "$_lg" "$_m $_c (cyc=$_cyc tclk=$_tclk)" || return 1
     _q2=$(meas "$_lg" q_c2)
     _q3=$(meas "$_lg" q_c3)
     [ -z "$_q3" ] && break
