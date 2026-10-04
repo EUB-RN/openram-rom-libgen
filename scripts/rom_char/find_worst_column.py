@@ -76,6 +76,7 @@ def analyse(sp_path):
         rows.add(int(m.group(1)))
         col = int(m.group(2))
         cols.add(col)
+        one.setdefault(col, 0)
         # the instance body is on the continuation lines; the sub-circuit name
         # is the last token
         j = i + 1
@@ -89,7 +90,7 @@ def analyse(sp_path):
                 one[col] += 1
         i = j
 
-    if not one:
+    if not cols:
         return None
     worst_col, chain = one.most_common(1)[0]
     # The BEST column matters as much as the worst one now: the worst column
@@ -99,7 +100,7 @@ def analyse(sp_path):
     # check against the capture flop then has nothing to fail on.
     best_col = min(one, key=lambda c: (one[c], c))
     return (len(rows), len(cols), worst_col, chain,
-            sum(one.values()) / len(one), one[best_col], best_col)
+            sum(one.values()) / len(cols), one[best_col], best_col)
 
 
 def row_zero_counts(sp_path):

@@ -87,9 +87,10 @@ for m in $MACROS; do
     c=$(echo "$ck" | cut -d: -f1)
     lg="$G_CHAR/addr2wl_${c}.log"
     [ -f "$lg" ] || continue
-    # exactly one probed wordline falls -- the row the new address selects.
-    # The others report "failed", which is the evidence that nothing else
-    # moved, so the WORST (largest) of whatever resolved is the honest pick.
+    # Exactly one probed wordline may fall IN THE CURRENT EVALUATE WINDOW --
+    # the row the new address selects. gen_periphery_power_tb.py ends this
+    # special deck at that window boundary so a fall on the next clock cannot
+    # masquerade as a ~150 ns addr->WL delay. The others report "failed".
     d=$(awk '/^t_addr2wl[0-9]+ /{ if ($3 ~ /^[0-9.eE+-]+$/ && $3+0 > mx) mx = $3+0 }
              END { if (mx > 0) printf "%.4f", mx*1e9 }' "$lg")
     tf=$(meas "$G_CHAR/periph_active_${c}.log" t_clk2pre |

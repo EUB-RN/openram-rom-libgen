@@ -19,8 +19,12 @@
 # it too low is how the first version of this script returned a hold time
 # 1.6 ns shorter than the circuit can actually deliver.
 #
-# THE TEST is bl_b_end, the read value one nanosecond before the phase ends,
-# against a real LOGIC LEVEL: HOLD_VOH_FRAC * VDD, 0.9 by default.
+# THE ARRAY TEST is bl_b_end, the read value one nanosecond before the phase
+# ends, against a real LOGIC LEVEL: HOLD_VOH_FRAC * VDD, 0.9 by default.  That
+# test finds the last address-dependent instant in the array.  The address
+# must then remain stable while that value traverses the bitline inverter,
+# column mux and output buffer, so the reported hold adds the worst-load
+# t_bl2dout from backend_<corner>_*.log.
 #
 # VDD/2 is the wrong threshold and was tried first. The cut FREEZES the
 # bitline, and a frozen bitline near the inverter's trip point maps straight
@@ -37,8 +41,9 @@
 # 10% of the rail. That is a stricter -- later, safer -- hold time than the
 # trip-point crossing, and it is the honest one.
 #
-# The reported hold is the SMALLEST CUT TIME THAT PASSED, i.e. the upper end
-# of the final bracket: never a value that was not itself simulated.
+# The array component is the SMALLEST CUT TIME THAT PASSED, i.e. the upper end
+# of the final bracket: never a cut that was not itself simulated.  The final
+# hold is that cut plus the separately simulated worst-load backend delay.
 #
 # THE WORDLINE EDGE IS REAL. --wl-slew-ns is taken from wlslew_<corner>.log
 # (run_wl_slew.sh) unless WL_SLEW says otherwise, so the chain is cut at the
@@ -156,14 +161,39 @@ bisect_corner() {
 
   _acc=$(meas "$G_CHAR/${G_COLTAG}_worst_case_parasitic$( [ "$_c" = tt ] || \
          echo "_$_c").log" t_dis_50 | awk '{printf "%.4f", $1*1e9}')
+  # The bitline reaching a valid logic level is not yet data at dout0.  Add
+  # the slowest measured bitline-inverter -> mux -> output-buffer delay over
+  # every characterised load for this corner.  Missing/failed backend data
+  # must not silently turn into zero: that would recreate the unsafe hold
+  # value this stage exists to replace.
+  _be_max=0
+  _be_found=0
+  for _bf in "$G_CHAR/backend_${_c}_"*.log; do
+    if [ -f "$_bf" ]; then
+      _bval=$(meas "$_bf" t_bl2dout | awk '{printf "%.4f", $1*1e9}')
+      [ -n "$_bval" ] || continue
+      _be_found=1
+      _be_max=$(awk -v m="$_be_max" -v b="$_bval" \
+                    'BEGIN{print (b+0 > m+0) ? b : m}')
+    fi
+  done
+  if [ "$_be_found" -ne 1 ]; then
+    echo "   -> no t_bl2dout in char/backend_${_c}_*.log; nothing to report"
+    echo "      run scripts/rom_char/run_backend_delay.sh $_m first"
+    return
+  fi
+  _hold_tot=$(awk -v h="$_hi" -v be="$_be_max" \
+                  'BEGIN{printf "%.4f", h + be}')
   # The number, where regen_rom_libs.sh looks for it. Seconds, laid out like
   # an ngspice .measure line so common.sh's `meas` reads it like every other
   # measured quantity in the flow -- nothing here is a special case.
-  awk -v h="$_hi" -v l="$_lo" -v s="$_slew" -v f="$VOH" -v t="$TOL" 'BEGIN{
+  awk -v h="$_hi" -v be="$_be_max" -v ht="$_hold_tot" -v l="$_lo" \
+      -v s="$_slew" -v f="$VOH" -v t="$TOL" 'BEGIN{
     printf "* address hold, scripts/rom_char/run_hold_bisect.sh\n"
     printf "* wordline fall %s ns, threshold %s x VDD, tolerance %s ns\n", s, f, t
     printf "* largest cut time that still FAILS: %.6e\n", l*1e-9
-    printf "hold                =  %.6e\n", h*1e-9
+    printf "* array cut: %.6e, max backend t_bl2dout: %.6e\n", h*1e-9, be*1e-9
+    printf "hold                =  %.6e\n", ht*1e-9
   }' > "$G_CHAR/hold_${_c}.log"
   # Derived from the bisection above, not from a single deck (deck "-"), but
   # stamped like every other input to the library: an unstamped hold_<corner>.log
@@ -171,11 +201,12 @@ bisect_corner() {
   # time measured against some other netlist.
   prov_write "hold-bisect" "-" "$G_CHAR/hold_${_c}.log" "$_m $_c"
 
-  echo "   -> hold = $_hi ns   (simulated; $_lo ns does not reach the level,"
+  echo "   -> array cut = $_hi ns, backend (to dout) = $_be_max ns"
+  echo "      hold = $_hold_tot ns   (simulated cut; $_lo ns does not reach the level,"
   echo "         tolerance $TOL ns, threshold $VOH x VDD)"
   echo "      written to char/hold_${_c}.log -- regen_rom_libs.sh picks it up"
   [ -n "$_acc" ] && echo "      t_dis_50 on the same column: $_acc ns"
-  echo "      the .lib currently declares hold = access"
+  echo "      the .lib uses array cut + worst-load backend delay"
 }
 
 echo "== address hold by bisection (tolerance $TOL ns) =="

@@ -1020,7 +1020,14 @@ elif persistent_control:
 * when needed. No candidate re-parses the deck or recomputes earlier cycles.
 {persistent_control}"""
 else:
-    energy_analysis = f""".tran '{args.tclk}/{args.steps}' '{args.cycles}*TCLK' uic
+    # An evaluate-phase address switch is a single-window timing experiment.
+    # Stop at the end of THAT evaluate phase: if the transient continues into
+    # the next cycle, an unselected wordline may fall on the next clock edge
+    # and .measure will incorrectly report that event as a 150 ns addr->WL
+    # delay.  random_8k exposed this at TT/FF.  The switch is at
+    # (cycles-1.25)*TCLK and evaluate ends at (cycles-1)*TCLK.
+    _tran_cycles = args.cycles - 1 if args.addr_sw_eval else args.cycles
+    energy_analysis = f""".tran '{args.tclk}/{args.steps}' '{_tran_cycles}*TCLK' uic
 * The LAST TWO cycles are measured separately: equal values show the circuit
 * has SETTLED (with uic every node starts at 0). At cs0=1 the precharge network
 * is so heavily loaded that 4 cycles were NOT enough -- on 2026-09-06 the c2/c3

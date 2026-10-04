@@ -390,9 +390,10 @@ for m in $(macro_list "$@"); do
       echo "        run run_wl_slew.sh then run_hold_bisect.sh to measure it"
     fi
     # THE FRAME CONVERSION for that hold. run_hold_bisect.sh answers in the
-    # column deck's frame -- that deck has no clk0 in it, so its cut time is
-    # counted from the internal evaluate edge -- while Liberty's hold_rising
-    # is referenced to the clk0 PIN. addr0 -> the wordline it drops is the
+    # column deck's frame -- that deck has no clk0 in it, so its array cut plus
+    # worst-load backend delay is counted from the internal evaluate edge --
+    # while Liberty's hold_rising is referenced to the clk0 PIN. addr0 -> the
+    # wordline it drops is the
     # missing term (run_addr2wl.sh, measured during evaluate when the clocked
     # decoder is transparent); gen_rom_lib.py does the arithmetic. Exactly one
     # probed wordline falls, so the worst of whatever resolved is the answer.

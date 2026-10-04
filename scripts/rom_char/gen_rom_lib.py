@@ -402,30 +402,30 @@ def gen_lib(name, area, buses, scalars, corner, args):
     _ctrl_names = [p_ for p_, i_ in scalars.items()
                    if i_.get("use") not in ("power", "ground") and p_ != "clk0"]
     hold_ctrl = hold
-    hold_frame = None      # (cut, t_front, t_addr2wl) once converted
+    hold_frame = None      # (array_cut_plus_backend, t_front, t_addr2wl)
     if args.hold_measured:
         # MEASURED (run_hold_bisect.sh): the deck cuts the series chain in
-        # mid-evaluate and bisects the cut time until the read still lands
-        # within 10% of the rail. It comes out SHORTER than access, because
-        # the read is finished once the bitline has driven bl_b to a real
-        # logic level; the back-end delay after that point no longer depends
-        # on the address. This value is per-corner and never derated.
+        # mid-evaluate and bisects the cut time until the bitline inverter
+        # input still lands within 10% of the rail. run_hold_bisect.sh then
+        # adds the worst-load bitline-inverter -> mux -> output-buffer delay,
+        # because the address must remain stable until that value reaches
+        # dout0. This value is per-corner and never derated.
         #
         # IT IS ALSO IN THE WRONG TIME FRAME until it is converted. The hold
         # deck is the COLUMN deck: driven by a synthetic precharge source,
-        # with no clk0 in it at all, so its cut time is counted from the
-        # INTERNAL evaluate edge. Liberty's hold_rising is referenced to the
-        # clk0 PIN. Two measured delays separate the frames:
+        # with no clk0 in it at all, so its array-cut-plus-backend time is
+        # counted from the INTERNAL evaluate edge. Liberty's hold_rising is
+        # referenced to the clk0 PIN. Two measured delays separate the frames:
         #
-        #   hold(clk0) = t_front + cut - t_addr2wl
-        #                \______/         \________/
-        #            pin -> array edge   pin -> the wordline it drops
+        #   hold(clk0) = t_front + (array cut + backend) - t_addr2wl
+        #                \______/                         \________/
+        #            pin -> array edge                 pin -> wordline
         #
         # t_front is taken at its LARGEST point on the slew axis, which makes
-        # the converted hold longer, i.e. stricter. Shipping the raw cut time
-        # instead is the same as asserting the two terms cancel -- on the
-        # example macros they nearly do, which is a coincidence and not a
-        # reason.
+        # the converted hold longer, i.e. stricter. Shipping the unconverted
+        # internal-frame total instead is the same as asserting the two terms
+        # cancel -- on the example macros they nearly do, which is a
+        # coincidence and not a reason.
         hold_addr = args.hold_measured
         hold_is_analytic = False
         if args.t_addr2wl is not None:
@@ -583,32 +583,34 @@ def gen_lib(name, area, buses, scalars, corner, args):
             w(" * (scripts/rom_char/run_hold_bisect.sh). The deck cuts the")
             w(" * series chain in mid-evaluate -- what a moving address does")
             w(" * to a CLOCKED row decoder -- and bisects the cut time until")
-            w(" * the read still lands within 10% of the rail. It is SHORTER")
-            w(" * than access (%.4f ns): once the bitline has driven bl_b to a"
-              % access_eff)
-            w(" * real logic level the read is decided, and the back-end delay")
-            w(" * after that point no longer depends on the address.")
+            w(" * the bitline inverter input lands within 10% of the rail.")
+            w(" * The reported hold then ADDS the worst-load backend delay")
+            w(" * (bitline inverter + column mux + output buffer), because")
+            w(" * the address must remain stable until data reaches dout0.")
             if hold_frame:
-                _cut, _tf, _d = hold_frame
+                _array_backend, _tf, _d = hold_frame
                 w(" *")
                 w(" *   REFERENCED TO THE clk0 PIN, which is what Liberty")
                 w(" *   means. The hold deck is the column deck: no clk0 in")
-                w(" *   it, so its answer is counted from the INTERNAL")
-                w(" *   evaluate edge. Two measured delays carry it across:")
-                w(" *     cut from the internal edge   %8.4f ns" % _cut)
+                w(" *   it, so its array cut plus worst-load backend delay")
+                w(" *   is counted from the INTERNAL evaluate edge. Two")
+                w(" *   measured delays carry it across:")
+                w(" *     array cut + backend          %8.4f ns"
+                  % _array_backend)
                 w(" *     + clk0 -> that edge          %8.4f ns" % _tf)
                 w(" *     - addr0 -> the wordline      %8.4f ns" % _d)
                 w(" *       (run_addr2wl.sh, measured during evaluate when")
                 w(" *        the decoder is transparent)")
                 w(" *     = hold at the pin            %8.4f ns" % hold_addr)
-                w(" *   The two corrections nearly cancel here; shipping the")
-                w(" *   raw cut time would have been right by coincidence.")
+                w(" *   The frame corrections are applied to the complete")
+                w(" *   array-cut-plus-backend requirement.")
             else:
                 w(" *")
                 w(" *   WARNING: this number is in the COLUMN DECK'S TIME")
                 w(" *   FRAME, not Liberty's. The deck has no clk0 in it --")
-                w(" *   its cut time is counted from the internal evaluate")
-                w(" *   edge -- while hold_rising is referenced to the clk0")
+                w(" *   its array cut plus backend is counted from the")
+                w(" *   internal evaluate edge -- while hold_rising is")
+                w(" *   referenced to the clk0")
                 w(" *   PIN. The conversion is + (clk0 -> evaluate edge)")
                 w(" *   - (addr0 -> the wordline it drops); run")
                 w(" *   scripts/rom_char/run_addr2wl.sh and pass --t-addr2wl")
