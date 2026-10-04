@@ -58,6 +58,20 @@ SIGNATURE = "REAL BEHAVIOURAL MODEL -- gen_macro_behavioral_v.py"
 # Default corner: the worst one (SS), so the model stays pessimistic.
 DEFAULT_CORNER = "SS_1p6V_100C"
 
+CORNER_ALIASES = {
+    "ss": "SS_1p6V_100C",
+    "tt": "TT_1p8V_25C",
+    "ff": "FF_1p95V_n40C",
+}
+
+
+def resolve_corner(corner):
+    """Normalize corner name, resolving aliases like ss/tt/ff to full names."""
+    if not corner:
+        return DEFAULT_CORNER
+    clean = corner.strip()
+    return CORNER_ALIASES.get(clean.lower(), clean)
+
 
 def _cell_rise_max(txt, edge="rising_edge"):
     """Worst cell_rise on the `edge` arc of dout0, in ns.
@@ -532,6 +546,8 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("macros", nargs="*",
                     help="default: every macro in the tree")
+    ap.add_argument("-m", "--macro", dest="macro_flags", action="append", default=[],
+                    help="target macro(s) (alternative to positional arguments)")
     ap.add_argument("--macros-dir", default=None,
                     help="macro tree (default: ROM_MACROS_DIR / <repo>/examples)")
     ap.add_argument("--lib-dir", default=None,
@@ -539,10 +555,12 @@ def main():
     ap.add_argument("--outdir", default=None,
                     help="output directory (default: $ROM_OUT_DIR/verilog)")
     ap.add_argument("--corner", default=DEFAULT_CORNER,
-                    help="corner to take the timing from (default: %s)" % DEFAULT_CORNER)
+                    help="corner to take the timing from (default: %s). Accepts ss/tt/ff aliases." % DEFAULT_CORNER)
     args = ap.parse_args()
 
-    names = args.macros or rom_paths.discover(args.macros_dir)
+    corner = resolve_corner(args.corner)
+    specified = list(args.macros) + list(args.macro_flags)
+    names = specified or rom_paths.discover(args.macros_dir)
     if not names:
         print("no macros found in %s" % rom_paths.macros_dir(args.macros_dir),
               file=sys.stderr)
@@ -559,7 +577,7 @@ def main():
             rc = 1
             continue
 
-        libname = "%s_%s.lib" % (macro, args.corner)
+        libname = "%s_%s.lib" % (macro, corner)
         t = read_lib_timing(os.path.join(libdir, libname))
         access, t_pre, setup = t["access"], t["t_pre"], t["setup"]
         hold, hold_cs = t["hold"], t["hold_cs"]
@@ -607,7 +625,7 @@ def main():
         rows, cols, wcol, chain = g["rows"], g["cols"], g["worst_col"], g["chain"]
 
         out = TEMPLATE.format(
-            macro=macro, sig=SIGNATURE, corner=args.corner, libname=libname,
+            macro=macro, sig=SIGNATURE, corner=corner, libname=libname,
             words=words, width=width, wpr=wpr, addr_bits=addr_bits,
             rows=rows, cols=cols, wcol=wcol, chain=chain,
             amsb=addr_bits - 1, dmsb=width - 1,
@@ -623,7 +641,7 @@ def main():
         print("%-7s written: %s  (access %.4f / t_pre %.4f / setup %.4f / "
               "hold %.4f addr, %.4f cs0 / mpw_high %.4f / t_fall %.4f ns, %s)"
               % (macro, os.path.relpath(path, REPO), access, t_pre, setup,
-                 hold, hold_cs, mpw_high, t_fall, args.corner))
+                 hold, hold_cs, mpw_high, t_fall, corner))
 
     return rc
 
