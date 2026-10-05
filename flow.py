@@ -324,6 +324,12 @@ def main():
         help="Target maximum rise/fall capacitance settling gap quota in percent (default: 12.0%%). "
              "Iterative hold-time refinement will automatically run until all pins settle within this gap.",
     )
+    parser.add_argument(
+        "--settle-max-pct",
+        type=float,
+        default=float(os.environ.get("SETTLE_MAX_PCT", "3.0")),
+        help="Energy-cycle convergence settling gap threshold in percent (default: 3.0%%).",
+    )
 
     args = parser.parse_args()
 
@@ -355,6 +361,7 @@ def main():
     if args.jobs is not None:
         os.environ["JOBS"] = str(args.jobs)
     os.environ["PIN_GAP_THRESH"] = str(args.pin_cap_gap)
+    os.environ["SETTLE_MAX_PCT"] = str(args.settle_max_pct)
 
     # Resolve macros. Named macros may be given as a bare name or as a path;
     # a path with no --macros-dir sets ROM_MACROS_DIR to its parent, so the
@@ -500,7 +507,9 @@ def main():
         log_ok("Behavioural Verilog models updated with measured timing.")
 
     log_step(5, 5, "Running verification testsuite")
-    run_step(["/bin/sh", os.path.join(TESTS_DIR, "run_tests.sh")] + target_macros, env, "5",
+    test_env = env.copy()
+    test_env.pop("SETTLE_MAX_PCT", None)
+    run_step(["/bin/sh", os.path.join(TESTS_DIR, "run_tests.sh")] + target_macros, test_env, "5",
              "Testsuite verification failed.")
 
     print(f"\n{Colors.BOLD}{Colors.GREEN}======================================================{Colors.RESET}")

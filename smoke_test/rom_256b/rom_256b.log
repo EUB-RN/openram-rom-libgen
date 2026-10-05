@@ -1,0 +1,40 @@
+[2026-10-05 20:35:31.608229] |==============================================================================|
+[2026-10-05 20:35:31.608430] |=========                      OpenRAM v1.2.49                       =========|
+[2026-10-05 20:35:31.608523] |=========                                                            =========|
+[2026-10-05 20:35:31.608577] |=========               VLSI Design and Automation Lab               =========|
+[2026-10-05 20:35:31.608616] |=========        Computer Science and Engineering Department         =========|
+[2026-10-05 20:35:31.608655] |=========            University of California Santa Cruz             =========|
+[2026-10-05 20:35:31.608690] |=========                                                            =========|
+[2026-10-05 20:35:31.608728] |=========          Usage help: openram-user-group@ucsc.edu           =========|
+[2026-10-05 20:35:31.608763] |=========        Development help: openram-dev-group@ucsc.edu        =========|
+[2026-10-05 20:35:31.608798] |=========                See LICENSE for license info                =========|
+[2026-10-05 20:35:31.608833] |==============================================================================|
+[2026-10-05 20:35:31.608882] ** Start: 10/05/2026 20:35:31
+[2026-10-05 20:35:31.608928] Output files are: 
+[2026-10-05 20:35:31.608966] /home/hpw/OpenRAM/macros/macro/rom_256b/rom_256b.sp
+[2026-10-05 20:35:31.609003] /home/hpw/OpenRAM/macros/macro/rom_256b/rom_256b.v
+[2026-10-05 20:35:31.609038] /home/hpw/OpenRAM/macros/macro/rom_256b/rom_256b.lef
+[2026-10-05 20:35:31.609074] /home/hpw/OpenRAM/macros/macro/rom_256b/rom_256b.gds
+[2026-10-05 20:35:31.609950] create rom of word size 4 with 64 num of words
+[2026-10-05 20:35:33.452273] ** Submodules: 1.8 seconds
+[2026-10-05 20:35:33.452789] ** Placement: 0.0 seconds
+[2026-10-05 20:35:42.672291] ** Routing: 9.2 seconds
+[2026-10-05 20:36:23.816190] WARNING: file magic.py: line 254: DRC Errors rom_256b	1210
+
+[2026-10-05 20:36:29.891703] ERROR: file magic.py: line 385: rom_256b	LVS mismatch (results in /tmp/openram_hpw_86205_temp/rom_256b.lvs.report)
+
+[2026-10-05 20:36:29.892173] ** Verification: 47.2 seconds
+[2026-10-05 20:36:29.892216] ** ROM creation: 58.3 seconds
+[2026-10-05 20:36:29.892242] SP: Writing to /home/hpw/OpenRAM/macros/macro/rom_256b/rom_256b.sp
+[2026-10-05 20:36:29.921271] ** Spice writing: 0.0 seconds
+[2026-10-05 20:36:29.921352] GDS: Writing to /home/hpw/OpenRAM/macros/macro/rom_256b/rom_256b.gds
+[2026-10-05 20:36:29.991908] ** GDS: 0.1 seconds
+[2026-10-05 20:36:29.991986] LEF: Writing to /home/hpw/OpenRAM/macros/macro/rom_256b/rom_256b.lef
+[2026-10-05 20:36:29.993082] ** LEF: 0.0 seconds
+[2026-10-05 20:36:29.993112] LVS: Writing to /home/hpw/OpenRAM/macros/macro/rom_256b/rom_256b.lvs.sp
+[2026-10-05 20:36:30.022745] ** LVS writing: 0.0 seconds
+[2026-10-05 20:36:30.022997] Config: Writing to /home/hpw/OpenRAM/macros/macro/rom_256b/rom_256b.py
+[2026-10-05 20:36:30.023039] ** Config: 0.0 seconds
+[2026-10-05 20:36:30.023060] Verilog: Writing to /home/hpw/OpenRAM/macros/macro/rom_256b/rom_256b.v
+[2026-10-05 20:36:30.023158] ** Verilog: 0.0 seconds
+[2026-10-05 20:36:30.027355] ** End: 58.4 seconds

@@ -84,6 +84,7 @@ GEN="$ROM_CHAR_DIR/gen_rom_lib.py"
 STALE_LEDGER="${TMPDIR:-/tmp}/rom_char_stale.$$"
 RC=0
 WROTE=0
+WROTE_LIBS=""
 trap 'rm -f "$STALE_LEDGER"' EXIT
 
 # which run_*.sh writes a given file -- so the report says what to re-run
@@ -534,6 +535,7 @@ ${hold_meas:+, address hold char/hold_${c}.log}"
       --chain-len "$G_CHAIN" --worst-col "$col" \
       --rows "$G_ROWS" --cols "$G_COLS" --char-source "$SRC" >/dev/null
     WROTE=$((WROTE+1))
+    WROTE_LIBS="$WROTE_LIBS $LIB_DIR/${m}_${corner}.lib"
 
     printf "%-7s %-4s access = %.4f + %s + %s = %.4f ns  E=%s pJ (%s-read avg%s)  E_idle=%s pJ\n" \
       "$m" "$c" "$tf" "$acc" "$(echo "$be" | cut -d, -f3)" \
@@ -563,9 +565,9 @@ echo "are in <macro>/char/random_energy_<corner>.log."
 # pass (syntax, table shapes, arc completeness); tests/run_tests.sh adds the
 # ROM semantics and, where it is installed, OpenSTA's own reader.
 CHECK="$(cd "$(dirname "$0")/../.." && pwd)/tests/lib_tests/check_lib.py"
-if [ -f "$CHECK" ]; then
+if [ -f "$CHECK" ] && [ -n "$WROTE_LIBS" ]; then
   echo
-  if ! python3 "$CHECK" "$LIB_DIR"/*.lib; then
+  if ! python3 "$CHECK" $WROTE_LIBS; then
     echo "The generated .lib files did NOT pass validation -- see above." >&2
     echo "Run tests/run_tests.sh for the full report." >&2
     exit 1

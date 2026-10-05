@@ -42,6 +42,18 @@ user/*
 !user/README.md
 !user/.gitkeep
 
+# Smoke test characterisation & Magic layout/extraction outputs (keeps initial macro clean)
+smoke_test/**/char/
+smoke_test/**/*.mag
+smoke_test/**/*.drc.mag
+smoke_test/**/*.drc.log
+smoke_test/**/*.lvs.report*
+smoke_test/**/*.spice
+!smoke_test/**/*_cap_only.spice
+smoke_test/**/*.sim
+smoke_test/**/*.nodes
+smoke_test/**/*.al
+
 # run_ng keeps ngspice's terminal output beside the log when a deck FAILS, so
 # the diagnosis survives for inspection. It is a transient artefact of a
 # broken run, never an input to anything.

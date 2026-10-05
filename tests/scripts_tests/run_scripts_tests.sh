@@ -11,6 +11,7 @@ set -e
 
 PYTHONDONTWRITEBYTECODE=1
 export PYTHONDONTWRITEBYTECODE
+unset SETTLE_MAX_PCT
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(dirname "$(dirname "$HERE")")

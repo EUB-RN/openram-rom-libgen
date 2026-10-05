@@ -8,6 +8,7 @@
 ## Contents
 
 **Start here:** [How to use (Quick Start)](#how-to-use) ·
+[Smoke Test](#2-smoke-test-quick-validation) ·
 [Step-by-step Usage (docs/usage.md)](docs/usage.md) ·
 [Requirements & Setup (docs/requirements.md)](docs/requirements.md) ·
 [Flow Details (docs/flow.md)](docs/flow.md) ·
@@ -15,6 +16,7 @@
 
 - [Overview & Deliverables](#overview)
 - [How to use (Quick Start)](#how-to-use)
+  - [Smoke Test](#2-smoke-test-quick-validation)
 - [Using your own ROM (docs/usage.md)](docs/usage.md)
 - [Requirements & Environment Setup (docs/requirements.md)](docs/requirements.md)
 - [Tuning ROM Access Delay (docs/rom-tuning.md)](docs/rom-tuning.md)
@@ -113,7 +115,25 @@ You can supply the toolchain via **Nix** (automatic) or use your **local tools**
 
 > 📖 **Full toolchain requirements, ngspice KLU solver details, environment variables, and Nix storage cleanup:** See [docs/requirements.md](docs/requirements.md).
 
-### 2. Verify Setup (Pre-Flight Check)
+### 2. Smoke Test (Quick Validation)
+
+Before characterizing a large custom ROM, run the fast smoke test on the compact sample macro (`rom_256b`) to verify your environment, toolchain, and deliverable generators end-to-end:
+
+```bash
+# Full simulation and deliverable generation (~1-2 mins):
+./flow.py ./smoke_test/rom_256b
+
+# Or regenerate deliverables from pre-computed logs (takes ~5 seconds, skips SPICE):
+./flow.py ./smoke_test/rom_256b --from-logs
+```
+
+This verifies that:
+* SPICE simulations (timing, power, leakage) execute cleanly across TT, SS, and FF corners.
+* Liberty (`.lib`) timing models are generated and structurally validated (`check_lib.py`).
+* Behavioural SystemVerilog (`.sv`) models are generated.
+* The testsuite passes (`tests/run_tests.sh rom_256b`).
+
+### 3. Verify Setup (Pre-Flight Check)
 
 Check that your environment and macro directory meet all flow prerequisites:
 
@@ -121,7 +141,7 @@ Check that your environment and macro directory meet all flow prerequisites:
 ./flow.py <macro> --check-only
 ```
 
-### 3. Run Characterization
+### 4. Run Characterization
 
 Put your macro directory under `user/<macro>/` (containing at least `<macro>.sp` and `<macro>.lef`), then run:
 
@@ -134,7 +154,7 @@ Outputs written:
 * `output/lib/<macro>_<CORNER>.lib` (TT, SS, FF corners)
 * `output/verilog/<macro>.sv` (behavioural model with measured timing)
 
-### 4. Continuing After a Failed Step
+### 5. Continuing After a Failed Step
 
 Use `--from-step` to resume a run at a specific stage without repeating earlier completed simulations:
 

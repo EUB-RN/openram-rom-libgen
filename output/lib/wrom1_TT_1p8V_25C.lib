@@ -468,34 +468,6 @@ cell (wrom1) {
                     "18.2794, 18.2794, 18.2794");
             }
         }
-        timing() {
-            timing_type : clock_gating_setup_rising;
-            related_pin : "clk0";
-            rise_constraint(CONSTRAINT_TABLE) {
-                values("0.0307, 0.0307, 0.0307",\
-                    "0.0307, 0.0307, 0.0307",\
-                    "0.0307, 0.0307, 0.0307");
-            }
-            fall_constraint(CONSTRAINT_TABLE) {
-                values("0.0307, 0.0307, 0.0307",\
-                    "0.0307, 0.0307, 0.0307",\
-                    "0.0307, 0.0307, 0.0307");
-            }
-        }
-        timing() {
-            timing_type : clock_gating_hold_falling;
-            related_pin : "clk0";
-            rise_constraint(CONSTRAINT_TABLE) {
-                values("0.0000, 0.0000, 0.0000",\
-                    "0.0000, 0.0000, 0.0000",\
-                    "0.0000, 0.0000, 0.0000");
-            }
-            fall_constraint(CONSTRAINT_TABLE) {
-                values("0.0000, 0.0000, 0.0000",\
-                    "0.0000, 0.0000, 0.0000",\
-                    "0.0000, 0.0000, 0.0000");
-            }
-        }
     }
 
     pin(clk0) {

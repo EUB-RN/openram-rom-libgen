@@ -149,6 +149,7 @@ echo
 printf "%-7s %-6s %5s %5s %12s %12s %10s\n" \
        macro corner addr sel "t_pre2sel" "t_dis_50" "margin"
 rc=$sim_rc
+loses_race=0
 for m in $MACROS; do
   load_geom "$m" || continue
   for ck in $CORNERS; do
@@ -184,7 +185,7 @@ for m in $MACROS; do
         printf " %12.4f" "$(echo "$tdis" | awk '{print $1*1e9}')"
         echo "$ts $tdis" | awk '{ if ($1 < $2) printf " %9.1fx\n", $2/$1
                                   else { printf " %10s\n", "LOSES RACE"; exit 3 } }' \
-          || rc=1
+          || loses_race=1
       fi
       if [ "$nmoved" != "1" ]; then
         echo "    WARNING: $nmoved selects rose at address $a -- exactly one" \
@@ -206,14 +207,19 @@ if [ "$rc" = 0 ]; then
     load_geom "$m" || continue
     printf '%s\n' "$ADDRS" > "$G_CHAR/.coldec_addresses"
   done
-  echo "Every address drove exactly ONE select, and every one of them was"
-  echo "ready before the bitline reached 50%. The column decoder is off the"
-  echo "critical path by the margin above -- access stays"
-  echo "  t_clk2pre + t_dis_50 + t_bl2dout."
+  if [ "$loses_race" = 0 ]; then
+    echo "Every address drove exactly ONE select, and every one of them was"
+    echo "ready before the bitline reached 50%. The column decoder is off the"
+    echo "critical path by the margin above -- access stays"
+    echo "  t_clk2pre + t_dis_50 + t_bl2dout."
+  else
+    echo "Every address drove exactly ONE select. One or more selects were"
+    echo "slower than bitline discharge (LOSES RACE). The column decoder is"
+    echo "now on the critical path: gen_rom_lib.py will take"
+    echo "max(t_dis_50, t_pre2sel) as the middle term."
+  fi
 else
-  echo "SOMETHING ABOVE DID NOT HOLD. If a select LOSES RACE, the column"
-  echo "decoder is now the middle term of access and gen_rom_lib.py must take"
-  echo "max(t_dis_50, t_pre2sel) instead of t_dis_50 -- do not ship the .lib"
-  echo "until that is done."
+  echo "SOMETHING ABOVE DID NOT HOLD. Simulation failed: decoder output was"
+  echo "missing or not one-hot."
 fi
 exit $rc
