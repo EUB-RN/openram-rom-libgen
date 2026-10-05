@@ -64,7 +64,7 @@ Either shell brings `ngspice`, `magic`, `iverilog`, `opensta` and `python3`, det
 
 When `<macro>_cap_only.spice` is absent, the flow runs Magic parasitic extraction and also requires `OPENRAM_TECH=/path/to/OpenRAM/technology` to locate technology rules.
 
-### 3. Check the macro before spending hours on it
+### 3. Check the macro before characterization
 
 Always validate the macro structure and sub-circuits before launching SPICE sweeps:
 
@@ -100,7 +100,7 @@ If your macro directory does not supply local `.mag` files for `rom_base_one_cel
 * `--from-logs`: Rebuilds `.lib` and `.sv` from existing logs on disk without re-simulating.
 * `--check-only`: Stops immediately after pre-flight checks.
 * `--jobs <N>`: Sets concurrent ngspice worker processes (default: 4).
-* `--from-step <stage>`: Resumes execution at a failed or specified stage without repeating earlier simulations. Available stages include `extract`, `column-worst`, `periphery-active`, `backend-delay`, `coldec-delay`, `periphery-power`, `pin-cap`, etc. (run `./flow.py --list-steps`).
+* `--from-step <stage>`: Resumes execution at a failed or specified stage without repeating earlier simulations. Available stages include `extract`, `col-timing`, `early-path`, `backend-delay`, `periphery-power`, `addr-setup`, `col-power`, `col-energy`, `periphery-leak`, `coldec-delay`, `pin-cap`, etc. (run `./flow.py --list-steps`).
 
 ---
 
@@ -109,8 +109,8 @@ If your macro directory does not supply local `.mag` files for `rom_base_one_cel
 The flow provides two characterization modes:
 
 ```bash
-./flow.py <macro>          # Standard mode (tens of minutes)
-./flow.py <macro> --full   # Full mode (roughly an afternoon)
+./flow.py <macro>          # Standard mode
+./flow.py <macro> --full   # Adds hold and slew characterization
 ```
 
 | | `./flow.py <macro>` (Standard) | `./flow.py <macro> --full` (Full) |
@@ -119,7 +119,7 @@ The flow provides two characterization modes:
 | **Address hold (`hold_rising`)** | `hold = access` (safe fallback) | **Measured** via bisection and converted to `clk0` pin frame |
 | **Input clock slew (`index_1` axis)** | Flat axis (safe fallback) | **Measured** across 3 points (0.05, 0.2, 0.5 ns) |
 | **Extra stages** | -- | `run_wl_slew.sh`, `run_hold_bisect.sh`, `run_addr2wl.sh`, `run_slew_sweep.sh` |
-| **Runtime cost** | Tens of minutes | Roughly an afternoon |
+| **Runtime cost** | Lower | Higher; depends on macro size and hardware |
 
 ### Why the slew axis is not in standard mode: it moves nothing
 
@@ -128,16 +128,21 @@ The flow provides two characterization modes:
 In this architecture, `access` is dominated by the dynamic bitline discharge:
 $$\text{access} = \underbrace{t_{clk2pre}}_{\text{sees } clk0} + \underbrace{\max(t_{dis\_50}, t_{coldec})}_{\text{triggers off precharge}} + \underbrace{t_{bl2dout}}_{\text{triggers off bitline}}$$
 
-Over a **10x** change in clock transition time, $t_{clk2pre}$ stretches by ~5.7% (0.7227 to 0.7642 ns at TT), moving total `access` by **only 0.24%** (17.2260 to 17.2675 ns), because >88% of access is the internal bitline discharge that has no path back to `clk0`. The standard mode ships a flat axis (three identical rows), which matches physical silicon within a fraction of a percent without wasting hours of simulation time.
+In the reference data, a 10x clock-transition change moves total access by
+about 0.24% because bitline discharge dominates. Standard mode therefore uses
+a flat conservative slew axis; full mode measures the axis for the target macro.
 
 ### Why hold bisection is not in standard mode: the fallback is already safe
 
 Standard mode ships `hold = access`, declaring that the address must remain stable for the full read window.
 
-This is fundamentally safe: the row decoder is clocked, so an address moving during evaluate drops a second wordline, permanently discharging unintended bitlines. Holding the address for the entire read window is sufficient by construction. In timing analysis, a hold constraint that is too long loses timing margin, but can never produce an unsafe chip.
+The fallback is conservative: it requires the address to remain stable for the
+entire read window. This can reduce timing margin but does not shorten the
+required hold interval.
 
-`--full` measures the true physical cut time: `run_hold_bisect.sh` bisects the exact moment the address can change without corrupting the read in flight. Once the bitline has crossed the bitline inverter trip point, the downstream buffer delay no longer constrains the address:
-$$\text{hold}_{addr} = t_{cut} + t_{clk2pre} - t_{addr2wl}$$
+`--full` bisects the array cut point, then includes the worst-load back-end
+delay and converts the result to the `clk0` pin frame:
+$$\text{hold}_{addr} = t_{clk2pre} + (t_{cut,array} + t_{bl2dout}) - t_{addr2wl}$$
 Across example macros, the measured hold is 88–95% of access (a 5–12% tighter constraint).
 
 ### What is in both modes (and is never skipped)
@@ -181,16 +186,17 @@ All four links must exist for multi-voltage power analysis tools to trace from a
 
 ## 7. Validating the Output
 
-To ensure produced timing and behavioural models are immediately usable by downstream tools without unexpected syntax or semantic issues, run the verification suite:
+Run the verification suite before using generated timing and behavioural
+models downstream:
 
 ```bash
 tests/run_tests.sh
 ```
 
-Three test suites run eleven checks:
-1. **Scripts & SPICE helpers:** SPICE utilities, flow resume, dynamic periphery settling, and paired leakage analysis.
-2. **Liberty validation:** Structural syntax, 15 deliberate fault injection fixtures (`check_lib.py`), ROM timing semantics, and industry-standard parser compliance via **OpenSTA** (`sta`).
-3. **Verilog validation:** Syntax elaboration and dynamic behavioural simulation via **Icarus Verilog** (`iverilog` / `vvp`), asserting precharge, access delay, falling-edge invalidation, `cs0` gating, and address hold behavior.
+Three test suites run 19 checks:
+1. **Scripts & SPICE helpers (13 checks):** script syntax, path handling, SPICE utilities, model generation, convergence, resistance, energy, waveform helpers, flow resume, and decoder/leakage sweeps.
+2. **Liberty validation (4 checks):** Structural syntax, 15 deliberate fault injection fixtures (`check_lib.py`), ROM timing semantics, and industry-standard parser compliance via **OpenSTA** (`sta`).
+3. **Verilog validation (2 checks):** Syntax elaboration and dynamic behavioural simulation via **Icarus Verilog** (`iverilog` / `vvp`), asserting precharge, access delay, falling-edge invalidation, `cs0` gating, and address hold behavior.
 
 > [!NOTE]
 > Passing characterization tests validates the Liberty and SystemVerilog models; it does **not** substitute for physical DRC (Magic) or LVS (Netgen) on the layout. Physical sign-off remains a separate step.
@@ -199,11 +205,12 @@ Three test suites run eleven checks:
 
 ## 8. Reference Macros in `examples/`
 
-The repository includes four fully characterized Sky130 ROM macros under `examples/` (`wrom0` through `wrom3`, each 1064 words x 32 bits, 134 rows x 256 columns) with their complete characterization logs.
+The repository includes four Sky130 reference ROM macros under `examples/`
+(`wrom0` through `wrom3`, each 1064 words x 32 bits, 134 rows x 256 columns)
+with characterization logs.
 
 You can inspect these examples to study the flow or test changes end-to-end without running ngspice from scratch by regenerating and comparing outputs:
 
 ```bash
-./scripts/rom_char/regen_rom_libs.sh && git diff --stat output/
+ROM_MACROS_DIR=examples ./scripts/rom_char/regen_rom_libs.sh wrom0 wrom1 wrom2 wrom3 && git diff --stat output/
 ```
-

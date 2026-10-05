@@ -1,6 +1,6 @@
-# TODOs / Roadmap: Modeling & Optimization Improvements
+# Roadmap
 
-This document tracks planned architectural improvements, simulation performance optimizations, and future enhancements for the OpenRAM ROM characterization flow (`openram-rom-libgen`).
+Planned characterization and performance work.
 
 For current known simulation, extraction, and modeling limitations, see [Known Limitations](limitations.md).
 
@@ -28,7 +28,7 @@ For current known simulation, extraction, and modeling limitations, see [Known L
 
 - [ ] **Decoder Slice Wire Resistance Modeling:**
   - Adapt [`gen_resistance_model.py`](../scripts/rom_char/gen_resistance_model.py) cell series wire resistance values (`one_cell`: ~505 $\Omega$, `zero_cell`: ~0.24 $\Omega$) for the row decode array.
-  - Inject synthetic resistors (`Rw...`, `Rstrap...`) into the extracted single decode NAND slice in [`gen_periphery_power_tb.py`](../scripts/rom_char/gen_periphery_power_tb.py) and [`gen_addr2wl_tb.py`](../scripts/rom_char/gen_addr2wl_tb.py).
+  - Inject synthetic resistors (`Rw...`, `Rstrap...`) into the extracted single decode NAND slice in [`gen_periphery_power_tb.py`](../scripts/rom_char/gen_periphery_power_tb.py) (used by both periphery power and [`run_addr2wl.sh`](../scripts/rom_char/run_addr2wl.sh)).
 - [ ] **Timing Arc & Wordline Slew Validation:**
   - Verify impact on wordline trigger delays ($t_{wlfall}$, $t_{wlslew}$) and address setup/hold margins under full BSIM4 channel + interconnect parasitic modeling.
   - Validate against baseline characterization on small reference macros (`rom_1k`, `wrom0`).

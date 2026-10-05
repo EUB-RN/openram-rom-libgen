@@ -6,37 +6,6 @@ Which deck measures which block, how `access` is built from three terms, the fre
 
 ---
 
-## Contents
-
-1. [Macro Architecture & 3-Term Access Path](#what-is-measured-and-how)
-2. [Quick Reference: How to Reproduce All Measurements in ngspice](#quick-reference-how-to-reproduce-all-measurements-in-ngspice)
-3. [Detailed Measurement Decks & Waveforms](#detailed-measurement-decks--waveforms)
-   - [Column Bitline Discharge & Precharge](#the-column-bitline-discharge-and-precharge)
-   - [Periphery Front End (Clock, Decoder, Precharge)](#the-periphery-front-end-clk0---internal-clock---wordline---precharge)
-   - [Back End (Bitline -> dout0)](#the-back-end-bitline---dout0-at-one-of-the-three-lib-loads)
-   - [Column Decoder Race](#the-column-decoder-against-the-discharge-it-races)
-   - [Leakage & Switching Current](#leakage-and-energy-current-not-voltage)
-   - [Column DC Leakage Power (.op)](#the-column-dc-leakage-op)
-   - [Cell Equivalent Gate Capacitance](#the-cell-equivalent-gate-capacitance-linear-wordline-load-reduction)
-   - [Cell Series Wire Resistance Model](#the-cell-series-wire-resistance-model)
-   - [Dynamic Read Energy & Activity Model](#dynamic-read-energy-the-average-of-10-random-reads-not-the-worst-case)
-4. [Detailed Pin Capacitance, Slew, and Timing Constraints](#detailed-pin-capacitance-slew-and-timing-constraints)
-   - [Input Pin Capacitance](#input-pin-capacitance----the-capacitance-attribute-of-every-input-pin)
-   - [Wordline Fall Slew](#wordline-slew----how-fast-a-wordline-really-falls)
-   - [Output Slew & Liberty Axes](#output-slew-and-the-two-lib-table-axes)
-   - [Address Setup Race](#address-setup)
-   - [Address Hold Bisection](#address-hold-bisection-cutting-the-chain-mid-evaluate)
-   - [Address-to-Wordline Delay (Hold Frame Conversion)](#address-to-wordline-delay-hold-time-frame-conversion)
-   - [Early Path & Retain Times](#early-path-the-fastest-discharging-column-and-retain-times)
-5. [Frequency Window (Upper & Lower Bounds)](#the-frequency-window-this-rom-may-be-driven-in)
-6. [The Scaling Trick (Simulation Slicing)](#the-scaling-trick)
-   - [Parasitic Capacitance Extraction (Magic)](#parasitic-capacitance-extraction-magic)
-   - [Adaptive gmin Sweep](#gmin-has-to-be-swept-not-chosen)
-7. [Predicting Geometry Scaling](#predicting-a-geometry-change)
-8. [Size Independence & Derived Geometry](#size-independence)
-
----
-
 ## What is measured, and how
 
 ![Macro floorplan](img/01-macro-floorplan.png)
@@ -144,9 +113,9 @@ ngspice 8 -> plot tran1.v(bl_0_236) tran2.v(bl_0_236) tran3.v(bl_0_236) tran1.v(
 | 9 | **Dynamic Read Energy** | `python3 scripts/rom_char/gen_random_read_energy.py wrom0 --corner tt` | None (analytic netlist activity scan) | Terminal table / histogram | Average & worst-case energy (`random_energy_tt.log`) |
 | 10 | **Input Pin Capacitance** | `./scripts/rom_char/run_pin_cap.sh wrom0` | `pincap_tt.sp` | `plot v(clk0) i(vpin1)` | `c_cyc<i>_ff`, `q_rise`, `q_fall` (`pincap_tt.log`) |
 | 11 | **Wordline Fall Slew** | `./scripts/rom_char/run_wl_slew.sh wrom0` | `wlslew_tt.sp` | `plot v(clk0) v(wrom0_rom_row_decode_0/wl_0) xlimit 98n 104n` | `t_wlfall0`, `t_wlslew0`, `t_wl1090_0` (`wlslew_tt.log`) |
-| 12 | **Clock Input Slew Sweep** | `SLEWS="0.05 0.5 1.5" ./scripts/rom_char/run_slew_sweep.sh wrom0` | `periph_slew{0,1,2}_tt.sp` | `plot v(clk0) v(wrom0_rom_column_decode_0/clk)` | `t_clk2pre` across slews (`periph_slew*_tt.log`) |
+| 12 | **Clock Input Slew Sweep** | `SLEWS="0.05 0.2 0.5" ./scripts/rom_char/run_slew_sweep.sh wrom0` | `periph_slew{0,1,2}_tt.sp` | `plot v(clk0) v(wrom0_rom_column_decode_0/clk)` | `t_clk2pre` across slews (`periph_slew*_tt.log`) |
 | 13 | **Address Setup Race** | `./scripts/rom_char/run_addr_setup.sh wrom0` | `periph_setup_tt.sp` | `plot v(addr0[0]) v(clk0)` | `t_addr2dec<k>`, `t_clk2int` (`periph_setup_tt.log`) |
-| 14 | **Address Hold Bisection** | `python3 scripts/rom_char/gen_addr_hold_tb.py wrom0 look.sp --sweep-ns 14,16 --wl-slew-ns 0.15` | `look.sp` / `run_hold_bisect.sh` | `plot v(precharge) v(bl_0_236) v(bl_b_236)` | `hold_rising`, cut time bracket (`addr_hold_tt.log`) |
+| 14 | **Address Hold Bisection** | `python3 scripts/rom_char/gen_addr_hold_tb.py wrom0 look.sp --sweep-ns 14,16 --wl-slew-ns 0.15` | `look.sp` / `run_hold_bisect.sh` | `plot v(precharge) v(bl_0_236) v(bl_b_236)` | `hold_rising`, cut time bracket (`hold_tt.log`) |
 | 15 | **Address to Wordline Delay** | `./scripts/rom_char/run_addr2wl.sh wrom0` | `addr2wl_tt.sp` | `plot v(addr0[3]) v(wrom0_rom_row_decode_0/wl_1) xlimit 1.348u 1.354u` | `t_addr2wl1` (`addr2wl_tt.log`) |
 | 16 | **Early Path (Retain Time)** | `./scripts/rom_char/run_early_path.sh wrom0` | `col236_best_case_parasitic.sp` | `plot v(precharge) v(bl_0_236)` | `t_dis_50`, `t_pre_50` (`col236_best_case_parasitic*.log`) |
 | 17 | **Cell Series Resistance Model** | `python3 scripts/rom_char/gen_resistance_model.py wrom0` | None (analytic / Magic single-cell) | Terminal table / JSON report | Series resistance per cell (`resistance_model.json`) |
@@ -308,8 +277,8 @@ header prints the `t_dis_50`/`t_dis_10` of the curve it replayed, and they
 match the column log to four decimals -- that is the proof it is the same
 curve, at all three corners.
 
-Until 2026-09-24 this was a straight ramp through the measured 50% and 10%
-points instead. It reproduced those two instants and nothing else: a discharge
+Replaying the waveform matters because a straight ramp through the measured
+50% and 10% points reproduces those two instants and nothing else: a discharge
 decelerates, so the secant between them runs 2.3-3.1x flatter than the curve
 does where the bitline inverter actually trips (wrom0 TT: -0.0382 V/ns against
 -0.1185 V/ns at the VDD/2 the deck trips on). The error it left behind was **not** one-sided --
@@ -521,9 +490,7 @@ $$C_{\text{eq}} = \frac{Q(V_{DD})}{V_{DD}} = \frac{\int_0^{T_R} i(V_g) dt}{V_{DD
 | `q_one`, `q_zero` | Gate displacement charge integrated over ramp $0 \rightarrow V_{DD}$ | Raw integral for $C_{\text{eq}}$ derivation |
 | `c_one_ff`, `c_zero_ff` | Equivalent linear gate capacitance ($C_{\text{eq}} = |Q| / V_{DD}$, wrom0 TT: 0.4554 fF) | Passed via `--gate-cap-ff` to `gen_periphery_power_tb.py` and `run_addr2wl.sh` |
 
-![Cell gate capacitance](img/22-cellgate.png)
-
-*`cellgate_tt.sp`, ngspice's own plot window: Red is the gate voltage ramp `v(g0)` rising from 0 to 1.8 V in 10 ns; blue is the gate displacement current `i(Vg0)`. Integrating this current yields $C_{\text{eq}} = 0.4554\text{ fF}$ per cell at TT, used as the linear wordline lump in the periphery decks.*
+> 🖼️ *Plot inspection (`cellgate_tt.sp`): Red is the gate voltage ramp `v(g0)` rising from 0 to 1.8 V in 10 ns; blue is the gate displacement current `i(Vg0)`. Integrating this current yields $C_{\text{eq}} = 0.4554\text{ fF}$ per cell at TT, used as the linear wordline lump in the periphery decks.*
 
 ### The cell series wire resistance model
 
@@ -538,7 +505,11 @@ cat examples/wrom0/char/resistance_model.json
 2. Computes resistance analytically from the cell layout geometry (`.mag`) and PDK sheet resistances (`sky130A.tech`).
 3. Compares both methods side-by-side to cross-validate the analytic model.
 
-On wrom0, this yields ~508 $\Omega$ of series metal/contact resistance per `one_cell`. Against a channel on-resistance of tens of kilohms, wire resistance contributes under ~1% to total access delay. `gen_col_tb_parasitic.py --with-resistance` allows plugging this model into the bitline stack to formally prove that wire resistance remains negligible.
+On wrom0, this yields about 508 $\Omega$ of series metal/contact resistance per
+`one_cell`. The resistance accumulates over the chain, so its timing effect is
+not negligible: the reference runs shift the bitline term by about 15% at TT,
+6.6% at SS, and 28% at FF. The column deck includes the model by default;
+`--no-resistance` is a comparison mode.
 
 ### Dynamic read energy: the average of 10 random reads, not the worst case
 
@@ -556,62 +527,17 @@ low, then drops the selected row's wordline:
   **opens** the chain, that bitline stays at VDD, and the next precharge draws
   nothing for it.
 
-So the energy of one read is set by the number of zeros in the **selected
-row** -- about half the array on the example macros (wrom0: 126.9 of 256).
-Scoring every column as discharging, which is what this flow used to do, is
-1.8-2.0x over the truth.
+The energy of one read is therefore set by the number of zeros in the selected
+row.
 
 ```bash
 python3 scripts/rom_char/gen_random_read_energy.py wrom0 --corner tt
 ```
-```
-wrom0 tt: dynamic read energy, average of 10 random reads
-  array        : 134 rows x 256 columns, 1064 words x 8 per row
-  E_column     : 0.4966 pJ per discharged column  (col236_energy_tt.log)
-  E_periphery  : 6.2581 pJ per cycle              (periph_active_tt.log)
-  seed         : 4192668302
-
-  read     address      row   discharged       E (pJ)
-  1             45        5          118      64.8608
-  2            860      107          133      72.3103
-  3            542       67          122      66.8474
-  4            297       37          127      69.3305
-  5            351       43          111      61.3844
-  6            877      109          109      60.3911
-  7            388       48          129      70.3238
-  8            202       25          124      67.8406
-  9            487       60          134      72.8070
-  10           752       94          132      71.8137
-
-  average      : 67.7910 pJ   (min 60.3911, max 72.8070, sd 4.4201)
-  worst case   : 133.3962 pJ   (all 256 columns discharging -- 1.97x)
-  whole array  : 69.2564 pJ   (exact mean over all 134 rows, 126.9 of 256
-                 columns discharging; per-row spread 0..158). The
-                 sample is -2.12% against it.
-```
-
-Nothing here simulates. Both energy terms are still the measured ones
-(`e_col_pj`, `e_periph_pj`); what is new is the **activity**, counted from the
-netlist's own cell types. `regen_rom_libs.sh` calls this per macro per corner
-and writes the per-read table to `char/random_energy_<corner>.log`, which the
-`.lib` header cites.
-
-**The seed is per macro, not per corner** -- on purpose. How many columns
-discharge is a property of the ROM *contents*: the same address selects the
-same row holding the same zeros at tt, ss and ff. Seeding per corner drew a
-different sample at each one and put that difference into the activity
-(124.8 / 126.9 / 133.3 columns at tt / ss / ff on wrom0, against a true 126.9
-everywhere) -- a spurious ~7% spread landing straight in the corner ratios.
-All three corners now read the same ten addresses, so the only thing moving
-between corners is the measured energy.
-
-**The worst case is not discarded, only demoted.** The `.lib` header quotes it
-beside the average with the ratio, because a peak-current budget needs it and
-an average-power figure does not.
-
-The sample size is the remaining approximation: ten reads out of 134 rows sit
--3.5% to +1.7% off the exact array mean, and the tool prints that gap next to
-every answer. Closing it costs nothing -- this is counting, not simulation:
+The script combines measured `e_col_pj` and `e_periph_pj` with activity counted
+from the netlist. It uses one deterministic address sample per macro across all
+corners, writes `char/random_energy_<corner>.log`, and reports sampled mean,
+exact row mean, and worst case. Increase the sample without additional SPICE
+simulation:
 
 ```bash
 ROM_ENERGY_READS=200 ./scripts/rom_char/regen_rom_libs.sh
@@ -669,13 +595,9 @@ fast the pin is ramped:
 PIN_TR=2n ./scripts/rom_char/run_pin_cap.sh wrom0     # ramp independence
 ```
 
-**There is no whole-macro reference run.** There was one -- a `--keep-all`
-deck with nothing deleted, no lumped load anywhere -- and it was removed. On
-`wrom0` -- 1064 words x 32 bit, 34 kbit across 134 rows, and the smallest of
-the four examples here -- it ran for hours at ~15 GB and was killed before it
-finished; the cell array is the one block whose size the *user* picks, so on a
-real ROM that deck does not run slowly, it dies. A check that only works on
-the smallest possible macro cannot be part of a generator's flow.
+**There is no whole-macro reference run.** A `--keep-all` experiment on
+`wrom0` exceeded about 15 GB and did not finish. Its cost grows with the
+user-selected array size, so it is not part of the flow.
 
 What that leaves is a known limit rather than a hidden one. Every check here
 runs the same reduced deck, so none of them can see an error the reduction
@@ -728,9 +650,8 @@ wordline edge instead of a synthetic one:
 | `t_wlslew0` | 80% -> 20% fall | the sky130 Liberty slew convention, for comparison |
 | `t_wl1090_0` | 90% -> 10% fall | **`/ 0.8` is the ramp `run_hold_bisect.sh` cuts the chain with** (`--wl-slew-ns`). Without it the hold would be bisected against an ideal edge the silicon never produces |
 
-That is why `run_wl_slew.sh` has to run BEFORE `run_hold_bisect.sh`, and why
-the hold is measured only where both logs exist -- which, since 2026-09-25, is
-every macro at every corner. Where they are missing the `.lib` keeps
+`run_wl_slew.sh` must run before `run_hold_bisect.sh`. Where either required
+log is missing, the `.lib` keeps
 `hold = access` and says so in its header; that fallback is pessimistic by
 5-12%, since the measured hold runs 88-95% of access.
 
@@ -755,7 +676,7 @@ copied three times. `index_1` (input transition) comes from a clk0 slew sweep:
 
 ```bash
 # 1. Run the clock slew sweep:
-SLEWS="0.05 0.5 1.5" ./scripts/rom_char/run_slew_sweep.sh wrom0
+SLEWS="0.05 0.2 0.5" ./scripts/rom_char/run_slew_sweep.sh wrom0
 
 # 2. Launch interactive ngspice:
 ngspice examples/wrom0/char/periph_slew0_tt.sp
@@ -813,55 +734,18 @@ grep -E "t_addr2dec|t_clk2int" examples/wrom0/char/periph_setup_tt.log
 | `t_addr2dec0` .. `t_addr2dec7` | each address buffer -> the decoder NAND input it drives | the WORST of them becomes `setup_rising`, on `addr0` and on `cs0` |
 | `t_clk2int` | clk0 -> the clock that gates that same NAND | not shipped: with `t_addr2dec` it gives the real requirement at the pin, `0.0307 - 0.3255 = -0.2948 ns`. The library ships the positive path delay anyway, and the header states both |
 
-**Why setup is physically smaller (or negative), but kept positive for safety.**
-Physically, the address only has to beat the internal clock to the decoder NAND gate (`t_addr2dec - t_clk2int`). Because the internal clock driver introduces a substantial delay (~0.33 ns) compared to the address buffer (~0.03 ns), the true race margin at the pin is negative (~ -0.29 ns) — meaning an address arriving slightly *after* `clk0` rises would still be captured correctly. While an iterative Newton/bisection search could pinpoint this ultimate failure threshold, declaring a negative or zero setup in the `.lib` would surrender that internal margin to external logic. Under process, voltage, and temperature (PVT) variations, any clock acceleration or address delay could quickly wipe out that margin and cause silent misreads. By shipping the conservative positive buffer delay (`+t_addr2dec`) instead, the macro requires external logic to deliver the address cleanly before the clock edge, keeping the internal clock delay as a safe, uncompromised timing cushion in silicon.
+The physical race is `t_addr2dec - t_clk2int`, which is negative in the
+reference data. The library deliberately ships the positive buffer delay
+instead, preserving the internal clock margin rather than exposing it to
+external timing closure.
 
 #### Why `cs0` inherits that number instead of getting its own
 
-`cs0` ships the *address* setup, and its own path is never simulated. That is
-a deliberate choice rather than an oversight, and it is worth spelling out
-because the same question about **hold** was answered the opposite way.
-
-**Hold: cs0 was split off, because a safe larger value existed.** The hold
-experiment cuts the series chain mid-evaluate -- what a moving *address* does
-to a clocked row decoder, and nothing else. `cs0` is not on the decode path at
-all: it gates the precharge (`precharge = ~NAND(cs0, clk_int)`), so losing it
-during evaluate turns the precharge PMOS back on and kills the read at *any*
-point in the cycle. Applying the address's measured hold to `cs0` would have
-*relaxed* its constraint on the strength of an experiment that never touched
-it. There was somewhere safe to retreat to -- the full access window, which is
-what the library declared before the measurement existed -- so `cs0` keeps
-that, and the two pins carry different holds.
-
-**Setup: there is no such retreat, so the gap is declared instead of
-papered over.** A setup constraint is a *lower* bound; making it safer means
-making it larger, and there is no larger value here that is defensible without
-measuring one. Inventing a pessimistic pad would put a number in the `.lib`
-that no measurement backs -- exactly the failure mode the rest of this flow is
-built to avoid. So the address's measured path delay ships on `cs0` too, and
-the fact that it was never measured on `cs0` is recorded in
-[limitations.md](limitations.md) item 7.
-
-**What bounds it in the meantime is the netlist, not a guess.** `cs0` goes
-straight to the A gate of `rom_control_nand` with no stage in between, and the
-extraction keeps pin and gate as a single node. The address path has one
-inverter (`inv_array_mod`) that `cs0`'s does not. So `cs0`'s real requirement
-is *strictly smaller* than the number it ships -- the shipped value is
-conservative for it, provably, from the topology. That is an argument from the
-netlist rather than a simulation, which is why it is a stated limitation and
-not a closed item.
-
-The same reasoning decides the sign elsewhere: the measured `t_addr2dec*` is
-0.0307 ns at TT, but the gate it feeds is clocked by `clk_int`, which arrives
-`t_clk2int` = 0.3255 ns after `clk0` -- so the true requirement at the pin is
-**-0.2948 ns**, i.e. the address may legally arrive *after* the clock edge.
-The library keeps shipping the positive path delay, because a constraint
-should not be relaxed as a side effect of changing what is being counted. The
-`.lib` header states both numbers so a reader is never left guessing which one
-they are holding.
-
-`t_addr2dec*` is address pin -> the decoder output it drives; the worst of
-them becomes the setup constraint.
+`cs0` reuses the address setup value. Its pin connects directly to the control
+NAND, while the address path includes an inverter, so the reused value is
+conservative by topology. Hold is different: `cs0` controls precharge and was
+not exercised by the address-cut experiment, so it keeps the full access
+window. See [limitations.md](limitations.md#7-scalar-setup-and-hold-constraints).
 
 ![Address setup](img/18-setup.png)
 
@@ -888,7 +772,7 @@ ngspice 2 -> plot v(precharge) v(bl_0_236) v(bl_b_236)
 ```
 ```bash
 # Inspect the converged hold bracket and final converted hold constraint:
-cat examples/wrom0/char/addr_hold_tt.log
+cat examples/wrom0/char/hold_tt.log
 ```
 
 ![Address hold bisection](img/20-addr-hold.png)
@@ -903,10 +787,10 @@ cat examples/wrom0/char/addr_hold_tt.log
 
 Liberty's `hold_rising` constraint on `bus(addr0)` is referenced to the **`clk0` pin**. Two physical delays separate these two frames:
 
-$$\text{hold}(\text{clk0 frame}) = t_{\text{clk2pre}} + \text{cut} - t_{\text{addr2wl}}$$
+$$\text{hold}(\text{clk0 frame}) = t_{\text{clk2pre}} + (\text{cut}_{\text{array}} + t_{\text{bl2dout}}) - t_{\text{addr2wl}}$$
 
 * $t_{\text{clk2pre}}$: `clk0` rising pin $\rightarrow$ internal precharge releasing (`periph_active_<corner>.log`). Carries the edge from the clock pin to the array.
-* $\text{cut}$: The bisected cut time inside the evaluate phase (`addr_hold_<corner>.log`).
+* $\text{cut}_{\text{array}} + t_{\text{bl2dout}}$: The bisected array cut time plus worst-load backend delay reported as `hold` in `hold_<corner>.log`. The backend delay covers the bitline inverter, column mux, and output buffer so the address stays stable until data reaches `dout0`.
 * $t_{\text{addr2wl}}$: `addr0` switching pin $\rightarrow$ newly selected wordline falling edge. Carries the moving address from the pin to the row decoder output.
 
 Shipping the raw cut time directly is equivalent to assuming that $t_{\text{clk2pre}}$ and $t_{\text{addr2wl}}$ cancel out. On wrom0 TT they happen to be close (~0.76 ns vs ~1.19 ns), but this is a coincidence of one specific decoder sizing and does not hold across corners or macro geometries.
@@ -939,7 +823,7 @@ grep -E "t_addr2wl" examples/wrom0/char/addr2wl_tt.log
 
 | measurement | what it is | where it lands |
 |---|---|---|
-| `t_addr2wl1` | `addr0[3]` 50% $\rightarrow$ `wl_1` 50% falling delay | Subtracted in the hold frame conversion: $\text{hold} = t_{\text{clk2pre}} + \text{cut} - t_{\text{addr2wl}}$ (wrom0 TT: 1.1875 ns) |
+| `t_addr2wl1` | `addr0[3]` 50% $\rightarrow$ `wl_1` 50% falling delay | Subtracted in the hold frame conversion: $\text{hold} = t_{\text{clk2pre}} + (\text{cut}_{\text{array}} + t_{\text{bl2dout}}) - t_{\text{addr2wl}}$ (wrom0 TT: 1.1875 ns) |
 | `t_addr2wl<k>` ($k \ne 1$) | other probed wordlines | reported as "failed" (out of interval); proves one-hot row decode |
 
 ![Address to wordline delay](img/21-addr2wl.png)
@@ -960,68 +844,35 @@ Every other delay term in the `.lib` bounds setup (late path, worst column). How
 ./scripts/rom_char/run_early_path.sh wrom0
 
 # 2. Launch interactive ngspice on the best-case column deck:
-ngspice examples/wrom0/char/col236_best_case_parasitic.sp
+ngspice examples/wrom0/char/col10_best_case_parasitic.sp
 ```
 ```text
 ngspice 1 -> run
-ngspice 2 -> plot v(precharge) v(bl_0_236)
+ngspice 2 -> plot v(precharge) v(bl_0_10)
 ```
 ```bash
 # Inspect measured retain / early discharge times:
-grep -E "t_dis_50|t_pre_50" examples/wrom0/char/col236_best_case_parasitic*.log
+grep -E "t_dis_50|t_pre_50" examples/wrom0/char/col10_best_case_parasitic*.log
 ```
+
+![Early path: fastest column discharge](img/23-early-path.png)
+
+*`col10_best_case_parasitic.sp`, ngspice's own plot window: Red is `v(precharge)` releasing at 1.00 us; blue is the fastest discharging bitline `v(bl_0_10)`. The early discharge crossing defines `retain_rise` and `retain_fall`.*
 
 ---
 
 ## The frequency window this ROM may be driven in
 
-There is an upper bound, it is in the `.lib`, and it should be preferred to
-any number written in prose. There is **also a lower bound**, it is not in the
-`.lib`, and Liberty has no way to express it.
+The generated `.lib` carries the upper-frequency limit as
+`minimum_period(clk0)`, built from the required evaluate and precharge pulse
+widths. Use that value rather than a frequency copied into prose. The `fmax`
+field in `ROM_CORNERS` only scales power summaries.
 
-**Upper bound -- it is `minimum_period` on `clk0`.** `min_pulse_width(rise)`
-is the full evaluate window the data needs, `min_pulse_width(fall)` is the
-recharge the bitline needs, and their sum is the period. On the example
-macros:
-
-| macro | corner | `min_pulse_width` rise / fall | `minimum_period` | f_max |
-|---|---|---|---|---|
-| wrom0 | TT | 17.77 / 12.25 ns | 30.02 ns | 33.3 MHz |
-| wrom0 | SS | 41.98 / 14.88 ns | 56.86 ns | 17.6 MHz |
-| wrom0 | FF | 10.17 /  9.67 ns | 19.84 ns | 50.4 MHz |
-| wrom3 | TT | 17.20 / 12.28 ns | 29.48 ns | 33.9 MHz |
-
-Prefer these to any number written in prose: STA enforces what is in the
-`.lib`, and nothing enforces a sentence in a README. (The `fmax` field of
-`ROM_CORNERS` is **not** this bound -- it only scales the `P = E x f` column
-of a summary table.)
-
-**Lower bound -- this is a precharged ROM, so one exists.** Two separate
-things happen as the clock slows down, and they must not be confused.
-
-*The access time saturates, and that costs nothing.* The chain's internal
-nodes never reach VDD, so the longer clk0 is parked low the more charge the
-next read has to remove. On wrom0 column 236 at TT the settled `t_dis_50`
-runs 6.96 ns at a 25 ns precharge phase, 11.59 ns at 100 ns and 14.85 ns at
-1 us, monotonic and saturating. The column deck measures at the saturated
-1 us point -- the ROM that has been idle indefinitely and is about to perform
-the slowest read it can -- so an arbitrarily long LOW phase is already
-covered by the number the library ships.
-
-*The stored level does not saturate, and that is the real bound.* The bitline
-is a **dynamic node**: during evaluate the precharge PMOS is off and nothing
-refreshes it. On a read of 1 the selected cell breaks the series chain and
-the bitline is left floating high, holding its value on its own capacitance
-against subthreshold leakage through the cell that broke the chain, and
-against charge sharing with the partially charged cells still hanging on it.
-Hold clk0 high long enough and that 1 decays through the bitline inverter's
-trip point and is read as a 0 -- the classic retention limit of any
-precharged logic, and the reason dynamic logic has a minimum clock frequency
-at all. The bound is worst at SS, where subthreshold leakage is largest.
-
-`min_pulse_width(rise)` is a *minimum*; Liberty has no maximum-pulse-width
-constraint that a normal STA flow enforces, so this one genuinely cannot be
-carried in the `.lib` and has to be stated here instead.
+The dynamic bitline also creates a lower-frequency retention limit: during a
+long evaluate phase, a stored high level can decay through leakage and charge
+sharing. Liberty has no generally enforced maximum-pulse-width constraint, and
+this flow does not characterize that bound. Do not assume arbitrarily long
+`clk0` high times are safe.
 
 Every measurement uses **real Magic parasitic capacitance** and runs each
 corner against its own sky130 models -- no fixed derating factor.
@@ -1043,9 +894,8 @@ The 34k-transistor array is never simulated whole:
   inverter, one column mux transistor and one output buffer), each on its
   own supply source, so a single `.op` reports every block's current on a
   separate branch and each is multiplied by a count from the netlist. Every
-  block the macro instantiates is in that list: a block left out is scored as
-  zero, silently, which is what happened to the read back end until
-  2026-09-22.
+  block the macro instantiates must be in that list; an omitted block would be
+  scored as zero.
 
 So runtime does not explode as the macro grows.
 
@@ -1074,21 +924,9 @@ All dynamic timing, delay, and pin capacitance decks rely on physical layout par
 #### gmin has to be swept, not chosen
 
 `gmin` is the artificial conductance ngspice puts on every node to help it
-converge, and it sits in **parallel with the leakage being measured**: at the
-pA level it simply becomes the answer. It is not one value for the whole deck
-either -- the blocks differ by five orders of magnitude. Measured on wrom0 at
-TT:
-
-| slice | gmin=1e-12 | 1e-15 | 1e-18 | 1e-21 |
-|---|---|---|---|---|
-| control logic | 14.3293 nA | 14.2232 | 14.2231 | 14.2231 |
-| wordline driver | 0.692543 nA | 0.688946 | 0.688943 | 0.688943 |
-| address buffer | 0.00562414 nA | 0.000229725 | 0.000224123 | 0.000224107 |
-| row-decode column | 0.0421749 nA | 0.0000825065 | 0.0000352684 | 0.0000352347 |
-
-At 1e-12 the address buffer is **96% artificial** and the decode column 1200x
-too high; 1e-15, the value the column deck settled on, is still 2.3x too high
-for the decode column. `run_periphery_leak.sh` therefore generates its axis
+converge, and it sits in parallel with the leakage being measured. At picoamp
+levels a fixed value can dominate the result, and different blocks settle at
+different values. `run_periphery_leak.sh` therefore generates its axis
 adaptively: it multiplies the current `gmin` by `GMIN_FACTOR` and continues
 until every slice agrees for two consecutive intervals. There is no fixed
 final gmin; `GMIN_FLOOR` is only a solver-safety limit. A slice that reaches
@@ -1100,50 +938,9 @@ is parsed once, then its control block changes `gmin` with `option`, changes
 `cs0 × gmin` provenance and the convergence calculation above; only repeated
 netlist parsing was removed.
 
-What the periphery actually leaks (wrom0, TT, converged values):
-
-| block | count | per slice | total |
-|---|---|---|---|
-| bitline inverter | 256 | 0.365519 nA | 93.57 nA |
-| wordline driver | 133 | 0.688943 nA | 91.63 nA |
-| control logic (clock driver + NAND + precharge driver) | 1 | 14.2231 nA | 14.22 nA |
-| column-decode driver | 8 | 0.474726 nA | 3.80 nA |
-| output buffer | 32 | 0.000209 nA | 0.007 nA |
-| row-decode column | 133 | 0.0000352 nA | 0.005 nA |
-| address buffer | 8 | 0.000224 nA | 0.002 nA |
-| column-decode column | 8 | 0.0000321 nA | 0.000 nA |
-| column mux pass transistor | 256 | ~0 (5e-10 nA) | 0.000 nA |
-| **periphery** | | | **203.24 nA** |
-| cell array (256 x the worst column) | 256 | 0.366003 nA | 93.70 nA |
-
-The bitline inverters are the largest single entry and they were **missing**
-until 2026-09-22: the deck sliced the control path and the decoders and
-stopped there, so the read back end -- 256 bitline inverters, 256 mux
-transistors, 32 output buffers -- was scored as zero. Adding it took the
-periphery from 109.66 to 203.24 nA at TT, +85%. A block left out of this deck
-does not announce itself; it just lowers the answer, which is the unsafe
-direction. The check that catches it is comparing the slice list against the
-instances of the top-level cell.
-
-The column mux is in the list and measures ~0, which is the right answer
-rather than a missing one: during precharge every bitline is high, so every
-bitline inverter output is 0, every column select is low (measured, see
-`run_coldec_delay.sh`) and the node the mux drives leaks down to 0 as well --
-the transistor is off with 0 V across it. It is measured rather than argued
-away, and `run_periphery_leak.sh` prints it as `ZERO (under ... floor)`,
-because a 1 % *relative* convergence test means nothing at 1e-19 A.
-
-Every one of the four example macros gives the same periphery number: the
-periphery is the same circuit in all of them, only the stored bits differ, and
-in this state the decode chain is cut by its foot transistor rather than by
-its contents. The array half is the part that moves with the `.bin`.
-
-The decode chains leak in picoamps -- they are cut by a foot transistor with
-sixteen devices stacked above it -- and the whole periphery term is really the
-256 bitline inverters plus the 133 wordline drivers plus the clock tree. It is
-**more than twice the array**, so `cell_leakage_power` roughly triples:
-0.000169 mW to 0.000535 mW at TT, 0.000297 to 0.001029 mW at SS, 0.000076 to
-0.000240 mW at FF.
+The slice inventory includes the control path, decoders, wordline drivers,
+bitline inverters, column mux, and output buffers. It is checked against the
+top-level instances because omitting a block would silently reduce the result.
 
 Both chip-select states are measured (`cs0` = 0 and 1) and they come out equal
 to six decimals at every corner. That is a result, not a copy: `cs0` gates the
@@ -1156,42 +953,18 @@ Energy is measured as the charge drawn from the supply over a cycle, and the
 last two cycles are compared: equal values are the proof that the circuit has
 settled.
 
-Both energy decks run ngspice with `method=gear` rather than its default
-trapezoidal integrator, and that is not a preference. Trapezoidal rings on the
-extracted body nodes and the ringing lands straight in the `i(vdd)` charge
-integral, so the answer depends on the time step -- on the column deck a
-200/400/800/1600 step sweep gives 0.4956 / 0.4823 / 0.4849 / 0.4917 pJ, 2.8%
-and not even monotonic, against 0.4805 / 0.4851 / 0.4858 / 0.4860 with gear
-(0.18% from the second point on). The periphery deck is the same story an
-order of magnitude larger: 17% spread and an outright abort at the finest
-step. A charge integral has to be step converged before it means anything.
-
-It shows up in the settling check too: on trapezoidal, cycles 2 and 3 of the
-column deck differed by 2.8% at TT, which reads as a chain that has not
-filled yet. With gear they agree to five digits. The gap was the integrator,
-not the circuit.
+Both energy decks use ngspice `method=gear`. Trapezoidal integration rings on
+extracted body nodes and makes the supply-charge integral timestep-dependent.
+The last two cycles are compared to reject unsettled results.
 
 ---
 
 ## Predicting a geometry change
 
-Two different scaling questions live here, and the measurements answer only
-one of them.
-
-**At a fixed array height**, which is what the four example macros are (all
-134x256 -- only the stored pattern differs), changing the data changes how
-many of the 134 cells in the worst column are real transistors rather than
-straps. The bitline, its capacitance and the number of cells it runs past do
-not move. That costs about **125 ps per extra series device at TT** (72 ps at
-FF, 281 ps at SS), on top of a line that is already ~5 ns of fixed delay --
-measured, and close to linear, which is what adding resistors to a fixed RC
-line should look like.
-
-**Growing the array**, by contrast, lengthens the bitline and adds series
-devices at the same time, so R and C both rise and the delay grows roughly
-with the square of the row count. That is the law worth knowing before
-changing `words_per_row`, and it is the one the repository cannot show: it
-needs macros of different row counts, and every example here is 134x256.
+At fixed geometry, ROM contents change the active-device count in the worst
+column without changing bitline capacitance. Growing the array changes both
+resistance and capacitance, so results from the four equal-sized reference
+macros cannot predict that scaling. Characterize each new geometry.
 
 ## Size independence
 

@@ -8,7 +8,7 @@ What has to be installed, what each step of the flow produces, and which script 
 
 ## Requirements
 
-> 📖 **Full toolchain installation, ngspice KLU solver details, Nix environment, and storage cleanup:** See [docs/requirements.md](requirements.md).
+> 📖 **Full toolchain installation, ngspice KLU solver details, and Nix environment:** See [requirements.md](requirements.md).
 
 * Python 3.10+ (no third-party packages; the CLI uses modern type syntax)
 * **ngspice with KLU** -- every deck selects KLU, and the runner rejects
@@ -143,7 +143,10 @@ When a `run_*.sh` stage is invoked directly and `JOBS` is unset, `common.sh` cho
 
 **Not every deck costs 2.6 GB, and the stages say so.** A deck built out of one extracted column -- the column timing and energy decks, the hold bisection -- holds ~0.45 GB, so the same memory budget affords six times the processes; the back-end deck, which keeps only the read path, sits between them. For direct script use, each stage asks for its own footprint (`stage_jobs` in `common.sh`, `ROM_MEM_COLUMN` / `ROM_MEM_BACKEND` / `ROM_MEM_PERIPHERY`). An explicit `JOBS` -- including the value exported by `flow.py` -- wins over stage-specific auto-sizing.
 
-**Work is taken from a rolling queue, not in batches.** Each stage keeps `JOBS` runs in flight and starts the next one the moment a slot frees. The earlier code launched `JOBS` runs and waited for *all* of them before starting the next batch, so every batch cost as much as its slowest member -- with SS three times slower than FF in the same batch, most of the machine sat idle most of the time. What still cannot overlap is stated where it happens: a bisection picks each point from the previous answer, and the decks a generator runs itself (the TT column and early-path decks) run inside their own macro's turn. The macros themselves never wait for each other.
+**Work is taken from a rolling queue.** Each stage keeps `JOBS` runs in flight
+and starts the next one when a slot frees. Sequential bisection points cannot
+overlap because each depends on the previous result. Decks launched internally
+by a generator also remain within that macro's queue entry.
 
 ### Step 7 reads only what this flow produced
 
@@ -163,8 +166,7 @@ report groups the files by the `run_*.sh` that produces them, and the script
 exits non-zero. Re-run the stage it names; there is no way to tell it to
 accept an old log.
 
-Logs characterised before 2026-09-24 carry no stamp, so they are all refused
-until their stage is re-run.
+Legacy logs without a stamp are refused until their stage is re-run.
 
 ### When something goes wrong
 
@@ -192,12 +194,12 @@ Liberty generation retains its existing provenance validation.
 Change parameters on the restart command, and keep `--full` for a full run.
 If the change affects earlier measurements too, restart from the earliest
 affected stage. No automatic checkpoint or per-corner completion state is
-stored. See [Continuing after a failed step](../README.md#continuing-after-a-failed-step).
+stored. See [Continuing after a failed step](../README.md#4-continuing-after-a-failed-step).
 
 | symptom | cause |
 |---|---|
 | `regen_rom_libs.sh` prints `missing measurement (...)` | that step has not been run, or its ngspice run failed -- the message names the term |
-| `regen_rom_libs.sh` prints `NOT REGENERATED -- ... not output of the current flow` | those logs carry no `.prov` stamp, or it no longer matches the deck/netlist on disk. Re-run the `run_*.sh` the report names; logs from before 2026-09-24 are unstamped and are all refused |
+| `regen_rom_libs.sh` prints `NOT REGENERATED -- ... not output of the current flow` | those logs carry no `.prov` stamp, or it no longer matches the deck/netlist on disk. Re-run the `run_*.sh` named in the report |
 | `NOTHING WAS WRITTEN -- no corner had a complete set of current logs` | nothing in the tree was produced by the flow as it stands. Any `.lib` in `output/lib` is from an earlier run |
 | `no setup measurement -> using pessimistic bound` | step 5 was skipped; the `.lib` is safe but pessimistic |
 | `ERROR: ... _cap_only.spice does not exist` | step 1 has not been run for that macro |
@@ -237,12 +239,12 @@ stored. See [Continuing after a failed step](../README.md#continuing-after-a-fai
 | `gen_random_read_energy.py` | active read energy: samples the address space and counts the discharging columns per read from the netlist's own cell types |
 | `gen_col_power_tb.py` / `run_col_power.sh` / `run_col_energy.sh` | column leakage (`.op`) and column energy |
 | `gen_periphery_leak_tb.py` / `run_periphery_leak.sh` | periphery leakage: one slice per block x a count, with a gmin sweep |
-| `archive/` | retired/standalone prototype scripts (`gen_power_tb.py`, `run_pin_cap_iter.py`, `run_addr_hold.sh`, `run_periphery_power_dynamic.sh`) |
+| `scripts/archive/` | retired/standalone prototype scripts (`gen_power_tb.py`, `run_pin_cap_iter.py`, `run_addr_hold.sh`, `run_periphery_power_dynamic.sh`) |
 | `gen_rom_lib.py` | LEF + measured values -> Liberty |
 | `gen_macro_behavioral_v.py` | behavioural SystemVerilog (`.sv`) model that checks constraints and reports timing violations |
 | `regen_rom_libs.sh` | the top-level script that ties the flow together |
 | `spice_utils.py` | shared SPICE parsing, SI-unit conversion and block helpers used by deck generators |
-| `tests/` | three suites / eleven checks for scripts, generated `.lib` files and `.sv` models -- see [`tests/README.md`](../tests/README.md) |
+| `tests/` | three suites / 19 checks (13 scripts, 4 Liberty, 2 Verilog) for scripts, generated `.lib` files and `.sv` models -- see [`tests/README.md`](../tests/README.md) |
 
 Figures live in `docs/img/`. The waveforms are screenshots of ngspice's own
 plot window -- no plotting tool sits between the simulation and the picture,

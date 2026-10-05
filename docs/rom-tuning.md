@@ -1,6 +1,7 @@
-# OpenRAM ROM Delay Optimization (Architectural & Configuration Tuning)
+# OpenRAM ROM delay tuning
 
-This document outlines architectural and configuration strategies for optimizing read latency (access delay) and hold timing constraints in OpenRAM series-NAND ROM macros when characterization results exceed target specifications.
+Use characterization results to compare these options; geometry and timing
+trade-offs are macro-specific.
 
 [<- back to the README](../README.md)
 
@@ -17,13 +18,14 @@ The figure below compares KLayout physical ruler measurements across two configu
   * Array organization: $256$ columns by $32+$ rows. The bitline is physically longer, carrying substantial distributed parasitic capacitance ($C$) and series pull-down resistance ($R$).
 * **Right Design (`words_per_row = 10`):**  
   * **Bitline Length:** **`~27 µm`** (circled in red).  
-  * Array organization: $320$ columns by $26$ rows. Bitline length is shortened by $\approx 8\ \mu\text{m}$, which drastically curtails the series pull-down path and discharge latency.
+  * Array organization: $320$ columns by $26$ rows. The shorter bitline reduces
+    series pull-down length and discharge latency.
 
 ---
 
 ## 2. Primary Configuration Parameter: The Impact of `words_per_row`
 
-In an unlatched series-NAND ROM, total read latency is overwhelmingly dominated by the **Bitline discharge time**.
+In the reference macros, bitline discharge is the largest access-delay term.
 
 ### Why Bitline Discharge Dominates Read Delay
 1. **Absence of Sense Amplifiers:** Unlike OpenRAM SRAM arrays that employ differential sense amplifiers to detect small ($\sim 100\text{–}200\text{ mV}$) voltage swings, OpenRAM ROM macros use single-ended static CMOS inverters (`rom_bitline_inverter`).
@@ -40,7 +42,8 @@ In an unlatched series-NAND ROM, total read latency is overwhelmingly dominated 
 
 ### Direct Impact on Input Address Hold and Output Data Retention (Hold Time Reduction)
 
-Modifying `words_per_row` does not merely accelerate access latency; it fundamentally alters **both Input Address Hold (`hold_rising(addr0)`) and Output Data Retention (`retain_rise` / `retain_fall` / $t_{OH}$)**:
+Changing `words_per_row` affects both input address hold
+(`hold_rising(addr0)`) and output retention (`retain_rise` / `retain_fall`).
 
 #### A. Input Address Hold Reduction (`hold_rising(addr0)`)
 1. **Stack Height Shortening:** For a fixed capacity, row count decreases inversely with column multiplexing:
@@ -51,12 +54,12 @@ Modifying `words_per_row` does not merely accelerate access latency; it fundamen
    $$t_{\text{hold}} \approx cut_{\text{array}} + t_{\text{backend}}$$
    Because $cut_{\text{array}}$ scales with $N_{\text{row}}^2$, hold time plummets from **15–20 ns** in tall 128-row arrays down to **2–3 ns** in 32-row configurations, substantially alleviating input timing closure constraints.
 
-#### B. Severe Reduction in Output Data Retention (Output Data Hold / $t_{OH}$)
+#### B. Output data retention
 From the perspective of data valid time at the macro output pins (`dout0`), shrinking bitlines introduces a critical timing effect:
 1. **Output Data Retention Mechanism:** After an address transition or clock edge, the previous cycle's output data (`dout0`) does not vanish instantaneously. Due to residual bitline capacitance ($C_{BL}$) and inverter trip delays, the previous output state remains valid for a finite window known in Liberty syntax as `retain_rise` / `retain_fall` (equivalent to classical output hold $t_{OH}$).
 2. **Faster Discharge Shortens Output Data Stability:**
    * When `words_per_row` is significantly increased, the bitline becomes very short (e.g., $35\ \mu\text{m} \rightarrow 20\ \mu\text{m}$).
-   * Parasitic bitline capacitance ($C_{BL}$) and series stack resistance are drastically lower.
+   * Parasitic bitline capacitance ($C_{BL}$) and series stack resistance are lower.
    * On the subsequent access, the newly addressed cell stack **discharges the small bitline much faster**.
    * The new data propagates through the bitline inverter and multiplexer almost immediately, overwriting the previous cycle's output value.
    * **Consequence:** The duration over which the old output data remains stable (**Output Data Hold / Retention Time**) **drops significantly**.
@@ -74,7 +77,8 @@ From the perspective of data valid time at the macro output pins (`dout0`), shri
 Unchecked expansion of `words_per_row` eventually introduces opposing penalties:
 1. **Wordline Delay & Capacitive Slew:** Expanding columns ($256 \rightarrow 320+$) lengthens horizontal wordlines. Heavy gate loading ($m = \text{Cols}$) degrades falling slew ($t_{\text{wlslew}}$) and delays activation at far-end columns.
 2. **Multiplexer Loading & Address Holes:** Wide column multiplexers insert additional pass-transistor series resistance and parasitic diffusion capacitance into the backend sensing path. Non-power-of-two multiplexer ratios (`words_per_row = 10`) also introduce non-contiguous address gaps.
-3. **Golden Ratio:** Optimal macro latency typically occurs when the array aspect ratio approaches a square matrix ($\text{Rows} \approx \text{Columns}$).
+3. **Aspect-ratio balance:** The best point must be measured; shortening
+   bitlines eventually lengthens wordlines and widens the mux.
 
 ---
 

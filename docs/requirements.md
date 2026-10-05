@@ -1,23 +1,9 @@
 # Toolchain Requirements & Environment Setup
 
-Complete guide to required EDA tools, Nix environment provisioning, local environment variables, and pre-flight validation for `openram-rom-libgen`.
+Required EDA tools, environment variables, and pre-flight checks for
+`openram-rom-libgen`.
 
 [<- back to the README](../README.md)
-
----
-
-## Contents
-
-1. [Required Tools & Versions](#1-required-tools--versions)
-   - [Toolchain Table](#toolchain-table)
-   - [ngspice with KLU Solver Requirement](#ngspice-with-klu-solver-requirement)
-   - [Magic Extraction Prerequisite](#magic-extraction-prerequisite)
-2. [Setting Up the Environment](#2-setting-up-the-environment)
-   - [Option A: Nix Environment (Recommended)](#option-a-nix-environment-recommended)
-   - [Option B: Manual / Host Installation](#option-b-manual--host-installation)
-   - [Environment Variables Reference](#environment-variables-reference)
-3. [Cleaning Up Nix Storage & Caches](#3-cleaning-up-nix-storage--caches)
-4. [Pre-Flight Verification](#4-pre-flight-verification)
 
 ---
 
@@ -84,12 +70,6 @@ nix-shell
 3. Automatically sets `ROM_MACROS_DIR=$(pwd)/user` and `ROM_OUT_DIR=$(pwd)/output`.
 4. Wraps `ngspice` to enforce KLU verification.
 
-> [!NOTE]
-> **First-run compilation of OpenSTA:**
-> Most tools are downloaded instantly from `cache.nixos.org`. However, OpenSTA is compiled from source during the first launch. This takes several minutes initially; once compiled, it remains permanently cached in `/nix/store` and re-entering the shell takes only 2–3 seconds.
-
----
-
 ### Option B: Manual / Host Installation
 
 If you prefer using tools installed directly on your operating system:
@@ -122,29 +102,7 @@ If you prefer using tools installed directly on your operating system:
 
 ---
 
-## 3. Cleaning Up Nix Storage & Caches
-
-Nix caches downloaded dependencies and build artifacts inside `/nix/store` and `~/.cache/nix`. If you want to reclaim disk space or clean old build profiles:
-
-```bash
-# 1. Delete old shell generations and garbage-collect unreferenced packages:
-nix-collect-garbage -d
-
-# 2. Hard-link identical store files to optimize disk usage:
-nix-store --optimise
-
-# 3. Clear local evaluation cache (optional):
-rm -rf ~/.cache/nix
-
-# 4. Remove stale direnv environments (if direnv was used):
-rm -rf .direnv
-```
-
-`nix-collect-garbage -d` deletes old generations without touching active profiles. Running `nix develop` or `nix-shell` later will restore any needed packages without issue.
-
----
-
-## 4. Pre-Flight Verification
+## 3. Pre-Flight Verification
 
 Before launching a long characterization run, verify that your environment and macro directory are properly configured:
 
