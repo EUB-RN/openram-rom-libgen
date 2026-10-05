@@ -174,33 +174,12 @@ def table(rows, pad):
     return ",\\\n".join(out)
 
 
-def constraint_block(setup_rows, hold_rows, indent, gating_rows=None):
-    """setup/hold against clk0, plus the CLOCK-GATING pair for an enable.
-
-    A setup/hold pair cannot say "stable for the whole active phase". Both are
-    DURATIONS measured from one edge: hold_rising reaches forward from the
-    rise, setup_falling reaches back from the fall, and when the applied high
-    phase is longer than their sum the middle of it is covered by neither. No
-    choice of numbers fixes that, because the requirement grows with the clock
-    period and a constant does not. hold_falling does not help either -- a hold
-    bounds how EARLY a pin may change after a PAST edge, so a pin that drops
-    in mid-phase is measured against the previous falling edge and passes with
-    room to spare.
-
-    An enable that gates a clock has exactly that requirement, and Liberty has
-    exactly that construct. The clock_gating_* checks anchor to the two EDGES
-    rather than to a duration: setup before the edge that starts the active
-    phase, hold after the edge that ends it. Together they say "this pin may
-    only change while the clock is inactive", for any period.
-    """
+def constraint_block(setup_rows, hold_rows, indent):
+    """setup/hold against clk0 for input pins (address and control)."""
     pad = " " * indent
     inner = pad + " " * 12
     lines = []
     arcs = [("setup_rising", setup_rows), ("hold_rising", hold_rows)]
-    if gating_rows is not None:
-        _g_setup, _g_hold = gating_rows
-        arcs.append(("clock_gating_setup_rising", _g_setup))
-        arcs.append(("clock_gating_hold_falling", _g_hold))
     for ttype, rows in arcs:
         lines.append("%stiming() {" % pad)
         lines.append("%s    timing_type : %s;" % (pad, ttype))
@@ -443,15 +422,7 @@ def gen_lib(name, area, buses, scalars, corner, args):
     setup_rows = [[setup] * 3] * 3
     hold_rows = [[hold_addr] * 3] * 3        # the ADDRESS bus
     hold_ctrl_rows = [[hold_ctrl] * 3] * 3   # cs0 and any other control input
-    # AND the pair that actually pins cs0 down, because the two above cannot.
-    # cs0 IS a clock gate enable -- precharge = ~NAND(cs0, clk_int), i.e. it
-    # switches off the array's internal clock -- so the requirement is "may
-    # only change while clk0 is low", not "stable for N ns". The gating pair
-    # anchors to the two edges: setup before the rise (the measured address
-    # setup covers it; cs0's own path has no stage, see the setup block) and
-    # hold 0 after the fall, meaning cs0 may move as soon as the phase ends
-    # and not one moment before.
-    gating_rows = ([[setup] * 3] * 3, [[0.0] * 3] * 3)
+
 
     # --- power/ground pins, and the rails they belong to -------------------
     # The names come out of the LEF (USE POWER / USE GROUND), for the same
@@ -627,33 +598,6 @@ def gen_lib(name, area, buses, scalars, corner, args):
             w(" * point in the cycle, including the late part where the")
             w(" * address no longer matters. Handing it the shorter number")
             w(" * would relax a constraint no measurement covers.")
-            w(" *")
-            w(" *   THE SETUP/HOLD PAIR CANNOT STATE cs0'S REAL REQUIREMENT,")
-            w(" *   so it also carries a CLOCK-GATING pair. The window above")
-            w(" *   says cs0 must last until the data EXISTS. What has to be")
-            w(" *   said is that it lasts until the data is CAPTURED, on")
-            w(" *   clk0's FALL -- this macro has no latch, so the high phase")
-            w(" *   is the whole life of the read. A cs0 released at %.4f ns"
-              % hold_ctrl)
-            w(" *   satisfies hold_rising and still re-opens the precharge")
-            w(" *   %.4f ns before the earliest legal capture edge, and with a"
-              % (pw_high - hold_ctrl))
-            w(" *   slower clock the gap only grows. No number fixes it: a")
-            w(" *   hold reaches FORWARD from the rise, a setup reaches BACK")
-            w(" *   from the fall, and a high phase longer than their sum has")
-            w(" *   a middle that neither covers. (hold_falling does not help")
-            w(" *   either -- a hold bounds how early a pin may change after a")
-            w(" *   PAST edge, so a mid-phase drop is measured against the")
-            w(" *   previous fall and passes with room to spare.)")
-            w(" *")
-            w(" *   cs0 IS A CLOCK GATE ENABLE: precharge = ~NAND(cs0,")
-            w(" *   clk_int), i.e. it switches off the array's internal clock.")
-            w(" *   clock_gating_setup_rising / clock_gating_hold_falling")
-            w(" *   anchor to the two EDGES instead of to a duration and say")
-            w(" *   what is actually required -- cs0 may only change while")
-            w(" *   clk0 is LOW -- for any clock period. The plain setup/hold")
-            w(" *   pair is kept alongside so a tool that ignores gating")
-            w(" *   checks still reads a meaningful number rather than none.")
         else:
             w(" * HOLD IS NOT MEASURED. It is declared equal to access")
             w(" * (%.4f ns) because the row decoder is clocked: an address"
@@ -664,11 +608,6 @@ def gen_lib(name, area, buses, scalars, corner, args):
             w(" * where the real limit is for the ADDRESS. cs0 is a separate")
             w(" * question and keeps this window either way: it gates the")
             w(" * precharge, so losing it mid-evaluate ends the read outright.")
-            w(" * cs0 also carries a CLOCK-GATING pair against clk0. It")
-            w(" * gates the array's internal clock, and the read lives only")
-            w(" * during the high phase, so the requirement is that cs0 may")
-            w(" * change only while clk0 is LOW. That is a phase, not a")
-            w(" * duration, and no setup/hold number can express it.")
         w(" *")
         if t_coldec is None:
             w(" * THE COLUMN DECODER WAS NEVER SIMULATED. rom_column_decode")
@@ -1141,10 +1080,9 @@ def gen_lib(name, area, buses, scalars, corner, args):
         w("        related_power_pin  : %s;" % pwr)
         w("        related_ground_pin : %s;" % gnd)
         # A control input, NOT an address bit: it keeps the full access
-        # window even when the address hold has been measured, AND it carries
-        # a hold against the FALLING edge. See the hold block above.
-        w(constraint_block(setup_rows, hold_ctrl_rows, indent=8,
-                           gating_rows=gating_rows))
+        # window even when the address hold has been measured.
+        # See the hold block above.
+        w(constraint_block(setup_rows, hold_ctrl_rows, indent=8))
         w("    }")
         w("")
 

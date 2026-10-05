@@ -73,6 +73,47 @@ def resolve_corner(corner):
     return CORNER_ALIASES.get(clean.lower(), clean)
 
 
+def _brace_group(txt, opening):
+    """Return one balanced Liberty group, including its outer braces."""
+    if opening < 0 or opening >= len(txt) or txt[opening] != "{":
+        return None
+    depth = 0
+    for pos in range(opening, len(txt)):
+        if txt[pos] == "{":
+            depth += 1
+        elif txt[pos] == "}":
+            depth -= 1
+            if depth == 0:
+                return txt[opening:pos + 1]
+    return None
+
+
+def _group_after(txt, marker):
+    """Return a declared pin/bus group, ignoring marker text in comments."""
+    match = re.search(r"^\s*%s\s*\{" % re.escape(marker), txt, re.M)
+    if match is None:
+        return None
+    return _brace_group(txt, txt.find("{", match.start()))
+
+
+def _timing_groups(txt):
+    """Yield balanced timing() groups from one Liberty container."""
+    for match in re.finditer(r"\btiming\s*\([^)]*\)\s*\{", txt):
+        group = _brace_group(txt, txt.find("{", match.start()))
+        if group is not None:
+            yield group
+
+
+def _timing_group(txt, timing_type):
+    """Return the first timing() group with exactly this timing_type."""
+    pattern = (r"timing_type\s*:\s*\"?%s\"?\s*;"
+               % re.escape(timing_type))
+    for group in _timing_groups(txt):
+        if re.search(pattern, group):
+            return group
+    return None
+
+
 def _cell_rise_max(txt, edge="rising_edge"):
     """Worst cell_rise on the `edge` arc of dout0, in ns.
 
@@ -87,9 +128,11 @@ def _cell_rise_max(txt, edge="rising_edge"):
     this model.
     """
     best = None
-    for m in re.finditer(r"timing_type\s*:\s*%s\s*;" % re.escape(edge), txt):
-        tail = txt[m.end():m.end() + 4000]
-        vm = re.search(r"cell_rise\s*\([^)]*\)\s*\{(.*?)\);", tail, re.S)
+    for block in _timing_groups(txt):
+        if not re.search(r"timing_type\s*:\s*%s\s*;"
+                         % re.escape(edge), block):
+            continue
+        vm = re.search(r"cell_rise\s*\([^)]*\)\s*\{(.*?)\);", block, re.S)
         if not vm:
             continue
         vals = [float(x) for x in
@@ -111,13 +154,15 @@ def read_lib_timing(lib_path):
                            "mpw_high", "t_fall"))
     if not os.path.exists(lib_path):
         return empty
-    txt = open(lib_path).read()
+    with open(lib_path) as fh:
+        txt = fh.read()
 
     # access comes from the cell_rise table. The banner line the generator
     # prints above it says the same number, but a comment is documentation:
     # it is used only as a cross-check, and a disagreement is reported rather
     # than silently preferred either way.
-    access = _cell_rise_max(txt)
+    dout_group = _group_after(txt, "bus(dout0)")
+    access = _cell_rise_max(dout_group if dout_group is not None else txt)
     m = re.search(r"TOTAL \(worst load\)\s*:\s*([\d.]+)\s*ns", txt)
     banner = float(m.group(1)) if m else None
     if access is None:
@@ -136,29 +181,26 @@ def read_lib_timing(lib_path):
     # top of the measurement (pw_high = access + 0.5*dscale). A high phase
     # between the two produces valid data and still violates the library, so
     # the model has to carry both numbers to say the same thing the .lib says.
+    clock_group = _group_after(txt, "pin(clk0)")
+    pulse_group = (_timing_group(clock_group, "min_pulse_width")
+                   if clock_group is not None else None)
     t_pre = None
-    m = re.search(r'timing_type\s*:\s*"min_pulse_width".*?'
-                  r'fall_constraint\(scalar\)\s*\{\s*values\("([\d.]+)"\)',
-                  txt, re.S)
+    m = re.search(r'fall_constraint\(scalar\)\s*\{\s*values\("([\d.]+)"\)',
+                  pulse_group or "", re.S)
     if m:
         t_pre = float(m.group(1))
 
     mpw_high = None
-    m = re.search(r'timing_type\s*:\s*"min_pulse_width".*?'
-                  r'rise_constraint\(scalar\)\s*\{\s*values\("([\d.]+)"\)',
-                  txt, re.S)
+    m = re.search(r'rise_constraint\(scalar\)\s*\{\s*values\("([\d.]+)"\)',
+                  pulse_group or "", re.S)
     if m:
         mpw_high = float(m.group(1))
 
     # The falling_edge arc of dout0: clk0 falls -> dout0 back at the precharge
     # value. Modelling this as zero is what made the model and the .lib
     # disagree by a whole arc.
-    t_fall = _cell_rise_max(txt, "falling_edge")
-
-    setup = None
-    m = re.search(r"timing_type\s*:\s*setup_rising.*?values\(\"([\d.]+)", txt, re.S)
-    if m:
-        setup = float(m.group(1))
+    t_fall = _cell_rise_max(dout_group if dout_group is not None else txt,
+                            "falling_edge")
 
     # HOLD, once per pin GROUP -- addr0 and cs0 no longer carry the same
     # number and the model must not flatten them back together. The address
@@ -168,16 +210,22 @@ def read_lib_timing(lib_path):
     # point in the cycle. Each is read from inside its own container: the
     # first hold_rising after `bus(addr0)` belongs to the address, the first
     # after `pin(cs0)` to the chip select.
-    def _hold_after(marker):
-        i = txt.find(marker)
-        if i < 0:
+    def _constraint_after(marker, timing_type):
+        # Search only inside this pin/bus group. Searching to EOF lets a
+        # missing addr0 constraint silently borrow cs0's from the following
+        # group, making the behavioural model disagree with the Liberty file.
+        group = _group_after(txt, marker)
+        if group is None:
             return None
-        mm = re.search(r"timing_type\s*:\s*hold_rising.*?values\(\"([\d.]+)",
-                       txt[i:], re.S)
+        timing = _timing_group(group, timing_type)
+        if timing is None:
+            return None
+        mm = re.search(r"values\(\"([\d.]+)", timing, re.S)
         return float(mm.group(1)) if mm else None
 
-    hold = _hold_after("bus(addr0)")
-    hold_cs = _hold_after("pin(cs0)")
+    setup = _constraint_after("bus(addr0)", "setup_rising")
+    hold = _constraint_after("bus(addr0)", "hold_rising")
+    hold_cs = _constraint_after("pin(cs0)", "hold_rising")
 
     return dict(access=access, t_pre=t_pre, setup=setup, hold=hold,
                 hold_cs=hold_cs, mpw_high=mpw_high, t_fall=t_fall)

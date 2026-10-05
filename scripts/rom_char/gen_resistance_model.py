@@ -85,19 +85,20 @@ def sheet_resistances(tech_path=None, variant=None):
             "ndiff": 120.0
         }
     active = True
-    for line in open(tech_path):
-        vm = re.match(r"\s*variants\s+(.+)", line)
-        if vm:
-            names = [v.strip().strip("()") for v in vm.group(1).split(",")]
-            active = variant in names or (variant == "" and "" in names)
-            continue
-        m = re.match(r"\s*resist\s+\(?([^)/]+)\)?/(\w+)\s+([\d.]+)", line)
-        if not m or not active:
-            continue
-        ohm = float(m.group(3)) / 1000.0
-        for t in m.group(1).split(","):
-            out[t.strip().lstrip("*")] = ohm
-        out.setdefault("plane:" + m.group(2), ohm)
+    with open(tech_path) as fh:
+        for line in fh:
+            vm = re.match(r"\s*variants\s+(.+)", line)
+            if vm:
+                names = [v.strip().strip("()") for v in vm.group(1).split(",")]
+                active = variant in names or (variant == "" and "" in names)
+                continue
+            m = re.match(r"\s*resist\s+\(?([^)/]+)\)?/(\w+)\s+([\d.]+)", line)
+            if not m or not active:
+                continue
+            ohm = float(m.group(3)) / 1000.0
+            for t in m.group(1).split(","):
+                out[t.strip().lstrip("*")] = ohm
+            out.setdefault("plane:" + m.group(2), ohm)
     return out
 
 
@@ -120,18 +121,19 @@ def read_mag(path):
     layers = collections.defaultdict(list)
     labels = {}
     layer = None
-    for line in open(path):
-        s = line.strip()
-        if s.startswith("<<"):
-            layer = s.split()[1]
-            continue
-        if s.startswith("rect") and layer and layer not in ("labels", "properties"):
-            x0, y0, x1, y1 = (int(v) for v in s.split()[1:5])
-            layers[layer].append((x0, y0, x1, y1))
-        elif s.startswith("rlabel"):
-            t = s.split()
-            # rlabel <layer> <dir> x0 y0 x1 y1 <font> <name>
-            labels[t[-1]] = ((int(t[3]), int(t[4]), int(t[5]), int(t[6])), t[1])
+    with open(path) as fh:
+        for line in fh:
+            s = line.strip()
+            if s.startswith("<<"):
+                layer = s.split()[1]
+                continue
+            if s.startswith("rect") and layer and layer not in ("labels", "properties"):
+                x0, y0, x1, y1 = (int(v) for v in s.split()[1:5])
+                layers[layer].append((x0, y0, x1, y1))
+            elif s.startswith("rlabel"):
+                t = s.split()
+                # rlabel <layer> <dir> x0 y0 x1 y1 <font> <name>
+                labels[t[-1]] = ((int(t[3]), int(t[4]), int(t[5]), int(t[6])), t[1])
     return layers, labels
 
 

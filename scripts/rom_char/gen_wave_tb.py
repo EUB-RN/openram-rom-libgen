@@ -89,7 +89,8 @@ SIGNATURE = os.path.basename(__file__)
 
 def read_model(v_path):
     """Pull the geometry and the measured timing out of a generated model."""
-    txt = open(v_path).read()
+    with open(v_path) as fh:
+        txt = fh.read()
 
     def num(name):
         m = re.search(r"parameter\s+(?:real\s+)?%s\s*=\s*([\d.]+)\s*;" % name, txt)
@@ -128,8 +129,17 @@ def write_mem(bin_path, mem_path, width, depth, endian):
     so the order is an argument rather than a guess made silently. If the data
     comes out byte-swapped in the waves, this is the knob: --endian big.
     """
+    if width <= 0 or width % 8:
+        raise ValueError("ROM width must be a positive multiple of 8 bits")
+    if depth < 0:
+        raise ValueError("ROM depth must not be negative")
+    if endian not in ("little", "big"):
+        raise ValueError("endian must be 'little' or 'big'")
     nbytes = width // 8
-    data = open(bin_path, "rb").read()
+    with open(bin_path, "rb") as fh:
+        data = fh.read()
+    if len(data) % nbytes:
+        raise ValueError("ROM binary does not contain a whole number of words")
     words = len(data) // nbytes
     if words > depth:
         words = depth

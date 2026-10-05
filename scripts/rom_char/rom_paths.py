@@ -194,7 +194,8 @@ def _config_sizes(macro, explicit=None):
     cfg = cfg1 if os.path.exists(cfg1) else (cfg2 if os.path.exists(cfg2) else None)
     if not cfg:
         return None, None
-    txt = open(cfg).read()
+    with open(cfg) as fh:
+        txt = fh.read()
 
     def grab(key):
         m = re.search(r"^\s*%s\s*=\s*(\d+)" % key, txt, re.M)
@@ -208,7 +209,8 @@ def _lef_widths(macro, explicit=None):
     path = lef(macro, explicit)
     if not os.path.exists(path):
         return 0, 0
-    txt = open(path).read()
+    with open(path) as fh:
+        txt = fh.read()
     return (len(re.findall(r"^\s*PIN\s+addr0\[", txt, re.M)),
             len(re.findall(r"^\s*PIN\s+dout0\[", txt, re.M)))
 
@@ -240,7 +242,8 @@ def geometry(macro, explicit=None, use_cache=True, quiet=False):
     cache = _cache_path(macro, explicit)
     if use_cache and os.path.exists(cache):
         try:
-            data = json.load(open(cache))
+            with open(cache) as fh:
+                data = json.load(fh)
             if data.get("_stamp") == stamp:
                 return data
         except (ValueError, OSError):
@@ -298,7 +301,8 @@ def geometry(macro, explicit=None, use_cache=True, quiet=False):
         "words": words,
     }
     try:
-        json.dump(data, open(cache, "w"), indent=1)
+        with open(cache, "w") as fh:
+            json.dump(data, fh, indent=1)
     except OSError:
         pass
     return data
@@ -461,6 +465,9 @@ def main(argv):
     explicit = None
     if "--macros-dir" in args:
         i = args.index("--macros-dir")
+        if i + 1 >= len(args):
+            print("ERROR: --macros-dir requires a directory", file=sys.stderr)
+            return 1
         explicit = args[i + 1]
         del args[i:i + 2]
 

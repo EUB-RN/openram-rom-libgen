@@ -24,6 +24,11 @@ MACROS_DIR="$(python3 "$ROM_CHAR_DIR/rom_paths.py" --macros-dir-only)"
 LIB_DIR="$(python3 "$ROM_CHAR_DIR/rom_paths.py" --lib-dir)"
 VERILOG_DIR="$(python3 "$ROM_CHAR_DIR/rom_paths.py" --verilog-dir)"
 
+# A macro named on the command line is a request, not a best-effort batch
+# candidate.  Keep automatic discovery tolerant of a stale/broken directory,
+# but never turn an explicitly requested missing macro into a successful run.
+case "$#" in 0) ROM_MACROS_EXPLICIT=0 ;; *) ROM_MACROS_EXPLICIT=1 ;; esac
+
 NG="${NGSPICE_BIN:-ngspice}"
 
 # HOW MANY ngspice PROCESSES AT ONCE -- a memory question, not a core count.
@@ -169,7 +174,10 @@ macro_list() {
 
 # load the G_* geometry variables (derived from the netlist, cached)
 load_geom() {
-  _g=$(python3 "$ROM_CHAR_DIR/rom_paths.py" "$1" --sh) || return 1
+  _g=$(python3 "$ROM_CHAR_DIR/rom_paths.py" "$1" --sh) || {
+    [ "$ROM_MACROS_EXPLICIT" = 1 ] && exit 1
+    return 1
+  }
   eval "$_g"
 }
 

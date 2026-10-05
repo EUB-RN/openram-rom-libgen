@@ -14,17 +14,23 @@ import sys
 import os
 import re
 import argparse
+import math
 
 
 def parse_time_ns(s):
     s = str(s).strip()
     if s.endswith("ns") or s.endswith("n"):
-        return float(s.rstrip("ns").rstrip("n"))
+        value = float(s[:-2] if s.endswith("ns") else s[:-1])
     elif s.endswith("us") or s.endswith("u"):
-        return float(s.rstrip("us").rstrip("u")) * 1e3
+        value = float(s[:-2] if s.endswith("us") else s[:-1]) * 1e3
     elif s.endswith("ps") or s.endswith("p"):
-        return float(s.rstrip("ps").rstrip("p")) * 1e-3
-    return float(s) * 1e9 if float(s) < 1e-3 else float(s)
+        value = float(s[:-2] if s.endswith("ps") else s[:-1]) * 1e-3
+    else:
+        raw = float(s)
+        value = raw * 1e9 if raw < 1e-3 else raw
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError("hold time must be a positive finite value")
+    return value
 
 
 def format_time_ns(ns_val):
@@ -111,6 +117,9 @@ def main():
         cy = float(m_cy.group(1))
         cr = float(m_cr.group(1))
         cf = float(m_cf.group(1))
+        if not all(math.isfinite(v) and v > 0 for v in (cy, cr, cf)):
+            missing.append(p_name + " (non-positive or non-finite measurement)")
+            continue
         lo = min(cr, cf)
         hi = max(cr, cf)
         gap = (hi - lo) / lo * 100.0 if lo > 0 else 0.0
@@ -138,7 +147,7 @@ def main():
             prev_th = prev_p.get("th")
             is_saturated = False
             d_gap = 0.0
-            if prev_gap is not None and cur_th > prev_th:
+            if prev_gap is not None and prev_th is not None and cur_th > prev_th:
                 d_gap = abs(gap - prev_gap)
                 if d_gap < 0.25:
                     is_saturated = True

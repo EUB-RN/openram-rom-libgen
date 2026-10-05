@@ -29,6 +29,8 @@ def main():
         levels = [values.get(f"a{address}_sel{select}") for select in range(8)]
         if rise is None or previous is None or fall is None or any(v is None for v in levels):
             raise SystemExit(f"address {address}: missing sweep measurements")
+        if rise <= 0 or previous <= 0 or fall <= 0:
+            raise SystemExit(f"address {address}: non-positive delay measurement")
         high = [select for select, level in enumerate(levels)
                 if level > args.vdd / 2.0]
         if high != [address]:
