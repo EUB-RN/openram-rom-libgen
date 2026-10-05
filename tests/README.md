@@ -1,9 +1,7 @@
 # tests/
 
-Nothing in this flow used to read a generated `.lib` back. `gen_rom_lib.py`
-wrote text and the first thing to parse it was whatever the user pointed at the
-file, so a missing brace or a table with the wrong number of rows only surfaced
-downstream, in someone else's tool. These tests close that gap.
+The test suite validates scripts, generated Liberty, and behavioural models
+before they reach downstream tools.
 
 ```sh
 tests/run_tests.sh                  # everything, against output/lib/*.lib
@@ -16,17 +14,24 @@ run — a file that does not parse never leaves the generator.
 
 ## The suites
 
-There are three suites and eleven checks. `tests/run_tests.sh` always runs them
+There are three suites and 19 checks. `tests/run_tests.sh` always runs them
 in this order:
 
 | suite / directory | file | question it answers |
 |---|---|---|
+| `scripts_tests/` | `test_coldec_sweep.py` | does the one-transient column decoder sweep correctly measure one-hot select delays across addresses? |
+| `scripts_tests/` | `test_energy_and_models.py` | do energy helpers and generated model values remain consistent? |
 | `scripts_tests/` | `test_find_worst_column.py` | does worst/best column search handle scoping, zero-columns, determinism, and CLI? |
 | `scripts_tests/` | `test_spice_utils.py` | unit tests for SPICE parser, SI units (`to_float`, `fix_units`, `blocks`), and CLI generator execution |
 | `scripts_tests/` | `test_error_reporting.py` | does a dead, unsettled or *absent* simulation stay loud -- and can a log that this flow did not produce still reach a `.lib`? |
 | `scripts_tests/` | `test_flow_resume.py` | does flow recovery, step skipping, and restart logic operate correctly? |
 | `scripts_tests/` | `test_periph_settle.py` | does periphery energy use relative/noise-floor convergence, does ngspice stop/resume one transient, and is the final decision wired into production provenance? |
 | `scripts_tests/` | `test_periphery_leak_paired.py` | does single-parse paired-op sweep correctly vary cs0 and gmin in one ngspice session? |
+| `scripts_tests/` | `test_pincap_settle.py` | does adaptive pin-capacitance settling converge and reject invalid results? |
+| `scripts_tests/` | `test_resistance_model.py` | does the cell resistance model preserve units, provenance, and fallback behavior? |
+| `scripts_tests/` | `test_rom_paths.py` | does macro discovery and pre-flight validation resolve inputs correctly? |
+| `scripts_tests/` | `test_script_syntax.py` | do production Python scripts compile? |
+| `scripts_tests/` | `test_wave_and_lib_helpers.py` | do waveform and Liberty helper functions produce consistent data? |
 | `lib_tests/` | `test_checker.py` | does the checker still catch the 15 defects in `lib_tests/fixtures/`? |
 | `lib_tests/` | `check_lib.py` | is this valid Liberty? |
 | `lib_tests/` | `test_rom_lib.py` | does it say what this macro actually does (timing arcs, constraints, corners)? |

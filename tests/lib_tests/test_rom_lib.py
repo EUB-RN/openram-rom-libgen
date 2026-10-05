@@ -370,28 +370,17 @@ def check_control_hold(cell):
         return []
     access = max(v for r in delay for v in r)
 
-    # cs0 must ALSO be pinned to the CLOCK'S PHASE, not to a duration. No
-    # setup/hold number expresses "stable until clk0 falls": a hold reaches
-    # forward from the rise, a setup reaches back from the fall, and a high
-    # phase longer than their sum has a middle that neither covers -- while
-    # the requirement itself grows with the clock period. (hold_falling does
-    # not rescue it either: a hold bounds how EARLY a pin may change after a
-    # PAST edge, so a cs0 dropped mid-phase is measured against the previous
-    # falling edge and passes with room to spare.)
-    #
-    # cs0 gates the array's internal clock -- precharge = ~NAND(cs0, clk_int)
-    # -- so the construct that fits is the clock-gating check, whose anchors
-    # are the two EDGES: enable ready before the phase opens, held until it
-    # closes.
+    # Memory macros are not clock-gating cells (clock_gating_integrated_cell).
+    # OpenSTA and standard EDA tools reject clock_gating_* timing arcs on
+    # memory/macro pins with "unknown timing_type" and "combinational timing
+    # to an input port".
     _a = arcs(pin)
-    for _want in ("clock_gating_setup_rising", "clock_gating_hold_falling"):
-        if _want not in _a:
-            bad.append("cs0 has no %s against clk0. It gates the internal "
-                       "clock, so the requirement is that it may only change "
-                       "while clk0 is LOW -- a phase, not a duration. No "
-                       "setup/hold number can state that, so without this "
-                       "pair a cs0 pulled in mid-phase is a silent wrong "
-                       "read that STA cannot see." % _want)
+    for forbidden in ("clock_gating_setup_rising", "clock_gating_setup_falling",
+                      "clock_gating_hold_rising", "clock_gating_hold_falling"):
+        if forbidden in _a:
+            bad.append("cs0 has forbidden timing type %s against clk0: memory macros "
+                       "are not clock-gating cells, and OpenSTA rejects clock_gating_* "
+                       "on macros." % forbidden)
 
     hold = arcs(pin).get("hold_rising")
     if not hold:

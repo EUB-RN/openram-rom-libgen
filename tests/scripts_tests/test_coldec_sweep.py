@@ -88,6 +88,19 @@ class ColdecSweepTests(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn(message, result.stderr)
 
+    def test_splitter_rejects_missing_or_nonpositive_delay_without_traceback(self):
+        log = self.write_log()
+        text = log.read_text()
+        for replacement, message in (("", "missing sweep measurements"),
+                                     ("a0_rise = 0", "non-positive delay")):
+            with self.subTest(message=message):
+                changed = self.root / ("bad-" + message.split()[0] + ".log")
+                changed.write_text(text.replace("a0_rise = 5e-10", replacement))
+                result = self.split(changed)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(message, result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
