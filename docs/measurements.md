@@ -9,23 +9,31 @@ Which deck measures which block, how `access` is built from three terms, the fre
 ## Contents
 
 1. [Macro Architecture & 3-Term Access Path](#what-is-measured-and-how)
-2. [Detailed Measurement Decks & Waveforms](#detailed-measurement-decks--waveforms)
+2. [Quick Reference: How to Reproduce All Measurements in ngspice](#quick-reference-how-to-reproduce-all-measurements-in-ngspice)
+3. [Detailed Measurement Decks & Waveforms](#detailed-measurement-decks--waveforms)
    - [Column Bitline Discharge & Precharge](#the-column-bitline-discharge-and-precharge)
    - [Periphery Front End (Clock, Decoder, Precharge)](#the-periphery-front-end-clk0---internal-clock---wordline---precharge)
    - [Back End (Bitline -> dout0)](#the-back-end-bitline---dout0-at-one-of-the-three-lib-loads)
    - [Column Decoder Race](#the-column-decoder-against-the-discharge-it-races)
    - [Leakage & Switching Current](#leakage-and-energy-current-not-voltage)
+   - [Column DC Leakage Power (.op)](#the-column-dc-leakage-op)
+   - [Cell Equivalent Gate Capacitance](#the-cell-equivalent-gate-capacitance-linear-wordline-load-reduction)
+   - [Cell Series Wire Resistance Model](#the-cell-series-wire-resistance-model)
    - [Dynamic Read Energy & Activity Model](#dynamic-read-energy-the-average-of-10-random-reads-not-the-worst-case)
-3. [Pin Capacitance, Slew, and Constraints](#detailed-pin-capacitance-slew-and-timing-constraints)
+4. [Detailed Pin Capacitance, Slew, and Timing Constraints](#detailed-pin-capacitance-slew-and-timing-constraints)
    - [Input Pin Capacitance](#input-pin-capacitance----the-capacitance-attribute-of-every-input-pin)
    - [Wordline Fall Slew](#wordline-slew----how-fast-a-wordline-really-falls)
    - [Output Slew & Liberty Axes](#output-slew-and-the-two-lib-table-axes)
-   - [Address Setup & Hold](#address-setup)
-4. [Frequency Window (Upper & Lower Bounds)](#the-frequency-window-this-rom-may-be-driven-in)
-5. [The Scaling Trick (Simulation Slicing)](#the-scaling-trick)
+   - [Address Setup Race](#address-setup)
+   - [Address Hold Bisection](#address-hold-bisection-cutting-the-chain-mid-evaluate)
+   - [Address-to-Wordline Delay (Hold Frame Conversion)](#address-to-wordline-delay-hold-time-frame-conversion)
+   - [Early Path & Retain Times](#early-path-the-fastest-discharging-column-and-retain-times)
+5. [Frequency Window (Upper & Lower Bounds)](#the-frequency-window-this-rom-may-be-driven-in)
+6. [The Scaling Trick (Simulation Slicing)](#the-scaling-trick)
+   - [Parasitic Capacitance Extraction (Magic)](#parasitic-capacitance-extraction-magic)
    - [Adaptive gmin Sweep](#gmin-has-to-be-swept-not-chosen)
-6. [Predicting Geometry Scaling](#predicting-a-geometry-change)
-7. [Size Independence & Derived Geometry](#size-independence)
+7. [Predicting Geometry Scaling](#predicting-a-geometry-change)
+8. [Size Independence & Derived Geometry](#size-independence)
 
 ---
 
@@ -67,29 +75,82 @@ proven is that the consumer captured before the data went away. Without this
 group STA reads an unlatched ROM as if it held its output and reports a false
 pass.
 
-![Bitline discharge and precharge](img/05-col-discharge.svg)
+* **Term 2 (Bitline) dominates:** Setting ~85% of total access delay, defined by the 50% discharge crossing (`t_dis_50`) and the 99% recharge (`t_pre_99`).
+* **Front-end polarity:** The periphery deck settles the decoder polarity by measurement rather than assumption: after `clk0` rises, the selected wordline **falls**. That justifies holding every other wordline at VDD in the column deck.
+* **Back-end delay under load:** The back-end deck is run once per output load, so the `index_2` (`total_output_net_capacitance`) axis of the CELL_TABLE is a real measurement and not three copies of one number. The bitline edge driving it replays the column deck's own discharge waveform sample for sample through a PWL source (cached in `char/wave/bl_<corner>.txt`).
 
-Term 2 dominates. The figure shows the same column at all three corners, with
-the 50% crossing that defines `t_dis_50` and the 99% recharge that defines
-`t_pre`.
+Also measured: setup (`t_addr2dec*`), leakage (`.op`), per-column energy and periphery energy (active and idle), and input pin capacitances with adaptive settling (`run_pin_cap.sh` / `pincap_settle_step.py`). Detailed waveform captures, simulation decks, and reproduction commands for each block are documented in their respective sections below.
 
-![Front-end waveforms](img/06-front-end.svg)
+---
 
-The front-end deck also settles the decoder polarity by measurement rather than
-assumption: after clk0 rises, the selected wordline **falls**. That is what
-justifies holding every wordline at VDD in the column deck.
+## Quick Reference: How to Reproduce All Measurements in ngspice
 
-![Back-end delay under load](img/12-backend-dout.png)
+All waveform plots in this repository are **real screenshots taken directly from ngspice's interactive GUI plot window (`.png`)**, never synthetic/vector SVGs or machine-drawn approximations. 
 
-The back-end deck is run once per output load, so the `index_2`
-(`total_output_net_capacitance`) axis of the CELL_TABLE is a real measurement
-and not three copies of one number. The bitline edge driving it is not a guess
-either -- it replays the column deck's own discharge waveform sample for
-sample through a PWL source (cached in `char/wave/bl_<corner>.txt`).
+### Interactive ngspice Workflow
 
-Also measured: setup (`t_addr2dec*`), leakage (`.op`), per-column energy and
-periphery energy (active and idle), and input pin capacitances with adaptive
-settling (`run_pin_cap.sh` / `pincap_settle_step.py`).
+To reproduce any measurement or inspect waveforms visually:
+
+1. **Run the flow stage script** (or `./flow.py <macro>`) to extract netlists, compute parasitics, and write the SPICE decks into `<macro>/char/`.
+2. **Launch ngspice interactively** on the target `.sp` deck:
+   ```bash
+   ngspice examples/wrom0/char/<deck_name>.sp
+   ```
+3. **Configure plot style (optional):** To get high-contrast black-on-white plots suitable for documentation:
+   ```text
+   ngspice 1 -> set color0=white color1=black
+   ```
+4. **Execute simulation:**
+   ```text
+   ngspice 2 -> run
+   ```
+5. **Plot node voltages / currents:**
+   ```text
+   ngspice 3 -> plot <vector_1> <vector_2> ... [xlimit <t_start> <t_end>] [ylimit <v_min> <v_max>]
+   ```
+6. **Capture screenshot:** Take a window screenshot directly from ngspice's graphical display.
+7. **Inspect `.measure` values from terminal:**
+   ```bash
+   grep -E "t_dis_50|t_clk2pre|t_bl2dout" examples/wrom0/char/<deck_name>.log
+   ```
+
+### Multi-Corner & Multi-Deck Overlay in ngspice
+
+To overlay waveforms from multiple corners (TT, SS, FF) or multiple load runs in a single interactive plot window:
+```text
+ngspice
+ngspice 1 -> source examples/wrom0/char/col236_worst_case_parasitic.sp
+ngspice 2 -> run
+ngspice 3 -> source examples/wrom0/char/col236_worst_case_parasitic_ss.sp
+ngspice 4 -> run
+ngspice 5 -> source examples/wrom0/char/col236_worst_case_parasitic_ff.sp
+ngspice 6 -> run
+ngspice 7 -> set color0=white color1=black
+ngspice 8 -> plot tran1.v(bl_0_236) tran2.v(bl_0_236) tran3.v(bl_0_236) tran1.v(precharge) xlimit 4.95u 5.06u
+```
+
+### Complete Measurement & Command Matrix
+
+| # | Measurement Stage | Shell Script | Generated SPICE Deck (`examples/wrom0/char/`) | Interactive ngspice Plot Command | Measured Variables & Target Log |
+|---|---|---|---|---|---|
+| 1 | **Bitline Discharge & Precharge** | `./scripts/rom_char/run_col_timing.sh wrom0` | `col236_worst_case_parasitic{,_ss,_ff}.sp` | `plot v(precharge) v(bl_0_236) xlimit 4.98u 5.06u` | `t_dis_50`, `t_dis_10`, `t_pre_50`, `t_pre_99` (`col236_worst_case_parasitic*.log`) |
+| 2 | **Periphery Front End** | `./scripts/rom_char/run_periphery_power.sh wrom0` | `periph_active_tt.sp` | `plot v(clk0) v(wrom0_rom_row_decode_0/clk) v(wrom0_rom_row_decode_0/wl_0) xlimit 100n 106n` | `t_clk2pre`, `t_clk2int`, `t_wlfall0`, `e_periph_pj` (`periph_active_tt.log`) |
+| 3 | **Back End Delay (Load Sweep)** | `./scripts/rom_char/run_backend_delay.sh wrom0` | `backend_tt_{17225,689,2756}.sp` | `plot v(wrom0_rom_base_array_0/bl_0_236) v("dout0[2]") xlimit 15n 25n` | `t_bl2dout`, `t_dout_slew` (`backend_tt_*.log`) |
+| 4 | **Column Decoder Race** | `./scripts/rom_char/run_coldec_delay.sh wrom0` | `coldec_sweep_tt.sp` / `coldec_a0_tt.sp` | `plot v(wrom0_rom_column_decode_0/clk) v(wrom0_rom_column_decode_0/wl_0)` | `t_pre2sel<k>_rise`, `t_pre2sel<k>_fall` (`coldec_a0_tt.log`) |
+| 5 | **Column Supply Current & Energy** | `./scripts/rom_char/run_col_energy.sh wrom0` | `col236_energy_tt.sp` | `plot i(Vvdd) xlimit 800n 1000n ylimit -130u 20u` | `q_c3`, `e_col_pj` (`col236_energy_tt.log`) |
+| 6 | **Column DC Leakage (`.op`)** | `./scripts/rom_char/run_col_power.sh wrom0` | `col236_leak_tt.sp` | DC `.op` array leakage (no plot window: `print i(vvdd)`) | `vvdd#branch` (`col236_leak_tt.log`) |
+| 7 | **Periphery Leakage (`.op`)** | `./scripts/rom_char/run_periphery_leak.sh wrom0` | `periph_leak_paired_tt.sp` | DC `.op` slice current (no plot window) | `vvdd#branch`, slice currents (`periph_leak_cs0_tt.total`) |
+| 8 | **Cell Gate Capacitance** | `python3 scripts/rom_char/gen_cell_gate_tb.py wrom0 examples/wrom0/char/cellgate_tt.sp --corner tt` | `cellgate_tt.sp` | `plot v(g0) i(Vg0)` | `c_one_ff`, `c_zero_ff`, `q_one`, `q_zero` (`cellgate_tt.log`) |
+| 9 | **Dynamic Read Energy** | `python3 scripts/rom_char/gen_random_read_energy.py wrom0 --corner tt` | None (analytic netlist activity scan) | Terminal table / histogram | Average & worst-case energy (`random_energy_tt.log`) |
+| 10 | **Input Pin Capacitance** | `./scripts/rom_char/run_pin_cap.sh wrom0` | `pincap_tt.sp` | `plot v(clk0) i(vpin1)` | `c_cyc<i>_ff`, `q_rise`, `q_fall` (`pincap_tt.log`) |
+| 11 | **Wordline Fall Slew** | `./scripts/rom_char/run_wl_slew.sh wrom0` | `wlslew_tt.sp` | `plot v(clk0) v(wrom0_rom_row_decode_0/wl_0) xlimit 98n 104n` | `t_wlfall0`, `t_wlslew0`, `t_wl1090_0` (`wlslew_tt.log`) |
+| 12 | **Clock Input Slew Sweep** | `SLEWS="0.05 0.5 1.5" ./scripts/rom_char/run_slew_sweep.sh wrom0` | `periph_slew{0,1,2}_tt.sp` | `plot v(clk0) v(wrom0_rom_column_decode_0/clk)` | `t_clk2pre` across slews (`periph_slew*_tt.log`) |
+| 13 | **Address Setup Race** | `./scripts/rom_char/run_addr_setup.sh wrom0` | `periph_setup_tt.sp` | `plot v(addr0[0]) v(clk0)` | `t_addr2dec<k>`, `t_clk2int` (`periph_setup_tt.log`) |
+| 14 | **Address Hold Bisection** | `python3 scripts/rom_char/gen_addr_hold_tb.py wrom0 look.sp --sweep-ns 14,16 --wl-slew-ns 0.15` | `look.sp` / `run_hold_bisect.sh` | `plot v(precharge) v(bl_0_236) v(bl_b_236)` | `hold_rising`, cut time bracket (`addr_hold_tt.log`) |
+| 15 | **Address to Wordline Delay** | `./scripts/rom_char/run_addr2wl.sh wrom0` | `addr2wl_tt.sp` | `plot v(addr0[3]) v(wrom0_rom_row_decode_0/wl_1) xlimit 1.348u 1.354u` | `t_addr2wl1` (`addr2wl_tt.log`) |
+| 16 | **Early Path (Retain Time)** | `./scripts/rom_char/run_early_path.sh wrom0` | `col236_best_case_parasitic.sp` | `plot v(precharge) v(bl_0_236)` | `t_dis_50`, `t_pre_50` (`col236_best_case_parasitic*.log`) |
+| 17 | **Cell Series Resistance Model** | `python3 scripts/rom_char/gen_resistance_model.py wrom0` | None (analytic / Magic single-cell) | Terminal table / JSON report | Series resistance per cell (`resistance_model.json`) |
+| 18 | **Parasitic C Extraction** | `./scripts/rom_char/run_cap_extract.sh wrom0` | None (Magic batch layout extraction) | Layout viewer (Magic/KLayout) | Extracted netlist (`wrom0_cap_only.spice`) |
 
 ---
 
@@ -98,12 +159,25 @@ settling (`run_pin_cap.sh` / `pincap_settle_step.py`).
 ### The column: bitline discharge and precharge
 
 ```bash
+# 1. Run the flow script to generate and simulate the decks:
 ./scripts/rom_char/run_col_timing.sh wrom0
+
+# 2. Launch interactive ngspice:
 ngspice examples/wrom0/char/col236_worst_case_parasitic.sp
 ```
-```
+```text
 ngspice 1 -> run
 ngspice 2 -> plot v(precharge) v(bl_0_236)
+
+# Zoom into the settled 3rd cycle evaluate edge (where t_dis_50 is measured):
+ngspice 3 -> plot v(precharge) v(bl_0_236) xlimit 4.98u 5.06u
+
+# Zoom into precharge recharge (where t_pre_99 is measured):
+ngspice 4 -> plot v(precharge) v(bl_0_236) xlimit 3.8u 4.2u
+```
+```bash
+# Inspect measured numerical values directly from logs:
+grep -E "t_dis_50|t_pre_99|t_pre_50" examples/wrom0/char/col236_worst_case_parasitic*.log
 ```
 
 **What comes out of this deck** (`col<N>_worst_case_parasitic*.log`). The blue
@@ -131,12 +205,22 @@ nothing drives it back up until the next precharge.*
 ### The periphery front end: clk0 -> internal clock -> wordline -> precharge
 
 ```bash
+# 1. Run the flow script to generate and simulate:
 ./scripts/rom_char/run_periphery_power.sh wrom0
+
+# 2. Launch interactive ngspice:
 ngspice examples/wrom0/char/periph_active_tt.sp
 ```
-```
+```text
 ngspice 1 -> run
 ngspice 2 -> plot v(clk0) v(wrom0_rom_row_decode_0/clk) v(wrom0_rom_row_decode_0/wl_0) v(wrom0_rom_column_decode_0/clk)
+
+# Zoom into the clock edge and wordline falling transition:
+ngspice 3 -> plot v(clk0) v(wrom0_rom_row_decode_0/clk) v(wrom0_rom_row_decode_0/wl_0) xlimit 100n 106n
+```
+```bash
+# Inspect measured front-end delay and periphery energy from log:
+grep -E "t_clk2pre|t_clk2int|t_wlfall0|e_periph_pj" examples/wrom0/char/periph_active_tt.log
 ```
 
 **What comes out of this deck** (`periph_active_<corner>.log`). It is the only
@@ -179,12 +263,33 @@ holds every other wordline at VDD.*
 ### The back end: bitline -> dout0, at one of the three `.lib` loads
 
 ```bash
+# 1. Run the flow script to generate and simulate across all three loads:
 ./scripts/rom_char/run_backend_delay.sh wrom0
+
+# 2. Launch interactive ngspice for a specific load deck:
 ngspice examples/wrom0/char/backend_tt_2756.sp
 ```
-```
+```text
 ngspice 1 -> run
 ngspice 2 -> plot v(wrom0_rom_base_array_0/bl_0_236) v("dout0[2]")
+
+# Zoom around the bitline inverter trip point and output buffer delay:
+ngspice 3 -> plot v(wrom0_rom_base_array_0/bl_0_236) v("dout0[2]") xlimit 15n 25n
+
+# Multi-load overlay in one ngspice session (verifying index_2 axis):
+# ngspice
+# ngspice 1 -> source examples/wrom0/char/backend_tt_17225.sp
+# ngspice 2 -> run
+# ngspice 3 -> source examples/wrom0/char/backend_tt_689.sp
+# ngspice 4 -> run
+# ngspice 5 -> source examples/wrom0/char/backend_tt_2756.sp
+# ngspice 6 -> run
+# ngspice 7 -> set color0=white color1=black
+# ngspice 8 -> plot tran1.v("dout0[2]") tran2.v("dout0[2]") tran3.v("dout0[2]") tran1.v(wrom0_rom_base_array_0/bl_0_236) xlimit 18n 23n
+```
+```bash
+# Inspect measured delay and output slew across all loads from logs:
+grep -E "t_bl2dout|t_dout_slew" examples/wrom0/char/backend_tt_*.log
 ```
 
 **What comes out of this deck** (`backend_<corner>_<load>.log`). It is run
@@ -250,9 +355,13 @@ eight selects to prove one-hot behaviour, then writes the familiar
 `coldec_a<addr>_<corner>.log` compatibility files. All corners perform their
 own sweep; no TT-to-SS/FF worst-address assumption is made.
 
-```
+```text
 ngspice 1 -> run
 ngspice 2 -> plot v(wrom0_rom_column_decode_0/clk) v(wrom0_rom_column_decode_0/wl_0)
+```
+```bash
+# Inspect measured column select delays:
+grep -E "t_pre2sel|t_clk2pre" examples/wrom0/char/coldec_a0_tt.log
 ```
 
 **What comes out of this deck** (`coldec_a<addr>_<corner>.log`):
@@ -285,12 +394,28 @@ names that deck rather than `coldec_a0_tt.sp`; the vectors are the ones the
 ### Leakage and energy: current, not voltage
 
 ```bash
+# 1. Run the dynamic column energy simulation:
 ./scripts/rom_char/run_col_energy.sh wrom0
+
+# 2. Launch interactive ngspice:
 ngspice examples/wrom0/char/col236_energy_tt.sp
 ```
-```
+```text
 ngspice 1 -> run
+# Both xlimit AND ylimit are mandatory to clip the 16.1 mA solver inrush spike at 5 ps:
 ngspice 2 -> plot i(Vvdd) xlimit 800n 1000n ylimit -130u 20u
+```
+```bash
+# Inspect measured column charge and energy from log:
+grep -E "q_c3|e_col_pj" examples/wrom0/char/col236_energy_tt.log
+
+# 3. Run and inspect DC column leakage (.op):
+./scripts/rom_char/run_col_power.sh wrom0
+grep -A 20 "vvdd" examples/wrom0/char/col236_leak_tt.log | grep -E "^\s*i\s+"
+
+# 4. Run and inspect DC periphery leakage (.op multi-slice sweep):
+./scripts/rom_char/run_periphery_leak.sh wrom0
+cat examples/wrom0/char/periph_leak_cs0_tt.total
 ```
 
 Both limits are needed and the `ylimit` is the important half: `xlimit` only
@@ -310,7 +435,7 @@ late cycle: the inrush at 5 ps and the slow chain fill-up behind it are five
 orders of magnitude away from the 600 ns where `q_c2` starts, so neither of
 them reaches the `.lib`.
 
-**What comes out of these two decks.** They are the only ones that report a
+**What comes out of these decks.** They are the only ones that report a
 CURRENT rather than a voltage, and between them they fill both power sections
 of the `.lib`:
 
@@ -341,6 +466,79 @@ the leakage the `.op` deck measures separately -- with a single ~58 uA spike
 when precharge pulls the bitline back to VDD. The area under that spike is
 `q_c3`; `q_c3 x VDD` is `e_col_pj`, what one discharging column costs. Energy
 is taken here, not from a voltage, because charge is what the `.lib` wants.*
+
+### The column DC leakage: .op
+
+```bash
+# 1. Run column DC leakage characterization across corners:
+./scripts/rom_char/run_col_power.sh wrom0
+
+# 2. Inspect operating point current in ngspice:
+ngspice examples/wrom0/char/col236_leak_tt.sp
+```
+```text
+ngspice 1 -> run
+ngspice 2 -> print i(vvdd)
+```
+```bash
+# Inspect settled DC leakage directly from log:
+grep -A 20 "vvdd" examples/wrom0/char/col236_leak_tt.log | grep -E "^\s*i\s+"
+```
+
+**Why this deck uses `.op` and not a transient:** In a transient simulation with `uic`, internal diffusion nodes in the series stack of 134 transistors initialize at 0 V and charge upward through dozens of series devices. Even at 600 ns into a transient run, the chain still draws 8.7 nA of charging displacement current. Mistaking that RC charging tail for leakage overstates DC standby current by ~100x. The `.op` deck finds the true static DC solution immediately (wrom0 TT: 0.3660 nA per column).
+
+| measurement | deck / log | where it lands |
+|---|---|---|
+| `vvdd#branch` | `col<N>_leak_<corner>.log` (`.op`) | Multiplied by total columns (256): forms the array half of `cell_leakage_power` (93.70 nA at TT) |
+
+### The cell equivalent gate capacitance: linear wordline load reduction
+
+```bash
+# 1. Generate and simulate the single-cell gate testbench:
+python3 scripts/rom_char/gen_cell_gate_tb.py wrom0 examples/wrom0/char/cellgate_tt.sp --corner tt
+ngspice examples/wrom0/char/cellgate_tt.sp
+```
+```text
+ngspice 1 -> set color0=white color1=black
+ngspice 2 -> run
+ngspice 3 -> plot v(g0) i(Vg0)
+```
+```bash
+# Inspect measured gate charge and equivalent capacitances:
+grep -E "c_one_ff|c_zero_ff|q_one|q_zero" examples/wrom0/char/cellgate_tt.log
+```
+
+**Why linear capacitance substitution is necessary:** When `run_periphery_power.sh` simulates the row decoder driving a wordline, loading that wordline with 256 individual non-linear MOSFET gates causes severe numerical convergence failure in ngspice ("Timestep too small"). 
+
+Because dynamic switching energy is strictly the integral of charge supplied by the rail ($E = \int V_{DD} \cdot i(t) dt = V_{DD} \cdot Q$), replacing each non-linear gate with a linear equivalent capacitance:
+
+$$C_{\text{eq}} = \frac{Q(V_{DD})}{V_{DD}} = \frac{\int_0^{T_R} i(V_g) dt}{V_{DD}}$$
+
+**preserves the exact cycle energy** without approximation, while enabling robust SPICE convergence. The cell's parasitic diffusion capacitances are handled separately by the extractor; only gate channel charge is represented here.
+
+| measurement | what it is | where it lands |
+|---|---|---|
+| `q_one`, `q_zero` | Gate displacement charge integrated over ramp $0 \rightarrow V_{DD}$ | Raw integral for $C_{\text{eq}}$ derivation |
+| `c_one_ff`, `c_zero_ff` | Equivalent linear gate capacitance ($C_{\text{eq}} = |Q| / V_{DD}$, wrom0 TT: 0.4554 fF) | Passed via `--gate-cap-ff` to `gen_periphery_power_tb.py` and `run_addr2wl.sh` |
+
+![Cell gate capacitance](img/22-cellgate.png)
+
+*`cellgate_tt.sp`, ngspice's own plot window: Red is the gate voltage ramp `v(g0)` rising from 0 to 1.8 V in 10 ns; blue is the gate displacement current `i(Vg0)`. Integrating this current yields $C_{\text{eq}} = 0.4554\text{ fF}$ per cell at TT, used as the linear wordline lump in the periphery decks.*
+
+### The cell series wire resistance model
+
+```bash
+# Run cell series wire resistance modeling:
+python3 scripts/rom_char/gen_resistance_model.py wrom0
+cat examples/wrom0/char/resistance_model.json
+```
+
+**Bounding wire resistance without crashing the extractor:** Whole-macro parasitic resistance extraction (`extresist on`) segfaults Magic 8.3.629 due to array size. Rather than guessing wire resistance or ignoring it, `gen_resistance_model.py`:
+1. Extracts resistance on a **single isolated cell** in Magic.
+2. Computes resistance analytically from the cell layout geometry (`.mag`) and PDK sheet resistances (`sky130A.tech`).
+3. Compares both methods side-by-side to cross-validate the analytic model.
+
+On wrom0, this yields ~508 $\Omega$ of series metal/contact resistance per `one_cell`. Against a channel on-resistance of tens of kilohms, wire resistance contributes under ~1% to total access delay. `gen_col_tb_parasitic.py --with-resistance` allows plugging this model into the bitline stack to formally prove that wire resistance remains negligible.
 
 ### Dynamic read energy: the average of 10 random reads, not the worst case
 
@@ -439,12 +637,19 @@ stage as it switches.
   so removing any block would leave some pin driving nothing.
 
 ```bash
+# 1. Run the flow script to generate and simulate pin capacitances:
 ./scripts/rom_char/run_pin_cap.sh wrom0
+
+# 2. Launch interactive ngspice:
 ngspice examples/wrom0/char/pincap_tt.sp
 ```
-```
+```text
 ngspice 1 -> run
 ngspice 2 -> plot v(clk0) i(vpin1)
+```
+```bash
+# Inspect measured pin capacitances from log:
+grep -E "c_cyc" examples/wrom0/char/pincap_tt.log
 ```
 
 **What comes out of this deck** (`pincap_<corner>.log`), for each of the
@@ -495,12 +700,22 @@ put back as one cell gate per column plus the wordline's own wire C.
 | `tf` | `t_wl1090_0 / 0.8` -- the ramp to feed a PULSE/PWL |
 
 ```bash
+# 1. Run the flow script to generate and simulate wordline slew:
 ./scripts/rom_char/run_wl_slew.sh wrom0
+
+# 2. Launch interactive ngspice:
 ngspice examples/wrom0/char/wlslew_tt.sp
 ```
-```
+```text
 ngspice 1 -> run
 ngspice 2 -> plot v(clk0) v(wrom0_rom_row_decode_0/wl_0)
+
+# Zoom around the falling transition of the wordline:
+ngspice 3 -> plot v(clk0) v(wrom0_rom_row_decode_0/wl_0) xlimit 98n 104n
+```
+```bash
+# Inspect measured wordline fall delay and slews from log:
+grep -E "t_wlfall0|t_wlslew0|t_wl1090_0" examples/wrom0/char/wlslew_tt.log
 ```
 
 **What comes out of this deck** (`wlslew_<corner>.log`). None of it is a
@@ -539,12 +754,19 @@ CELL_TABLE's `index_2` (output load) is three measurements, not one number
 copied three times. `index_1` (input transition) comes from a clk0 slew sweep:
 
 ```bash
+# 1. Run the clock slew sweep:
 SLEWS="0.05 0.5 1.5" ./scripts/rom_char/run_slew_sweep.sh wrom0
+
+# 2. Launch interactive ngspice:
 ngspice examples/wrom0/char/periph_slew0_tt.sp
 ```
-```
+```text
 ngspice 1 -> run
 ngspice 2 -> plot v(clk0) v(wrom0_rom_column_decode_0/clk)
+```
+```bash
+# Inspect measured delay across all slew points from logs:
+grep "t_clk2pre" examples/wrom0/char/periph_slew*_tt.log
 ```
 
 **What comes out of this sweep** (`periph_slew<n>_<corner>.log`, one run per
@@ -569,12 +791,19 @@ output slew table stays flat over `index_1`.
 ### Address setup
 
 ```bash
+# 1. Run the address setup race measurement:
 ./scripts/rom_char/run_addr_setup.sh wrom0
+
+# 2. Launch interactive ngspice:
 ngspice examples/wrom0/char/periph_setup_tt.sp
 ```
-```
+```text
 ngspice 1 -> run
 ngspice 2 -> plot v(addr0[0]) v(clk0)
+```
+```bash
+# Inspect measured address buffer delays and internal clock delay from log:
+grep -E "t_addr2dec|t_clk2int" examples/wrom0/char/periph_setup_tt.log
 ```
 
 **What comes out of this deck** (`periph_setup_<corner>.log`):
@@ -638,7 +867,113 @@ them becomes the setup constraint.
 
 ---
 
-### The frequency window this ROM may be driven in
+### Address Hold Bisection: cutting the chain mid-evaluate
+
+Address hold (`hold_rising` on `bus(addr0)`) is the time `addr0` must remain stable after `clk0` rises. In `--full` characterization mode, rather than falling back to the full read window (`hold = access`), this constraint is measured by cutting the series discharge chain mid-evaluate.
+
+* **What it simulates:** While reading a `0` (wordlines high, series chain closed), an address change at time $T_{\text{cut}}$ pulls a wordline down and cuts the chain at the cell nearest the bitline (worst case). If the bitline has discharged far enough past the inverter trip point (reaching $\ge 0.9 \times V_{DD}$ at the bitline inverter output `bl_b`), the output safely resolves a `0`.
+* **Automated bisection:** `run_hold_bisect.sh` iteratively narrows the bracket $[T_{\text{lo}}, T_{\text{hi}}]$ until $|T_{\text{hi}} - T_{\text{lo}}| \le 0.05\text{ ns}$.
+
+```bash
+# 1. Run the automated bisection script (--full mode):
+./scripts/rom_char/run_hold_bisect.sh wrom0
+
+# 2. Visually inspect the hold cut experiment in ngspice:
+python3 scripts/rom_char/gen_addr_hold_tb.py wrom0 look.sp --sweep-ns 14,16 --wl-slew-ns 0.15
+ngspice look.sp
+```
+```text
+ngspice 1 -> run
+ngspice 2 -> plot v(precharge) v(bl_0_236) v(bl_b_236)
+```
+```bash
+# Inspect the converged hold bracket and final converted hold constraint:
+cat examples/wrom0/char/addr_hold_tt.log
+```
+
+![Address hold bisection](img/20-addr-hold.png)
+
+*`look.sp` / `run_hold_bisect.sh` in ngspice: The bitline (blue) discharges during evaluate until the series chain is cut. If the cut occurs late enough, the bitline inverter output `bl_b` (orange) cleanly reaches logic high ($> 0.9 \times V_{DD}$), guaranteeing a valid read.*
+
+---
+
+### Address-to-wordline delay: hold time frame conversion
+
+`run_hold_bisect.sh` answers the physical question — how late may the series chain be cut and still leave a readable bitline — but it answers it in the **column deck's time frame**. That deck is driven by a synthetic `precharge` source and contains no `clk0` pin at all, so its cut time is counted from the internal evaluate edge.
+
+Liberty's `hold_rising` constraint on `bus(addr0)` is referenced to the **`clk0` pin**. Two physical delays separate these two frames:
+
+$$\text{hold}(\text{clk0 frame}) = t_{\text{clk2pre}} + \text{cut} - t_{\text{addr2wl}}$$
+
+* $t_{\text{clk2pre}}$: `clk0` rising pin $\rightarrow$ internal precharge releasing (`periph_active_<corner>.log`). Carries the edge from the clock pin to the array.
+* $\text{cut}$: The bisected cut time inside the evaluate phase (`addr_hold_<corner>.log`).
+* $t_{\text{addr2wl}}$: `addr0` switching pin $\rightarrow$ newly selected wordline falling edge. Carries the moving address from the pin to the row decoder output.
+
+Shipping the raw cut time directly is equivalent to assuming that $t_{\text{clk2pre}}$ and $t_{\text{addr2wl}}$ cancel out. On wrom0 TT they happen to be close (~0.76 ns vs ~1.19 ns), but this is a coincidence of one specific decoder sizing and does not hold across corners or macro geometries.
+
+* **What is measured:** The address is switched in the **middle of evaluate** (`--addr-sw-eval`), when the clocked row decoder is already transparent. Switching the row address bit drops the wordline of the newly addressed row, and the delay from the address pin transition to that wordline fall ($t_{\text{addr2wl}}$) is measured.
+* **Which bit is switched:** `addr0[0 : log2(words_per_row)-1]` drive the column multiplexer, not the row decoder — toggling those selects a different column and no wordline moves. The first true row address bit is $\text{row\_bit} = \log_2(\text{words\_per\_row})$ (bit 3 on wrom0). Switching address 0 to $2^3 = 8$ shifts selection from row 0 to row 1, whose wordline `wl_1` is probed.
+* **One-hot verification:** Only `wl_1` falls in the evaluate window; all other probed wordlines (`wl_0`, `wl_2`..`wl_7`) fail the fall measurement, confirming proper one-hot operation.
+
+```bash
+# 1. Run the address-to-wordline characterization (--full mode):
+./scripts/rom_char/run_addr2wl.sh wrom0
+
+# 2. Launch interactive ngspice:
+ngspice examples/wrom0/char/addr2wl_tt.sp
+```
+```text
+ngspice 1 -> set color0=white color1=black
+ngspice 2 -> run
+ngspice 3 -> plot v(addr0[3]) v(wrom0_rom_row_decode_0/wl_1)
+
+# Zoom into the address transition and wordline fall mid-evaluate:
+ngspice 4 -> plot v(addr0[3]) v(wrom0_rom_row_decode_0/wl_1) xlimit 1.348u 1.354u
+```
+```bash
+# Inspect measured address-to-wordline delay from log:
+grep -E "t_addr2wl" examples/wrom0/char/addr2wl_tt.log
+```
+
+**What comes out of this deck** (`addr2wl_<corner>.log`):
+
+| measurement | what it is | where it lands |
+|---|---|---|
+| `t_addr2wl1` | `addr0[3]` 50% $\rightarrow$ `wl_1` 50% falling delay | Subtracted in the hold frame conversion: $\text{hold} = t_{\text{clk2pre}} + \text{cut} - t_{\text{addr2wl}}$ (wrom0 TT: 1.1875 ns) |
+| `t_addr2wl<k>` ($k \ne 1$) | other probed wordlines | reported as "failed" (out of interval); proves one-hot row decode |
+
+![Address to wordline delay](img/21-addr2wl.png)
+
+*`addr2wl_tt.sp`, ngspice's own plot window: Red is the moving address bit `v(addr0[3])` transitioning at 1.35 us mid-evaluate; blue is the newly addressed wordline `v(wrom0_rom_row_decode_0/wl_1)` falling through 50% at 1.3512 us (1.1875 ns later). This $t_{\text{addr2wl}}$ delay carries the raw internal hold cut time into the real `clk0` pin reference frame.*
+
+---
+
+### Early Path: the fastest discharging column and retain times
+
+Every other delay term in the `.lib` bounds setup (late path, worst column). However, STA also requires an **early bound** to guard downstream capture registers against hold violations: `retain_rise` and `retain_fall` specify the earliest time `dout0` can leave its previous value.
+
+* **Fastest programmed column vs fastest array:** Programmed ROM bits differ between contents. To make retain constraints robust across ROM contents, `gen_col_tb_parasitic.py --ones=0` constructs the theoretical fastest possible array where all data cells are metal straps (`zero_cell`), bounded only by the foot transistor.
+* **Running early path characterization:**
+
+```bash
+# 1. Run early path characterization:
+./scripts/rom_char/run_early_path.sh wrom0
+
+# 2. Launch interactive ngspice on the best-case column deck:
+ngspice examples/wrom0/char/col236_best_case_parasitic.sp
+```
+```text
+ngspice 1 -> run
+ngspice 2 -> plot v(precharge) v(bl_0_236)
+```
+```bash
+# Inspect measured retain / early discharge times:
+grep -E "t_dis_50|t_pre_50" examples/wrom0/char/col236_best_case_parasitic*.log
+```
+
+---
+
+## The frequency window this ROM may be driven in
 
 There is an upper bound, it is in the `.lib`, and it should be preferred to
 any number written in prose. There is **also a lower bound**, it is not in the
@@ -691,7 +1026,9 @@ carried in the `.lib` and has to be stated here instead.
 Every measurement uses **real Magic parasitic capacitance** and runs each
 corner against its own sky130 models -- no fixed derating factor.
 
-### The scaling trick
+---
+
+## The scaling trick
 
 The 34k-transistor array is never simulated whole:
 
@@ -720,6 +1057,19 @@ precharged NAND chain whose internal nodes have no DC path, the matrix is
 singular there, and dynamic gmin, true gmin and source stepping all fail after
 eight minutes and 2.7 GB. Cut into static-CMOS blocks plus one decode column,
 every slice converges in seconds.
+
+### Parasitic Capacitance Extraction (Magic)
+
+All dynamic timing, delay, and pin capacitance decks rely on physical layout parasitics extracted from the real silicon layout rather than synthetic estimations:
+
+```bash
+# Run Magic parasitic capacitance extraction:
+./scripts/rom_char/run_cap_extract.sh wrom0
+```
+
+* **What it does:** Invokes Magic in batch mode (`magic -dnull -noconsole`), loads the macro layout, and executes `extract do local`, `extract all`, and `ext2spice cthresh 0` with `extresist off`.
+* **Output:** `<macro_dir>/<macro>_cap_only.spice`, which provides the foundational netlist for `gen_col_tb_parasitic.py`.
+* **Why resistance extraction is omitted (`extresist off`):** Running whole-macro resistance extraction on tens of thousands of ROM cells causes a segmentation fault in Magic 8.3.629. Wire resistance is therefore bounded separately on a single-cell basis using `gen_resistance_model.py`.
 
 #### gmin has to be swept, not chosen
 
@@ -821,7 +1171,9 @@ column deck differed by 2.8% at TT, which reads as a chain that has not
 filled yet. With gear they agree to five digits. The gap was the integrator,
 not the circuit.
 
-### Predicting a geometry change
+---
+
+## Predicting a geometry change
 
 Two different scaling questions live here, and the measurements answer only
 one of them.

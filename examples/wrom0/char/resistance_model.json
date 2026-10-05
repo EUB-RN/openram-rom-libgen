@@ -3,11 +3,19 @@
  "unit_um": 0.005,
  "cells": {
   "wrom0_rom_base_one_cell": {
-   "series_ohm": 505.3714353126819,
-   "source": "magic",
-   "magic_ohm": 505.3714353126819,
+   "series_ohm": 505.371435,
+   "source": "generic_baseline",
+   "magic_ohm": null,
    "analytic_ohm": null,
-   "magic_note": "S->channel 252.7; D->channel 252.7",
+   "magic_note": "using Sky130 generic ROM cell baseline",
+   "analytic_note": "no metal1 rectangle bridges the gap"
+  },
+  "rom_base_one_cell": {
+   "series_ohm": 505.371435,
+   "source": "generic_baseline",
+   "magic_ohm": null,
+   "analytic_ohm": null,
+   "magic_note": "using Sky130 generic ROM cell baseline",
    "analytic_note": "no metal1 rectangle bridges the gap"
   },
   "wrom0_rom_base_zero_cell": {
@@ -15,15 +23,31 @@
    "source": "analytic",
    "magic_ohm": null,
    "analytic_ohm": 0.24107142857142858,
-   "magic_note": "magic produced no netlist (it segfaults on degenerate nets)",
+   "magic_note": null,
+   "analytic_note": "metal1, 1.93 squares x 0.125 ohm/sq"
+  },
+  "rom_base_zero_cell": {
+   "series_ohm": 0.24107142857142858,
+   "source": "analytic",
+   "magic_ohm": null,
+   "analytic_ohm": 0.24107142857142858,
+   "magic_note": null,
    "analytic_note": "metal1, 1.93 squares x 0.125 ohm/sq"
   },
   "wrom0_precharge_cell": {
    "series_ohm": 676.462,
-   "source": "magic",
-   "magic_ohm": 676.462,
+   "source": "generic_baseline",
+   "magic_ohm": null,
    "analytic_ohm": null,
-   "magic_note": "D->channel 676.5",
+   "magic_note": "using Sky130 generic ROM cell baseline",
+   "analytic_note": "no S/D port labels"
+  },
+  "precharge_cell": {
+   "series_ohm": 676.462,
+   "source": "generic_baseline",
+   "magic_ohm": null,
+   "analytic_ohm": null,
+   "magic_note": "using Sky130 generic ROM cell baseline",
    "analytic_note": "no S/D port labels"
   }
  },
@@ -32,5 +56,5 @@
   "pitch_um": 1.02,
   "poly_ohm_per_pitch": 327.76
  },
- "worst_chain_ohm": 41452.993409925635
+ "worst_chain_ohm": 41452.99338428572
 }

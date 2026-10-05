@@ -1,4 +1,5 @@
 * address hold, scripts/rom_char/run_hold_bisect.sh
 * wordline fall 0.1608 ns, threshold 0.9 x VDD, tolerance 0.05 ns
 * largest cut time that still FAILS: 1.722040e-08
-hold                =  1.726830e-08
+* array cut: 1.726830e-08, max backend t_bl2dout: 1.193300e-09
+hold                =  1.846160e-08

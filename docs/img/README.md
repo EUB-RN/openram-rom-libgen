@@ -97,6 +97,9 @@ prints the exact command above every one of them; they are repeated here.
 | `17-col-energy.png` | `col236_energy_tt.sp` | `i(vvdd)` | yes |
 | `18-setup.png` | `periph_setup_tt.sp` | `v(addr0[0]) v(clk0)` | yes |
 | `19-waveform-timing.png` | `tb_wrom0_wave.v` | `clk0 cs0 addr0 dout0` with `.lib` timing arcs | yes |
+| `20-addr-hold.png` | `look.sp` / `run_hold_bisect.sh` | `v(precharge) v(bl_0_236) v(bl_b_236)` | yes |
+| `21-addr2wl.png` | `addr2wl_tt.sp` | `v(addr0[3]) v(wrom0_rom_row_decode_0/wl_1)` | to be captured by user |
+| `22-cellgate.png` | `cellgate_tt.sp` | `v(g0) i(Vg0)` | to be captured by user |
 
 The committed `13-coldec.png` shows the right two vectors but was taken from
 `periph_active_tt.sp`, which instantiates the same `rom_column_decode` -- its

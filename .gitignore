@@ -49,6 +49,7 @@ user/*
 tmp_cap_fix/
 archive/
 tmp/
+look.sp
 
 # Ignore user-generated ROM deliverables; keep only baseline example macros (wrom*)
 output/lib/*
@@ -60,3 +61,6 @@ output/verilog/*
 !output/verilog/wrom*
 !output/verilog/.gitignore
 !output/verilog/.gitkeep
+
+# Working status / developer notes
+docs/STATUS.md

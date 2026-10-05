@@ -82,6 +82,17 @@ Ordered by how much they can move a number:
    for comparison. The wordline is not affected: the array straps it to metal
    every 8 columns (33 polycont per row, 8.16 um apart), so only ~1.3 kohm of
    poly is ever in series and its RC is in the tens of picoseconds.
+
+   * **Physical Nature of Cell Resistance:**
+     Cells in the ROM array and decoder architectures exhibit two fundamentally different types of resistance:
+     1. **MOSFET Channel Resistance ($R_{channel}$ / $R_{on}$):** Saturated and linear-region channel resistance of the NMOS transistor ($\sim 15\text{--}30\text{ k}\Omega$). Handled natively and accurately by ngspice using the Sky130 BSIM4 device model (`sky130_fd_pr__special_nfet_01v8`).
+     2. **Interconnect & Parasitic Layer Resistance (Wire Resistance):** Strictly wire/interconnect series resistance, *excluding* the active transistor channel:
+        - `one_cell (~505 Ω)`: Series parasitic resistance from external ports (Drain/Source) through Metal1 + Li + Contact + N-Diff ($\sim 120\ \Omega/\Box$ sheet resistance) to the active channel boundary:
+          $$\text{Port D} \xrightarrow{\text{Metal1 + Li + Contact + N-Diff}} \text{Channel} \xrightarrow{\text{Channel}} \text{Channel} \xrightarrow{\text{N-Diff + Contact + Li + Metal1}} \text{Port S}$$
+        - `zero_cell (~0.24 Ω)`: Pure metallic interconnect resistance where Source and Drain are strapped by Metal-1 ($R_{\text{strap}} \approx 1.9\ \Box \times 0.125\ \Omega/\Box \approx 0.24\ \Omega$).
+
+   * **Row Decode Array Gap:**
+     While the bitline discharge deck (`gen_col_tb_parasitic.py`) injects this per-cell series wire resistance model as synthetic resistors (`Rw...`, `Rstrap...`), the periphery deck (`gen_periphery_power_tb.py`) and address-to-wordline deck (`run_addr2wl.sh`) currently consume `*_cap_only.spice` directly. While the BSIM4 transistor channel resistance and parasitic capacitances are present, the series wire resistance (~505 $\Omega$ / ~0.24 $\Omega$) is **not currently injected** into `rom_row_decode_array` cell instances.
 4. **The `index_1` (input slew) axis stops at 0.5 ns.** `run_slew_sweep.sh`
    measures it, but only the front-end term (`t_clk2pre`) depends on the clk0
    edge, so the bitline and back-end terms are reused across the axis and the
@@ -303,3 +314,12 @@ Ordered by how much they can move a number:
     the Liberty and behavioural models. It does **not** substitute for
     physical DRC (Magic) or LVS (Netgen) on the layout. A physically clean
     macro remains a separate sign-off requirement.
+13. **Row decoder is simulated unreduced, causing simulation bottlenecks on large ROM macros.**
+    In `gen_periphery_power_tb.py`, the bitline array (`rom_base_array`) is
+    deleted and replaced with lumped RC loading, but the row decoder
+    (`rom_row_decode`) is kept entirely intact (`KEEP_SUB = {..., rom_row_decode}`).
+    * On small to medium ROMs (e.g. 1k–4kbit, 64–128 rows), periphery characterization completes in reasonable time (3–6 minutes).
+    * On **large ROMs** (e.g. 8k, 16k, 32k, 64k words with 512, 1024, or 2048 rows):
+      * The row decode array scales linearly with the number of rows. For example, a 1024-row ROM with 10 address bits contains **over 10,240 cell instances** in `rom_row_decode_array` alone.
+      * Simulating thousands of unreduced dynamic NAND transistors in ngspice causes simulation runtimes to balloon into hours, drives up peak memory consumption, and introduces timestep convergence issues.
+

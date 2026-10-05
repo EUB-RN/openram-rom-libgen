@@ -2,9 +2,9 @@
 version	1
 stage	hold-bisect
 context	wrom0 ff
-when	2026-09-25T08:28:57Z
+when	2026-10-04T17:15:47Z
 deck	-
 deck_sha	-
-log_sha	d8591172e9c580bedcbc8e01442a3c666aec2e073fef407db22a5cfb5e324be2
+log_sha	d6286d4fee70b1605b8df05ac4f64b4c3fd4684f0f9c94e6238af89ce99bc8e5
 src	/home/hpw/openram-rom-libgen/examples/wrom0/wrom0.sp
 src_sha	bab2cf4cfbc30db63bc8e54b68adf0cfec6bfe0a5559a1d72febca09e34fa192

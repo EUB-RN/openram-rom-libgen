@@ -8,6 +8,8 @@ What has to be installed, what each step of the flow produces, and which script 
 
 ## Requirements
 
+> 📖 **Full toolchain installation, ngspice KLU solver details, Nix environment, and storage cleanup:** See [docs/requirements.md](requirements.md).
+
 * Python 3.10+ (no third-party packages; the CLI uses modern type syntax)
 * **ngspice with KLU** -- every deck selects KLU, and the runner rejects
   KLU-less builds or legacy-SPARSE fallback results

@@ -21,6 +21,7 @@ in this order:
 
 | suite / directory | file | question it answers |
 |---|---|---|
+| `scripts_tests/` | `test_find_worst_column.py` | does worst/best column search handle scoping, zero-columns, determinism, and CLI? |
 | `scripts_tests/` | `test_spice_utils.py` | unit tests for SPICE parser, SI units (`to_float`, `fix_units`, `blocks`), and CLI generator execution |
 | `scripts_tests/` | `test_error_reporting.py` | does a dead, unsettled or *absent* simulation stay loud -- and can a log that this flow did not produce still reach a `.lib`? |
 | `scripts_tests/` | `test_flow_resume.py` | does flow recovery, step skipping, and restart logic operate correctly? |
