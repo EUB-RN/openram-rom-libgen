@@ -451,6 +451,20 @@ SETTLE_MAX_PCT="${SETTLE_MAX_PCT:-1.0}"
 #   exits non-zero. Returns 1 if it did.
 check_settled() {
   _st="$1"; _lg="$2"; _cx="$3"; _gp="$4"; _sp="${5:--}"
+  # A GAP THAT IS NOT A NUMBER IS A FAILURE, NOT A PASS.
+  #
+  # The comparison below is awk arithmetic, and awk reads "", "failed" and
+  # "nan" as 0 -- all three then sit comfortably under the limit and this
+  # function returns "settled". But those are exactly the cases where the
+  # evidence of settling does not exist: the .measure never produced a value,
+  # or ngspice printed `failed`. The guard that stops an unsettled number from
+  # reaching a .lib was being skipped precisely when it was needed, and it
+  # reported nothing on the way past.
+  awk -v g="$_gp" 'BEGIN{ exit !(g ~ /^[ \t]*[-+]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][-+]?[0-9]+)?[ \t]*$/) }' || {
+    ng_fail "$_st" "$_cx" "$_sp" "$_lg" "0 (the deck ran clean)" \
+            "NO SETTLING EVIDENCE -- the convergence gap came back as '${_gp}' instead of a number, so nothing proves this run reached steady state. Treating it as settled would ship a startup transient."
+    return 1
+  }
   awk -v g="$_gp" -v m="$SETTLE_MAX_PCT" 'BEGIN{exit !(g+0 > m+0)}' || return 0
   ng_fail "$_st" "$_cx" "$_sp" "$_lg" "0 (the deck ran clean)" \
           "NOT SETTLED -- the last two cycles differ by ${_gp}% (limit ${SETTLE_MAX_PCT}%). ngspice reports nothing wrong; the number is a startup transient, not the steady state. Raise --cycles and re-run; do not ship this value."

@@ -133,7 +133,12 @@ for m in $MACROS; do
       step_rc=$?
       set -e
       if [ $step_rc -eq 0 ]; then
-        if [ $iter -gt 1 ]; then
+        # Two different exits share status 0: a real convergence and a stop at
+        # the iteration cap. Saying "settled" for both is how an unsettled
+        # capacitance used to be reported as a settled one.
+        if [ "$step_out" = "MAX_ITER" ]; then
+          echo "  $m $c: pin settling hit the ${PIN_MAX_ITER}-iteration cap -- the last capacitance is accepted but is NOT converged (see the warning above)."
+        elif [ $iter -gt 1 ]; then
           echo "  $m $c: all pins settled within ${PIN_GAP_THRESH}% quota at iteration $iter."
         fi
         break

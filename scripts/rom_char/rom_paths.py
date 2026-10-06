@@ -237,7 +237,7 @@ def geometry(macro, explicit=None, use_cache=True, quiet=False):
     # The stamp carries a schema version, so a cache written by an earlier
     # key set is refreshed instead of silently answering without the keys the
     # caller expects.
-    stamp = "v2:%d:%d" % (st.st_mtime_ns, st.st_size)
+    stamp = "v3:%d:%d" % (st.st_mtime_ns, st.st_size)
 
     cache = _cache_path(macro, explicit)
     if use_cache and os.path.exists(cache):
@@ -258,6 +258,23 @@ def geometry(macro, explicit=None, use_cache=True, quiet=False):
     word_size, wpr = _config_sizes(macro, explicit)
     addr_bits, data_bits = _lef_widths(macro, explicit)
 
+    # words_per_row USED TO COME ONLY FROM THE OpenRAM CONFIG, and a macro
+    # without one reported 0. Consumers then fell back to 1 -- most visibly
+    # gen_random_read_energy, which computes `row = addr // wpr`, so with
+    # wpr=1 every sampled read is attributed to the wrong row and the active
+    # energy is modelled against rows the access never touched. No warning:
+    # the number just comes out wrong.
+    #
+    # The array itself knows the answer. words_per_row is columns / word
+    # width, both derived here already, and that is the same identity the
+    # config cross-check below asserts. On every macro in this repository the
+    # derived value equals the config's. The config still wins when present,
+    # so nothing that has one changes.
+    wpr_source = "config"
+    if not wpr and data_bits and cols % data_bits == 0:
+        wpr = cols // data_bits
+        wpr_source = "netlist/LEF"
+
     # Cross-check config against netlist -- a loud warning beats silent
     # mis-scaling. The netlist wins.
     if word_size and wpr and not quiet:
@@ -271,12 +288,30 @@ def geometry(macro, explicit=None, use_cache=True, quiet=False):
               "address space will have holes (word index != address)."
               % (name, wpr), file=sys.stderr)
 
+    # The .bin is byte-packed -- data_bits/8 bytes per word, the invariant
+    # gen_wave_tb.write_mem enforces. Dividing by data_bits//8 without
+    # checking it raised ZeroDivisionError below 8 bits and, above it,
+    # silently floored the bytes per word: a 12-bit macro reported one byte
+    # per word and so claimed 8/12 of the real word count.
+    if data_bits and data_bits % 8:
+        raise SystemExit("ERROR %s: the LEF declares dout0 as %d bits. The "
+                         ".bin holds whole bytes per word, so the data bus "
+                         "must be a multiple of 8 -- the word count cannot "
+                         "be derived from this one." % (name, data_bits))
+
     words = 0
     binf1 = os.path.join(md, "rom_configs", name + ".bin")
     binf2 = os.path.join(md, name + ".bin")
     binf = binf1 if os.path.exists(binf1) else (binf2 if os.path.exists(binf2) else binf1)
     if data_bits and os.path.exists(binf):
-        words = os.path.getsize(binf) // (data_bits // 8)
+        nbytes = data_bits // 8
+        size = os.path.getsize(binf)
+        if size % nbytes:
+            raise SystemExit("ERROR %s: %s is %d bytes, which is not a whole "
+                             "number of %d-bit words -- the .bin and the LEF "
+                             "disagree about the macro."
+                             % (name, os.path.basename(binf), size, data_bits))
+        words = size // nbytes
 
     data = {
         "_stamp": stamp,
@@ -296,6 +331,9 @@ def geometry(macro, explicit=None, use_cache=True, quiet=False):
         "best_chain": mn,
         "word_size": word_size or 0,
         "words_per_row": wpr or 0,
+        # Which of the two sources answered, so a consumer that cares can say
+        # so in its report instead of presenting a derived value as declared.
+        "words_per_row_source": wpr_source if wpr else "unknown",
         "addr_bits": addr_bits,
         "data_bits": data_bits,
         "words": words,

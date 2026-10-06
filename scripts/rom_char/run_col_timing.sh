@@ -34,7 +34,17 @@ export NGSPICE_BIN="$NG"
 # into the same failure every other unsettled deck gets.
 col_settled() {
   _d=$(meas "$3" t_dis_50); _p=$(meas "$3" t_dis_50_prev)
-  [ -n "$_d" ] && [ -n "$_p" ] || return 0
+  # A MISSING MEASUREMENT IS NOT A SETTLED DECK. This used to `return 0` --
+  # the same answer as "proved settled" -- without printing anything, so a
+  # deck whose t_dis_50_prev never got measured passed the one check that
+  # exists to prove the bitline term reached steady state. That term IS the
+  # access time. Every other site in the flow reports a missing measurement;
+  # this one was silent.
+  if [ -z "$_d" ] || [ -z "$_p" ]; then
+    ng_fail "col-timing" "$1 $2" "$4" "$3" "0 (the deck ran clean)" \
+      "NO SETTLING EVIDENCE -- t_dis_50=${_d:-<absent>} t_dis_50_prev=${_p:-<absent>}; without both there is nothing to compare, so this deck cannot be shown to have reached steady state."
+    return 1
+  fi
   _g=$(awk -v a="$_d" -v b="$_p" 'BEGIN{ d=(a-b); if (d<0) d=-d;
          printf "%.2f", a ? d/a*100 : 0 }')
   check_settled "col-timing" "$3" "$1 $2" "$_g" "$4" || true

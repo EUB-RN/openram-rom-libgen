@@ -205,15 +205,28 @@ def main():
         sys.stdout.write("CONVERGED\n")
         sys.exit(0)
 
-    # Check max iterations guard
+    # Check max iterations guard.
+    #
+    # Stopping at the iteration cap is NOT convergence, and it used to say so
+    # only in an [INFO] line on stderr while printing the same "CONVERGED"
+    # token as a real success -- so run_pin_cap.sh went on to report "all pins
+    # settled within the quota". A capacitance that never settled was being
+    # announced as one that did. The token now says which of the two happened;
+    # the exit status stays 0, because accepting the current value IS the
+    # intended behaviour at the cap.
     if args.max_iter > 0 and args.iteration >= args.max_iter:
-        sys.stderr.write(f"\n[INFO] Pin settling reached maximum iterations ({args.max_iter}). Accepting current characterization.\n")
+        _names = ", ".join(sorted(p["name"] for p in unsettled))
+        sys.stderr.write(
+            f"\n[WARNING] Pin settling hit the iteration cap ({args.max_iter}) "
+            f"with {len(unsettled)} pin(s) still above the {args.thresh:.2f}% "
+            f"gap: {_names}. The last measured capacitance is accepted as-is; "
+            f"it is not a converged value.\n")
         if os.path.isfile(state_file):
             try:
                 os.remove(state_file)
             except Exception:
                 pass
-        sys.stdout.write("CONVERGED\n")
+        sys.stdout.write("MAX_ITER\n")
         sys.exit(0)
 
     # Build updated map

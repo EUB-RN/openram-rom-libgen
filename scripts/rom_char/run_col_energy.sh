@@ -118,8 +118,14 @@ for m in $(macro_list "$@"); do
     lg="$G_CHAR/${G_COLTAG}_energy_${c}.log"
     q2=$(meas "$lg" q_c2)
     q3=$(meas "$lg" q_c3)
-    if [ -z "$q3" ]; then
-      printf "%-7s %-6s %12s\n" "$m" "$c" "FAILED"; continue
+    # q2 is guarded as well as q3: the gap below is |q2-q3|/q3, and an empty
+    # q2 made awk read the single remaining field as $1 with $2 empty, so the
+    # gap came out "0.00" -- a perfect convergence computed from one number.
+    if [ -z "$q3" ] || [ -z "$q2" ]; then
+      printf "%-7s %-6s %12s\n" "$m" "$c" "FAILED"
+      ng_fail "col-energy" "$m $c" "$sp" "$lg" "0 (the deck ran clean)" \
+        "MISSING CHARGE MEASUREMENT -- q_c2=${q2:-<absent>} q_c3=${q3:-<absent>}; the per-column energy and its convergence gap both come from these two."
+      continue
     fi
     # The c2/c3 gap is DATA, not a remark: check_settled decides on it below,
     # exactly as run_periphery_power.sh does with the same quantity. Two

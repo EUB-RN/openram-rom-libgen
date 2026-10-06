@@ -112,7 +112,22 @@ def address_space(geom, rows):
     addressable as far as anything here can tell, so fall back to that and say
     so in the report.
     """
-    wpr = geom["words_per_row"] or 1
+    wpr = geom["words_per_row"]
+    if not wpr:
+        # `row = addr // wpr` decides WHICH ROW each sampled read discharges,
+        # and the per-row zero_cell count is the entire energy model. A silent
+        # fallback to 1 made every read land on row == address: a model built
+        # on rows the access never touches, reported as a measurement.
+        # rom_paths derives words_per_row from columns/word-width when the
+        # OpenRAM config is absent, so reaching here means neither source
+        # could answer.
+        raise SystemExit(
+            "ERROR: %s: words_per_row is unknown (no OpenRAM config, and "
+            "columns (%d) / data bits (%d) is not a whole number). Every "
+            "sampled read is mapped to its row with it, so the energy model "
+            "cannot be built without it."
+            % (geom.get("macro", "?"), geom.get("cols", 0),
+               geom.get("data_bits", 0)))
     words = geom["words"]
     if words:
         return words, wpr, True

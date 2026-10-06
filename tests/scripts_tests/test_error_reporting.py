@@ -251,6 +251,68 @@ def check_settling():
     if "ctx1 ctx2" not in out:
         bad.append("the unsettled report does not carry the context "
                    "(macro/corner/state), so it does not say WHICH run to redo")
+
+    # A GAP THAT IS NOT A NUMBER MUST FAIL, NOT PASS.
+    #
+    # The comparison inside check_settled is awk arithmetic, and awk reads
+    # "", "failed" and "nan" as 0 -- each then sat below the limit and came
+    # back "settled". Those are exactly the cases where the evidence of
+    # settling does not exist: the .measure never produced a value, or
+    # ngspice printed `failed` for it. The one guard that stops a startup
+    # transient from reaching a .lib was being skipped precisely when it was
+    # needed, and said nothing on the way past.
+    for gap, what in (("", "absent (the .measure never produced one)"),
+                      ("failed", "ngspice's own `failed` marker"),
+                      ("nan", "a non-finite result"),
+                      ("1nan", "a number with trailing junk")):
+        out = case(gap)
+        if "RC=1" not in out:
+            bad.append("a convergence gap that is %s was treated as SETTLED "
+                       "(gap=%r). awk reads it as 0, which is under every "
+                       "limit -- so the check passes exactly when it has "
+                       "nothing to check" % (what, gap))
+        if "SUM=1" not in out:
+            bad.append("ng_summary returned 0 after a missing settling gap "
+                       "(%r), so the run would still exit zero" % gap)
+        if "NO SETTLING EVIDENCE" not in out:
+            bad.append("the report for a missing settling gap (%r) does not "
+                       "say the evidence is absent" % gap)
+
+    # ...while every legitimate numeric form still passes.
+    for gap in ("0", "0.00", ".25", "1e-3", "  0.3  "):
+        out = case(gap)
+        if "RC=0" not in out:
+            bad.append("a valid numeric gap %r was rejected -- the numeric "
+                       "guard is too strict and would fail good runs" % gap)
+    return bad
+
+
+def check_settling_call_sites_require_evidence():
+    """Every caller must refuse to skip the proof when the numbers are absent.
+
+    check_settled defending itself is not enough: a caller that returns
+    "settled" BEFORE calling it reaches the same wrong answer. Two did.
+
+      * run_col_timing.sh measured t_dis_50 / t_dis_50_prev and, if either
+        was missing, returned 0 -- the same value as "proved settled" --
+        silently. That term is the bitline discharge, i.e. the access time.
+      * run_col_energy.sh guarded q_c3 but not q_c2, so an absent q_c2 left
+        awk computing the gap from one number and reporting 0.00%.
+    """
+    bad = []
+    timing = open(os.path.join(CHAR, "run_col_timing.sh")).read()
+    if "ng_fail" not in timing:
+        bad.append("run_col_timing.sh never calls ng_fail -- a column deck "
+                   "with no t_dis_50_prev goes back to being silently "
+                   "'settled'")
+    if "|| return 0" in timing:
+        bad.append("run_col_timing.sh still answers 'settled' by falling "
+                   "through on a missing measurement")
+
+    energy = open(os.path.join(CHAR, "run_col_energy.sh")).read()
+    if '[ -z "$q2" ]' not in energy:
+        bad.append("run_col_energy.sh does not guard q_c2; the convergence "
+                   "gap would be computed from q_c3 alone and come out 0.00%")
     return bad
 
 
@@ -441,13 +503,15 @@ def main():
         else:
             print("  ok   every ngspice call goes through run_ng")
 
-        wired = check_settling_is_wired() + check_settling()
+        wired = (check_settling_is_wired() + check_settling()
+                 + check_settling_call_sites_require_evidence())
         for b in wired:
             print("  FAIL [settling gate] %s" % b)
         if wired:
             rc = 1
         else:
-            print("  ok   an unsettled deck fails the run, at a 1% limit")
+            print("  ok   an unsettled deck fails the run at a 1% limit, and "
+                  "so does one with no settling evidence at all")
 
         prv = check_provenance_is_wired() + check_provenance(tmp)
         for b in prv:

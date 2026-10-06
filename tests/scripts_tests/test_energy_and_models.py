@@ -34,10 +34,25 @@ class EnergyTests(unittest.TestCase):
         self.assertAlmostEqual(energy.meas(log, "e"), 1.25e-3)
 
     def test_address_space_prefers_exact_bin_word_count_and_has_array_fallback(self):
+        """The .bin word count wins; without one the whole array is addressable."""
         self.assertEqual(energy.address_space({"words_per_row": 8, "words": 13}, 2),
                          (13, 8, True))
-        self.assertEqual(energy.address_space({"words_per_row": 0, "words": 0}, 3),
-                         (3, 1, False))
+        self.assertEqual(energy.address_space({"words_per_row": 8, "words": 0}, 3),
+                         (24, 8, False))
+
+    def test_address_space_refuses_an_unknown_words_per_row(self):
+        """`row = addr // words_per_row` is what maps a read to the row it
+        discharges, and the per-row zero_cell count is the whole energy model.
+
+        This used to fall back to 1, which maps every read to row == address
+        -- a model built on rows the access never touches, reported as a
+        measurement. rom_paths now derives words_per_row from columns/word
+        width when the OpenRAM config is absent, so reaching this point means
+        neither source could answer and there is nothing to fall back to.
+        """
+        with self.assertRaises(SystemExit) as cm:
+            energy.address_space({"words_per_row": 0, "words": 0}, 3)
+        self.assertIn("words_per_row is unknown", str(cm.exception))
 
     def test_sampling_is_reproducible_and_uses_row_activity(self):
         char = self.root / "char"

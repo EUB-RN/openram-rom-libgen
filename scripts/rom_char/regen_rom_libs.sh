@@ -487,7 +487,15 @@ for m in $(macro_list "$@"); do
       fi
     done
     if [ -n "$missing" ]; then
+      # RC=1, for the reason the exit at the bottom of this file states: a
+      # skipped corner leaves its .lib either absent or at whatever an
+      # EARLIER run wrote, and the second is a file somebody ships believing
+      # it came from this run. The provenance refusal above has always set
+      # RC; this path had the same consequence and exited 0.
       echo "$m $c: missing measurement ($missing) -- skipped"
+      [ -f "$LIB_DIR/${m}_${corner}.lib" ] && \
+        echo "        $LIB_DIR/${m}_${corner}.lib is from an EARLIER run -- do not ship it"
+      RC=1
       continue
     fi
 

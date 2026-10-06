@@ -37,13 +37,43 @@ PARAMS = {
     "ss": dict(vdd=1.6, temp=100, tag="SS_1p6V_100C"),
     "ff": dict(vdd=1.95, temp=-40, tag="FF_1p95V_n40C"),
 }
+if CORNER not in PARAMS:
+    sys.exit("unknown corner %r -- this script derives %s from the TT deck; "
+             "TT is the source, not a target."
+             % (CORNER, "/".join(PARAMS)))
 p = PARAMS[CORNER]
 
+if not os.path.exists(SRC):
+    sys.exit("no TT deck at %s -- run gen_col_tb_parasitic.py %s first"
+             % (SRC, MACRO))
+
 text = open(SRC).read()
-text = re.sub(r"(\.lib\s+\S+sky130\.lib\.spice)\s+tt", rf"\1 {CORNER}", text)
-text = re.sub(r"\.param VDD=1\.8", f".param VDD={p['vdd']}", text)
+
+# EVERY SUBSTITUTION IS CHECKED.
+#
+# This file produces the SS and FF column decks by rewriting three things in
+# the TT one. A regex that matches nothing does not fail -- re.sub returns the
+# input unchanged -- so a TT deck written even slightly differently (`.param
+# VDD = 1.8` with spaces, say) used to yield a deck still carrying the TT
+# models or the TT voltage, saved under an _ss name, while this script printed
+# "VDD=1.6, temp=100C, lib=ss". The corner's whole .lib column would then come
+# from a TT simulation and nothing anywhere would say so.
+def sub_once(pattern, repl, label, src):
+    out, n = re.subn(pattern, repl, src)
+    if n == 0:
+        sys.exit("%s: nothing in %s matched the %s pattern (%s). The deck "
+                 "format has changed; this script would otherwise have "
+                 "written a %s deck that is still TT."
+                 % (os.path.basename(SRC), SRC, label, pattern, CORNER.upper()))
+    return out
+
+text = sub_once(r"(\.lib\s+\S+sky130\.lib\.spice)\s+tt", rf"\1 {CORNER}",
+                "model-library corner selector", text)
+text = sub_once(r"\.param\s+VDD\s*=\s*1\.8\b", f".param VDD={p['vdd']}",
+                "supply voltage", text)
 if ".temp" not in text:
-    text = text.replace(".param VDD=", f".temp {p['temp']}\n.param VDD=", 1)
+    text = sub_once(r"\.param\s+VDD\s*=", f".temp {p['temp']}\n.param VDD=",
+                    "temperature insertion point", text)
 
 OUT = SRC.replace(".sp", f"_{CORNER}.sp")
 open(OUT, "w").write(text)
