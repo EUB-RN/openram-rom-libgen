@@ -47,52 +47,81 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
-INST_RE = re.compile(r"^Xbit_r(\d+)_c(\d+)\s*$")
+# SPICE is case-insensitive and leading whitespace is not significant, so the
+# scanner tolerates both. The nodes may sit on the instance line itself or on
+# the '+' continuations that follow it; OpenRAM uses the latter, hand-edited
+# and third-party netlists use the former, and the sub-circuit name is the
+# last token of the joined card either way.
+INST_RE = re.compile(r"^Xbit_r(\d+)_c(\d+)\b(.*)$", re.IGNORECASE)
+SUBCKT_RE = re.compile(r"^\.subckt\s+(\S+)", re.IGNORECASE)
+ENDS_RE = re.compile(r"^\.ends\b", re.IGNORECASE)
+
+ARRAY_SCOPE_SUFFIX = "_rom_base_array"
 
 
-def analyse(sp_path):
-    """Return (rows, cols, worst_col, chain, average, minimum)."""
-    with open(sp_path) as fh:
-        lines = fh.read().split("\n")
+def array_cells(sp_path):
+    """Yield (row, col, subckt_name) for every cell in the ROM base array.
 
-    one = collections.Counter()
-    rows, cols = set(), set()
-    # CAREFUL: the name `Xbit_r<r>_c<c>` appears in THREE different
-    # sub-circuits -- the main array, the row decoder array and the column
-    # decoder array. Without scoping, decoder cells get counted too; the
-    # contamination lands only on low column numbers, so both the chain length
-    # AND THE CHOICE OF WORST COLUMN come out wrong (confirmed on wrom1/wrom2
-    # on 2026-09-08: the column picked was not the real worst one, which made
-    # the .lib optimistic). Hence only `*_rom_base_array` is counted.
+    CAREFUL: the name `Xbit_r<r>_c<c>` appears in THREE different
+    sub-circuits -- the main array, the row decoder array and the column
+    decoder array. Without scoping, decoder cells get counted too; the
+    contamination lands only on low column numbers, so both the chain length
+    AND THE CHOICE OF WORST COLUMN come out wrong (confirmed on wrom1/wrom2
+    on 2026-09-08: the column picked was not the real worst one, which made
+    the .lib optimistic). Hence only `*_rom_base_array` is yielded, and
+    `.ends` closes the scope so that anything after the array is not
+    attributed to it.
+
+    `subckt_name` is None when the instance carries no resolvable cell type.
+    """
+    with open(sp_path, errors="replace") as fh:
+        lines = [ln.strip() for ln in fh.read().split("\n")]
+
     cur_subckt = None
     i = 0
     while i < len(lines):
-        if lines[i].startswith(".SUBCKT "):
-            cur_subckt = lines[i].split()[1]
-        m = INST_RE.match(lines[i])
-        if not m or not (cur_subckt or "").endswith("_rom_base_array"):
+        line = lines[i]
+        m_sub = SUBCKT_RE.match(line)
+        if m_sub:
+            cur_subckt = m_sub.group(1)
+        elif ENDS_RE.match(line):
+            cur_subckt = None
+        m = INST_RE.match(line)
+        if not m or not (cur_subckt or "").endswith(ARRAY_SCOPE_SUFFIX):
             i += 1
             continue
-        rows.add(int(m.group(1)))
-        col = int(m.group(2))
-        cols.add(col)
-        one.setdefault(col, 0)
-        # the instance body is on the continuation lines; the sub-circuit name
-        # is the last token
+        buf = [m.group(3)]
         j = i + 1
-        buf = []
         while j < len(lines) and lines[j].startswith("+"):
             buf.append(lines[j][1:])
             j += 1
-        if buf:
-            subckt = " ".join(buf).split()[-1]
-            if subckt.endswith("one_cell"):
-                one[col] += 1
+        body = " ".join(buf).split()
+        yield int(m.group(1)), int(m.group(2)), (body[-1] if body else None)
         i = j
+
+
+def analyse(sp_path):
+    """Return (rows, cols, worst_col, chain, average, minimum, best_col)."""
+    one = collections.Counter()
+    rows, cols = set(), set()
+    for row, col, subckt in array_cells(sp_path):
+        rows.add(row)
+        cols.add(col)
+        one.setdefault(col, 0)
+        if subckt and subckt.endswith("one_cell"):
+            one[col] += 1
 
     if not cols:
         return None
-    worst_col, chain = one.most_common(1)[0]
+    # Tie-break on the column INDEX, not on the order the cells happened to
+    # appear in the file. Counter.most_common() returns insertion order for
+    # equal counts, so a netlist regenerated with its array emitted in a
+    # different order could pick a different -- equally worst, but different
+    # -- column, and every number in the .lib would move for no physical
+    # reason. rom_256b has a five-way tie at the maximum, so this is not
+    # hypothetical. `best_col` has always ordered this way; now both do.
+    worst_col = max(one, key=lambda c: (one[c], -c))
+    chain = one[worst_col]
     # The BEST column matters as much as the worst one now: the worst column
     # bounds the late path (access, setup) and the best column bounds the
     # EARLY path (the retain times -- how soon dout0 can start moving). A .lib
@@ -115,37 +144,15 @@ def row_zero_counts(sp_path):
     so it opens the series chain and that bitline stays at VDD. So the charge
     drawn on the next precharge is set by the number of zero_cells in the
     SELECTED ROW, which is what this returns.
-
-    The same `*_rom_base_array` scoping rule as `analyse` applies, and for the
-    same reason: `Xbit_r<r>_c<c>` names are reused by the row and column
-    decoder arrays, and counting those would contaminate the low rows.
     """
-    with open(sp_path) as fh:
-        lines = fh.read().split("\n")
-
     zero = collections.Counter()
     rows, cols = set(), set()
-    cur_subckt = None
-    i = 0
-    while i < len(lines):
-        if lines[i].startswith(".SUBCKT "):
-            cur_subckt = lines[i].split()[1]
-        m = INST_RE.match(lines[i])
-        if not m or not (cur_subckt or "").endswith("_rom_base_array"):
-            i += 1
-            continue
-        row = int(m.group(1))
+    for row, col, subckt in array_cells(sp_path):
         rows.add(row)
-        cols.add(int(m.group(2)))
+        cols.add(col)
         zero.setdefault(row, 0)
-        j = i + 1
-        buf = []
-        while j < len(lines) and lines[j].startswith("+"):
-            buf.append(lines[j][1:])
-            j += 1
-        if buf and " ".join(buf).split()[-1].endswith("zero_cell"):
+        if subckt and subckt.endswith("zero_cell"):
             zero[row] += 1
-        i = j
 
     if not rows:
         return None

@@ -184,7 +184,13 @@ if not os.path.exists(SP):
 
 from spice_utils import blocks, fix_units, to_float
 
-B = blocks(SP)
+try:
+    B = blocks(SP)
+except ValueError as exc:
+    # The parser rejects structurally broken netlists (duplicate or unnamed
+    # .subckt, unterminated group) rather than returning a smaller circuit.
+    # Surface that as this script's own error, not as a traceback.
+    sys.exit(f"ERROR: cannot parse {SP}: {exc}")
 TOP = M
 ARRAY = f"{M}_rom_base_array"
 for need in (TOP, ARRAY):

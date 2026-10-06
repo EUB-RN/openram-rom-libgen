@@ -42,6 +42,37 @@ EXPECTED = {
     "broken_rail_undeclared.lib":   "has no voltage_map entry",
     "broken_related_power_pin.lib": "is not a power pg_pin",
     "broken_related_pg_pin.lib":    "is not a supply pg_pin",
+
+    # the declaration layer: a library/template/type header that is itself
+    # wrong. These fail EARLY, and everything downstream of them then fails
+    # for a second, misleading reason -- so each is matched on the first
+    # message, the one that names the actual defect.
+    "broken_library_no_delay_model.lib": "library has no delay_model",
+    "broken_library_no_cell.lib":        "library contains no cell",
+    "broken_template_no_name.lib":       "lu_table_template with no name",
+    "broken_template_no_index1.lib":     "T: no index_1",
+    "broken_bit_width_not_int.lib":      "bit_width is missing or not an integer",
+
+    # the pin layer
+    "broken_pin_no_direction.lib":       "no direction",
+    "broken_pin_bad_direction.lib":      "is not input/output/inout",
+    "broken_bus_no_type.lib":            "no bus_type",
+    "broken_max_cap_not_a_number.lib":   "capacitance is not a number",
+
+    # the power/ground chain, continued: a pg_pin that is itself incomplete,
+    # and a cell left with no power rail at all
+    "broken_pg_no_type.lib":             "no pg_type",
+    "broken_pg_no_voltage_name.lib":     "no voltage_name",
+    "broken_no_power_pg_pin.lib":        "no pg_pin of a power type",
+
+    # the timing layer
+    "broken_timing_no_related_pin.lib":  "with no related_pin",
+    "broken_table_no_values.lib":        "has no values()",
+    # A duplicate arc is the one defect here that a reader would not see: the
+    # file is valid Liberty, every table is well formed, and the parser takes
+    # whichever of the two it meets last. Half the macro's timing can be
+    # replaced this way without a single syntax complaint.
+    "broken_duplicate_timing_arc.lib":   "a second timing(rising_edge) against clk",
 }
 
 

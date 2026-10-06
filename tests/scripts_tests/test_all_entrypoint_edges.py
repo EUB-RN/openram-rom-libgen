@@ -129,6 +129,34 @@ class AllEntrypointEdges(unittest.TestCase):
                           "--settle-max-cycles", "6", "--pin-cap")
         self.assert_clean_failure(result, "only supported by the normal")
 
+    def test_generators_report_a_malformed_netlist_without_a_traceback(self):
+        """A structurally broken extracted netlist must fail like an error,
+        not like a crash.
+
+        The SPICE parser now REJECTS a duplicate `.subckt` instead of merging
+        the two bodies. That turned a silent corruption into an exception --
+        which is only an improvement if the scripts that call it still exit
+        with a readable message, so both call sites are asserted here.
+        """
+        broken = ".subckt dup a\nR1 a 0 1k\n.ends\n.subckt dup a\nR2 a 0 2k\n.ends\n"
+        md = self.macros / "badnet"
+        md.mkdir()
+        (md / "badnet.sp").write_text(broken)
+        (md / "badnet_cap_only.spice").write_text(broken)
+
+        for script, args in (
+            ("gen_periphery_power_tb.py",
+             ("badnet", "0", str(self.root / "o.sp"))),
+            ("gen_backend_delay_tb.py",
+             ("badnet", "0", str(self.root / "o.sp"),
+              "--bl-wave", str(md / "badnet.sp"))),
+        ):
+            with self.subTest(script=script):
+                result = self.run_script(script, *args,
+                                         "--macros-dir", str(self.macros))
+                self.assert_clean_failure(result, "cannot parse")
+                self.assertIn("duplicate .subckt", result.stdout + result.stderr)
+
     def test_rom_explore_rejects_empty_netlist(self):
         md = self.macros / "empty"
         md.mkdir()

@@ -196,6 +196,197 @@ class TestBlocksParser(unittest.TestCase):
                 os.remove(tmp_path)
 
 
+class TestToFloatSpiceSuffixEdges(unittest.TestCase):
+    """The SPICE suffix grammar beyond the five suffixes originally handled.
+
+    A netlist that is not OpenRAM's own output -- a user macro in `user/`, a
+    hand-written stimulus, a third-party extractor -- is free to use any of
+    these. Each case below used to raise, which at least was loud; the two
+    that matter are 'meg' and the bare unit letter, because getting them
+    wrong silently would be a 1e9 error in a device size.
+    """
+
+    def test_meg_is_mega_not_milli(self):
+        """'m' is milli and 'meg' is mega. Confusing them is a 1e9 error."""
+        self.assertAlmostEqual(to_float("1meg"), 1e6)
+        self.assertAlmostEqual(to_float("1MEG"), 1e6)
+        self.assertAlmostEqual(to_float("2.5Meg"), 2.5e6)
+        self.assertAlmostEqual(to_float("1m"), 1e-3)
+
+    def test_mil_is_thousandth_of_an_inch(self):
+        self.assertAlmostEqual(to_float("1mil"), 25.4e-6)
+        self.assertAlmostEqual(to_float("2MIL"), 50.8e-6)
+
+    def test_extended_scale_suffixes(self):
+        self.assertAlmostEqual(to_float("1a"), 1e-18)
+        self.assertAlmostEqual(to_float("3g"), 3e9)
+        self.assertAlmostEqual(to_float("1T"), 1e12)
+
+    def test_trailing_unit_name_is_ignored(self):
+        """'1.5pF' is 1.5e-12, exactly as SPICE reads it."""
+        self.assertAlmostEqual(to_float("1.5pF"), 1.5e-12)
+        self.assertAlmostEqual(to_float("2.5V"), 2.5)
+        self.assertAlmostEqual(to_float("50ohm"), 50.0)
+        self.assertAlmostEqual(to_float("10ns"), 10e-9)
+        self.assertAlmostEqual(to_float("2e3Hz"), 2000.0)
+
+    def test_scale_prefix_wins_over_unit_name_on_the_same_letter(self):
+        """'1f' is a femto-unit, NOT one farad; '1m' is milli, not one metre.
+
+        Both letters are also unit names. Reading them as units would turn a
+        1 fF parasitic into 1 F -- fifteen orders of magnitude, and the
+        simulation would still run.
+        """
+        self.assertAlmostEqual(to_float("1f"), 1e-15)
+        self.assertAlmostEqual(to_float("1m"), 1e-3)
+        self.assertAlmostEqual(to_float("1.5e-12f"), 1.5e-27)
+
+    def test_unknown_trailing_word_still_raises(self):
+        """Tolerating units must not become tolerating typos."""
+        for tok in ("1.5pZ", "1e", "10xyz", "5q"):
+            with self.assertRaises(ValueError, msg=tok):
+                to_float(tok)
+
+    def test_malformed_numbers_raise(self):
+        for tok in (".", "+-1", "", "e-9", "1.2.3"):
+            with self.assertRaises(ValueError, msg=tok):
+                to_float(tok)
+
+
+class TestFixUnitsCaseEdges(unittest.TestCase):
+    """Attribute names must be matched case-insensitively.
+
+    This is the one defect in this module that could not have been caught
+    downstream: `W=1E-6` left unscaled is read by ngspice as 1e-6 MICRONS --
+    a picometre-wide transistor. The deck simulates, converges, and produces
+    a number that goes straight into a .lib.
+    """
+
+    def test_uppercase_attributes_are_scaled(self):
+        out = fix_units("M1 d g s b nfet W=1E-6 L=0.15E-6")
+        self.assertIn("W=1", out)
+        self.assertIn("L=0.15", out)
+        self.assertNotIn("1E-6", out)
+
+    def test_mixed_case_area_and_perimeter(self):
+        out = fix_units("M1 d g s b nfet AD=2e-13 As=2e-13 PD=3e-6 ps=3e-6")
+        self.assertIn("AD=0.2u", out)
+        self.assertIn("As=0.2u", out)
+        self.assertIn("PD=3", out)
+        self.assertIn("ps=3", out)
+
+    def test_suffixed_values_are_scaled(self):
+        out = fix_units("M1 d g s b nfet w=0.42u l=0.15u")
+        self.assertIn("w=0.42", out)
+        self.assertIn("l=0.15", out)
+
+    def test_embedded_attribute_names_untouched(self):
+        """`nw=` is not `w=`; a word-boundary slip would corrupt the device."""
+        line = "X1 a b sub nw=5e-6 sl=1e-6"
+        self.assertEqual(fix_units(line), line)
+
+
+class TestBlocksStructuralDefects(unittest.TestCase):
+    """Structural defects must raise, not silently return a smaller netlist.
+
+    Each case below used to parse "successfully" into something that was not
+    the file's contents. A generator fed the result would have emitted a deck
+    for a circuit that does not exist, and every check after that point --
+    Liberty structure, ROM semantics, OpenSTA -- would have passed on it.
+    """
+
+    def test_leading_whitespace_is_not_significant(self):
+        """An indented netlist used to parse to {} -- no error, no content."""
+        text = """
+          .subckt foo a b
+            M1 a b 0 0 nfet w=1e-6 l=0.15e-6
+          +   m=2
+          .ends
+        """
+        got = blocks_from_lines(text.splitlines())
+        self.assertEqual(list(got), ["foo"])
+        self.assertEqual(len(got["foo"]), 2)
+        self.assertIn("m=2", got["foo"][1])
+
+    def test_duplicate_subckt_name_raises(self):
+        """Two definitions used to be MERGED into one impossible circuit."""
+        text = ".subckt dup a\nR1 a 0 1k\n.ends\n.subckt dup a\nR2 a 0 2k\n.ends\n"
+        with self.assertRaises(ValueError) as cm:
+            blocks_from_lines(text.splitlines())
+        self.assertIn("duplicate", str(cm.exception).lower())
+        self.assertIn(":4:", str(cm.exception))
+
+    def test_unnamed_subckt_raises(self):
+        """'.subckt' with no name used to swallow its whole body."""
+        text = ".subckt good a\nR1 a 0 1k\n.ends\n.subckt\nR2 c d 2k\n.ends\n"
+        with self.assertRaises(ValueError) as cm:
+            blocks_from_lines(text.splitlines())
+        self.assertIn("no name", str(cm.exception))
+
+    def test_nested_subckt_raises(self):
+        text = ".subckt outer a\n.subckt inner b\nR1 b 0 1k\n.ends\n.ends\n"
+        with self.assertRaises(ValueError) as cm:
+            blocks_from_lines(text.splitlines())
+        self.assertIn("nested", str(cm.exception).lower())
+
+    def test_orphan_continuation_raises(self):
+        text = "+ nothing to continue\n.subckt s1 a\nR1 a 0 1k\n.ends\n"
+        with self.assertRaises(ValueError) as cm:
+            blocks_from_lines(text.splitlines())
+        self.assertIn("continuation", str(cm.exception).lower())
+
+    def test_ends_outside_subckt_raises(self):
+        with self.assertRaises(ValueError) as cm:
+            blocks_from_lines(["R1 a 0 1k", ".ends"])
+        self.assertIn(".ends outside", str(cm.exception))
+
+    def test_unterminated_subckt_raises(self):
+        with self.assertRaises(ValueError) as cm:
+            blocks_from_lines([".subckt s1 a", "R1 a 0 1k"])
+        self.assertIn("never closed", str(cm.exception))
+
+    def test_error_message_names_the_source_and_line(self):
+        """A parse failure on a 237k-line extracted netlist is useless
+        without a line number."""
+        with tempfile.NamedTemporaryFile("w", suffix=".sp", delete=False) as fh:
+            fh.write(".subckt a x\n.ends\n.subckt a x\n.ends\n")
+            path = fh.name
+        try:
+            with self.assertRaises(ValueError) as cm:
+                blocks(path)
+            self.assertIn(path, str(cm.exception))
+            self.assertIn(":3:", str(cm.exception))
+        finally:
+            os.remove(path)
+
+    def test_top_level_cards_outside_any_subckt_are_dropped(self):
+        """Documented behaviour: only subcircuits are collected."""
+        text = ".include models.sp\n.param vdd=1.8\n.subckt s1 a\nR1 a 0 1k\n.ends\n"
+        got = blocks_from_lines(text.splitlines())
+        self.assertEqual(list(got), ["s1"])
+
+    def test_real_repository_netlists_still_parse(self):
+        """The strictness must not reject what the flow actually consumes.
+
+        Every netlist and extracted parasitic file in the repository goes
+        through the parser here, so a future tightening that would have
+        broken the real inputs fails in this suite rather than in a run.
+        """
+        import glob
+        files = sorted(
+            glob.glob(os.path.join(REPO, "examples", "*", "*.sp"))
+            + glob.glob(os.path.join(REPO, "examples", "*", "*.spice"))
+            + glob.glob(os.path.join(REPO, "smoke_test", "*", "*.sp"))
+            + glob.glob(os.path.join(REPO, "smoke_test", "*", "*.spice"))
+        )
+        if not files:
+            self.skipTest("no example netlists in this checkout")
+        for path in files:
+            with self.subTest(netlist=os.path.basename(path)):
+                got = blocks(path)
+                self.assertGreater(len(got), 0, "parsed to nothing")
+
+
 class TestScriptBodyCliExecution(unittest.TestCase):
     """Demonstrates and verifies testing scripts whose logic lives in the top-level script body.
 

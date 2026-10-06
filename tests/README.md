@@ -14,15 +14,16 @@ run — a file that does not parse never leaves the generator.
 
 ## The suites
 
-There are three suites and 19 checks. `tests/run_tests.sh` always runs them
+There are three suites and 20 checks. `tests/run_tests.sh` always runs them
 in this order:
 
 | suite / directory | file | question it answers |
 |---|---|---|
+| `scripts_tests/` | `test_all_entrypoint_edges.py` | does every active script have an assigned failure/edge contract, and does each reject bad input cleanly (no traceback)? |
 | `scripts_tests/` | `test_coldec_sweep.py` | does the one-transient column decoder sweep correctly measure one-hot select delays across addresses? |
 | `scripts_tests/` | `test_energy_and_models.py` | do energy helpers and generated model values remain consistent? |
-| `scripts_tests/` | `test_find_worst_column.py` | does worst/best column search handle scoping, zero-columns, determinism, and CLI? |
-| `scripts_tests/` | `test_spice_utils.py` | unit tests for SPICE parser, SI units (`to_float`, `fix_units`, `blocks`), and CLI generator execution |
+| `scripts_tests/` | `test_find_worst_column.py` | does worst/best column search handle scoping, zero-columns, netlist formatting (case, indentation, inline nodes), index-ordered tie-breaking, and CLI? |
+| `scripts_tests/` | `test_spice_utils.py` | unit tests for the SPICE parser, the full SI/engineering suffix grammar (`meg` vs `m`, trailing unit names), case-insensitive `w/l/ad/as` scaling, and the structural defects (`blocks`) that must raise rather than silently shrink the netlist |
 | `scripts_tests/` | `test_error_reporting.py` | does a dead, unsettled or *absent* simulation stay loud -- and can a log that this flow did not produce still reach a `.lib`? |
 | `scripts_tests/` | `test_flow_resume.py` | does flow recovery, step skipping, and restart logic operate correctly? |
 | `scripts_tests/` | `test_periph_settle.py` | does periphery energy use relative/noise-floor convergence, does ngspice stop/resume one transient, and is the final decision wired into production provenance? |
@@ -32,7 +33,7 @@ in this order:
 | `scripts_tests/` | `test_rom_paths.py` | does macro discovery and pre-flight validation resolve inputs correctly? |
 | `scripts_tests/` | `test_script_syntax.py` | do production Python scripts compile? |
 | `scripts_tests/` | `test_wave_and_lib_helpers.py` | do waveform and Liberty helper functions produce consistent data? |
-| `lib_tests/` | `test_checker.py` | does the checker still catch the 15 defects in `lib_tests/fixtures/`? |
+| `lib_tests/` | `test_checker.py` | does the checker still catch the 30 defects in `lib_tests/fixtures/`? |
 | `lib_tests/` | `check_lib.py` | is this valid Liberty? |
 | `lib_tests/` | `test_rom_lib.py` | does it say what this macro actually does (timing arcs, constraints, corners)? |
 | `lib_tests/` | `read_liberty.tcl` | does OpenSTA accept the generated `.lib` files? |
@@ -56,7 +57,20 @@ three-entry `index_1`, a `related_pin` naming a pin that does not exist, an
 `index_2` that runs backwards, and so on. `test_checker.py` asserts the valid
 one passes and that each broken one is rejected *for the right reason*, matched
 on the message, so a check that starts firing for some unrelated reason still
-counts as a failure.
+counts as a failure. A `broken_*.lib` with no entry in `EXPECTED` is itself a
+failure, so a fixture cannot be added without being asserted.
+
+The fixtures cover the declaration layer (a library missing `delay_model` or
+any cell, a template with no name or no `index_1`, a `bit_width` that is not
+an integer), the pin layer (a missing or invalid `direction`, a bus with no
+`bus_type`, a capacitance that is not a number), the full power/ground chain
+(`voltage_map` → `pg_pin` → `related_power_pin`/`related_pg_pin`, plus a cell
+left with no power rail at all) and the timing layer. The last of those is
+worth naming: `broken_duplicate_timing_arc.lib` is *valid* Liberty with every
+table well formed, and declares the same `rising_edge` arc against `clk`
+twice. A parser takes whichever it meets last, so half a macro's timing can be
+replaced this way without a single syntax complaint — which is why the checker
+reports it and this fixture pins that.
 
 The flow guard also runs `test_flow_resume.py`. It uses temporary macro trees
 and fake stage executables to test failure followed by restart with changed

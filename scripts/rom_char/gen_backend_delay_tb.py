@@ -82,8 +82,16 @@ if not os.path.exists(SP):
 
 from spice_utils import blocks, fix_units, to_float
 
-B = blocks(SP)
+try:
+    B = blocks(SP)
+except ValueError as exc:
+    # The parser rejects structurally broken netlists (duplicate or unnamed
+    # .subckt, unterminated group) rather than returning a smaller circuit.
+    # Surface that as this script's own error, not as a traceback.
+    sys.exit(f"ERROR: cannot parse {SP}: {exc}")
 TOP = M
+if TOP not in B:
+    sys.exit(f"ERROR: no .subckt {TOP} in {SP}")
 top_lines = B[TOP]
 top_ports = top_lines[0].split()[2:]
 top_insts = [l for l in top_lines if l.startswith("X")]
