@@ -362,18 +362,57 @@ def check_cell(cell, templates, report, lib):
     known = pin_names(cell)
     power, ground = collect_rails(lib, cell, report)
 
-    if cell.attr("area") is None:
+    area = cell.attr("area")
+    if area is None:
         report.warn(cell.line, "%s: no area" % name)
+    else:
+        # A floorplanner sizes the block from this number. Zero is not a tiny
+        # macro, it is a missing or unparsed SIZE that reached the .lib.
+        try:
+            if float(area) <= 0:
+                report.error(cell.attr_line("area"),
+                             "%s: area is %s -- a cell cannot occupy zero or "
+                             "negative area" % (name, area))
+        except ValueError:
+            report.error(cell.attr_line("area"),
+                         "%s: area %r is not a number" % (name, area))
 
-    # declared bus types, for the width cross-check below
+    # declared bus types, for the width and RANGE cross-checks below
     types = {}
+    type_range = {}
     for t in lib.find("type") + cell.find("type"):
-        if t.args:
-            try:
-                types[t.args[0]] = int(t.attr("bit_width"))
-            except (TypeError, ValueError):
-                report.error(t.line, "type %s: bit_width is missing or not an "
-                             "integer" % t.args[0])
+        if not t.args:
+            continue
+        tname = t.args[0]
+        try:
+            bw = int(t.attr("bit_width"))
+        except (TypeError, ValueError):
+            report.error(t.line, "type %s: bit_width is missing or not an "
+                         "integer" % tname)
+            continue
+        if bw < 1:
+            # Reached here from a LEF with no output bus: bit_width 0 and
+            # bit_from -1 describe a bus with no bits, and every arc that
+            # should have been on it is simply absent.
+            report.error(t.attr_line("bit_width"),
+                         "type %s: bit_width is %d -- a bus needs at least "
+                         "one bit" % (tname, bw))
+            continue
+        types[tname] = bw
+        # bit_from/bit_to were never read. They are what names the pins, so a
+        # type whose range disagrees with its own width describes a bus that
+        # cannot be addressed.
+        try:
+            bf, bt = int(t.attr("bit_from")), int(t.attr("bit_to"))
+        except (TypeError, ValueError):
+            continue
+        if abs(bf - bt) + 1 != bw:
+            report.error(t.attr_line("bit_from"),
+                         "type %s: bit_from %d / bit_to %d spans %d bit(s) "
+                         "but bit_width says %d"
+                         % (tname, bf, bt, abs(bf - bt) + 1, bw))
+        else:
+            type_range[tname] = (bf, bt)
 
     for lp in cell.find("leakage_power"):
         check_pg_refs(lp, power, ground, report, "%s leakage_power" % name)
@@ -420,6 +459,19 @@ def check_cell(cell, templates, report, lib):
                                      "type %s declares %d"
                                      % (name, bname, a, b, abs(a - b) + 1,
                                         btype, width))
+                    elif (btype in type_range
+                          and (a, b) != type_range[btype]):
+                        # Same COUNT, different RANGE: pin(addr0[4:1]) under a
+                        # type declaring bit_from 3 / bit_to 0. The widths
+                        # agree, so the check above is satisfied, and the .lib
+                        # goes on to name four pins the macro does not have.
+                        report.error(pin.line,
+                                     "%s/%s: pin slice [%d:%d] does not match "
+                                     "type %s, which declares bit_from %d / "
+                                     "bit_to %d"
+                                     % (name, bname, a, b, btype,
+                                        type_range[btype][0],
+                                        type_range[btype][1]))
                 except ValueError:
                     report.error(pin.line, "%s/%s: cannot read the bus slice %r"
                                  % (name, bname, label))

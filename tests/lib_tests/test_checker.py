@@ -73,6 +73,16 @@ EXPECTED = {
     # whichever of the two it meets last. Half the macro's timing can be
     # replaced this way without a single syntax complaint.
     "broken_duplicate_timing_arc.lib":   "a second timing(rising_edge) against clk",
+
+    # the bus GEOMETRY: a type whose width, range and pin slice must all agree.
+    # Each of these came out of a malformed LEF, and all three used to reach a
+    # .lib that check_lib accepted -- the width-only slice check passes when
+    # the count is right and the range is not.
+    "broken_bit_width_zero.lib":         "a bus needs at least one bit",
+    "broken_bit_range_span.lib":         "but bit_width says",
+    "broken_bus_slice_range.lib":        "does not match type word",
+    "broken_zero_area.lib":              "cannot occupy zero or negative area",
+    "broken_area_not_a_number.lib":      "is not a number",
 }
 
 

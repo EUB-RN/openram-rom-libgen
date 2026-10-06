@@ -90,15 +90,30 @@ END demo
             gen_rom_lib.parse_lef(lef)
 
     def test_group_buses_sorts_indices_and_keeps_scalars(self):
-        pins = {"addr0[10]": {"direction": "input"},
-                "addr0[2]": {"direction": "input"},
+        """Pin order in the LEF is arbitrary; the bus must come out ordered."""
+        pins = {"addr0[2]": {"direction": "input"},
+                "addr0[0]": {"direction": "input"},
                 "addr0[1]": {"direction": "input"},
                 "clk0": {"direction": "input"},
                 "dout0[0]": {"direction": "output"}}
         buses, scalars = gen_rom_lib.group_buses(pins)
-        self.assertEqual(buses["addr0"], {"direction": "input", "bits": [1, 2, 10]})
+        self.assertEqual(buses["addr0"], {"direction": "input", "bits": [0, 1, 2]})
         self.assertEqual(buses["dout0"], {"direction": "output", "bits": [0]})
         self.assertEqual(scalars, {"clk0": {"direction": "input"}})
+
+    def test_group_buses_rejects_a_sparse_bus(self):
+        """`bit_width` is written as len(bits) while the pin slice is written
+        as bits[-1]:bits[0]. A sparse bus makes those disagree, so the .lib
+        names pins the macro does not have. This used to be accepted.
+
+        The full set of LEF shapes lives in test_gen_rom_lib_lef.py; this
+        pins the helper itself, which other callers use directly.
+        """
+        pins = {"addr0[10]": {"direction": "input"},
+                "addr0[2]": {"direction": "input"},
+                "addr0[1]": {"direction": "input"}}
+        with self.assertRaisesRegex(SystemExit, "dense range"):
+            gen_rom_lib.group_buses(pins)
 
     def test_three_requires_exactly_three_values_or_expands_scalar(self):
         self.assertEqual(gen_rom_lib._three("1.0", "--x"), [1.0, 1.0, 1.0])

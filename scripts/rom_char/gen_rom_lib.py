@@ -117,17 +117,37 @@ def parse_lef(path):
     if not m:
         sys.exit("no SIZE found in the LEF: %s" % path)
     width, height = float(m.group(1)), float(m.group(2))
+    # area goes into the .lib as `area :` and a floorplanner sizes the block
+    # from it. Zero is not a small macro, it is a missing SIZE line that
+    # happened to parse -- and it reaches the tool as a cell occupying nothing.
+    if width <= 0 or height <= 0:
+        sys.exit("LEF SIZE is %g BY %g in %s -- a macro cannot have zero area"
+                 % (width, height, path))
 
     pins = OrderedDict()
+    no_direction = []
     pat = re.compile(r"^\s*PIN\s+(\S+)(.*?)^\s*END\s+\1\s*$", re.M | re.S)
     for pm in pat.finditer(text):
         pname, body = pm.group(1), pm.group(2)
         dm = re.search(r"DIRECTION\s+(\w+)", body)
         um = re.search(r"USE\s+(\w+)", body)
+        # DIRECTION used to default to "input" when the LEF did not say.
+        # That is not a conservative default: the data bus is picked out as
+        # "the output bus", so a dout0 with no DIRECTION became an INPUT, the
+        # cell was left with no output at all, and every timing arc on the
+        # data silently disappeared from the .lib.
+        if not dm:
+            no_direction.append(pname)
+            continue
         pins[pname] = {
-            "direction": dm.group(1).lower() if dm else "input",
+            "direction": dm.group(1).lower(),
             "use": um.group(1).lower() if um else None,
         }
+    if no_direction:
+        sys.exit("LEF pins with no DIRECTION in %s: %s -- Liberty needs the "
+                 "direction of every pin and guessing it silently moves pins "
+                 "between the address and the data bus"
+                 % (path, ", ".join(no_direction)))
 
     return name, width, height, pins
 
@@ -145,8 +165,22 @@ def group_buses(pins):
             b["bits"].append(idx)
         else:
             scalars[pname] = info
-    for b in buses.values():
+    for bname, b in buses.items():
         b["bits"].sort()
+        bits = b["bits"]
+        # Every consumer of this dictionary assumes the bus is the dense range
+        # [n-1:0]: `bit_width` is written as len(bits) while the pin slice is
+        # written as bits[-1]:bits[0]. A gap or a non-zero start makes those
+        # two disagree, and the .lib then declares pins the macro does not
+        # have (or omits ones it does) -- with a gap at the TOP the two
+        # happen to stay consistent and nothing downstream notices at all.
+        if bits[0] != 0 or bits[-1] != len(bits) - 1:
+            missing = sorted(set(range(bits[0], bits[-1] + 1)) - set(bits))
+            sys.exit("LEF bus %s has indices %s -- expected the dense range "
+                     "[%d:0]%s. Liberty names the bus by its range, so a "
+                     "sparse or offset bus writes pins that do not exist."
+                     % (bname, bits, len(bits) - 1,
+                        " (missing %s)" % missing if missing else ""))
     return buses, scalars
 
 
@@ -1319,8 +1353,24 @@ def main():
     name, width, height, pins = parse_lef(args.lef)
     area = width * height
     buses, scalars = group_buses(pins)
+
+    # This generator does not read clk0 out of the LEF -- it WRITES a pin(clk0)
+    # unconditionally, because every timing arc it emits is related to it. A
+    # LEF without clk0 therefore produced a .lib declaring a clock the layout
+    # does not have, and nothing downstream could tell: the arcs all resolve,
+    # so check_lib and OpenSTA both accept it.
+    if "clk0" not in pins:
+        sys.exit("ERROR: %s has no PIN clk0. Every timing arc this generator "
+                 "writes is related to clk0; without it the .lib would declare "
+                 "a clock pin the macro does not have." % args.lef)
+    if not [b for b, i in buses.items() if i["direction"] == "output"]:
+        sys.exit("ERROR: %s has no output bus. A ROM with no data bus would "
+                 "get a .lib with bit_width 0 and no timing arcs at all."
+                 % args.lef)
+
     # Deliverables go to $ROM_OUT_DIR/lib by default, not next to the macro.
     outdir = args.outdir or rom_paths.lib_dir()
+    os.makedirs(outdir, exist_ok=True)
     corners = args.corner or list(CORNERS)
 
     print("macro    : %s" % name)
