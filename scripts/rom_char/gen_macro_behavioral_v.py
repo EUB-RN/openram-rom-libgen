@@ -250,10 +250,27 @@ def read_geometry(macro_dir, macro):
         addr_bits = len(re.findall(r"^\s*PIN addr0\[", lt, re.M))
         data_bits = len(re.findall(r"^\s*PIN dout0\[", lt, re.M))
 
+    # The .bin is byte-packed: width/8 bytes per word, the same invariant
+    # gen_wave_tb.write_mem enforces. A width that is not a positive multiple
+    # of 8 used to divide by zero below 8 bits (a traceback) and, above it,
+    # silently floor the bytes-per-word -- a 12-bit macro reported 32 words
+    # for a file holding 21 and a third, and the model carried that.
+    if data_bits and data_bits % 8:
+        sys.exit("%s: dout0 is %d bits. The .bin holds whole bytes per word, "
+                 "so the data bus must be a positive multiple of 8 -- the "
+                 "word count cannot be derived from this one."
+                 % (macro, data_bits))
+
     words = 0
     binf = os.path.join(macro_dir, "rom_configs", macro + ".bin")
     if data_bits and os.path.exists(binf):
-        words = os.path.getsize(binf) // (data_bits // 8)
+        nbytes = data_bits // 8
+        size = os.path.getsize(binf)
+        if size % nbytes:
+            sys.exit("%s: %s is %d bytes, which is not a whole number of "
+                     "%d-bit words. The .bin and the LEF disagree about the "
+                     "macro." % (macro, os.path.basename(binf), size, data_bits))
+        words = size // nbytes
 
     # words_per_row = column count / word width. The column count is taken from
     # the netlist (the same source as find_worst_column.py).
@@ -652,14 +669,30 @@ def main():
         # access and erasing dout0 at the edge, which is the disagreement
         # with the .lib this reader exists to close. A .lib old enough to
         # lack them is a .lib to regenerate.
-        missing = [n for n, v in (("access", access), ("t_pre", t_pre),
-                                  ("setup", setup), ("min_pulse_width(rise)", mpw_high),
-                                  ("falling_edge cell_rise", t_fall))
-                   if v is None]
+        _required = (("access", access), ("t_pre", t_pre),
+                     ("setup", setup), ("min_pulse_width(rise)", mpw_high),
+                     ("falling_edge cell_rise", t_fall))
+        missing = [n for n, v in _required if v is None]
         if missing:
             print("%-7s WARNING: could not read %s from %s -- the .lib may not "
                   "exist yet. SKIPPED."
                   % (macro, ",".join(missing), libname), file=sys.stderr)
+            rc = 1
+            continue
+        # A value that is PRESENT and zero is worse than a missing one: it
+        # reads as a successful parse, and a model with ACCESS_NS 0 declares
+        # the data valid the instant clk0 rises -- a testbench against it
+        # passes every read. None of these terms can physically be zero
+        # (setup excepted: a genuinely zero setup is a measurement, not a
+        # failure), so a zero here is a .lib written from a simulation that
+        # did not settle.
+        _nonzero = [n for n, v in _required
+                    if n != "setup" and v is not None and v <= 0]
+        if _nonzero:
+            print("%-7s WARNING: %s read as zero or negative from %s -- a .lib "
+                  "term that cannot physically be zero. The model would "
+                  "declare the read valid immediately. SKIPPED."
+                  % (macro, ",".join(_nonzero), libname), file=sys.stderr)
             rc = 1
             continue
         if not (words and width and addr_bits):
